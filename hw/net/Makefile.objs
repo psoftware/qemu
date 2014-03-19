@@ -30,8 +30,9 @@ obj-$(CONFIG_MILKYMIST) += milkymist-minimac2.o
 obj-$(CONFIG_PSERIES) += spapr_llan.o
 obj-$(CONFIG_XILINX_ETHLITE) += xilinx_ethlite.o
 
-obj-$(CONFIG_VIRTIO) += virtio-net.o
+obj-$(CONFIG_VIRTIO) += virtio-net.o virtio-mpi.o
 obj-y += vhost_net.o
+obj-y += vhost_mpi.o
 
 obj-$(CONFIG_ETSEC) += fsl_etsec/etsec.o fsl_etsec/registers.o \
 			fsl_etsec/rings.o fsl_etsec/miim.o
