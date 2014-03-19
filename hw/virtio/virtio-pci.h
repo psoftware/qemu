@@ -37,6 +37,7 @@ typedef struct VirtIOSCSIPCI VirtIOSCSIPCI;
 typedef struct VirtIOBalloonPCI VirtIOBalloonPCI;
 typedef struct VirtIOSerialPCI VirtIOSerialPCI;
 typedef struct VirtIONetPCI VirtIONetPCI;
+typedef struct VirtIOMpiPCI VirtIOMpiPCI;
 typedef struct VHostSCSIPCI VHostSCSIPCI;
 typedef struct VirtIORngPCI VirtIORngPCI;
 
@@ -168,6 +169,18 @@ struct VirtIOSerialPCI {
 struct VirtIONetPCI {
     VirtIOPCIProxy parent_obj;
     VirtIONet vdev;
+};
+
+/*
+ * virtio-mpi-pci: This extends VirtioPCIProxy.
+ */
+#define TYPE_VIRTIO_MPI_PCI "virtio-mpi-pci"
+#define VIRTIO_MPI_PCI(obj) \
+        OBJECT_CHECK(VirtIOMpiPCI, (obj), TYPE_VIRTIO_MPI_PCI)
+
+struct VirtIOMpiPCI {
+    VirtIOPCIProxy parent_obj;
+    VirtIOMpi vdev;
 };
 
 /*

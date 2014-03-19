@@ -20,6 +20,7 @@
 #include "hw/virtio/virtio.h"
 #include "hw/virtio/virtio-blk.h"
 #include "hw/virtio/virtio-net.h"
+#include "hw/virtio/virtio-mpi.h"
 #include "hw/virtio/virtio-serial.h"
 #include "hw/virtio/virtio-scsi.h"
 #include "hw/virtio/virtio-balloon.h"
@@ -1470,6 +1471,57 @@ static const TypeInfo virtio_net_pci_info = {
     .class_init    = virtio_net_pci_class_init,
 };
 
+
+/* virtio-mpi-pci */
+
+static Property virtio_mpi_properties[] = {
+    DEFINE_VIRTIO_MPI_FEATURES(VirtIOPCIProxy, host_features),
+    DEFINE_PROP_END_OF_LIST(),
+};
+
+static int virtio_mpi_pci_init(VirtIOPCIProxy *vpci_dev)
+{
+    VirtIOMpiPCI *dev = VIRTIO_MPI_PCI(vpci_dev);
+    DeviceState *vdev = DEVICE(&dev->vdev);
+
+    qdev_set_parent_bus(vdev, BUS(&vpci_dev->bus));
+    if (qdev_init(vdev) < 0) {
+        return -1;
+    }
+    return 0;
+}
+
+static void virtio_mpi_pci_class_init(ObjectClass *klass, void *data)
+{
+    DeviceClass *dc = DEVICE_CLASS(klass);
+    PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
+    VirtioPCIClass *vpciklass = VIRTIO_PCI_CLASS(klass);
+
+    k->vendor_id = PCI_VENDOR_ID_REDHAT_QUMRANET;
+    k->device_id = PCI_DEVICE_ID_VIRTIO_MPI;
+    k->revision = VIRTIO_PCI_ABI_VERSION;
+    k->class_id = PCI_CLASS_NETWORK_ETHERNET;
+    set_bit(DEVICE_CATEGORY_NETWORK, dc->categories);
+    dc->props = virtio_mpi_properties;
+    vpciklass->init = virtio_mpi_pci_init;
+}
+
+static void virtio_mpi_pci_instance_init(Object *obj)
+{
+    VirtIOMpiPCI *dev = VIRTIO_MPI_PCI(obj);
+    object_initialize(&dev->vdev, sizeof(dev->vdev), TYPE_VIRTIO_MPI);
+    object_property_add_child(obj, "virtio-backend", OBJECT(&dev->vdev), NULL);
+}
+
+static const TypeInfo virtio_mpi_pci_info = {
+    .name          = TYPE_VIRTIO_MPI_PCI,
+    .parent        = TYPE_VIRTIO_PCI,
+    .instance_size = sizeof(VirtIOMpiPCI),
+    .instance_init = virtio_mpi_pci_instance_init,
+    .class_init    = virtio_mpi_pci_class_init,
+};
+
+
 /* virtio-rng-pci */
 
 static Property virtio_rng_pci_properties[] = {
@@ -1583,6 +1635,7 @@ static void virtio_pci_register_types(void)
     type_register_static(&virtio_balloon_pci_info);
     type_register_static(&virtio_serial_pci_info);
     type_register_static(&virtio_net_pci_info);
+    type_register_static(&virtio_mpi_pci_info);
 #ifdef CONFIG_VHOST_SCSI
     type_register_static(&vhost_scsi_pci_info);
 #endif

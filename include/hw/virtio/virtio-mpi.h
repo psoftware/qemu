@@ -49,6 +49,6 @@ typedef struct VirtIOMpi {
 
 #define DEFINE_VIRTIO_MPI_FEATURES(_state, _field) \
         DEFINE_VIRTIO_COMMON_FEATURES(_state, _field), \
-        DEFINE_PROP_BIT("any_layout", _state, _field, VIRTIO_F_ANY_LAYOUT, true),
+        DEFINE_PROP_BIT("any_layout", _state, _field, VIRTIO_F_ANY_LAYOUT, true)
 
 #endif
