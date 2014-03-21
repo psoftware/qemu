@@ -37,6 +37,69 @@
 #include "hw/virtio/virtio-bus.h"
 
 
+#define CONFIG_VHOST_MPI_TEST
+#ifdef CONFIG_VHOST_MPI_TEST
+#include <pthread.h>
+
+#define BAN "vhost_mpi_test: "
+
+static void *vhost_mpi_tester(void *arg)
+{
+    int vhostfd = *((int*)arg);
+    char *buffer;
+    size_t buffer_size = 2048;
+    int i = 0;
+    int j;
+    int n;
+
+    buffer = malloc(buffer_size);
+    if (!buffer) {
+        printf(BAN "buffer allocation failed\n");
+        return NULL;
+    }
+
+    printf(BAN "Test started ...\n");
+
+    while (i < 3) {
+        n = read(vhostfd, buffer, buffer_size);
+        if (n < 0) {
+            perror(BAN "read failed %d\n");
+        }
+        printf("read %d bytes: '", n);
+        for (j = 0; j < n; j++) {
+            printf("%c", buffer[j]);
+        }
+        printf("'\n");
+        i++;
+    }
+
+    free(arg);
+
+    printf(BAN "... test completed\n");
+
+    return NULL;
+}
+
+static void vhost_mpi_test(int vhostfd)
+{
+    pthread_t th;
+    int r;
+    int *ptr;
+
+    ptr = malloc(sizeof(int));
+    if (ptr == NULL) {
+        printf(BAN "cannot allocate an integer\n");
+        return;
+    }
+    *ptr = vhostfd;
+
+    r = pthread_create(&th, NULL, vhost_mpi_tester, (void *)ptr);
+    if (r < 0) {
+        printf(BAN "Cannot start the thread\n");
+    }
+}
+#endif
+
 struct vhost_mpi {
     struct vhost_dev dev;
     struct vhost_virtqueue vqs[2];
@@ -151,6 +214,10 @@ static int vhost_mpi_start_one(struct vhost_mpi *net,
             goto fail;
         }
     }
+
+#ifdef CONFIG_VHOST_MPI_TEST
+    vhost_mpi_test(net->dev.control);
+#endif
 
     return 0;
 fail:
