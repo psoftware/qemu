@@ -49,7 +49,6 @@ static void virtio_mpi_set_config(VirtIODevice *vdev, const uint8_t *config)
 static bool virtio_mpi_started(VirtIOMpi *n, uint8_t status)
 {
     VirtIODevice *vdev = VIRTIO_DEVICE(n);
-    printf("virtio_mpi_started status %x running %d\n", status, vdev->vm_running);
     return (status & VIRTIO_CONFIG_S_DRIVER_OK) &&
                  vdev->vm_running;
 }

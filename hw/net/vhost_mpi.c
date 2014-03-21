@@ -108,11 +108,22 @@ bool vhost_mpi_query(VHostMpiState *net, VirtIODevice *dev)
     return vhost_dev_query(&net->dev, dev);
 }
 
+struct vhost_mpi_command {
+    unsigned int index;
+    unsigned int enable;
+};
+
+/* Name overloading. Should be a temporary solution. */
+#define VHOST_MPI_STARTSTOP     VHOST_NET_SET_BACKEND
+
 static int vhost_mpi_start_one(struct vhost_mpi *net,
                                VirtIODevice *dev,
                                int vq_index)
 {
     int r;
+    struct vhost_mpi_command cmd = {
+            .enable = 1,
+        };
 
     if (net->dev.started) {
         return 0;
@@ -132,15 +143,23 @@ static int vhost_mpi_start_one(struct vhost_mpi *net,
         goto fail_start;
     }
 
-    /* XXX here used to be VHOST_NET_SET_BACKEND, that (IIRC)
-        also starts the tap backend.. for vhost-mpi we don't
-        need to pass file descriptors around, but probably we
-        need an ioctl(VHOST_MPI_START), to make it possible for
-        userspace to start write()/read().
-    */
+    /* VHOST_NET_SET_BACKEND used to implement "VHOST_MPI_START" */
+    for (cmd.index = 0; cmd.index < net->dev.nvqs; cmd.index++) {
+        r = ioctl(net->dev.control, VHOST_MPI_STARTSTOP, &cmd);
+        if (r < 0) {
+            r = -errno;
+            goto fail;
+        }
+    }
 
     return 0;
-
+fail:
+    cmd.enable = 0;
+    while (cmd.index-- > 0) {
+        int r = ioctl(net->dev.control, VHOST_NET_SET_BACKEND, &cmd);
+        assert(r >= 0);
+    }
+    vhost_dev_stop(&net->dev, dev);
 fail_start:
     vhost_dev_disable_notifiers(&net->dev, dev);
 fail_notifiers:
@@ -150,15 +169,19 @@ fail_notifiers:
 static void vhost_mpi_stop_one(struct vhost_mpi *net,
                                VirtIODevice *dev)
 {
+    struct vhost_mpi_command cmd = {
+            .enable = 0,
+        };
+
     if (!net->dev.started) {
         return;
     }
 
-    /* XXX here used to be ioctl(VHOST_NET_SET_BACKEND, fd = -1), to disable
-        the backend. We don't need to set any file descriptors, but we
-        probably need an ioictl(VHOST_MPI_STOP) to prevent the userspace
-        from write()/read().
-    */
+    /* VHOST_NET_SET_BACKEND used to implement "VHOST_MPI_STOP" */
+    for (cmd.index = 0; cmd.index < net->dev.nvqs; cmd.index++) {
+        int r = ioctl(net->dev.control, VHOST_MPI_STARTSTOP, &cmd);
+        assert(r >= 0);
+    }
 
     vhost_dev_stop(&net->dev, dev);
     vhost_dev_disable_notifiers(&net->dev, dev);
