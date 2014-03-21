@@ -1476,6 +1476,7 @@ static const TypeInfo virtio_net_pci_info = {
 
 static Property virtio_mpi_properties[] = {
     DEFINE_VIRTIO_MPI_FEATURES(VirtIOPCIProxy, host_features),
+    DEFINE_PROP_UINT32("vectors", VirtIOPCIProxy, nvectors, 2),
     DEFINE_PROP_END_OF_LIST(),
 };
 

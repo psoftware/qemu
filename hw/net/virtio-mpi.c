@@ -49,6 +49,7 @@ static void virtio_mpi_set_config(VirtIODevice *vdev, const uint8_t *config)
 static bool virtio_mpi_started(VirtIOMpi *n, uint8_t status)
 {
     VirtIODevice *vdev = VIRTIO_DEVICE(n);
+    printf("virtio_mpi_started status %x running %d\n", status, vdev->vm_running);
     return (status & VIRTIO_CONFIG_S_DRIVER_OK) &&
                  vdev->vm_running;
 }
@@ -57,10 +58,9 @@ static void virtio_mpi_vhost_status(VirtIOMpi *n, uint8_t status)
 {
     VirtIODevice *vdev = VIRTIO_DEVICE(n);
     int queues = 1;
-    int peer_link_down = 0;
 
     if (!!n->vhost_started ==
-        (virtio_mpi_started(n, status) && !peer_link_down)) {
+        (virtio_mpi_started(n, status))) {
         return;
     }
     if (!n->vhost_started) {
@@ -101,9 +101,10 @@ static uint32_t virtio_mpi_get_features(VirtIODevice *vdev, uint32_t features)
 {
     VirtIOMpi *n = VIRTIO_MPI(vdev);
 
-    printf("virtio_mpi_get_features\n");
+    features = vhost_mpi_get_features(n->vhost_mpi, features);
+    printf("virtio_mpi_get_features %x\n", features);
 
-    return vhost_mpi_get_features(n->vhost_mpi, features);
+    return features;
 }
 
 static uint32_t virtio_mpi_bad_features(VirtIODevice *vdev)
@@ -245,10 +246,9 @@ static void virtio_mpi_instance_init(Object *obj)
 {
     VirtIOMpi *n = VIRTIO_MPI(obj);
 
-    (void)n;
     n->vhost_mpi = vhost_mpi_init(-1, false);
     if (!n->vhost_mpi) {
-        printf("vhost_mpi_init failed\n");
+        perror("vhost_mpi_init failed\n");
         exit(EXIT_FAILURE);
     }
     printf("vhost-mpi initialized\n");
