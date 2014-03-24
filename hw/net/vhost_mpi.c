@@ -42,6 +42,7 @@
 #include <pthread.h>
 
 #define BAN "vhost_mpi_test: "
+static const char *text = "Ciao dall'host!";
 
 static void *vhost_mpi_tester(void *arg)
 {
@@ -60,7 +61,7 @@ static void *vhost_mpi_tester(void *arg)
 
     printf(BAN "Test started ...\n");
 
-    while (i < 3) {
+    for (;;) {
         n = read(vhostfd, buffer, buffer_size);
         if (n < 0) {
             perror(BAN "read failed %d\n");
@@ -70,6 +71,14 @@ static void *vhost_mpi_tester(void *arg)
             printf("%c", buffer[j]);
         }
         printf("'\n");
+
+        strcpy(buffer, text);
+        n = write(vhostfd, buffer, strlen(buffer));
+        if (n < 0) {
+            perror(BAN "write failed %d\n");
+        }
+        printf("written %d bytes\n", n);
+
         i++;
     }
 
