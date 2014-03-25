@@ -41,6 +41,7 @@
 #ifdef CONFIG_VHOST_MPI_TEST
 #include <pthread.h>
 
+
 #define BAN "vhost_mpi_test: "
 static const char *text = "Ciao dall'host!";
 
@@ -50,7 +51,6 @@ static void *vhost_mpi_tester(void *arg)
     char *buffer;
     size_t buffer_size = 2048;
     int i = 0;
-    int j;
     int n;
 
     buffer = malloc(buffer_size);
@@ -66,18 +66,26 @@ static void *vhost_mpi_tester(void *arg)
         if (n < 0) {
             perror(BAN "read failed %d\n");
         }
+#ifdef VERBOSE
         printf("read %d bytes: '", n);
-        for (j = 0; j < n; j++) {
-            printf("%c", buffer[j]);
+        {
+            int j;
+
+            for (j = 0; j < n; j++) {
+                printf("%c", buffer[j]);
+            }
+            printf("'\n");
         }
-        printf("'\n");
+#endif
 
         strcpy(buffer, text);
         n = write(vhostfd, buffer, strlen(buffer));
         if (n < 0) {
             perror(BAN "write failed %d\n");
         }
+#ifdef VERBOSE
         printf("written %d bytes\n", n);
+#endif
 
         i++;
     }
