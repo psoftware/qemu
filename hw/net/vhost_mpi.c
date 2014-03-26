@@ -40,18 +40,27 @@
 #define CONFIG_VHOST_MPI_TEST
 #ifdef CONFIG_VHOST_MPI_TEST
 #include <pthread.h>
+#include <sys/select.h>
 
 
 #define BAN "vhost_mpi_test: "
 static const char *text = "Ciao dall'host!";
 
-static void *vhost_mpi_tester(void *arg)
+struct vhost_mpi_tester_data {
+    int vhostfd;
+    int stop;
+#define MODE_WRITE  0
+#define MODE_READ   1
+    int mode;
+};
+
+static void *vhost_mpi_tester_work(void *arg)
 {
-    int vhostfd = *((int*)arg);
+    struct vhost_mpi_tester_data *data = arg;
     char *buffer;
     size_t buffer_size = 2048;
-    int i = 0;
     int n;
+    int len;
 
     buffer = malloc(buffer_size);
     if (!buffer) {
@@ -59,58 +68,129 @@ static void *vhost_mpi_tester(void *arg)
         return NULL;
     }
 
-    printf(BAN "Test started ...\n");
+    printf(BAN "Worker thread started [mode = %d] ...\n", data->mode);
 
-    for (;;) {
-        n = read(vhostfd, buffer, buffer_size);
-        if (n < 0) {
-            perror(BAN "read failed %d\n");
-        }
-#ifdef VERBOSE
-        printf("read %d bytes: '", n);
-        {
-            int j;
+    /* Fill the buffer for writes. */
+    strcpy(buffer, text);
+    len = strlen(buffer) + 1;
 
-            for (j = 0; j < n; j++) {
-                printf("%c", buffer[j]);
+    while (!data->stop) {
+        if (data->mode == MODE_READ) {
+            n = read(data->vhostfd, buffer, buffer_size);
+            if (n < 0) {
+                perror(BAN "read failed %d\n");
+                exit(EXIT_FAILURE);
             }
-            printf("'\n");
-        }
-#endif
-
-        strcpy(buffer, text);
-        n = write(vhostfd, buffer, strlen(buffer));
-        if (n < 0) {
-            perror(BAN "write failed %d\n");
-        }
 #ifdef VERBOSE
-        printf("written %d bytes\n", n);
-#endif
+            printf("read %d bytes: '", n);
+            {
+                int j;
 
-        i++;
+                for (j = 0; j < n; j++) {
+                    printf("%c", buffer[j]);
+                }
+                printf("'\n");
+            }
+#endif
+        } else {
+            n = write(data->vhostfd, buffer, len);
+            if (n < 0) {
+                perror(BAN "write failed %d\n");
+                exit(EXIT_FAILURE);
+            }
+#ifdef VERBOSE
+            printf("written %d bytes\n", n);
+#endif
+        }
     }
 
-    free(arg);
+    free(buffer);
 
-    printf(BAN "... test completed\n");
+    printf(BAN "... worker thread stopped\n");
 
     return NULL;
 }
 
+static void *vhost_mpi_tester_ctrl(void *arg)
+{
+    struct vhost_mpi_tester_data *data = arg;
+    char inbuf[10];
+    pthread_t wth;
+    int r;
+    int running = 0;
+
+    for (;;) {
+        printf(BAN "    command [w|r|s] >>\n");
+        r = read(0, inbuf, sizeof(inbuf));
+        if (r <= 0) {
+            if (r < 0) {
+                perror("ctrlread\n");
+            }
+            continue;
+        }
+
+        switch (inbuf[0]) {
+            case 'w':
+            case 'r':
+                if (running) {
+                    printf(BAN "Worker thread already running\n");
+                    break;
+                }
+                data->stop = 0;
+                if (inbuf[0] == 'r') {
+                    data->mode = MODE_READ;
+                } else {
+                    data->mode = MODE_WRITE;
+                }
+                r = pthread_create(&wth, NULL, vhost_mpi_tester_work, (void *)data);
+                if (r < 0) {
+                    perror(BAN "Cannot start the thread\n");
+                }
+                running = 1;
+                break;
+
+            case 's':
+                if (!running) {
+                    printf(BAN "No worker thread is running\n");
+                    break;
+                }
+                data->stop = 1;
+                pthread_join(wth, NULL);
+                running = 0;
+                break;
+    
+            default:
+                printf(BAN "ctrl: unknown command\n");
+                break;
+        }
+
+    }
+
+    return NULL;
+}
+
+static int started = 0;
+
 static void vhost_mpi_test(int vhostfd)
 {
-    pthread_t th;
+    pthread_t cth;
     int r;
-    int *ptr;
+    struct vhost_mpi_tester_data *data;
 
-    ptr = malloc(sizeof(int));
-    if (ptr == NULL) {
-        printf(BAN "cannot allocate an integer\n");
+    if (started) {
         return;
     }
-    *ptr = vhostfd;
+    started = 1;
 
-    r = pthread_create(&th, NULL, vhost_mpi_tester, (void *)ptr);
+    data = malloc(sizeof(*data));
+    if (data == NULL) {
+        printf(BAN "cannot allocate tester data\n");
+        return;
+    }
+    data->vhostfd = vhostfd;
+
+    /* Create the control thread. */
+    r = pthread_create(&cth, NULL, vhost_mpi_tester_ctrl, (void *)data);
     if (r < 0) {
         printf(BAN "Cannot start the thread\n");
     }
