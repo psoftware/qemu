@@ -54,6 +54,8 @@ struct vhost_mpi_tester_data {
 #define MODE_READ   1
     int mode;
     struct timespec period_ts;
+    char buffer[65536];
+    unsigned int buffer_len;
 };
 
 static __inline struct timespec
@@ -99,29 +101,16 @@ wait_time(struct timespec ts)
 static void *vhost_mpi_tester_work(void *arg)
 {
     struct vhost_mpi_tester_data *data = arg;
-    char *buffer;
-    size_t buffer_size = 2048;
     int n;
-    int len;
     struct timespec next_ts;
 
-    buffer = malloc(buffer_size);
-    if (!buffer) {
-        printf(BAN "buffer allocation failed\n");
-        return NULL;
-    }
-
     printf(BAN "Worker thread started [mode = %d] ...\n", data->mode);
-
-    /* Fill the buffer for writes. */
-    strcpy(buffer, text);
-    len = strlen(buffer) + 1;
 
     clock_gettime(CLOCK_MONOTONIC, &next_ts);
 
     while (!data->stop) {
         if (data->mode == MODE_READ) {
-            n = read(data->vhostfd, buffer, buffer_size);
+            n = read(data->vhostfd, data->buffer, sizeof(data->buffer));
             if (n < 0) {
                 perror(BAN "read failed %d\n");
                 exit(EXIT_FAILURE);
@@ -138,7 +127,7 @@ static void *vhost_mpi_tester_work(void *arg)
             }
 #endif
         } else {
-            n = write(data->vhostfd, buffer, len);
+            n = write(data->vhostfd, data->buffer, data->buffer_len);
             if (n < 0) {
                 perror(BAN "write failed %d\n");
                 exit(EXIT_FAILURE);
@@ -151,11 +140,64 @@ static void *vhost_mpi_tester_work(void *arg)
         }
     }
 
-    free(buffer);
-
     printf(BAN "... worker thread stopped\n");
 
     return NULL;
+}
+
+static void vhost_mpi_tester_fill_buffer(struct vhost_mpi_tester_data *data,
+                                         unsigned int msglen)
+{
+    unsigned int ofs = 0;
+    unsigned int l = strlen(text);
+
+    if (!msglen) {
+        msglen = 1;
+    }
+    if (msglen > sizeof(data->buffer)) {
+        msglen = sizeof(data->buffer);
+    }
+
+    while (ofs < msglen - 1) {
+        unsigned int copylen = msglen - 1 - ofs;
+
+        if (l < copylen) {
+            copylen = l;
+        }
+        memcpy(data->buffer + ofs, text, copylen);
+        ofs += copylen;
+    }
+    data->buffer[msglen - 1] = '\0';
+    data->buffer_len = msglen;
+}
+
+static void perc_increment(unsigned long int *val, int perc,
+                           unsigned long int max)
+{
+    if (!perc) {
+        return;
+    }
+
+    if (abs(*val) < abs(perc)) {
+        *val += abs(perc)/perc;
+    } else {
+        *val += ((long int)*val)*perc/100;
+    }
+
+    if (*val < 1) {
+        *val = 1;
+    } else if (*val > max) {
+        *val = max;
+    }
+}
+
+static inline int char_sign(char c, char minus)
+{
+    if (c == minus) {
+        return -1;
+    }
+
+    return 1;
 }
 
 static void *vhost_mpi_tester_ctrl(void *arg)
@@ -166,9 +208,12 @@ static void *vhost_mpi_tester_ctrl(void *arg)
     int r;
     int running = 0;
     unsigned long int nsecs;
+    unsigned long int length;
 
     for (;;) {
-        printf(BAN "    command [w|r|s] >>\n");
+        char ch;
+
+        printf(BAN "    command [w|r|s|+|-] >>\n");
         r = read(0, inbuf, sizeof(inbuf));
         if (r <= 0) {
             if (r < 0) {
@@ -177,21 +222,26 @@ static void *vhost_mpi_tester_ctrl(void *arg)
             continue;
         }
 
-        switch (inbuf[0]) {
+        ch = inbuf[0];
+
+        switch (ch) {
             case 'w':
             case 'r':
                 if (running) {
                     printf(BAN "Worker thread already running\n");
                     break;
                 }
-                data->stop = 0;
-                data->period_ts.tv_sec = 0;
-                data->period_ts.tv_nsec = 1 * 1000 * 1000;
-                if (inbuf[0] == 'r') {
+
+                if (ch == 'r') {
                     data->mode = MODE_READ;
                 } else {
                     data->mode = MODE_WRITE;
                 }
+                data->stop = 0;
+                data->period_ts.tv_sec = 0;
+                data->period_ts.tv_nsec = 1 * 1000 * 1000;
+                vhost_mpi_tester_fill_buffer(data, strlen(text) + 1);
+
                 r = pthread_create(&wth, NULL, vhost_mpi_tester_work, (void *)data);
                 if (r < 0) {
                     perror(BAN "Cannot start the thread\n");
@@ -210,33 +260,29 @@ static void *vhost_mpi_tester_ctrl(void *arg)
                 break;
 
             case '+':
-                if (!running) {
-                    printf(BAN "No worker thread is running\n");
-                    break;
-                }
-                nsecs = data->period_ts.tv_nsec;
-                nsecs += nsecs/25;
-                if (nsecs >= 1000 * 1000 * 1000) {
-                    nsecs = 1000 * 1000 * 1000 - 1;
-                }
-                data->period_ts.tv_nsec = nsecs;
-                printf(BAN "new period: %lu ns\n", data->period_ts.tv_nsec);
-                break;
-
             case '-':
                 if (!running) {
                     printf(BAN "No worker thread is running\n");
                     break;
                 }
                 nsecs = data->period_ts.tv_nsec;
-                nsecs -= nsecs/25;
-                if (nsecs <= 0) {
-                    nsecs = 1;
-                }
+                perc_increment(&nsecs, char_sign(ch, '-') * 25, 1000*1000*1000-1);
                 data->period_ts.tv_nsec = nsecs;
                 printf(BAN "new period: %lu ns\n", data->period_ts.tv_nsec);
                 break;
-    
+
+            case 'j':
+            case 'k':
+                if (!running) {
+                    printf(BAN "No worker thread is running\n");
+                    break;
+                }
+                length = data->buffer_len;
+                perc_increment(&length, char_sign(ch, 'k') * 25, sizeof(data->buffer));
+                vhost_mpi_tester_fill_buffer(data, (unsigned int)length);
+                printf(BAN "new msg length: %u bytes\n", data->buffer_len);
+                break;
+
             default:
                 printf(BAN "ctrl: unknown command\n");
                 break;
