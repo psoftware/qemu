@@ -40,7 +40,8 @@
 #define CONFIG_VHOST_MPI_TEST
 #ifdef CONFIG_VHOST_MPI_TEST
 #include <pthread.h>
-#include <sys/select.h>
+#include <sys/poll.h>
+#include <time.h>
 
 
 #define BAN "vhost_mpi_test: "
@@ -52,7 +53,48 @@ struct vhost_mpi_tester_data {
 #define MODE_WRITE  0
 #define MODE_READ   1
     int mode;
+    struct timespec period_ts;
 };
+
+static __inline struct timespec
+timespec_add(struct timespec a, struct timespec b)
+{
+	struct timespec ret = { a.tv_sec + b.tv_sec, a.tv_nsec + b.tv_nsec };
+	if (ret.tv_nsec >= 1000000000) {
+		ret.tv_sec++;
+		ret.tv_nsec -= 1000000000;
+	}
+	return ret;
+}
+
+static __inline struct timespec
+timespec_sub(struct timespec a, struct timespec b)
+{
+	struct timespec ret = { a.tv_sec - b.tv_sec, a.tv_nsec - b.tv_nsec };
+	if (ret.tv_nsec < 0) {
+		ret.tv_sec--;
+		ret.tv_nsec += 1000000000;
+	}
+	return ret;
+}
+
+/*
+ * wait until ts, either busy or sleeping if more than 1ms.
+ * Return wakeup time.
+ */
+static struct timespec
+wait_time(struct timespec ts)
+{
+	for (;;) {
+		struct timespec w, cur;
+		clock_gettime(CLOCK_MONOTONIC, &cur);
+		w = timespec_sub(ts, cur);
+		if (w.tv_sec < 0)
+			return cur;
+		else if (w.tv_sec > 0 || w.tv_nsec > 1000000)
+			poll(NULL, 0, 1);
+	}
+}
 
 static void *vhost_mpi_tester_work(void *arg)
 {
@@ -61,6 +103,7 @@ static void *vhost_mpi_tester_work(void *arg)
     size_t buffer_size = 2048;
     int n;
     int len;
+    struct timespec next_ts;
 
     buffer = malloc(buffer_size);
     if (!buffer) {
@@ -73,6 +116,8 @@ static void *vhost_mpi_tester_work(void *arg)
     /* Fill the buffer for writes. */
     strcpy(buffer, text);
     len = strlen(buffer) + 1;
+
+    clock_gettime(CLOCK_MONOTONIC, &next_ts);
 
     while (!data->stop) {
         if (data->mode == MODE_READ) {
@@ -98,6 +143,8 @@ static void *vhost_mpi_tester_work(void *arg)
                 perror(BAN "write failed %d\n");
                 exit(EXIT_FAILURE);
             }
+            wait_time(next_ts);
+            next_ts = timespec_add(next_ts, data->period_ts);
 #ifdef VERBOSE
             printf("written %d bytes\n", n);
 #endif
@@ -118,6 +165,7 @@ static void *vhost_mpi_tester_ctrl(void *arg)
     pthread_t wth;
     int r;
     int running = 0;
+    unsigned long int nsecs;
 
     for (;;) {
         printf(BAN "    command [w|r|s] >>\n");
@@ -137,6 +185,8 @@ static void *vhost_mpi_tester_ctrl(void *arg)
                     break;
                 }
                 data->stop = 0;
+                data->period_ts.tv_sec = 0;
+                data->period_ts.tv_nsec = 1 * 1000 * 1000;
                 if (inbuf[0] == 'r') {
                     data->mode = MODE_READ;
                 } else {
@@ -158,6 +208,34 @@ static void *vhost_mpi_tester_ctrl(void *arg)
                 pthread_join(wth, NULL);
                 running = 0;
                 break;
+
+            case '+':
+                if (!running) {
+                    printf(BAN "No worker thread is running\n");
+                    break;
+                }
+                nsecs = data->period_ts.tv_nsec;
+                nsecs += nsecs/25;
+                if (nsecs >= 1000 * 1000 * 1000) {
+                    nsecs = 1000 * 1000 * 1000 - 1;
+                }
+                data->period_ts.tv_nsec = nsecs;
+                printf(BAN "new period: %lu ns\n", data->period_ts.tv_nsec);
+                break;
+
+            case '-':
+                if (!running) {
+                    printf(BAN "No worker thread is running\n");
+                    break;
+                }
+                nsecs = data->period_ts.tv_nsec;
+                nsecs -= nsecs/25;
+                if (nsecs <= 0) {
+                    nsecs = 1;
+                }
+                data->period_ts.tv_nsec = nsecs;
+                printf(BAN "new period: %lu ns\n", data->period_ts.tv_nsec);
+                break;
     
             default:
                 printf(BAN "ctrl: unknown command\n");
@@ -169,7 +247,7 @@ static void *vhost_mpi_tester_ctrl(void *arg)
     return NULL;
 }
 
-static int started = 0;
+static int vhost_mpi_test_started = 0;
 
 static void vhost_mpi_test(int vhostfd)
 {
@@ -177,10 +255,10 @@ static void vhost_mpi_test(int vhostfd)
     int r;
     struct vhost_mpi_tester_data *data;
 
-    if (started) {
+    if (vhost_mpi_test_started) {
         return;
     }
-    started = 1;
+    vhost_mpi_test_started = 1;
 
     data = malloc(sizeof(*data));
     if (data == NULL) {
