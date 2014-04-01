@@ -9,27 +9,22 @@
  *
  */
 
-#include "qemu/iov.h"
 #include "hw/virtio/virtio.h"
-#include "net/net.h"
-#include "net/checksum.h"
 #include "qemu/error-report.h"
-#include "qemu/timer.h"
 #include "hw/virtio/virtio-mpi.h"
 #include "net/vhost_mpi.h"
 #include "hw/virtio/virtio-bus.h"
-#include "qapi/qmp/qjson.h"
-#include "monitor/monitor.h"
 
 
 #define VIRTIO_MPI_VM_VERSION   1
+#define VIRTIO_MPI_RING_SIZE    256
 
 static void virtio_mpi_get_config(VirtIODevice *vdev, uint8_t *config)
 {
-    VirtIOMpi *n = VIRTIO_MPI(vdev);
+    VirtIOMpi *mpi = VIRTIO_MPI(vdev);
     struct virtio_mpi_config netcfg;
 
-    stw_p(&netcfg.status, n->status);
+    stw_p(&netcfg.status, mpi->status);
     memcpy(config, &netcfg, sizeof(netcfg));
 
     printf("virtio_mpi_get_config\n");
@@ -37,70 +32,70 @@ static void virtio_mpi_get_config(VirtIODevice *vdev, uint8_t *config)
 
 static void virtio_mpi_set_config(VirtIODevice *vdev, const uint8_t *config)
 {
-    VirtIOMpi *n = VIRTIO_MPI(vdev);
+    VirtIOMpi *mpi = VIRTIO_MPI(vdev);
     struct virtio_mpi_config netcfg = {};
 
     memcpy(&netcfg, config, sizeof(netcfg));
-    n->status = netcfg.status;
+    mpi->status = netcfg.status;
 
     printf("virtio_mpi_set_config\n");
 }
 
-static bool virtio_mpi_started(VirtIOMpi *n, uint8_t status)
+static bool virtio_mpi_started(VirtIOMpi *mpi, uint8_t status)
 {
-    VirtIODevice *vdev = VIRTIO_DEVICE(n);
+    VirtIODevice *vdev = VIRTIO_DEVICE(mpi);
     return (status & VIRTIO_CONFIG_S_DRIVER_OK) &&
                  vdev->vm_running;
 }
 
-static void virtio_mpi_vhost_status(VirtIOMpi *n, uint8_t status)
+static void virtio_mpi_vhost_status(VirtIOMpi *mpi, uint8_t status)
 {
-    VirtIODevice *vdev = VIRTIO_DEVICE(n);
+    VirtIODevice *vdev = VIRTIO_DEVICE(mpi);
     int queues = 1;
 
-    if (!!n->vhost_started ==
-        (virtio_mpi_started(n, status))) {
+    if (!!mpi->vhost_started ==
+        (virtio_mpi_started(mpi, status))) {
         return;
     }
-    if (!n->vhost_started) {
+    if (!mpi->vhost_started) {
         int r;
-        if (!vhost_mpi_query(n->vhost_mpi, vdev)) {
+        if (!vhost_mpi_query(mpi->vhost_mpi, vdev)) {
             return;
         }
-        n->vhost_started = 1;
+        mpi->vhost_started = 1;
         r = vhost_mpi_start(vdev, queues);
         if (r < 0) {
             error_report("unable to start vhost net: %d: "
                          "falling back on userspace virtio", -r);
-            n->vhost_started = 0;
+            mpi->vhost_started = 0;
         }
     } else {
         vhost_mpi_stop(vdev, queues);
-        n->vhost_started = 0;
+        mpi->vhost_started = 0;
     }
 }
 
 static void virtio_mpi_set_status(struct VirtIODevice *vdev, uint8_t status)
 {
-    VirtIOMpi *n = VIRTIO_MPI(vdev);
+    VirtIOMpi *mpi = VIRTIO_MPI(vdev);
 
     printf("virtio_mpi_set_status %d\n", status);
 
-    virtio_mpi_vhost_status(n, status);
+    virtio_mpi_vhost_status(mpi, status);
 }
 
 static void virtio_mpi_reset(VirtIODevice *vdev)
 {
-    VirtIOMpi *n = VIRTIO_MPI(vdev);
+    VirtIOMpi *mpi = VIRTIO_MPI(vdev);
 
-    printf("virtio_mpi_reset %p\n", n);
+    printf("virtio_mpi_reset %p\n", mpi);
 }
 
 static uint32_t virtio_mpi_get_features(VirtIODevice *vdev, uint32_t features)
 {
-    VirtIOMpi *n = VIRTIO_MPI(vdev);
+    VirtIOMpi *mpi = VIRTIO_MPI(vdev);
 
-    features = vhost_mpi_get_features(n->vhost_mpi, features);
+    features = vhost_mpi_get_features(mpi->vhost_mpi, features);
     printf("virtio_mpi_get_features %x\n", features);
 
     return features;
@@ -115,11 +110,11 @@ static uint32_t virtio_mpi_bad_features(VirtIODevice *vdev)
 
 static void virtio_mpi_set_features(VirtIODevice *vdev, uint32_t features)
 {
-    VirtIOMpi *n = VIRTIO_MPI(vdev);
+    VirtIOMpi *mpi = VIRTIO_MPI(vdev);
     int i;
 
     for (i = 0;  i < 1; i++) {
-        vhost_mpi_ack_features(n->vhost_mpi, features);
+        vhost_mpi_ack_features(mpi->vhost_mpi, features);
     }
 
     printf("virtio_mpi_set_features %x\n", features);
@@ -129,15 +124,15 @@ static void virtio_mpi_set_features(VirtIODevice *vdev, uint32_t features)
 
 static void virtio_mpi_handle_rx(VirtIODevice *vdev, VirtQueue *vq)
 {
-    VirtIOMpi *n = VIRTIO_MPI(vdev);
+    VirtIOMpi *mpi = VIRTIO_MPI(vdev);
 
-    printf("RX kick %p\n", n);
+    printf("RX kick %p\n", mpi);
 }
 
 /* TX */
 static void virtio_mpi_handle_tx_bh(VirtIODevice *vdev, VirtQueue *vq)
 {
-    VirtIOMpi *n = VIRTIO_MPI(vdev);
+    VirtIOMpi *mpi = VIRTIO_MPI(vdev);
 
     /* Just in case the driver is not ready on more */
     if (unlikely(!(vdev->status & VIRTIO_CONFIG_S_DRIVER_OK))) {
@@ -151,26 +146,26 @@ static void virtio_mpi_handle_tx_bh(VirtIODevice *vdev, VirtQueue *vq)
         return;
     }
 
-    printf("TX kick %p\n", n);
+    printf("TX kick %p\n", mpi);
 }
 
 static void virtio_mpi_save(QEMUFile *f, void *opaque)
 {
-    VirtIOMpi *n = opaque;
-    VirtIODevice *vdev = VIRTIO_DEVICE(n);
+    VirtIOMpi *mpi = opaque;
+    VirtIODevice *vdev = VIRTIO_DEVICE(mpi);
 
     /* At this point, backend must be stopped, otherwise
      * it might keep writing to memory. */
-    assert(!n->vhost_started);
+    assert(!mpi->vhost_started);
     virtio_save(vdev, f);
 
-    qemu_put_be16(f, n->status);
+    qemu_put_be16(f, mpi->status);
 }
 
 static int virtio_mpi_load(QEMUFile *f, void *opaque, int version_id)
 {
-    VirtIOMpi *n = opaque;
-    VirtIODevice *vdev = VIRTIO_DEVICE(n);
+    VirtIOMpi *mpi = opaque;
+    VirtIODevice *vdev = VIRTIO_DEVICE(mpi);
     int ret;
 
     ret = virtio_load(vdev, f);
@@ -178,49 +173,49 @@ static int virtio_mpi_load(QEMUFile *f, void *opaque, int version_id)
         return ret;
     }
 
-    n->status = qemu_get_be16(f);
+    mpi->status = qemu_get_be16(f);
 
     return 0;
 }
 
 static bool virtio_mpi_guest_notifier_pending(VirtIODevice *vdev, int idx)
 {
-    VirtIOMpi *n = VIRTIO_MPI(vdev);
+    VirtIOMpi *mpi = VIRTIO_MPI(vdev);
 
     printf("virtio_mpi_guest_notifier_pending\n");
-    assert(n->vhost_started);
-    return vhost_mpi_virtqueue_pending(n->vhost_mpi, idx);
+    assert(mpi->vhost_started);
+    return vhost_mpi_virtqueue_pending(mpi->vhost_mpi, idx);
 }
 
 static void virtio_mpi_guest_notifier_mask(VirtIODevice *vdev, int idx,
                                            bool mask)
 {
-    VirtIOMpi *n = VIRTIO_MPI(vdev);
+    VirtIOMpi *mpi = VIRTIO_MPI(vdev);
 
     printf("virtio_mpi_guest_notifier_mask\n");
-    assert(n->vhost_started);
-    vhost_mpi_virtqueue_mask(n->vhost_mpi, vdev, idx, mask);
+    assert(mpi->vhost_started);
+    vhost_mpi_virtqueue_mask(mpi->vhost_mpi, vdev, idx, mask);
 }
 
 static void virtio_mpi_device_realize(DeviceState *dev, Error **errp)
 {
     VirtIODevice *vdev = VIRTIO_DEVICE(dev);
-    VirtIOMpi *n = VIRTIO_MPI(dev);
+    VirtIOMpi *mpi = VIRTIO_MPI(dev);
     int queues = 1;
 
     virtio_init(vdev, "virtio-mpi", VIRTIO_ID_MPI,
                 sizeof(struct virtio_mpi_config));
 
-    n->vqs = g_malloc0(sizeof(VirtIOMpiQueue) * queues);
-    n->vqs[0].rx_vq = virtio_add_queue(vdev, 256, virtio_mpi_handle_rx);
-    n->vqs[0].n = n;
+    mpi->vqs = g_malloc0(sizeof(VirtIOMpiQueue) * queues);
+    mpi->vqs[0].rx_vq = virtio_add_queue(vdev, VIRTIO_MPI_RING_SIZE, virtio_mpi_handle_rx);
+    mpi->vqs[0].mpi = mpi;
 
-    n->vqs[0].tx_vq = virtio_add_queue(vdev, 256, virtio_mpi_handle_tx_bh);
-    n->status = 1;
+    mpi->vqs[0].tx_vq = virtio_add_queue(vdev, VIRTIO_MPI_RING_SIZE, virtio_mpi_handle_tx_bh);
+    mpi->status = 1;
 
-    n->qdev = dev;
+    mpi->qdev = dev;
     register_savevm(dev, "virtio-mpi", -1, VIRTIO_MPI_VM_VERSION,
-                    virtio_mpi_save, virtio_mpi_load, n);
+                    virtio_mpi_save, virtio_mpi_load, mpi);
 
     printf("virtio_mpi_device_realize\n");
 }
@@ -228,14 +223,14 @@ static void virtio_mpi_device_realize(DeviceState *dev, Error **errp)
 static void virtio_mpi_device_unrealize(DeviceState *dev, Error **errp)
 {
     VirtIODevice *vdev = VIRTIO_DEVICE(dev);
-    VirtIOMpi *n = VIRTIO_MPI(dev);
+    VirtIOMpi *mpi = VIRTIO_MPI(dev);
 
     /* This will stop vhost backend if appropriate. */
     virtio_mpi_set_status(vdev, 0);
 
-    unregister_savevm(dev, "virtio-mpi", n);
+    unregister_savevm(dev, "virtio-mpi", mpi);
 
-    g_free(n->vqs);
+    g_free(mpi->vqs);
     virtio_cleanup(vdev);
 
     printf("virtio_mpi_device_unrealize\n");
@@ -243,10 +238,10 @@ static void virtio_mpi_device_unrealize(DeviceState *dev, Error **errp)
 
 static void virtio_mpi_instance_init(Object *obj)
 {
-    VirtIOMpi *n = VIRTIO_MPI(obj);
+    VirtIOMpi *mpi = VIRTIO_MPI(obj);
 
-    n->vhost_mpi = vhost_mpi_init(-1, false);
-    if (!n->vhost_mpi) {
+    mpi->vhost_mpi = vhost_mpi_init(-1, false);
+    if (!mpi->vhost_mpi) {
         perror("vhost_mpi_init failed\n");
         exit(EXIT_FAILURE);
     }

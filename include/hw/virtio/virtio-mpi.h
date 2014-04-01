@@ -34,7 +34,7 @@ struct virtio_mpi_config
 typedef struct VirtIOMpiQueue {
     VirtQueue *rx_vq;
     VirtQueue *tx_vq;
-    struct VirtIOMpi *n;
+    struct VirtIOMpi *mpi;
 } VirtIOMpiQueue;
 
 typedef struct VirtIOMpi {

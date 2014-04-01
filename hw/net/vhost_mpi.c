@@ -26,10 +26,6 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/virtio_ring.h>
-#include <netpacket/packet.h>
-#include <net/ethernet.h>
-#include <net/if.h>
-#include <netinet/in.h>
 
 #include <stdio.h>
 
@@ -326,70 +322,70 @@ struct vhost_mpi {
     struct vhost_virtqueue vqs[2];
 };
 
-unsigned vhost_mpi_get_features(struct vhost_mpi *net, unsigned features)
+unsigned vhost_mpi_get_features(struct vhost_mpi *mpi, unsigned features)
 {
     /* Clear features not supported by host kernel. */
-    if (!(net->dev.features & (1 << VIRTIO_F_NOTIFY_ON_EMPTY))) {
+    if (!(mpi->dev.features & (1 << VIRTIO_F_NOTIFY_ON_EMPTY))) {
         features &= ~(1 << VIRTIO_F_NOTIFY_ON_EMPTY);
     }
-    if (!(net->dev.features & (1 << VIRTIO_RING_F_INDIRECT_DESC))) {
+    if (!(mpi->dev.features & (1 << VIRTIO_RING_F_INDIRECT_DESC))) {
         features &= ~(1 << VIRTIO_RING_F_INDIRECT_DESC);
     }
-    if (!(net->dev.features & (1 << VIRTIO_RING_F_EVENT_IDX))) {
+    if (!(mpi->dev.features & (1 << VIRTIO_RING_F_EVENT_IDX))) {
         features &= ~(1 << VIRTIO_RING_F_EVENT_IDX);
     }
     return features;
 }
 
-void vhost_mpi_ack_features(struct vhost_mpi *net, unsigned features)
+void vhost_mpi_ack_features(struct vhost_mpi *mpi, unsigned features)
 {
-    net->dev.acked_features = net->dev.backend_features;
+    mpi->dev.acked_features = mpi->dev.backend_features;
     if (features & (1 << VIRTIO_F_NOTIFY_ON_EMPTY)) {
-        net->dev.acked_features |= (1 << VIRTIO_F_NOTIFY_ON_EMPTY);
+        mpi->dev.acked_features |= (1 << VIRTIO_F_NOTIFY_ON_EMPTY);
     }
     if (features & (1 << VIRTIO_RING_F_INDIRECT_DESC)) {
-        net->dev.acked_features |= (1 << VIRTIO_RING_F_INDIRECT_DESC);
+        mpi->dev.acked_features |= (1 << VIRTIO_RING_F_INDIRECT_DESC);
     }
     if (features & (1 << VIRTIO_RING_F_EVENT_IDX)) {
-        net->dev.acked_features |= (1 << VIRTIO_RING_F_EVENT_IDX);
+        mpi->dev.acked_features |= (1 << VIRTIO_RING_F_EVENT_IDX);
     }
 }
 
 struct vhost_mpi *vhost_mpi_init(int devfd, bool force)
 {
     int r;
-    struct vhost_mpi *net = g_malloc(sizeof *net);
-    net->dev.backend_features = 0;
+    struct vhost_mpi *mpi = g_malloc(sizeof *mpi);
+    mpi->dev.backend_features = 0;
 
     /* XXX probably VirtIODevice could be VirtIOMpi, and the
         caller needs to link the VirtIOMpi instance to the vhost_mpi instance
         allocated here.  */
 
-    net->dev.nvqs = 2;
-    net->dev.vqs = net->vqs;
+    mpi->dev.nvqs = 2;
+    mpi->dev.vqs = mpi->vqs;
 
-    r = vhost_dev_init(&net->dev, devfd, "/dev/vhost-mpi", force);
+    r = vhost_dev_init(&mpi->dev, devfd, "/dev/vhost-mpi", force);
     if (r < 0) {
         goto fail;
     }
-    if (~net->dev.features & net->dev.backend_features) {
+    if (~mpi->dev.features & mpi->dev.backend_features) {
         fprintf(stderr, "vhost lacks feature mask %" PRIu64 " for backend\n",
-                (uint64_t)(~net->dev.features & net->dev.backend_features));
-        vhost_dev_cleanup(&net->dev);
+                (uint64_t)(~mpi->dev.features & mpi->dev.backend_features));
+        vhost_dev_cleanup(&mpi->dev);
         goto fail;
     }
 
     /* Set sane init value. Override when guest acks. */
-    vhost_mpi_ack_features(net, 0);
-    return net;
+    vhost_mpi_ack_features(mpi, 0);
+    return mpi;
 fail:
-    g_free(net);
+    g_free(mpi);
     return NULL;
 }
 
-bool vhost_mpi_query(VHostMpiState *net, VirtIODevice *dev)
+bool vhost_mpi_query(VHostMpiState *mpi, VirtIODevice *dev)
 {
-    return vhost_dev_query(&net->dev, dev);
+    return vhost_dev_query(&mpi->dev, dev);
 }
 
 struct vhost_mpi_command {
@@ -400,7 +396,7 @@ struct vhost_mpi_command {
 /* Name overloading. Should be a temporary solution. */
 #define VHOST_MPI_STARTSTOP     VHOST_NET_SET_BACKEND
 
-static int vhost_mpi_start_one(struct vhost_mpi *net,
+static int vhost_mpi_start_one(struct vhost_mpi *mpi,
                                VirtIODevice *dev,
                                int vq_index)
 {
@@ -409,27 +405,27 @@ static int vhost_mpi_start_one(struct vhost_mpi *net,
             .enable = 1,
         };
 
-    if (net->dev.started) {
+    if (mpi->dev.started) {
         return 0;
     }
 
-    net->dev.nvqs = 2;
-    net->dev.vqs = net->vqs;
-    net->dev.vq_index = vq_index;
+    mpi->dev.nvqs = 2;
+    mpi->dev.vqs = mpi->vqs;
+    mpi->dev.vq_index = vq_index;
 
-    r = vhost_dev_enable_notifiers(&net->dev, dev);
+    r = vhost_dev_enable_notifiers(&mpi->dev, dev);
     if (r < 0) {
         goto fail_notifiers;
     }
 
-    r = vhost_dev_start(&net->dev, dev);
+    r = vhost_dev_start(&mpi->dev, dev);
     if (r < 0) {
         goto fail_start;
     }
 
     /* VHOST_NET_SET_BACKEND used to implement "VHOST_MPI_START" */
-    for (cmd.index = 0; cmd.index < net->dev.nvqs; cmd.index++) {
-        r = ioctl(net->dev.control, VHOST_MPI_STARTSTOP, &cmd);
+    for (cmd.index = 0; cmd.index < mpi->dev.nvqs; cmd.index++) {
+        r = ioctl(mpi->dev.control, VHOST_MPI_STARTSTOP, &cmd);
         if (r < 0) {
             r = -errno;
             goto fail;
@@ -437,42 +433,42 @@ static int vhost_mpi_start_one(struct vhost_mpi *net,
     }
 
 #ifdef CONFIG_VHOST_MPI_TEST
-    vhost_mpi_test(net->dev.control);
+    vhost_mpi_test(mpi->dev.control);
 #endif
 
     return 0;
 fail:
     cmd.enable = 0;
     while (cmd.index-- > 0) {
-        int r = ioctl(net->dev.control, VHOST_NET_SET_BACKEND, &cmd);
+        int r = ioctl(mpi->dev.control, VHOST_NET_SET_BACKEND, &cmd);
         assert(r >= 0);
     }
-    vhost_dev_stop(&net->dev, dev);
+    vhost_dev_stop(&mpi->dev, dev);
 fail_start:
-    vhost_dev_disable_notifiers(&net->dev, dev);
+    vhost_dev_disable_notifiers(&mpi->dev, dev);
 fail_notifiers:
     return r;
 }
 
-static void vhost_mpi_stop_one(struct vhost_mpi *net,
+static void vhost_mpi_stop_one(struct vhost_mpi *mpi,
                                VirtIODevice *dev)
 {
     struct vhost_mpi_command cmd = {
             .enable = 0,
         };
 
-    if (!net->dev.started) {
+    if (!mpi->dev.started) {
         return;
     }
 
     /* VHOST_NET_SET_BACKEND used to implement "VHOST_MPI_STOP" */
-    for (cmd.index = 0; cmd.index < net->dev.nvqs; cmd.index++) {
-        int r = ioctl(net->dev.control, VHOST_MPI_STARTSTOP, &cmd);
+    for (cmd.index = 0; cmd.index < mpi->dev.nvqs; cmd.index++) {
+        int r = ioctl(mpi->dev.control, VHOST_MPI_STARTSTOP, &cmd);
         assert(r >= 0);
     }
 
-    vhost_dev_stop(&net->dev, dev);
-    vhost_dev_disable_notifiers(&net->dev, dev);
+    vhost_dev_stop(&mpi->dev, dev);
+    vhost_dev_disable_notifiers(&mpi->dev, dev);
 }
 
 int vhost_mpi_start(VirtIODevice *dev, int total_queues)
@@ -480,7 +476,7 @@ int vhost_mpi_start(VirtIODevice *dev, int total_queues)
     BusState *qbus = BUS(qdev_get_parent_bus(DEVICE(dev)));
     VirtioBusState *vbus = VIRTIO_BUS(qbus);
     VirtioBusClass *k = VIRTIO_BUS_GET_CLASS(vbus);
-    VHostMpiState *net = VIRTIO_MPI(dev)->vhost_mpi;
+    VHostMpiState *mpi = VIRTIO_MPI(dev)->vhost_mpi;
     int r, i = 0;
 
     printf("vhost_mpi_start\n");
@@ -492,7 +488,7 @@ int vhost_mpi_start(VirtIODevice *dev, int total_queues)
     }
 
     for (i = 0; i < total_queues; i++) {
-        r = vhost_mpi_start_one(net, dev, i * 2);
+        r = vhost_mpi_start_one(mpi, dev, i * 2);
 
         if (r < 0) {
             goto err;
@@ -519,7 +515,7 @@ void vhost_mpi_stop(VirtIODevice *dev, int total_queues)
     BusState *qbus = BUS(qdev_get_parent_bus(DEVICE(dev)));
     VirtioBusState *vbus = VIRTIO_BUS(qbus);
     VirtioBusClass *k = VIRTIO_BUS_GET_CLASS(vbus);
-    VHostMpiState *net = VIRTIO_MPI(dev)->vhost_mpi;
+    VHostMpiState *mpi = VIRTIO_MPI(dev)->vhost_mpi;
     int i, r;
 
     printf("vhost_mpi_stop\n");
@@ -532,24 +528,24 @@ void vhost_mpi_stop(VirtIODevice *dev, int total_queues)
     assert(r >= 0);
 
     for (i = 0; i < total_queues; i++) {
-        vhost_mpi_stop_one(net, dev);
+        vhost_mpi_stop_one(mpi, dev);
     }
 }
 
-void vhost_mpi_cleanup(struct vhost_mpi *net)
+void vhost_mpi_cleanup(struct vhost_mpi *mpi)
 {
-    vhost_dev_cleanup(&net->dev);
-    g_free(net);
+    vhost_dev_cleanup(&mpi->dev);
+    g_free(mpi);
 }
 
-bool vhost_mpi_virtqueue_pending(VHostMpiState *net, int idx)
+bool vhost_mpi_virtqueue_pending(VHostMpiState *mpi, int idx)
 {
-    return vhost_virtqueue_pending(&net->dev, idx);
+    return vhost_virtqueue_pending(&mpi->dev, idx);
 }
 
-void vhost_mpi_virtqueue_mask(VHostMpiState *net, VirtIODevice *dev,
+void vhost_mpi_virtqueue_mask(VHostMpiState *mpi, VirtIODevice *dev,
                               int idx, bool mask)
 {
-    vhost_virtqueue_mask(&net->dev, dev, idx, mask);
+    vhost_virtqueue_mask(&mpi->dev, dev, idx, mask);
 }
 // TODO #endif  /* CONFIG_VHOST_MPI */
