@@ -1,5 +1,7 @@
 /*
- * Virtio Support for MPI
+ * virtio support for MPI
+ *
+ * Copyright Nextworks 2014
  *
  * Authors:
  *  Vincenzo Maffione   <v.maffione@nextworks>

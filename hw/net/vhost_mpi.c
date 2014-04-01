@@ -1,5 +1,5 @@
 /*
- * vhost-mpi support
+ * vhost support for MPI
  *
  * Copyright Nextworks 2014
  *

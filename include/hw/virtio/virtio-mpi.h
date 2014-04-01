@@ -1,10 +1,10 @@
 /*
  * Virtio Network Device
  *
- * Copyright IBM, Corp. 2007
+ * Copyright Nextworks, 2014
  *
  * Authors:
- *  Anthony Liguori   <aliguori@us.ibm.com>
+ *  Vincenzo Maffione   <v.maffione@nextworks.it>
  *
  * This work is licensed under the terms of the GNU GPL, version 2.  See
  * the COPYING file in the top-level directory.
