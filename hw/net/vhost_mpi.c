@@ -117,7 +117,7 @@ static void *vhost_mpi_tester_work(void *arg)
                 int j;
 
                 for (j = 0; j < n; j++) {
-                    printf("%c", buffer[j]);
+                    printf("%c", data->buffer[j]);
                 }
                 printf("'\n");
             }
