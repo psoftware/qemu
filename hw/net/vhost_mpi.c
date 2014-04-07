@@ -94,15 +94,38 @@ wait_time(struct timespec ts)
 	}
 }
 
+static void rate_print(unsigned long long *limit, struct timespec *ts)
+{
+    struct timespec now;
+    unsigned long long elapsed_ns;
+    double kpps;
+
+    clock_gettime(CLOCK_MONOTONIC, &now);
+
+    elapsed_ns = ((now.tv_sec - ts->tv_sec) * 1000000000 +
+            now.tv_nsec - ts->tv_nsec);
+    kpps = ((1000000) * (double)*limit) / elapsed_ns;
+    printf("rate: %f Kpss\n", kpps);
+    if (elapsed_ns < 1000000000U) {
+        *limit *= 2;
+    } else if (elapsed_ns > 3 * 1000000000U) {
+        *limit /= 2;
+    }
+    clock_gettime(CLOCK_MONOTONIC, ts);
+}
 static void *vhost_mpi_tester_work(void *arg)
 {
     struct vhost_mpi_tester_data *data = arg;
     int n;
     struct timespec next_ts;
+    struct timespec rate_ts;
+    unsigned long long rate_cnt = 0;
+    unsigned long long rate_cnt_limit = 10;
 
     printf(BAN "Worker thread started [mode = %d] ...\n", data->mode);
 
     clock_gettime(CLOCK_MONOTONIC, &next_ts);
+    rate_ts = next_ts;
 
     while (!data->stop) {
         if (data->mode == MODE_READ) {
@@ -111,6 +134,13 @@ static void *vhost_mpi_tester_work(void *arg)
                 perror(BAN "read failed %d\n");
                 exit(EXIT_FAILURE);
             }
+
+            rate_cnt++;
+            if (rate_cnt == rate_cnt_limit) {
+                rate_print(&rate_cnt_limit, &rate_ts);
+                rate_cnt = 0;
+            }
+
 #ifdef VERBOSE
             printf("read %d bytes: '", n);
             {
