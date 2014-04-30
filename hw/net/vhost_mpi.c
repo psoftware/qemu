@@ -46,8 +46,9 @@ static const char *text = "Ciao dall'host!";
 struct vhost_mpi_tester_data {
     int vhostfd;
     int stop;
-#define MODE_WRITE  0
-#define MODE_READ   1
+#define MODE_WRITE      0
+#define MODE_READ       1
+#define MODE_PINGPONG   2
     int mode;
     struct timespec period_ts;
     char buffer[65536];
@@ -152,7 +153,8 @@ static void *vhost_mpi_tester_work(void *arg)
                 printf("'\n");
             }
 #endif
-        } else {
+
+        } else if (data->mode == MODE_WRITE) {
             n = write(data->vhostfd, data->buffer, data->buffer_len);
             if (n < 0) {
                 perror(BAN "write failed %d\n");
@@ -163,6 +165,17 @@ static void *vhost_mpi_tester_work(void *arg)
 #ifdef VERBOSE
             printf("written %d bytes\n", n);
 #endif
+        } else if (data->mode == MODE_PINGPONG) {
+            n = read(data->vhostfd, data->buffer, sizeof(data->buffer));
+            if (n < 0) {
+                perror(BAN "read failed %d\n");
+                exit(EXIT_FAILURE);
+            }
+            n = write(data->vhostfd, data->buffer, data->buffer_len);
+            if (n < 0) {
+                perror(BAN "write failed %d\n");
+                exit(EXIT_FAILURE);
+            }
         }
     }
 
@@ -253,6 +266,7 @@ static void *vhost_mpi_tester_ctrl(void *arg)
         switch (ch) {
             case 'w':
             case 'r':
+            case 'p':
                 if (running) {
                     printf(BAN "Worker thread already running\n");
                     break;
@@ -260,8 +274,10 @@ static void *vhost_mpi_tester_ctrl(void *arg)
 
                 if (ch == 'r') {
                     data->mode = MODE_READ;
-                } else {
+                } else if (ch == 'w') {
                     data->mode = MODE_WRITE;
+                } else {
+                    data->mode = MODE_PINGPONG;
                 }
                 data->stop = 0;
                 data->period_ts.tv_sec = 0;
