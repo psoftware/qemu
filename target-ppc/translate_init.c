@@ -631,7 +631,7 @@ static inline void _spr_register(CPUPPCState *env, int num,
 #if defined(CONFIG_KVM)
     spr->one_reg_id = one_reg_id,
 #endif
-    env->spr[num] = initial_value;
+    env->spr[num] = spr->default_value = initial_value;
 }
 
 /* Generic PowerPC SPRs */
@@ -6699,6 +6699,8 @@ POWERPC_FAMILY(970)(ObjectClass *oc, void *data)
     pcc->flags = POWERPC_FLAG_VRE | POWERPC_FLAG_SE |
                  POWERPC_FLAG_BE | POWERPC_FLAG_PMM |
                  POWERPC_FLAG_BUS_CLK;
+    pcc->l1_dcache_size = 0x8000;
+    pcc->l1_icache_size = 0x10000;
 }
 
 static int check_pow_970FX (CPUPPCState *env)
@@ -6791,6 +6793,8 @@ POWERPC_FAMILY(970FX)(ObjectClass *oc, void *data)
     pcc->flags = POWERPC_FLAG_VRE | POWERPC_FLAG_SE |
                  POWERPC_FLAG_BE | POWERPC_FLAG_PMM |
                  POWERPC_FLAG_BUS_CLK;
+    pcc->l1_dcache_size = 0x8000;
+    pcc->l1_icache_size = 0x10000;
 }
 
 static int check_pow_970MP (CPUPPCState *env)
@@ -6877,6 +6881,8 @@ POWERPC_FAMILY(970MP)(ObjectClass *oc, void *data)
     pcc->flags = POWERPC_FLAG_VRE | POWERPC_FLAG_SE |
                  POWERPC_FLAG_BE | POWERPC_FLAG_PMM |
                  POWERPC_FLAG_BUS_CLK;
+    pcc->l1_dcache_size = 0x8000;
+    pcc->l1_icache_size = 0x10000;
 }
 
 static void init_proc_power5plus(CPUPPCState *env)
@@ -6967,6 +6973,8 @@ POWERPC_FAMILY(POWER5P)(ObjectClass *oc, void *data)
     pcc->flags = POWERPC_FLAG_VRE | POWERPC_FLAG_SE |
                  POWERPC_FLAG_BE | POWERPC_FLAG_PMM |
                  POWERPC_FLAG_BUS_CLK;
+    pcc->l1_dcache_size = 0x8000;
+    pcc->l1_icache_size = 0x10000;
 }
 
 static void init_proc_POWER7 (CPUPPCState *env)
@@ -7075,7 +7083,7 @@ POWERPC_FAMILY(POWER7)(ObjectClass *oc, void *data)
                         PPC2_PERM_ISA206 | PPC2_DIVE_ISA206 |
                         PPC2_ATOMIC_ISA206 | PPC2_FP_CVT_ISA206 |
                         PPC2_FP_TST_ISA206;
-    pcc->msr_mask = 0x800000000284FF37ULL;
+    pcc->msr_mask = 0x800000000280FF37ULL;
     pcc->mmu_model = POWERPC_MMU_2_06;
 #if defined(CONFIG_SOFTMMU)
     pcc->handle_mmu_fault = ppc_hash64_handle_mmu_fault;
@@ -7118,7 +7126,7 @@ POWERPC_FAMILY(POWER7P)(ObjectClass *oc, void *data)
                         PPC2_PERM_ISA206 | PPC2_DIVE_ISA206 |
                         PPC2_ATOMIC_ISA206 | PPC2_FP_CVT_ISA206 |
                         PPC2_FP_TST_ISA206;
-    pcc->msr_mask = 0x800000000204FF37ULL;
+    pcc->msr_mask = 0x800000000280FF37ULL;
     pcc->mmu_model = POWERPC_MMU_2_06;
 #if defined(CONFIG_SOFTMMU)
     pcc->handle_mmu_fault = ppc_hash64_handle_mmu_fault;
@@ -7157,7 +7165,7 @@ POWERPC_FAMILY(POWER8)(ObjectClass *oc, void *data)
     pcc->pvr_mask = CPU_POWERPC_POWER8_MASK;
     pcc->init_proc = init_proc_POWER8;
     pcc->check_pow = check_pow_nocheck;
-    pcc->insns_flags = PPC_INSNS_BASE | PPC_STRING | PPC_MFTB |
+    pcc->insns_flags = PPC_INSNS_BASE | PPC_ISEL | PPC_STRING | PPC_MFTB |
                        PPC_FLOAT | PPC_FLOAT_FSEL | PPC_FLOAT_FRES |
                        PPC_FLOAT_FSQRT | PPC_FLOAT_FRSQRTE |
                        PPC_FLOAT_FRSQRTES |
@@ -7173,8 +7181,9 @@ POWERPC_FAMILY(POWER8)(ObjectClass *oc, void *data)
                         PPC2_PERM_ISA206 | PPC2_DIVE_ISA206 |
                         PPC2_ATOMIC_ISA206 | PPC2_FP_CVT_ISA206 |
                         PPC2_FP_TST_ISA206 | PPC2_BCTAR_ISA207 |
-                        PPC2_LSQ_ISA207 | PPC2_ALTIVEC_207;
-    pcc->msr_mask = 0x800000000284FF36ULL;
+                        PPC2_LSQ_ISA207 | PPC2_ALTIVEC_207 |
+                        PPC2_ISA205 | PPC2_ISA207S;
+    pcc->msr_mask = 0x800000000280FF37ULL;
     pcc->mmu_model = POWERPC_MMU_2_06;
 #if defined(CONFIG_SOFTMMU)
     pcc->handle_mmu_fault = ppc_hash64_handle_mmu_fault;
@@ -7434,7 +7443,7 @@ static int create_new_table (opc_handler_t **table, unsigned char idx)
 {
     opc_handler_t **tmp;
 
-    tmp = g_malloc(0x20 * sizeof(opc_handler_t));
+    tmp = g_new(opc_handler_t *, 0x20);
     fill_new_table(tmp, 0x20);
     table[idx] = (opc_handler_t *)((uintptr_t)tmp | PPC_INDIRECT);
 
@@ -7846,6 +7855,12 @@ static void ppc_cpu_realizefn(DeviceState *dev, Error **errp)
     if (smp_threads > max_smt) {
         error_setg(errp, "Cannot support more than %d threads on PPC with %s",
                    max_smt, kvm_enabled() ? "KVM" : "TCG");
+        return;
+    }
+    if (!is_power_of_2(smp_threads)) {
+        error_setg(errp, "Cannot support %d threads on PPC with %s, "
+                   "threads count must be a power of 2.",
+                   smp_threads, kvm_enabled() ? "KVM" : "TCG");
         return;
     }
 
@@ -8381,6 +8396,7 @@ static void ppc_cpu_reset(CPUState *s)
     PowerPCCPUClass *pcc = POWERPC_CPU_GET_CLASS(cpu);
     CPUPPCState *env = &cpu->env;
     target_ulong msr;
+    int i;
 
     pcc->parent_reset(s);
 
@@ -8433,6 +8449,15 @@ static void ppc_cpu_reset(CPUState *s)
     env->dtl_addr = 0;
     env->dtl_size = 0;
 #endif /* TARGET_PPC64 */
+
+    for (i = 0; i < ARRAY_SIZE(env->spr_cb); i++) {
+        ppc_spr_t *spr = &env->spr_cb[i];
+
+        if (!spr->name) {
+            continue;
+        }
+        env->spr[i] = spr->default_value;
+    }
 
     /* Flush all TLBs */
     tlb_flush(s, 1);

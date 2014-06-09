@@ -185,6 +185,7 @@ typedef struct sysctrl_t {
     uint8_t state;
     uint8_t syscontrol;
     int contiguous_map;
+    qemu_irq contiguous_map_irq;
     int endian;
 } sysctrl_t;
 
@@ -253,6 +254,7 @@ static void PREP_io_800_writeb (void *opaque, uint32_t addr, uint32_t val)
     case 0x0850:
         /* I/O map type register */
         sysctrl->contiguous_map = val & 0x01;
+        qemu_set_irq(sysctrl->contiguous_map_irq, sysctrl->contiguous_map);
         break;
     default:
         printf("ERROR: unaffected IO port write: %04" PRIx32
@@ -327,91 +329,6 @@ static uint32_t PREP_io_800_readb (void *opaque, uint32_t addr)
     return retval;
 }
 
-static inline hwaddr prep_IO_address(sysctrl_t *sysctrl,
-                                                 hwaddr addr)
-{
-    if (sysctrl->contiguous_map == 0) {
-        /* 64 KB contiguous space for IOs */
-        addr &= 0xFFFF;
-    } else {
-        /* 8 MB non-contiguous space for IOs */
-        addr = (addr & 0x1F) | ((addr & 0x007FFF000) >> 7);
-    }
-
-    return addr;
-}
-
-static void PPC_prep_io_writeb (void *opaque, hwaddr addr,
-                                uint32_t value)
-{
-    sysctrl_t *sysctrl = opaque;
-
-    addr = prep_IO_address(sysctrl, addr);
-    cpu_outb(addr, value);
-}
-
-static uint32_t PPC_prep_io_readb (void *opaque, hwaddr addr)
-{
-    sysctrl_t *sysctrl = opaque;
-    uint32_t ret;
-
-    addr = prep_IO_address(sysctrl, addr);
-    ret = cpu_inb(addr);
-
-    return ret;
-}
-
-static void PPC_prep_io_writew (void *opaque, hwaddr addr,
-                                uint32_t value)
-{
-    sysctrl_t *sysctrl = opaque;
-
-    addr = prep_IO_address(sysctrl, addr);
-    PPC_IO_DPRINTF("0x" TARGET_FMT_plx " => 0x%08" PRIx32 "\n", addr, value);
-    cpu_outw(addr, value);
-}
-
-static uint32_t PPC_prep_io_readw (void *opaque, hwaddr addr)
-{
-    sysctrl_t *sysctrl = opaque;
-    uint32_t ret;
-
-    addr = prep_IO_address(sysctrl, addr);
-    ret = cpu_inw(addr);
-    PPC_IO_DPRINTF("0x" TARGET_FMT_plx " <= 0x%08" PRIx32 "\n", addr, ret);
-
-    return ret;
-}
-
-static void PPC_prep_io_writel (void *opaque, hwaddr addr,
-                                uint32_t value)
-{
-    sysctrl_t *sysctrl = opaque;
-
-    addr = prep_IO_address(sysctrl, addr);
-    PPC_IO_DPRINTF("0x" TARGET_FMT_plx " => 0x%08" PRIx32 "\n", addr, value);
-    cpu_outl(addr, value);
-}
-
-static uint32_t PPC_prep_io_readl (void *opaque, hwaddr addr)
-{
-    sysctrl_t *sysctrl = opaque;
-    uint32_t ret;
-
-    addr = prep_IO_address(sysctrl, addr);
-    ret = cpu_inl(addr);
-    PPC_IO_DPRINTF("0x" TARGET_FMT_plx " <= 0x%08" PRIx32 "\n", addr, ret);
-
-    return ret;
-}
-
-static const MemoryRegionOps PPC_prep_io_ops = {
-    .old_mmio = {
-        .read = { PPC_prep_io_readb, PPC_prep_io_readw, PPC_prep_io_readl },
-        .write = { PPC_prep_io_writeb, PPC_prep_io_writew, PPC_prep_io_writel },
-    },
-    .endianness = DEVICE_NATIVE_ENDIAN,
-};
 
 #define NVRAM_SIZE        0x2000
 
@@ -444,27 +361,28 @@ static const MemoryRegionPortio prep_portio_list[] = {
     PORTIO_END_OF_LIST(),
 };
 
+static PortioList prep_port_list;
+
 /* PowerPC PREP hardware initialisation */
-static void ppc_prep_init(QEMUMachineInitArgs *args)
+static void ppc_prep_init(MachineState *machine)
 {
-    ram_addr_t ram_size = args->ram_size;
-    const char *cpu_model = args->cpu_model;
-    const char *kernel_filename = args->kernel_filename;
-    const char *kernel_cmdline = args->kernel_cmdline;
-    const char *initrd_filename = args->initrd_filename;
-    const char *boot_device = args->boot_order;
+    ram_addr_t ram_size = machine->ram_size;
+    const char *cpu_model = machine->cpu_model;
+    const char *kernel_filename = machine->kernel_filename;
+    const char *kernel_cmdline = machine->kernel_cmdline;
+    const char *initrd_filename = machine->initrd_filename;
+    const char *boot_device = machine->boot_order;
     MemoryRegion *sysmem = get_system_memory();
     PowerPCCPU *cpu = NULL;
     CPUPPCState *env = NULL;
     nvram_t nvram;
     M48t59State *m48t59;
-    MemoryRegion *PPC_io_memory = g_new(MemoryRegion, 1);
-    PortioList *port_list = g_new(PortioList, 1);
 #if 0
     MemoryRegion *xcsr = g_new(MemoryRegion, 1);
 #endif
     int linux_boot, i, nb_nics1;
     MemoryRegion *ram = g_new(MemoryRegion, 1);
+    MemoryRegion *vga = g_new(MemoryRegion, 1);
     uint32_t kernel_base, initrd_base;
     long kernel_size, initrd_size;
     DeviceState *dev;
@@ -567,6 +485,7 @@ static void ppc_prep_init(QEMUMachineInitArgs *args)
         fprintf(stderr, "Couldn't create PCI host controller.\n");
         exit(1);
     }
+    sysctrl->contiguous_map_irq = qdev_get_gpio_in(dev, 0);
 
     /* PCI -> ISA bridge */
     pci = pci_create_simple(pci_bus, PCI_DEVFN(1, 0), "i82378");
@@ -587,13 +506,16 @@ static void ppc_prep_init(QEMUMachineInitArgs *args)
     qdev_prop_set_uint8(dev, "config", 13); /* fdc, ser0, ser1, par0 */
     qdev_init_nofail(dev);
 
-    /* Register 8 MB of ISA IO space (needed for non-contiguous map) */
-    memory_region_init_io(PPC_io_memory, NULL, &PPC_prep_io_ops, sysctrl,
-                          "ppc-io", 0x00800000);
-    memory_region_add_subregion(sysmem, 0x80000000, PPC_io_memory);
-
     /* init basic PC hardware */
     pci_vga_init(pci_bus);
+    /* Open Hack'Ware hack: PCI BAR#0 is programmed to 0xf0000000.
+     * While bios will access framebuffer at 0xf0000000, real physical
+     * address is 0xf0000000 + 0xc0000000 (PCI memory base).
+     * Alias the wrong memory accesses to the right place.
+     */
+    memory_region_init_alias(vga, NULL, "vga-alias", pci_address_space(pci),
+                             0xf0000000, 0x1000000);
+    memory_region_add_subregion_overlap(sysmem, 0xf0000000, vga, 10);
 
     nb_nics1 = nb_nics;
     if (nb_nics1 > NE2000_NB_MAX)
@@ -621,8 +543,8 @@ static void ppc_prep_init(QEMUMachineInitArgs *args)
     cpu = POWERPC_CPU(first_cpu);
     sysctrl->reset_irq = cpu->env.irq_inputs[PPC6xx_INPUT_HRESET];
 
-    portio_list_init(port_list, NULL, prep_portio_list, sysctrl, "prep");
-    portio_list_add(port_list, isa_address_space_io(isa), 0x0);
+    portio_list_init(&prep_port_list, NULL, prep_portio_list, sysctrl, "prep");
+    portio_list_add(&prep_port_list, isa_address_space_io(isa), 0x0);
 
     /* PowerPC control and status register group */
 #if 0

@@ -191,7 +191,7 @@ int vhost_mpi_start(VirtIODevice *dev, int total_queues)
     VHostMpiState *mpi = VIRTIO_MPI(dev)->vhost_mpi;
     int r, i = 0;
 
-    printf("vhost_mpi_start\n");
+    IFV(printf("vhost_mpi_start\n"));
 
     if (!k->set_guest_notifiers) {
         error_report("binding does not support guest notifiers");
@@ -230,7 +230,7 @@ void vhost_mpi_stop(VirtIODevice *dev, int total_queues)
     VHostMpiState *mpi = VIRTIO_MPI(dev)->vhost_mpi;
     int i, r;
 
-    printf("vhost_mpi_stop\n");
+    IFV(printf("vhost_mpi_stop\n"));
 
     r = k->set_guest_notifiers(qbus->parent, total_queues * 2, false);
     if (r < 0) {

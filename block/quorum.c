@@ -625,13 +625,18 @@ static int64_t quorum_getlength(BlockDriverState *bs)
     return result;
 }
 
-static void quorum_invalidate_cache(BlockDriverState *bs)
+static void quorum_invalidate_cache(BlockDriverState *bs, Error **errp)
 {
     BDRVQuorumState *s = bs->opaque;
+    Error *local_err = NULL;
     int i;
 
     for (i = 0; i < s->num_children; i++) {
-        bdrv_invalidate_cache(s->bs[i]);
+        bdrv_invalidate_cache(s->bs[i], &local_err);
+        if (local_err) {
+            error_propagate(errp, local_err);
+            return;
+        }
     }
 }
 
@@ -748,7 +753,7 @@ static int quorum_open(BlockDriverState *bs, QDict *options, int flags,
 
     opts = qemu_opts_create(&quorum_runtime_opts, NULL, 0, &error_abort);
     qemu_opts_absorb_qdict(opts, options, &local_err);
-    if (error_is_set(&local_err)) {
+    if (local_err) {
         ret = -EINVAL;
         goto exit;
     }
@@ -823,7 +828,7 @@ close_exit:
     g_free(opened);
 exit:
     /* propagate error */
-    if (error_is_set(&local_err)) {
+    if (local_err) {
         error_propagate(errp, local_err);
     }
     QDECREF(list);

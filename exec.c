@@ -380,7 +380,7 @@ MemoryRegion *address_space_translate(AddressSpace *as, hwaddr addr,
         as = iotlb.target_as;
     }
 
-    if (memory_access_is_direct(mr, is_write)) {
+    if (xen_enabled() && memory_access_is_direct(mr, is_write)) {
         hwaddr page = ((addr & TARGET_PAGE_MASK) + TARGET_PAGE_SIZE) - addr;
         len = MIN(page, len);
     }
@@ -420,7 +420,7 @@ static int cpu_common_post_load(void *opaque, int version_id)
     /* 0x01 was CPU_INTERRUPT_EXIT. This line can be removed when the
        version_id is increased. */
     cpu->interrupt_request &= ~0x01;
-    tlb_flush(cpu->env_ptr, 1);
+    tlb_flush(cpu, 1);
 
     return 0;
 }
@@ -429,9 +429,8 @@ const VMStateDescription vmstate_cpu_common = {
     .name = "cpu_common",
     .version_id = 1,
     .minimum_version_id = 1,
-    .minimum_version_id_old = 1,
     .post_load = cpu_common_post_load,
-    .fields      = (VMStateField []) {
+    .fields = (VMStateField[]) {
         VMSTATE_UINT32(halted, CPUState),
         VMSTATE_UINT32(interrupt_request, CPUState),
         VMSTATE_END_OF_LIST()

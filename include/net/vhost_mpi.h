@@ -1,6 +1,12 @@
 #ifndef VHOST_MPI_H
 #define VHOST_MPI_H
 
+//#define VERBOSE
+#ifdef VERBOSE
+#define IFV(x) x
+#else
+#define IFV(x) do {} while (0)
+#endif
 
 struct vhost_mpi;
 typedef struct vhost_mpi VHostMpiState;

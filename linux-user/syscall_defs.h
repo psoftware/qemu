@@ -2123,6 +2123,8 @@ struct target_statfs64 {
 #define TARGET_F_SETOWN        8       /*  for sockets. */
 #define TARGET_F_GETOWN        9       /*  for sockets. */
 #endif
+#define TARGET_F_SETOWN_EX     15
+#define TARGET_F_GETOWN_EX     16
 
 #ifndef TARGET_F_RDLCK
 #define TARGET_F_RDLCK         0
@@ -2304,6 +2306,11 @@ struct target_eabi_flock64 {
 	int  l_pid;
 } QEMU_PACKED;
 #endif
+
+struct target_f_owner_ex {
+        int type;	/* Owner type of ID.  */
+        int pid;	/* ID of owner.  */
+};
 
 /* soundcard defines */
 /* XXX: convert them all to arch indepedent entries */
@@ -2545,12 +2552,26 @@ struct target_timer_t {
     abi_ulong ptr;
 };
 
+#define TARGET_SIGEV_MAX_SIZE 64
+
+/* This is architecture-specific but most architectures use the default */
+#ifdef TARGET_MIPS
+#define TARGET_SIGEV_PREAMBLE_SIZE (sizeof(int32_t) * 2 + sizeof(abi_long))
+#else
+#define TARGET_SIGEV_PREAMBLE_SIZE (sizeof(int32_t) * 2 \
+                                    + sizeof(target_sigval_t))
+#endif
+
+#define TARGET_SIGEV_PAD_SIZE ((TARGET_SIGEV_MAX_SIZE \
+                                - TARGET_SIGEV_PREAMBLE_SIZE) \
+                               / sizeof(int32_t))
+
 struct target_sigevent {
     target_sigval_t sigev_value;
     int32_t sigev_signo;
     int32_t sigev_notify;
     union {
-        int32_t _pad[ARRAY_SIZE(((struct sigevent *)0)->_sigev_un._pad)];
+        int32_t _pad[TARGET_SIGEV_PAD_SIZE];
         int32_t _tid;
 
         struct {
@@ -2558,4 +2579,15 @@ struct target_sigevent {
             void *_attribute;
         } _sigev_thread;
     } _sigev_un;
+};
+
+struct target_user_cap_header {
+    uint32_t version;
+    int pid;
+};
+
+struct target_user_cap_data {
+    uint32_t effective;
+    uint32_t permitted;
+    uint32_t inheritable;
 };
