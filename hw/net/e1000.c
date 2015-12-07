@@ -37,12 +37,14 @@
 
 #include "e1000_regs.h"
 
-#define NET_RATE	    /* Debug rate monitor enable. */
+#define NET_RATE    /* Enable rate statistics. */
 #ifdef NET_RATE
 #define IFRATE(x) x
 #else
 #define IFRATE(x)
 #endif /* NET_RATE */
+
+//#define E1000_TXBH  /* Process TX descriptors in a bottom-half */
 
 static const uint8_t bcast[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
@@ -150,6 +152,10 @@ typedef struct E1000State_st {
 #define E1000_FLAG_MAC (1 << E1000_FLAG_MAC_BIT)
     uint32_t compat_flags;
     IFRATE(QEMUTimer *rate_timer);
+#ifdef E1000_TXBH
+    QEMUBH *tx_bh;       /* QEMU bottom-half used for transmission. */
+    int tx_bh_waiting;   /* Is QEMU bh waiting to be scheduled? */
+#endif /* E1000_TXBH */
 } E1000State;
 
 /* Rate monitor: shows the communication statistics. */
@@ -163,7 +169,6 @@ static int rate_mmio_read = 0;
 
 /* rate interrupts */
 static int rate_irq_int = 0;
-static int rate_ntfy_txfull = 0;
 
 /* rate guest notifications */
 static int rate_ntfy_tx = 0;    // new TX descriptors
@@ -178,6 +183,9 @@ static int64_t rate_txb = 0;
 static int rate_rx = 0;  // received packet counter
 static int64_t rate_rxb = 0;
 
+static int rate_tx_bh_len = 0;
+static int rate_tx_bh_count = 0;
+
 static void rate_callback(void * opaque)
 {
     E1000State* s = opaque;
@@ -187,20 +195,22 @@ static void rate_callback(void * opaque)
     printf("Interrupt:           %4.3f KHz\n", (double)rate_irq_int/delta);
     printf("Tx packets:          %4.3f KHz\n", (double)rate_tx/delta);
     printf("Tx stream:           %4.3f Mbps\n", (double)(rate_txb*8)/delta/1000.0);
+    printf("Avg BH work:         %4.3f\n", rate_tx_bh_count ?
+					   (double)rate_tx_bh_len/
+					           (double)rate_tx_bh_count : 0);
     printf("Rx packets:          %4.3f Kpps\n", (double)rate_rx/delta);
     printf("Rx stream:           %4.3f Mbps\n", (double)(rate_rxb*8)/delta/1000.0);
     printf("Tx notifications:    %4.3f KHz\n", (double)rate_ntfy_tx/delta);
-    printf("TX full notif.:      %4.3f KHz\n", (double)rate_ntfy_txfull/delta);
     printf("Rx notifications:    %4.3f KHz\n", (double)rate_ntfy_rx/delta);
     printf("MMIO writes:         %4.3f KHz\n", (double)rate_mmio_write/delta);
     printf("MMIO reads:          %4.3f KHz\n", (double)rate_mmio_read/delta);
     printf("\n");
     rate_irq_int = 0;
-    rate_ntfy_txfull = 0;
     rate_ntfy_tx = rate_ntfy_ic = rate_ntfy_rx = 0;
     rate_mmio_read = rate_mmio_write = 0;
     rate_rx = rate_rxb = 0;
     rate_tx = rate_txb = 0;
+    rate_tx_bh_len = rate_tx_bh_count = 0;
 
     timer_mod(s->rate_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) +
 		    rate_interval_ms);
@@ -495,6 +505,9 @@ static void e1000_reset(void *opaque)
     uint8_t *macaddr = d->conf.macaddr.a;
     int i;
 
+#ifdef E1000_TXBH
+    qemu_bh_cancel(d->tx_bh);
+#endif /* E1000_TXBH */
     timer_del(d->autoneg_timer);
     timer_del(d->mit_timer);
     d->mit_timer_on = 0;
@@ -750,7 +763,7 @@ e1000_send_packet(E1000State *s, const uint8_t *buf, int size)
         nc->info->receive(nc, buf, size);
     } else {
         qemu_send_packet(nc, buf, size);
-	IFRATE(rate_tx++; rate_txb += size;);
+	IFRATE(rate_tx++; rate_txb += size; rate_tx_bh_len++);
     }
     inc_tx_bcast_or_mcast_count(s, buf);
     increase_size_stats(s, PTCregs, size);
@@ -1346,6 +1359,18 @@ mac_writereg(E1000State *s, int index, uint32_t val)
     }
 }
 
+#ifdef E1000_TXBH
+static void
+e1000_tx_bh(void *opaque)
+{
+    E1000State *s = opaque;
+
+    s->tx_bh_waiting = 0;
+    start_xmit(s);
+    IFRATE(rate_tx_bh_count++);
+}
+#endif  /* E1000_TXBH */
+
 static void
 set_rdt(E1000State *s, int index, uint32_t val)
 {
@@ -1373,7 +1398,15 @@ set_tctl(E1000State *s, int index, uint32_t val)
 {
     s->mac_reg[index] = val;
     s->mac_reg[TDT] &= 0xffff;
+#ifdef E1000_TXBH
+    if (s->tx_bh_waiting) {
+        return;
+    }
+    s->tx_bh_waiting = 1;
+    qemu_bh_schedule(s->tx_bh);
+#else  /* !E1000_TXBH */
     start_xmit(s);
+#endif /* !E1000_TXBH */
     IFRATE(rate_ntfy_tx++);
 }
 
@@ -1916,6 +1949,10 @@ static void pci_e1000_realize(PCIDevice *pci_dev, Error **errp)
     d->autoneg_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL, e1000_autoneg_timer, d);
     d->mit_timer = timer_new_ns(QEMU_CLOCK_VIRTUAL, e1000_mit_timer, d);
     IFRATE(d->rate_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL, &rate_callback, d));
+#ifdef E1000_TXBH
+    d->tx_bh = qemu_bh_new(e1000_tx_bh, d);
+    d->tx_bh_waiting = 0;
+#endif /* E1000_TXBH */
 }
 
 static void qdev_e1000_reset(DeviceState *dev)
