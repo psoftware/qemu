@@ -93,6 +93,7 @@ typedef struct VirtIONet {
     char *netclient_type;
     uint64_t curr_guest_offloads;
     QEMUTimer *announce_timer;
+    IFRATE(QEMUTimer *rate_timer);
     int announce_counter;
 } VirtIONet;
 

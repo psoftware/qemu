@@ -1056,6 +1056,10 @@ static bool vring_notify(VirtIODevice *vdev, VirtQueue *vq)
     return !v || vring_need_event(vring_get_used_event(vq), new, old);
 }
 
+#ifdef NET_RATE
+int rate_ints = 0;
+#endif /* NET_RATE */
+
 void virtio_notify(VirtIODevice *vdev, VirtQueue *vq)
 {
     if (!vring_notify(vdev, vq)) {
@@ -1065,6 +1069,7 @@ void virtio_notify(VirtIODevice *vdev, VirtQueue *vq)
     trace_virtio_notify(vdev, vq);
     vdev->isr |= 0x01;
     virtio_notify_vector(vdev, vq->vector);
+    IFRATE(rate_ints++);
 }
 
 void virtio_notify_config(VirtIODevice *vdev)

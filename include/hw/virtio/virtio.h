@@ -22,6 +22,13 @@
 #include "standard-headers/linux/virtio_config.h"
 #include "standard-headers/linux/virtio_ring.h"
 
+#define NET_RATE
+#ifdef NET_RATE
+#define IFRATE(x) x
+#else  /* !NET_RATE */
+#define IFRATE(x)
+#endif /* !NET_RATE */
+
 /* A guest should never accept this.  It implies negotiation is broken. */
 #define VIRTIO_F_BAD_FEATURE		30
 
