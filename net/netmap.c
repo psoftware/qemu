@@ -39,26 +39,28 @@
 #include "qemu/error-report.h"
 #include "qemu/iov.h"
 
-/* Private netmap device info. */
-typedef struct NetmapPriv {
-    int                 fd;
-    size_t              memsize;
-    void                *mem;
-    struct netmap_if    *nifp;
-    struct netmap_ring  *rx;
-    struct netmap_ring  *tx;
-    char                fdname[PATH_MAX];        /* Normally "/dev/netmap". */
-    char                ifname[IFNAMSIZ];
-} NetmapPriv;
+#ifdef CONFIG_NETMAP_PASSTHROUGH
+#include "hw/net/ptnetmap.h"
+#endif /* CONFIG_NETMAP_PASSTHROUGH */
 
 typedef struct NetmapState {
     NetClientState      nc;
-    NetmapPriv          me;
+    struct nm_desc      *nmd;
+    char                ifname[IFNAMSIZ];
+    struct netmap_ring  *tx;
+    struct netmap_ring  *rx;
     bool                read_poll;
     bool                write_poll;
     struct iovec        iov[IOV_MAX];
     int                 vnet_hdr_len;  /* Current virtio-net header length. */
+    QTAILQ_ENTRY(NetmapState) next;
+#ifdef CONFIG_NETMAP_PASSTHROUGH
+    PTNetmapState       ptnetmap;
+#endif /* CONFIG_NETMAP_PASSTHROUGH */
 } NetmapState;
+
+static QTAILQ_HEAD(, NetmapState) netmap_clients =
+                   QTAILQ_HEAD_INITIALIZER(netmap_clients);
 
 #ifndef __FreeBSD__
 #define pkt_copy bcopy
@@ -87,47 +89,62 @@ pkt_copy(const void *_src, void *_dst, int l)
 #endif /* __FreeBSD__ */
 
 /*
+ * find nm_desc parent with same allocator
+ */
+static struct nm_desc *
+netmap_find_memory(struct nm_desc *nmd)
+{
+    NetmapState *s;
+
+    QTAILQ_FOREACH(s, &netmap_clients, next) {
+        if (nmd->req.nr_arg2 == s->nmd->req.nr_arg2) {
+            D("Found parent: ifname: %s mem_id: %d", s->ifname,
+              s->nmd->req.nr_arg2);
+            return s->nmd;
+        }
+    }
+
+    return NULL;
+}
+
+/*
  * Open a netmap device. We assume there is only one queue
  * (which is the case for the VALE bridge).
  */
-static void netmap_open(NetmapPriv *me, Error **errp)
+static struct nm_desc *netmap_open(const NetdevNetmapOptions *nm_opts,
+                                   Error **errp)
 {
-    int fd;
-    int err;
-    size_t l;
+    struct nm_desc *nmd;
     struct nmreq req;
+    int ret;
 
-    me->fd = fd = open(me->fdname, O_RDWR);
-    if (fd < 0) {
-        error_setg_file_open(errp, errno, me->fdname);
-        return;
-    }
     memset(&req, 0, sizeof(req));
-    pstrcpy(req.nr_name, sizeof(req.nr_name), me->ifname);
-    req.nr_ringid = NETMAP_NO_TX_POLL;
-    req.nr_version = NETMAP_API;
-    err = ioctl(fd, NIOCREGIF, &req);
-    if (err) {
-        error_setg_errno(errp, errno, "Unable to register %s", me->ifname);
-        goto error;
+#ifdef CONFIG_NETMAP_PASSTHROUGH
+    if (nm_opts->passthrough) {
+        req.nr_flags |= NR_PTNETMAP_HOST;
     }
-    l = me->memsize = req.nr_memsize;
+#endif /* CONFIG_NETMAP_PASSTHROUGH */
 
-    me->mem = mmap(0, l, PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0);
-    if (me->mem == MAP_FAILED) {
-        error_setg_errno(errp, errno, "Unable to mmap netmap shared memory");
-        me->mem = NULL;
-        goto error;
+    nmd = nm_open(nm_opts->ifname, &req, NETMAP_NO_TX_POLL | NM_OPEN_NO_MMAP,
+                  NULL);
+    if (nmd == NULL) {
+        error_setg_errno(errp, errno, "Failed to nm_open() %s",
+                         nm_opts->ifname);
+        return NULL;
     }
 
-    me->nifp = NETMAP_IF(me->mem, req.nr_offset);
-    me->tx = NETMAP_TXRING(me->nifp, 0);
-    me->rx = NETMAP_RXRING(me->nifp, 0);
+    /* Check if we already have a nm_desc that uses the same memory as the one
+     * just opened, so that nm_mmap() can skip mmap() and inherit from parent.
+     */
+    ret = nm_mmap(nmd, netmap_find_memory(nmd));
+    if (ret) {
+        error_setg_errno(errp, errno, "Failed to nm_mmap() %s",
+                         nm_opts->ifname);
+        nm_close(nmd);
+        return NULL;
+    }
 
-    return;
-
-error:
-    close(me->fd);
+    return nmd;
 }
 
 static void netmap_send(void *opaque);
@@ -136,7 +153,7 @@ static void netmap_writable(void *opaque);
 /* Set the event-loop handlers for the netmap backend. */
 static void netmap_update_fd_handler(NetmapState *s)
 {
-    qemu_set_fd_handler(s->me.fd,
+    qemu_set_fd_handler(s->nmd->fd,
                         s->read_poll ? netmap_send : NULL,
                         s->write_poll ? netmap_writable : NULL,
                         s);
@@ -188,7 +205,7 @@ static ssize_t netmap_receive(NetClientState *nc,
       const uint8_t *buf, size_t size)
 {
     NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
-    struct netmap_ring *ring = s->me.tx;
+    struct netmap_ring *ring = s->tx;
     uint32_t i;
     uint32_t idx;
     uint8_t *dst;
@@ -218,7 +235,7 @@ static ssize_t netmap_receive(NetClientState *nc,
     ring->slot[i].flags = 0;
     pkt_copy(buf, dst, size);
     ring->cur = ring->head = nm_ring_next(ring, i);
-    ioctl(s->me.fd, NIOCTXSYNC, NULL);
+    ioctl(s->nmd->fd, NIOCTXSYNC, NULL);
 
     return size;
 }
@@ -227,7 +244,7 @@ static ssize_t netmap_receive_iov(NetClientState *nc,
                     const struct iovec *iov, int iovcnt)
 {
     NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
-    struct netmap_ring *ring = s->me.tx;
+    struct netmap_ring *ring = s->tx;
     uint32_t last;
     uint32_t idx;
     uint8_t *dst;
@@ -284,7 +301,7 @@ static ssize_t netmap_receive_iov(NetClientState *nc,
     /* Now update ring->cur and ring->head. */
     ring->cur = ring->head = i;
 
-    ioctl(s->me.fd, NIOCTXSYNC, NULL);
+    ioctl(s->nmd->fd, NIOCTXSYNC, NULL);
 
     return iov_size(iov, iovcnt);
 }
@@ -301,7 +318,7 @@ static void netmap_send_completed(NetClientState *nc, ssize_t len)
 static void netmap_send(void *opaque)
 {
     NetmapState *s = opaque;
-    struct netmap_ring *ring = s->me.rx;
+    struct netmap_ring *ring = s->rx;
 
     /* Keep sending while there are available packets into the netmap
        RX ring and the forwarding path towards the peer is open. */
@@ -348,26 +365,50 @@ static void netmap_cleanup(NetClientState *nc)
 
     qemu_purge_queued_packets(nc);
 
-    netmap_poll(nc, false);
-    munmap(s->me.mem, s->me.memsize);
-    close(s->me.fd);
+#ifdef CONFIG_NETMAP_PASSTHROUGH
+    if (s->ptnetmap.created) {
+        ptnetmap_delete(&s->ptnetmap);
+    }
+#endif /* CONFIG_NETMAP_PASSTHROUGH */
 
-    s->me.fd = -1;
+    netmap_poll(nc, false);
+    nm_close(s->nmd);
+    s->nmd = NULL;
+
+    QTAILQ_REMOVE(&netmap_clients, s, next);
 }
 
 /* Offloading manipulation support callbacks. */
 static bool netmap_has_ufo(NetClientState *nc)
 {
+#ifdef CONFIG_NETMAP_PASSTHROUGH
+    NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
+    if (s->ptnetmap.required) {
+        return false;
+    }
+#endif /* CONFIG_NETMAP_PASSTHROUGH */
     return true;
 }
 
 static bool netmap_has_vnet_hdr(NetClientState *nc)
 {
+#ifdef CONFIG_NETMAP_PASSTHROUGH
+    NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
+    if (s->ptnetmap.required) {
+        return false;
+    }
+#endif /* CONFIG_NETMAP_PASSTHROUGH */
     return true;
 }
 
 static bool netmap_has_vnet_hdr_len(NetClientState *nc, int len)
 {
+#ifdef CONFIG_NETMAP_PASSTHROUGH
+    NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
+    if (s->ptnetmap.required) {
+        return false;
+    }
+#endif /* CONFIG_NETMAP_PASSTHROUGH */
     return len == 0 || len == sizeof(struct virtio_net_hdr) ||
                 len == sizeof(struct virtio_net_hdr_mrg_rxbuf);
 }
@@ -382,18 +423,24 @@ static void netmap_set_vnet_hdr_len(NetClientState *nc, int len)
     int err;
     struct nmreq req;
 
+#ifdef CONFIG_NETMAP_PASSTHROUGH
+    if (s->ptnetmap.required) {
+        return;
+    }
+#endif /* CONFIG_NETMAP_PASSTHROUGH */
+
     /* Issue a NETMAP_BDG_VNET_HDR command to change the virtio-net header
-     * length for the netmap adapter associated to 'me->ifname'.
+     * length for the netmap adapter associated to 's->ifname'.
      */
     memset(&req, 0, sizeof(req));
-    pstrcpy(req.nr_name, sizeof(req.nr_name), s->me.ifname);
+    pstrcpy(req.nr_name, sizeof(req.nr_name), s->ifname);
     req.nr_version = NETMAP_API;
     req.nr_cmd = NETMAP_BDG_VNET_HDR;
     req.nr_arg1 = len;
-    err = ioctl(s->me.fd, NIOCREGIF, &req);
+    err = ioctl(s->nmd->fd, NIOCREGIF, &req);
     if (err) {
         error_report("Unable to execute NETMAP_BDG_VNET_HDR on %s: %s",
-                     s->me.ifname, strerror(errno));
+                     s->ifname, strerror(errno));
     } else {
         /* Keep track of the current length. */
         s->vnet_hdr_len = len;
@@ -404,6 +451,12 @@ static void netmap_set_offload(NetClientState *nc, int csum, int tso4, int tso6,
                                int ecn, int ufo)
 {
     NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
+
+#ifdef CONFIG_NETMAP_PASSTHROUGH
+    if (s->ptnetmap.required) {
+        return;
+    }
+#endif /* CONFIG_NETMAP_PASSTHROUGH */
 
     /* Setting a virtio-net header length greater than zero automatically
      * enables the offloadings.
@@ -429,6 +482,132 @@ static NetClientInfo net_netmap_info = {
     .set_vnet_hdr_len = netmap_set_vnet_hdr_len,
 };
 
+#ifdef CONFIG_NETMAP_PASSTHROUGH
+/*
+ * ptnetmap routines
+ */
+static PTNetmapState *
+netmap_get_ptnetmap(NetClientState *nc)
+{
+    NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
+
+    if (s->ptnetmap.required) {
+        ptnetmap_memdev_create(s->nmd->mem, s->nmd->memsize, s->nmd->req.nr_arg2);
+        return &s->ptnetmap;
+    } else
+        return NULL;
+}
+
+/* return the subset of requested features that we support */
+uint32_t
+ptnetmap_get_features(PTNetmapState *ptn, uint32_t features)
+{
+    return ptn->features & features;
+}
+
+/* store the agreed upon features */
+void
+ptnetmap_ack_features(PTNetmapState *ptn, uint32_t features)
+{
+    ptn->acked_features |= features;
+}
+
+/* XXX: set mem info in net_init_netmap()?? */
+int
+ptnetmap_get_mem(PTNetmapState *ptn)
+{
+    NetmapState *s = ptn->netmap;
+
+    if (s->nmd == NULL)
+        return EINVAL;
+    ptn->offset = s->nmd->req.nr_offset;
+    ptn->num_tx_rings = s->nmd->req.nr_tx_rings;
+    ptn->num_rx_rings = s->nmd->req.nr_rx_rings;
+    ptn->num_tx_slots = s->nmd->req.nr_tx_slots;
+    ptn->num_rx_slots = s->nmd->req.nr_rx_slots;
+    return 0;
+}
+
+int
+ptnetmap_get_hostmemid(PTNetmapState *ptn)
+{
+    NetmapState *s = ptn->netmap;
+
+    if (s->nmd == NULL)
+        return EINVAL;
+
+    return s->nmd->req.nr_arg2;
+}
+
+int
+ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *conf)
+{
+    NetmapState *s = ptn->netmap;
+    int err;
+    struct nmreq req;
+
+    if (!(ptn->acked_features & NET_PTN_FEATURES_BASE)) {
+        error_report("ptnetmap features not acked");
+        return EFAULT;
+    }
+
+    if (ptn->created)
+        return 0;
+
+    /* disable poll */
+    netmap_poll(&s->nc, false);
+    qemu_purge_queued_packets(&s->nc);
+
+    /* ioctl to create ptnetmap kthreads */
+    memset(&req, 0, sizeof(req));
+    pstrcpy(req.nr_name, sizeof(req.nr_name), s->ifname);
+    req.nr_version = NETMAP_API;
+    ptnetmap_write_cfg(&req, conf);
+    req.nr_cmd = NETMAP_PT_HOST_CREATE;
+    err = ioctl(s->nmd->fd, NIOCREGIF, &req);
+    if (err) {
+        error_report("Unable to execute NETMAP_PT_HOST_CREATE on %s: %s",
+                s->ifname, strerror(errno));
+    } else
+        ptn->created = true;
+
+    return err;
+}
+
+int
+ptnetmap_delete(PTNetmapState *ptn)
+{
+    NetmapState *s = ptn->netmap;
+    int err;
+    struct nmreq req;
+
+    if (!(ptn->acked_features & NET_PTN_FEATURES_BASE)) {
+        error_report("ptnetmap features not acked");
+        return EFAULT;
+    }
+
+    if (!ptn->created)
+        return 0;
+
+    /* ioctl to delete ptnetmap kthreads */
+    memset(&req, 0, sizeof(req));
+    pstrcpy(req.nr_name, sizeof(req.nr_name), s->ifname);
+    req.nr_version = NETMAP_API;
+    req.nr_cmd = NETMAP_PT_HOST_DELETE;
+    err = ioctl(s->nmd->fd, NIOCREGIF, &req);
+    if (err) {
+        error_report("Unable to execute NETMAP_PT_HOST_DELETE on %s: %s",
+                s->ifname, strerror(errno));
+    }
+
+    ptn->created = false;
+    /* enable poll to restore netmap port */
+    netmap_poll(&s->nc, true);
+
+    return err;
+}
+#endif /* CONFIG_NETMAP_PASSTHROUGH */
+
 /* The exported init function
  *
  * ... -net netmap,ifname="..."
@@ -437,16 +616,12 @@ int net_init_netmap(const NetClientOptions *opts,
                     const char *name, NetClientState *peer, Error **errp)
 {
     const NetdevNetmapOptions *netmap_opts = opts->u.netmap;
+    struct nm_desc *nmd;
     NetClientState *nc;
     Error *err = NULL;
-    NetmapPriv me;
     NetmapState *s;
 
-    pstrcpy(me.fdname, sizeof(me.fdname),
-        netmap_opts->has_devname ? netmap_opts->devname : "/dev/netmap");
-    /* Set default name for the port if not supplied. */
-    pstrcpy(me.ifname, sizeof(me.ifname), netmap_opts->ifname);
-    netmap_open(&me, &err);
+    nmd = netmap_open(netmap_opts, &err);
     if (err) {
         error_propagate(errp, err);
         return -1;
@@ -454,9 +629,14 @@ int net_init_netmap(const NetClientOptions *opts,
     /* Create the object. */
     nc = qemu_new_net_client(&net_netmap_info, peer, "netmap", name);
     s = DO_UPCAST(NetmapState, nc, nc);
-    s->me = me;
+    s->nmd = nmd;
+    s->tx = NETMAP_TXRING(nmd->nifp, 0);
+    s->rx = NETMAP_RXRING(nmd->nifp, 0);
     s->vnet_hdr_len = 0;
+    pstrcpy(s->ifname, sizeof(s->ifname), netmap_opts->ifname);
+    QTAILQ_INSERT_TAIL(&netmap_clients, s, next);
     netmap_read_poll(s, true); /* Initially only poll for reads. */
+
 
     return 0;
 }

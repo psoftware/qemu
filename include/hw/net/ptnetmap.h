@@ -28,7 +28,7 @@
 #include "exec/memory.h"
 #include "dev/netmap/netmap_virt.h" /* from netmap sources */
 
-typedef struct ptnetmap_state {
+typedef struct PTNetmapState {
     bool required;                      /* ptnetmap required on this port */
     bool created;                       /* ptnetmap kthreads created */
     struct NetmapState *netmap;
