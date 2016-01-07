@@ -2649,8 +2649,9 @@
 ##
 { 'struct': 'NetdevNetmapOptions',
   'data': {
-    'ifname':     'str',
-    '*devname':    'str' } }
+    'ifname':       'str',
+    '*passthrough': 'bool',
+    '*devname':     'str' } }
 
 ##
 # @NetdevVhostUserOptions
