@@ -486,26 +486,29 @@ static NetClientInfo net_netmap_info = {
 /*
  * ptnetmap routines
  */
-static PTNetmapState *
-netmap_get_ptnetmap(NetClientState *nc)
+
+PTNetmapState *
+get_ptnetmap(NetClientState *nc)
 {
     NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
 
     if (s->ptnetmap.required) {
-        ptnetmap_memdev_create(s->nmd->mem, s->nmd->memsize, s->nmd->req.nr_arg2);
+        ptnetmap_memdev_create(s->nmd->mem, s->nmd->memsize,
+                               s->nmd->req.nr_arg2);
         return &s->ptnetmap;
-    } else
+    } else {
         return NULL;
+    }
 }
 
-/* return the subset of requested features that we support */
+/* Return the subset of requested features that we support. */
 uint32_t
 ptnetmap_get_features(PTNetmapState *ptn, uint32_t features)
 {
     return ptn->features & features;
 }
 
-/* store the agreed upon features */
+/* Store the features we agreed upon. */
 void
 ptnetmap_ack_features(PTNetmapState *ptn, uint32_t features)
 {
@@ -633,6 +636,16 @@ int net_init_netmap(const NetClientOptions *opts,
     s->tx = NETMAP_TXRING(nmd->nifp, 0);
     s->rx = NETMAP_RXRING(nmd->nifp, 0);
     s->vnet_hdr_len = 0;
+#ifdef CONFIG_NETMAP_PASSTHROUGH
+    s->ptnetmap.required = false;
+    if (netmap_opts->passthrough) {
+        s->ptnetmap.required = true;
+        s->ptnetmap.netmap = s;
+        s->ptnetmap.features = NET_PTN_FEATURES_BASE;
+        s->ptnetmap.acked_features = 0;
+        s->ptnetmap.created = false;
+    }
+#endif /* CONFIG_NETMAP_PASSTHROUGH */
     pstrcpy(s->ifname, sizeof(s->ifname), netmap_opts->ifname);
     QTAILQ_INSERT_TAIL(&netmap_clients, s, next);
     netmap_read_poll(s, true); /* Initially only poll for reads. */
