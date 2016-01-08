@@ -89,10 +89,9 @@ static void virtio_net_get_config(VirtIODevice *vdev,
 #ifndef CONFIG_NETMAP_PASSTHROUGH
     memcpy(config, &netcfg, n->config_size);
 #else  /* CONFIG_NETMAP_PASSTHROUGH */
-    memcpy(config, &netcfg, sizeof(netcfg));
-    if (addr >= sizeof(netcfg)) {
-        virtio_net_ptnetmap_get_reg(vdev, config, addr);
-    }
+    memcpy(config, &netcfg, n->config_size - PTNETMAP_VIRTIO_IO_SIZE);
+    memcpy(config + n->config_size - PTNETMAP_VIRTIO_IO_SIZE,
+           n->ptn.reg, PTNETMAP_VIRTIO_IO_SIZE);
 #endif /* CONFIG_NETMAP_PASSTHROUGH */
 }
 
@@ -106,8 +105,8 @@ static void virtio_net_set_config(VirtIODevice *vdev,
 #ifndef CONFIG_NETMAP_PASSTHROUGH
     memcpy(&netcfg, config, n->config_size);
 #else /* CONFIG_NETMAP_PASSTHROUGH */
-    memcpy(&netcfg, config, sizeof(netcfg));
-    if (addr >= sizeof(netcfg)) {
+    memcpy(&netcfg, config, n->config_size - PTNETMAP_VIRTIO_IO_SIZE);
+    if (addr >= n->config_size - PTNETMAP_VIRTIO_IO_SIZE) {
         virtio_net_ptnetmap_set_reg(vdev, config, addr);
     }
 #endif /* CONFIG_NETMAP_PASSTHROUGH */
@@ -509,11 +508,11 @@ static uint64_t virtio_net_get_features(VirtIODevice *vdev, uint64_t features,
     }
 
 #ifdef CONFIG_NETMAP_PASSTHROUGH
-    if (n->ptn.state == NULL)
-        features &= ~(0x1 << VIRTIO_NET_F_PTNETMAP);
-    else {
-        features |= (0x1 << VIRTIO_NET_F_PTNETMAP);
-        features &= ~(0x1 << VIRTIO_RING_F_EVENT_IDX);
+    if (n->ptn.state == NULL) {
+	virtio_clear_feature(&features, VIRTIO_NET_F_PTNETMAP);
+    } else {
+	virtio_add_feature(&features, VIRTIO_NET_F_PTNETMAP);
+	virtio_clear_feature(&features, VIRTIO_RING_F_EVENT_IDX);
     }
 #endif /* CONFIG_NETMAP_PASSTHROUGH */
 

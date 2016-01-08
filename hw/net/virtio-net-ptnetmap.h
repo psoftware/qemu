@@ -210,23 +210,6 @@ static int virtio_net_ptnetmap_get_mem(VirtIODevice *vdev)
     return ret;
 }
 
-static void virtio_net_ptnetmap_get_reg(VirtIODevice *vdev, uint8_t *config,
-        uint32_t addr)
-{
-    VirtIONet *n = VIRTIO_NET(vdev);
-    config += PTNETMAP_VIRTIO_IO_BASE;
-    addr -= PTNETMAP_VIRTIO_IO_BASE;
-
-    switch (addr) {
-        case PTNETMAP_VIRTIO_IO_PTFEAT:
-        case PTNETMAP_VIRTIO_IO_PTSTS:
-            memcpy(config + addr, &n->ptn.reg[addr], 4);
-            break;
-        default:
-            break;
-    }
-}
-
 static void paravirt_configure_csb(struct paravirt_csb **csb, uint32_t csbbal,
                                    uint32_t csbbah)
 {
