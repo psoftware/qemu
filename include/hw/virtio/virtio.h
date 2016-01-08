@@ -107,8 +107,8 @@ typedef struct VirtioDeviceClass {
     uint64_t (*bad_features)(VirtIODevice *vdev);
     void (*set_features)(VirtIODevice *vdev, uint64_t val);
     int (*validate_features)(VirtIODevice *vdev);
-    void (*get_config)(VirtIODevice *vdev, uint8_t *config);
-    void (*set_config)(VirtIODevice *vdev, const uint8_t *config);
+    void (*get_config)(VirtIODevice *vdev, uint32_t addr, uint8_t *config);
+    void (*set_config)(VirtIODevice *vdev, uint32_t addr, const uint8_t *config);
     void (*reset)(VirtIODevice *vdev);
     void (*set_status)(VirtIODevice *vdev, uint8_t val);
     /* Test and clear event pending status.

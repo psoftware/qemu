@@ -514,7 +514,7 @@ static uint64_t get_features(VirtIODevice *vdev, uint64_t features,
 }
 
 /* Guest requested config info */
-static void get_config(VirtIODevice *vdev, uint8_t *config_data)
+static void get_config(VirtIODevice *vdev, uint32_t addr, uint8_t *config_data)
 {
     VirtIOSerial *vser = VIRTIO_SERIAL(vdev);
     struct virtio_console_config *config =
@@ -588,7 +588,7 @@ static void virtio_serial_save_device(VirtIODevice *vdev, QEMUFile *f)
     struct virtio_console_config config;
 
     /* The config space (ignored on the far end in current versions) */
-    get_config(vdev, (uint8_t *)&config);
+    get_config(vdev, 0, (uint8_t *)&config);
     qemu_put_be16s(f, &config.cols);
     qemu_put_be16s(f, &config.rows);
     qemu_put_be32s(f, &config.max_nr_ports);

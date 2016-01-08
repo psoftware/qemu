@@ -492,13 +492,15 @@ get_ptnetmap(NetClientState *nc)
 {
     NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
 
-    if (s->ptnetmap.required) {
-        ptnetmap_memdev_create(s->nmd->mem, s->nmd->memsize,
-                               s->nmd->req.nr_arg2);
-        return &s->ptnetmap;
-    } else {
+    if (nc->info->type != NET_CLIENT_OPTIONS_KIND_NETMAP
+                                || !s->ptnetmap.required) {
         return NULL;
     }
+
+    ptnetmap_memdev_create(s->nmd->mem, s->nmd->memsize,
+            s->nmd->req.nr_arg2);
+
+    return &s->ptnetmap;
 }
 
 /* Return the subset of requested features that we support. */

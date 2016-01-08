@@ -40,6 +40,22 @@ typedef struct virtio_net_conf
 /* Maximum packet size we can receive from tap device: header + 64k */
 #define VIRTIO_NET_MAX_BUFSIZE (sizeof(struct virtio_net_hdr) + (64 << 10))
 
+#ifdef CONFIG_NETMAP_PASSTHROUGH
+#include "hw/net/ptnetmap.h"
+#include "dev/netmap/netmap_virt.h"
+typedef struct VirtIONetPTNetmap
+{
+    struct paravirt_csb *csb;           /* Communication Status Block. */
+    uint32_t features;                  /* ptnetmap features */
+    bool up;                            /* ptnetmap up/down */
+    PTNetmapState *state;               /* ptnetmap state (shared with backend) */
+    struct ptnetmap_cfg cfg;            /* ptnetmap configuration */
+
+    /* ptnetmap register */
+    uint8_t reg[PTNETMAP_VIRTIO_IO_SIZE];
+} VirtIONetPTNetmap;
+#endif /* CONFIG_NETMAP_PASSTHROUGH */
+
 typedef struct VirtIONetQueue {
     VirtQueue *rx_vq;
     VirtQueue *tx_vq;
@@ -94,6 +110,9 @@ typedef struct VirtIONet {
     uint64_t curr_guest_offloads;
     QEMUTimer *announce_timer;
     int announce_counter;
+#ifdef CONFIG_NETMAP_PASSTHROUGH
+    VirtIONetPTNetmap ptn;
+#endif /* CONFIG_NETMAP_PASSTHROUGH */
 } VirtIONet;
 
 void virtio_net_set_netclient_name(VirtIONet *n, const char *name,
