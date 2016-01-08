@@ -27,8 +27,16 @@
 #include "qemu/event_notifier.h"
 #include "qemu/osdep.h"
 #include "hw/net/ptnetmap.h"
+#include "dev/netmap/netmap_virt.h"
 
+#undef DEBUF
 #define DEBUG
+
+#ifdef DEBUG
+#define DBG(x) x
+#else
+#define DBG(x)
+#endif
 
 static uint64_t upper_pow2(uint32_t v) {
     /* from bit-twiddling hacks */
@@ -59,47 +67,23 @@ typedef struct PTNetmapMemDevState {
 
 static QTAILQ_HEAD(, PTNetmapMemDevState) ptn_memdevs = QTAILQ_HEAD_INITIALIZER(ptn_memdevs);
 
-#define TYPE_PTNETMAP_MEMDEV "ptnetmap-memdev"
+#define TYPE_PTNETMAP_MEMDEV	PTN_MEMDEV_NAME
 
 #define PTNETMAP_MEMDEV(obj) \
     OBJECT_CHECK(PTNetmapMemDevState, (obj), TYPE_PTNETMAP_MEMDEV)
-
-/* XXX: move to pci_ids.h */
-#define PCI_VENDOR_ID_PTNETMAP  0x3333
-#define PCI_DEVICE_ID_PTNETMAP  0x0001
-
-/* XXX: move */
-#define PTNETMAP_IO_PCI_BAR         0
-#define PTNETMAP_MEM_PCI_BAR        1
-
-/* register XXX: move */
-
-/* 32 bit r/o */
-#define PTNETMAP_IO_PCI_FEATURES        0
-
-/* 32 bit r/o */
-#define PTNETMAP_IO_PCI_MEMSIZE         4
-
-/* 16 bit r/o */
-#define PTNETMAP_IO_PCI_HOSTID          8
-
-#define PTNETMAP_IO_SIZE                10
 
 static void
 ptnetmap_memdev_io_write(void *opaque, hwaddr addr, uint64_t val,
         unsigned size)
 {
-    //PTNetmapMemDevState *ptn_state = opaque;
-
     switch (addr) {
-
         default:
             printf("ptnentmap_memdev: write io reg unexpected\n");
             break;
     }
 
-
-    printf("ptnentmap_memdev: io_write - addr: %lx size: %d val: %lx\n", addr, size, val);
+    DBG(printf("ptnentmap_memdev: io_write - addr: %lx size: %d val: %lx\n",
+	       addr, size, val));
 }
 
 static uint64_t
@@ -120,7 +104,8 @@ ptnetmap_memdev_io_read(void *opaque, hwaddr addr, unsigned size)
             break;
     }
 
-    printf("ptnentmap_memdev: io_read - addr: %lx size: %d ret: %lx\n", addr, size, ret);
+    DBG(printf("ptnentmap_memdev: io_read - addr: %lx size: %d ret: %lx\n",
+	       addr, size, ret));
 
     return ret;
 }
@@ -141,7 +126,7 @@ static int ptnetmap_memdev_init(PCIDevice *dev)
     uint8_t *pci_conf;
     uint64_t size;
 
-    printf("ptnetmap_memdev: loading\n");
+    DBG(printf("ptnetmap_memdev: loading\n"));
 
     pci_conf = dev->config;
     pci_conf[PCI_INTERRUPT_PIN] = 0; /* no interrupt pin */
@@ -156,12 +141,14 @@ static int ptnetmap_memdev_init(PCIDevice *dev)
     /* init PCI_BAR to map netmap memory into the guest */
     if (ptn_state->mem_ptr) {
         size = upper_pow2(ptn_state->mem_size);
-        printf("ptnentmap_memdev: map BAR size %lx (%lu MiB)\n", size, size >> 20);
+        DBG(printf("ptnentmap_memdev: map BAR size %lx (%lu MiB)\n",
+		   size, size >> 20));
 
         memory_region_init(&ptn_state->mem_bar, OBJECT(ptn_state),
-                "ptnetmap-mem-bar", size);
+                           "ptnetmap-mem-bar", size);
         memory_region_init_ram_ptr(&ptn_state->mem_ram, OBJECT(ptn_state),
-                "ptnetmap-mem-ram", ptn_state->mem_size, ptn_state->mem_ptr);
+                                   "ptnetmap-mem-ram", ptn_state->mem_size,
+				   ptn_state->mem_ptr);
         memory_region_add_subregion(&ptn_state->mem_bar, 0, &ptn_state->mem_ram);
         vmstate_register_ram(&ptn_state->mem_ram, DEVICE(ptn_state));
         pci_register_bar(dev, PTNETMAP_MEM_PCI_BAR,
@@ -171,7 +158,8 @@ static int ptnetmap_memdev_init(PCIDevice *dev)
     }
 
     QTAILQ_INSERT_TAIL(&ptn_memdevs, ptn_state, next);
-    printf("ptnetmap_memdev: loaded\n");
+    DBG(printf("ptnetmap_memdev: loaded\n"));
+
     return 0;
 }
 
@@ -182,7 +170,7 @@ ptnetmap_memdev_uninit(PCIDevice *dev)
 
     QTAILQ_REMOVE(&ptn_memdevs, ptn_state, next);
 
-    printf("ptnetmap_memdev: unloaded\n");
+    DBG(printf("ptnetmap_memdev: unloaded\n"));
 }
 
  /*
@@ -209,7 +197,7 @@ ptnetmap_memdev_create(void *mem_ptr, uint32_t mem_size, uint16_t mem_id)
     PCIDevice *dev;
     PTNetmapMemDevState *ptn_state;
 
-    printf("ptnetmap_memdev: creating\n");
+    DBG(printf("ptnetmap_memdev: creating\n"));
 
     if (ptnetmap_memdev_find(mem_id)) {
         printf("ptnetmap_memdev: already created\n");
@@ -235,7 +223,7 @@ ptnetmap_memdev_create(void *mem_ptr, uint32_t mem_size, uint16_t mem_id)
     /* init device */
     qdev_init_nofail(&dev->qdev);
 
-    printf("ptnetmap_memdev: created\n");
+    DBG(printf("ptnetmap_memdev: created\n"));
 
     return 0;
 }
@@ -251,14 +239,14 @@ static void ptnetmap_memdev_class_init(ObjectClass *klass, void *data)
 
     k->init = ptnetmap_memdev_init;
     k->exit = ptnetmap_memdev_uninit;
-    k->vendor_id = PCI_VENDOR_ID_PTNETMAP;
-    k->device_id = PCI_DEVICE_ID_PTNETMAP;
+    k->vendor_id = PTNETMAP_PCI_VENDOR_ID;
+    k->device_id = PTNETMAP_PCI_DEVICE_ID;
     k->revision = 0x00;
     k->class_id = PCI_CLASS_OTHERS;
     dc->desc = "ptnetmap memory device";
     set_bit(DEVICE_CATEGORY_MISC, dc->categories);
     dc->reset = qdev_ptnetmap_memdev_reset;
-    printf("ptnetmap_memdev: init\n");
+    DBG(printf("ptnetmap_memdev: init\n"));
 }
 
 static const TypeInfo ptnetmap_memdev_info = {
