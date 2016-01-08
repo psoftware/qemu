@@ -89,15 +89,15 @@ ptnetmap_memdev_io_write(void *opaque, hwaddr addr, uint64_t val,
 static uint64_t
 ptnetmap_memdev_io_read(void *opaque, hwaddr addr, unsigned size)
 {
-    PTNetmapMemDevState *ptn_state = opaque;
+    PTNetmapMemDevState *memd = opaque;
     uint64_t ret = 0;
 
     switch (addr) {
         case PTNETMAP_IO_PCI_MEMSIZE:
-            ret = ptn_state->mem_size;
+            ret = memd->mem_size;
             break;
         case PTNETMAP_IO_PCI_HOSTID:
-            ret = ptn_state->mem_id;
+            ret = memd->mem_id;
             break;
         default:
             printf("ptnentmap_memdev: read io reg unexpected\n");
@@ -122,7 +122,7 @@ static const MemoryRegionOps ptnetmap_memdev_io_ops = {
 
 static int ptnetmap_memdev_init(PCIDevice *dev)
 {
-    PTNetmapMemDevState *ptn_state = PTNETMAP_MEMDEV(dev);
+    PTNetmapMemDevState *memd = PTNETMAP_MEMDEV(dev);
     uint8_t *pci_conf;
     uint64_t size;
 
@@ -133,31 +133,31 @@ static int ptnetmap_memdev_init(PCIDevice *dev)
 
     /* init register PCI_BAR */
     size = upper_pow2(PTNETMAP_IO_SIZE);
-    memory_region_init_io(&ptn_state->io_bar, OBJECT(ptn_state),
-            &ptnetmap_memdev_io_ops, ptn_state, "ptnetmap-io-bar", size);
+    memory_region_init_io(&memd->io_bar, OBJECT(memd),
+            &ptnetmap_memdev_io_ops, memd, "ptnetmap-io-bar", size);
     pci_register_bar(dev, PTNETMAP_IO_PCI_BAR, PCI_BASE_ADDRESS_SPACE_IO,
-            &ptn_state->io_bar);
+            &memd->io_bar);
 
     /* init PCI_BAR to map netmap memory into the guest */
-    if (ptn_state->mem_ptr) {
-        size = upper_pow2(ptn_state->mem_size);
+    if (memd->mem_ptr) {
+        size = upper_pow2(memd->mem_size);
         DBG(printf("ptnentmap_memdev: map BAR size %lx (%lu MiB)\n",
 		   size, size >> 20));
 
-        memory_region_init(&ptn_state->mem_bar, OBJECT(ptn_state),
+        memory_region_init(&memd->mem_bar, OBJECT(memd),
                            "ptnetmap-mem-bar", size);
-        memory_region_init_ram_ptr(&ptn_state->mem_ram, OBJECT(ptn_state),
-                                   "ptnetmap-mem-ram", ptn_state->mem_size,
-				   ptn_state->mem_ptr);
-        memory_region_add_subregion(&ptn_state->mem_bar, 0, &ptn_state->mem_ram);
-        vmstate_register_ram(&ptn_state->mem_ram, DEVICE(ptn_state));
+        memory_region_init_ram_ptr(&memd->mem_ram, OBJECT(memd),
+                                   "ptnetmap-mem-ram", memd->mem_size,
+				   memd->mem_ptr);
+        memory_region_add_subregion(&memd->mem_bar, 0, &memd->mem_ram);
+        vmstate_register_ram(&memd->mem_ram, DEVICE(memd));
         pci_register_bar(dev, PTNETMAP_MEM_PCI_BAR,
                 PCI_BASE_ADDRESS_SPACE_MEMORY  |
                 PCI_BASE_ADDRESS_MEM_PREFETCH /*  |
-                PCI_BASE_ADDRESS_MEM_TYPE_64 */, &ptn_state->mem_bar);
+                PCI_BASE_ADDRESS_MEM_TYPE_64 */, &memd->mem_bar);
     }
 
-    QTAILQ_INSERT_TAIL(&ptn_memdevs, ptn_state, next);
+    QTAILQ_INSERT_TAIL(&ptn_memdevs, memd, next);
     DBG(printf("ptnetmap_memdev: loaded\n"));
 
     return 0;
@@ -166,24 +166,24 @@ static int ptnetmap_memdev_init(PCIDevice *dev)
 static void
 ptnetmap_memdev_uninit(PCIDevice *dev)
 {
-    PTNetmapMemDevState *ptn_state = PTNETMAP_MEMDEV(dev);
+    PTNetmapMemDevState *memd = PTNETMAP_MEMDEV(dev);
 
-    QTAILQ_REMOVE(&ptn_memdevs, ptn_state, next);
+    QTAILQ_REMOVE(&ptn_memdevs, memd, next);
 
     DBG(printf("ptnetmap_memdev: unloaded\n"));
 }
 
  /*
-  * find ptn_state through mem_id
+  * find memd through mem_id
   */
 static struct PTNetmapMemDevState *
 ptnetmap_memdev_find(uint16_t mem_id)
 {
-    PTNetmapMemDevState *ptn_state;
+    PTNetmapMemDevState *memd;
 
-    QTAILQ_FOREACH(ptn_state, &ptn_memdevs, next) {
-        if (mem_id == ptn_state->mem_id) {
-            return ptn_state;
+    QTAILQ_FOREACH(memd, &ptn_memdevs, next) {
+        if (mem_id == memd->mem_id) {
+            return memd;
         }
     }
 
@@ -195,7 +195,7 @@ ptnetmap_memdev_create(void *mem_ptr, uint32_t mem_size, uint16_t mem_id)
 {
     PCIBus *bus;
     PCIDevice *dev;
-    PTNetmapMemDevState *ptn_state;
+    PTNetmapMemDevState *memd;
 
     DBG(printf("ptnetmap_memdev: creating\n"));
 
@@ -215,10 +215,10 @@ ptnetmap_memdev_create(void *mem_ptr, uint32_t mem_size, uint16_t mem_id)
     dev = pci_create(bus, -1, TYPE_PTNETMAP_MEMDEV);
 
     /* set ptnetmap shared memory parameter */
-    ptn_state = PTNETMAP_MEMDEV(dev);
-    ptn_state->mem_ptr = mem_ptr;
-    ptn_state->mem_size = mem_size;
-    ptn_state->mem_id = mem_id;
+    memd = PTNETMAP_MEMDEV(dev);
+    memd->mem_ptr = mem_ptr;
+    memd->mem_size = mem_size;
+    memd->mem_id = mem_id;
 
     /* init device */
     qdev_init_nofail(&dev->qdev);
