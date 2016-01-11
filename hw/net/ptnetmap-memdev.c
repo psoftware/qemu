@@ -38,7 +38,8 @@
 #define DBG(x)
 #endif
 
-static uint64_t upper_pow2(uint32_t v) {
+static uint64_t
+upper_pow2(uint32_t v) {
     /* from bit-twiddling hacks */
     v--;
     v |= v >> 1;
@@ -78,12 +79,9 @@ ptnetmap_memdev_io_write(void *opaque, hwaddr addr, uint64_t val,
 {
     switch (addr) {
         default:
-            printf("ptnentmap_memdev: write io reg unexpected\n");
+            printf("%s: invalid I/O write [addr %lx]\n", __func__, addr);
             break;
     }
-
-    DBG(printf("ptnentmap_memdev: io_write - addr: %lx size: %d val: %lx\n",
-	       addr, size, val));
 }
 
 static uint64_t
@@ -100,12 +98,12 @@ ptnetmap_memdev_io_read(void *opaque, hwaddr addr, unsigned size)
             ret = memd->mem_id;
             break;
         default:
-            printf("ptnentmap_memdev: read io reg unexpected\n");
-            break;
+            printf("%s: invalid I/O read [addr %lx]\n", __func__, addr);
+            return 0;
     }
 
-    DBG(printf("ptnentmap_memdev: io_read - addr: %lx size: %d ret: %lx\n",
-	       addr, size, ret));
+    DBG(printf("%s: addr %lx, size %d, val %lx\n", __func__,
+               addr, size, ret));
 
     return ret;
 }
@@ -120,13 +118,12 @@ static const MemoryRegionOps ptnetmap_memdev_io_ops = {
     },
 };
 
-static int ptnetmap_memdev_init(PCIDevice *dev)
+static int
+ptnetmap_memdev_init(PCIDevice *dev)
 {
     PTNetmapMemDevState *memd = PTNETMAP_MEMDEV(dev);
     uint8_t *pci_conf;
     uint64_t size;
-
-    DBG(printf("ptnetmap_memdev: loading\n"));
 
     pci_conf = dev->config;
     pci_conf[PCI_INTERRUPT_PIN] = 0; /* no interrupt pin */
@@ -141,7 +138,7 @@ static int ptnetmap_memdev_init(PCIDevice *dev)
     /* init PCI_BAR to map netmap memory into the guest */
     if (memd->mem_ptr) {
         size = upper_pow2(memd->mem_size);
-        DBG(printf("ptnentmap_memdev: map BAR size %lx (%lu MiB)\n",
+        DBG(printf("%s: map BAR size %lx (%lu MiB)\n", __func__,
 		   size, size >> 20));
 
         memory_region_init(&memd->mem_bar, OBJECT(memd),
@@ -158,7 +155,7 @@ static int ptnetmap_memdev_init(PCIDevice *dev)
     }
 
     QTAILQ_INSERT_TAIL(&ptn_memdevs, memd, next);
-    DBG(printf("ptnetmap_memdev: loaded\n"));
+    DBG(printf("%s: new instance initialized\n", __func__));
 
     return 0;
 }
@@ -170,7 +167,7 @@ ptnetmap_memdev_uninit(PCIDevice *dev)
 
     QTAILQ_REMOVE(&ptn_memdevs, memd, next);
 
-    DBG(printf("ptnetmap_memdev: unloaded\n"));
+    DBG(printf("%s: new instance uninitialized\n", __func__));
 }
 
  /*
@@ -190,6 +187,7 @@ ptnetmap_memdev_find(uint16_t mem_id)
     return NULL;
 }
 
+/* Function exported to be used by the netmap backend. */
 int
 ptnetmap_memdev_create(void *mem_ptr, uint32_t mem_size, uint16_t mem_id)
 {
@@ -197,42 +195,44 @@ ptnetmap_memdev_create(void *mem_ptr, uint32_t mem_size, uint16_t mem_id)
     PCIDevice *dev;
     PTNetmapMemDevState *memd;
 
-    DBG(printf("ptnetmap_memdev: creating\n"));
+    DBG(printf("%s: creating new instance\n", __func__));
 
     if (ptnetmap_memdev_find(mem_id)) {
-        printf("ptnetmap_memdev: already created\n");
+        printf("%s: already created\n", __func__);
         return 0;
     }
 
     bus = pci_find_primary_bus();
 
     if (bus == NULL) {
-        printf("ptnetmap_memdev: unable to find PCI BUS\n");
-        return -1; /* XXX */
+        printf("%s: unable to find PCI BUS\n", __func__);
+        return -1;
     }
 
-    /* create ptnetmap PCI device */
+    /* Create a new PCI device belonging to the ptnetmap class. */
     dev = pci_create(bus, -1, TYPE_PTNETMAP_MEMDEV);
 
-    /* set ptnetmap shared memory parameter */
+    /* Set shared memory parameters for the new ptnetmap memdev instance. */
     memd = PTNETMAP_MEMDEV(dev);
     memd->mem_ptr = mem_ptr;
     memd->mem_size = mem_size;
     memd->mem_id = mem_id;
 
-    /* init device */
+    /* Initialize the new device. */
     qdev_init_nofail(&dev->qdev);
 
-    DBG(printf("ptnetmap_memdev: created\n"));
+    DBG(printf("%s: created new instance\n", __func__));
 
     return 0;
 }
 
-static void qdev_ptnetmap_memdev_reset(DeviceState *dev)
+static void
+qdev_ptnetmap_memdev_reset(DeviceState *dev)
 {
 }
 
-static void ptnetmap_memdev_class_init(ObjectClass *klass, void *data)
+static void
+ptnetmap_memdev_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
@@ -246,7 +246,6 @@ static void ptnetmap_memdev_class_init(ObjectClass *klass, void *data)
     dc->desc = "ptnetmap memory device";
     set_bit(DEVICE_CATEGORY_MISC, dc->categories);
     dc->reset = qdev_ptnetmap_memdev_reset;
-    DBG(printf("ptnetmap_memdev: init\n"));
 }
 
 static const TypeInfo ptnetmap_memdev_info = {
