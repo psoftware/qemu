@@ -29,7 +29,6 @@
 #include "dev/netmap/netmap_virt.h" /* from netmap sources */
 
 typedef struct PTNetmapState {
-    bool required;                      /* ptnetmap required on the port */
     bool created;                       /* ptnetmap kthreads created */
     struct NetmapState *netmap;
     unsigned long features;             /* ptnetmap features */

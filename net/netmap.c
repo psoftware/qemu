@@ -406,7 +406,7 @@ static void netmap_set_vnet_hdr_len(NetClientState *nc, int len)
     struct nmreq req;
 
 #ifdef CONFIG_NETMAP_PASSTHROUGH
-    if (s->ptnetmap.required) {
+    if (s->nmd->req.nr_flags & NR_PTNETMAP_HOST) {
         return;
     }
 #endif /* CONFIG_NETMAP_PASSTHROUGH */
@@ -435,7 +435,7 @@ static void netmap_set_offload(NetClientState *nc, int csum, int tso4, int tso6,
     NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
 
 #ifdef CONFIG_NETMAP_PASSTHROUGH
-    if (s->ptnetmap.required) {
+    if (s->nmd->req.nr_flags & NR_PTNETMAP_HOST) {
         return;
     }
 #endif /* CONFIG_NETMAP_PASSTHROUGH */
@@ -475,7 +475,7 @@ get_ptnetmap(NetClientState *nc)
     NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
 
     if (nc->info->type != NET_CLIENT_OPTIONS_KIND_NETMAP
-                                || !s->ptnetmap.required) {
+                            || !(s->nmd->req.nr_flags & NR_PTNETMAP_HOST)) {
         return NULL;
     }
 
@@ -621,9 +621,7 @@ int net_init_netmap(const NetClientOptions *opts,
     s->rx = NETMAP_RXRING(nmd->nifp, 0);
     s->vnet_hdr_len = 0;
 #ifdef CONFIG_NETMAP_PASSTHROUGH
-    s->ptnetmap.required = false;
     if (netmap_opts->passthrough) {
-        s->ptnetmap.required = true;
         s->ptnetmap.netmap = s;
         s->ptnetmap.features = NET_PTN_FEATURES_BASE;
         s->ptnetmap.acked_features = 0;
