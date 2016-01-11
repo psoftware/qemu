@@ -519,8 +519,9 @@ ptnetmap_get_hostmemid(PTNetmapState *ptn)
 {
     NetmapState *s = ptn->netmap;
 
-    if (s->nmd == NULL)
+    if (s->nmd == NULL) {
         return EINVAL;
+    }
 
     return s->nmd->req.nr_arg2;
 }
@@ -534,7 +535,7 @@ ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *conf)
 
     if (!(ptn->acked_features & NET_PTN_FEATURES_BASE)) {
         error_report("ptnetmap features not acked");
-        return EFAULT;
+        return EINVAL;
     }
 
     if (ptn->running) {

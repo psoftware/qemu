@@ -41,30 +41,30 @@ static int virtio_net_ptnetmap_up(VirtIODevice *vdev)
     PTNetmapState *ptns = n->ptn.state;
     int i, ret, nvqs = 0;
 
-    if (ptns == NULL) {
-        printf("ERROR ptnetmap: not supported by backend\n");
-        return -1;
+    if (!k->set_host_notifier || !k->set_guest_notifiers) {
+        printf("ERROR ptnetmap: binding does not support notifiers\n");
+        return ENOSYS;
     }
 
-    if (n->ptn.up) {
-        printf("ERROR ptnetmap: already UP\n");
-        return -1;
+    if (ptns == NULL) {
+        printf("ERROR ptnetmap: not supported by backend\n");
+        return ENXIO;
     }
 
     if (n->ptn.csb == NULL) {
         printf("ERROR ptnetmap: CSB undefined\n");
-        return -1;
+        return ENXIO;
     }
 
-    if (!k->set_host_notifier && !k->set_guest_notifiers) {
-        printf("ERROR ptnetmap: binding does not support notifiers\n");
-        return -ENOSYS;
+    if (n->ptn.up) {
+        printf("INFO ptnetmap: already UP\n");
+        return 0;
     }
 
     /* TODO-ste: add support for multiqueue */
     printf("max_queues: %d\n", n->max_queues);
-
     nvqs += 2;
+
     /* Stop processing guest/host IO notifications in qemu.
      * Start processing them in ptnetmap.
      */
@@ -117,7 +117,7 @@ static int virtio_net_ptnetmap_up(VirtIODevice *vdev)
     }
     virtio_queue_set_notification(q->tx_vq, 1);
 
-    /* Initialize CSB */
+    /* Prepare CSB pointer for the host and complete CSB configuration. */
     n->ptn.cfg.csb = n->ptn.csb;
     n->ptn.csb->host_need_txkick = 1;
     n->ptn.csb->guest_need_txkick = 0;
@@ -132,6 +132,7 @@ static int virtio_net_ptnetmap_up(VirtIODevice *vdev)
         goto err_ptn_create;
 
     n->ptn.up = true;
+
     return 0;
 
 err_ptn_create:
@@ -180,7 +181,7 @@ static int virtio_net_ptnetmap_down(VirtIODevice *vdev)
     return ptnetmap_delete(n->ptn.state);
 }
 
-static int virtio_net_ptnetmap_get_mem(VirtIODevice *vdev)
+static int virtio_net_ptnetmap_get_netmap_if(VirtIODevice *vdev)
 {
     VirtIONet *n = VIRTIO_NET(vdev);
     PTNetmapState *ptns = n->ptn.state;
@@ -269,25 +270,33 @@ static void virtio_net_ptnetmap_set_reg(VirtIODevice *vdev,
 
             switch(*val) {
                 case NET_PARAVIRT_PTCTL_CONFIG:
-                    ret = virtio_net_ptnetmap_get_mem(vdev);
+                    /* Fill CSB fields: nifp_offset, num_*x_rings,
+                     * and num_*x_slots. */
+                    ret = virtio_net_ptnetmap_get_netmap_if(vdev);
                     break;
+
                 case NET_PARAVIRT_PTCTL_REGIF:
+                    /* Emulate a REGIF for the guest. */
                     ret = virtio_net_ptnetmap_up(vdev);
                     break;
+
                 case NET_PARAVIRT_PTCTL_UNREGIF:
+                    /* Emulate an UNREGIF for the guest. */
                     ret = virtio_net_ptnetmap_down(vdev);
                     break;
+
                 case NET_PARAVIRT_PTCTL_HOSTMEMID:
                     ret = ptnetmap_get_hostmemid(n->ptn.state);
                     break;
+
                 case NET_PARAVIRT_PTCTL_IFNEW:
                 case NET_PARAVIRT_PTCTL_IFDELETE:
                 case NET_PARAVIRT_PTCTL_FINALIZE:
                 case NET_PARAVIRT_PTCTL_DEREF:
+                    /* Not implemented. */
                     ret = 0;
                     break;
             }
-            printf("PTSTS - ret %d\n", ret);
             n->ptn.reg[PTNETMAP_VIRTIO_IO_PTSTS] = ret;
             break;
 
