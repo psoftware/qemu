@@ -366,7 +366,7 @@ static void netmap_cleanup(NetClientState *nc)
     qemu_purge_queued_packets(nc);
 
 #ifdef CONFIG_NETMAP_PASSTHROUGH
-    if (s->ptnetmap.created) {
+    if (s->ptnetmap.running) {
         ptnetmap_delete(&s->ptnetmap);
     }
 #endif /* CONFIG_NETMAP_PASSTHROUGH */
@@ -480,7 +480,7 @@ get_ptnetmap(NetClientState *nc)
     }
 
     ptnetmap_memdev_create(s->nmd->mem, s->nmd->memsize,
-            s->nmd->req.nr_arg2);
+                           s->nmd->req.nr_arg2);
 
     return &s->ptnetmap;
 }
@@ -538,14 +538,15 @@ ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *conf)
         return EFAULT;
     }
 
-    if (ptn->created)
+    if (ptn->running) {
         return 0;
+    }
 
-    /* disable poll */
+    /* Tell QEMU not to poll the netmap fd. */
     netmap_poll(&s->nc, false);
     qemu_purge_queued_packets(&s->nc);
 
-    /* ioctl to create ptnetmap kthreads */
+    /* Ask host netmap to create ptnetmap kthreads. */
     memset(&req, 0, sizeof(req));
     pstrcpy(req.nr_name, sizeof(req.nr_name), s->ifname);
     req.nr_version = NETMAP_API;
@@ -554,11 +555,14 @@ ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *conf)
     err = ioctl(s->nmd->fd, NIOCREGIF, &req);
     if (err) {
         error_report("Unable to execute NETMAP_PT_HOST_CREATE on %s: %s",
-                s->ifname, strerror(errno));
-    } else
-        ptn->created = true;
+                     s->ifname, strerror(errno));
+        netmap_poll(&s->nc, true);
+        return err;
+    }
 
-    return err;
+    ptn->running = true;
+
+    return 0;
 }
 
 int
@@ -573,10 +577,11 @@ ptnetmap_delete(PTNetmapState *ptn)
         return EFAULT;
     }
 
-    if (!ptn->created)
+    if (!ptn->running) {
         return 0;
+    }
 
-    /* ioctl to delete ptnetmap kthreads */
+    /* Ask host netmap to delete ptnetmap kthreads. */
     memset(&req, 0, sizeof(req));
     pstrcpy(req.nr_name, sizeof(req.nr_name), s->ifname);
     req.nr_version = NETMAP_API;
@@ -587,8 +592,8 @@ ptnetmap_delete(PTNetmapState *ptn)
                 s->ifname, strerror(errno));
     }
 
-    ptn->created = false;
-    /* enable poll to restore netmap port */
+    /* Restore QEMU polling. */
+    ptn->running = false;
     netmap_poll(&s->nc, true);
 
     return err;
@@ -625,7 +630,7 @@ int net_init_netmap(const NetClientOptions *opts,
         s->ptnetmap.netmap = s;
         s->ptnetmap.features = NET_PTN_FEATURES_BASE;
         s->ptnetmap.acked_features = 0;
-        s->ptnetmap.created = false;
+        s->ptnetmap.running = false;
     }
 #endif /* CONFIG_NETMAP_PASSTHROUGH */
     pstrcpy(s->ifname, sizeof(s->ifname), netmap_opts->ifname);

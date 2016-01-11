@@ -29,10 +29,14 @@
 #include "dev/netmap/netmap_virt.h" /* from netmap sources */
 
 typedef struct PTNetmapState {
-    bool created;                       /* ptnetmap kthreads created */
     struct NetmapState *netmap;
-    unsigned long features;             /* ptnetmap features */
-    unsigned long acked_features;       /* ptnetmap acked features */
+
+    /* True if ptnetmap kthreads are running. */
+    bool running;
+
+    /* Feature acknowledgement support. */
+    unsigned long features;
+    unsigned long acked_features;
 
     /* Info about netmap memory. */
     uint32_t memsize;
