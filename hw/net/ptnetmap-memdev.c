@@ -198,7 +198,8 @@ ptnetmap_memdev_create(void *mem_ptr, uint32_t mem_size, uint16_t mem_id)
     DBG(printf("%s: creating new instance\n", __func__));
 
     if (ptnetmap_memdev_find(mem_id)) {
-        printf("%s: already created\n", __func__);
+        printf("%s: memdev instance for mem-id %d already exists\n",
+               __func__, mem_id);
         return 0;
     }
 
