@@ -107,14 +107,14 @@ static int virtio_net_ptnetmap_up(VirtIODevice *vdev)
     n->ptn.cfg.tx_ring.irqfd =
         event_notifier_get_fd(virtio_queue_get_guest_notifier(q->tx_vq));
 
-    /* push fake-elem in the tx/rx queue to enable interrupts */
+    /* Push fake responses in the used ring of the RX VQ to keep RX interrupts
+     * enabled. */
     if (virtqueue_pop(q->rx_vq, &elem)) {
         virtqueue_push(q->rx_vq, &elem, 0);
     }
+
+    /* Make sure TX/RX kicks are enabled. */
     virtio_queue_set_notification(q->rx_vq, 1);
-    if (virtqueue_pop(q->tx_vq, &elem)) {
-        virtqueue_push(q->tx_vq, &elem, 0);
-    }
     virtio_queue_set_notification(q->tx_vq, 1);
 
     /* Prepare CSB pointer for the host and complete CSB configuration. */
@@ -126,7 +126,7 @@ static int virtio_net_ptnetmap_up(VirtIODevice *vdev)
 
     n->ptn.cfg.features = PTNETMAP_CFG_FEAT_CSB | PTNETMAP_CFG_FEAT_EVENTFD;
 
-    /* Configure the net backend. */
+    /* Start ptnetmap on the backend. */
     ret = ptnetmap_create(n->ptn.state, &n->ptn.cfg);
     if (ret)
         goto err_ptn_create;
