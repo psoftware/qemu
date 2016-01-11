@@ -46,7 +46,6 @@ typedef struct virtio_net_conf
 typedef struct VirtIONetPTNetmap
 {
     struct paravirt_csb *csb;           /* Communication Status Block. */
-    uint32_t features;                  /* ptnetmap features */
     bool up;                            /* ptnetmap up/down */
     PTNetmapState *state;               /* ptnetmap state (shared with backend) */
     struct ptnetmap_cfg cfg;            /* ptnetmap configuration */

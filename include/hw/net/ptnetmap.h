@@ -48,8 +48,7 @@ typedef struct PTNetmapState {
     uint16_t num_rx_slots;
 } PTNetmapState;
 
-uint32_t ptnetmap_get_features(PTNetmapState *pt, uint32_t features);
-void ptnetmap_ack_features(PTNetmapState *pt, uint32_t features);
+uint32_t ptnetmap_ack_features(PTNetmapState *pt, uint32_t wanted_features);
 int ptnetmap_get_mem(PTNetmapState *pt);
 int ptnetmap_get_hostmemid(PTNetmapState *pt);
 int ptnetmap_create(PTNetmapState *nc, struct ptnetmap_cfg *conf);

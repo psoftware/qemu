@@ -509,8 +509,10 @@ static uint64_t virtio_net_get_features(VirtIODevice *vdev, uint64_t features,
 
 #ifdef CONFIG_NETMAP_PASSTHROUGH
     if (n->ptn.state == NULL) {
+        /* Backend does not have ptnetmap. */
 	virtio_clear_feature(&features, VIRTIO_NET_F_PTNETMAP);
     } else {
+        /* Backend supports ptnetmap, let's inject the feature. */
 	virtio_add_feature(&features, VIRTIO_NET_F_PTNETMAP);
 	virtio_clear_feature(&features, VIRTIO_RING_F_EVENT_IDX);
     }

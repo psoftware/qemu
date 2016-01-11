@@ -485,18 +485,13 @@ get_ptnetmap(NetClientState *nc)
     return &s->ptnetmap;
 }
 
-/* Return the subset of requested features that we support. */
+/* Store and return the features we agree upon. */
 uint32_t
-ptnetmap_get_features(PTNetmapState *ptn, uint32_t features)
+ptnetmap_ack_features(PTNetmapState *ptn, uint32_t wanted_features)
 {
-    return ptn->features & features;
-}
+    ptn->acked_features = ptn->features & wanted_features;
 
-/* Store the features we agreed upon. */
-void
-ptnetmap_ack_features(PTNetmapState *ptn, uint32_t features)
-{
-    ptn->acked_features |= features;
+    return ptn->acked_features;
 }
 
 /* XXX: set mem info in net_init_netmap()?? */

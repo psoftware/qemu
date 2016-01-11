@@ -233,7 +233,7 @@ static void paravirt_configure_csb(struct paravirt_csb **csb, uint32_t csbbal,
 }
 
 static void virtio_net_ptnetmap_set_reg(VirtIODevice *vdev,
-        const uint8_t *config, uint32_t addr)
+                                        const uint8_t *config, uint32_t addr)
 {
     VirtIONet *n = VIRTIO_NET(vdev);
     uint32_t *val, ret;
@@ -251,12 +251,13 @@ static void virtio_net_ptnetmap_set_reg(VirtIODevice *vdev,
             memcpy(&n->ptn.reg[addr], config + addr, 4);
             val = (uint32_t *)(n->ptn.reg + addr);
 
-            ret = (n->ptn.features &= *val);
-            ptnetmap_ack_features(n->ptn.state, n->ptn.features);
-            printf("ptnetmap acked features: %x\n", n->ptn.features);
+            /* Pass requested features to the backend. */
+            ret = ptnetmap_ack_features(n->ptn.state, *val);
+            printf("ptnetmap acked features: %x\n", ret);
 
             n->ptn.reg[PTNETMAP_VIRTIO_IO_PTFEAT] = ret;
             break;
+
         case PTNETMAP_VIRTIO_IO_PTCTL:
             memcpy(&n->ptn.reg[addr], config + addr, 4);
             val = (uint32_t *)(n->ptn.reg + addr);
@@ -286,15 +287,18 @@ static void virtio_net_ptnetmap_set_reg(VirtIODevice *vdev,
             printf("PTSTS - ret %d\n", ret);
             n->ptn.reg[PTNETMAP_VIRTIO_IO_PTSTS] = ret;
             break;
+
         case PTNETMAP_VIRTIO_IO_CSBBAH:
             memcpy(&n->ptn.reg[addr], config + addr, 4);
             break;
+
         case PTNETMAP_VIRTIO_IO_CSBBAL:
             memcpy(&n->ptn.reg[addr], config + addr, 4);
             paravirt_configure_csb(&n->ptn.csb,
                     *((uint32_t *)(n->ptn.reg + PTNETMAP_VIRTIO_IO_CSBBAL)),
                     *((uint32_t *)(n->ptn.reg + PTNETMAP_VIRTIO_IO_CSBBAH)));
             break;
+
         default:
             break;
     }
@@ -320,17 +324,6 @@ static void virtio_net_ptnetmap_init(VirtIODevice *vdev)
     n->ptn.state = peer_get_ptnetmap(n);
     if (n->ptn.state == NULL) {
         printf("ptnetmap not supported by backend\n");
-        n->ptn.features = 0;
-        return;
-    }
-    n->ptn.features = ptnetmap_get_features(n->ptn.state, NET_PTN_FEATURES_BASE);
-
-    /* backend require ptnetmap support? */
-    if (!(n->ptn.features & NET_PTN_FEATURES_BASE)) {
-        printf("ptnetmap not supported/required\n");
-        n->ptn.state = NULL;
-        n->ptn.features = 0;
-        return;
     }
 }
 #endif /* _QEMU_VIRTIO_PTNETMAP_H */
