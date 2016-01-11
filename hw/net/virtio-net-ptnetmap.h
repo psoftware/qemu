@@ -289,14 +289,14 @@ static void virtio_net_ptnetmap_set_reg(VirtIODevice *vdev,
             break;
 
         case PTNETMAP_VIRTIO_IO_CSBBAH:
-            memcpy(&n->ptn.reg[addr], config + addr, 4);
-            break;
-
         case PTNETMAP_VIRTIO_IO_CSBBAL:
             memcpy(&n->ptn.reg[addr], config + addr, 4);
-            paravirt_configure_csb(&n->ptn.csb,
+            if (addr == PTNETMAP_VIRTIO_IO_CSBBAL) {
+                /* Write to CSBBAL triggers the (un)mapping. */
+                paravirt_configure_csb(&n->ptn.csb,
                     *((uint32_t *)(n->ptn.reg + PTNETMAP_VIRTIO_IO_CSBBAL)),
                     *((uint32_t *)(n->ptn.reg + PTNETMAP_VIRTIO_IO_CSBBAH)));
+            }
             break;
 
         default:
