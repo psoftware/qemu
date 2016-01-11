@@ -185,21 +185,24 @@ static int virtio_net_ptnetmap_get_mem(VirtIODevice *vdev)
     VirtIONet *n = VIRTIO_NET(vdev);
     PTNetmapState *ptns = n->ptn.state;
     struct paravirt_csb *csb = n->ptn.csb;
+    NetmapIf nif;
     int ret;
-
-    ret = ptnetmap_get_mem(ptns);
-    if (ret)
-        return ret;
 
     if (csb == NULL) {
         printf("ERROR ptnetmap: csb not initialized\n");
+        return -1;
+    }
+
+    ret = ptnetmap_get_netmap_if(ptns, &nif);
+    if (ret) {
         return ret;
     }
-    csb->nifp_offset = ptns->offset;
-    csb->num_tx_rings = ptns->num_tx_rings;
-    csb->num_rx_rings = ptns->num_rx_rings;
-    csb->num_tx_slots = ptns->num_tx_slots;
-    csb->num_rx_slots = ptns->num_rx_slots;
+
+    csb->nifp_offset = nif.nifp_offset;
+    csb->num_tx_rings = nif.num_tx_rings;
+    csb->num_rx_rings = nif.num_rx_rings;
+    csb->num_tx_slots = nif.num_tx_slots;
+    csb->num_rx_slots = nif.num_rx_slots;
     printf("txr %u rxr %u txd %u rxd %u nifp_offset %u\n",
             csb->num_tx_rings,
             csb->num_rx_rings,

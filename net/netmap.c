@@ -494,19 +494,23 @@ ptnetmap_ack_features(PTNetmapState *ptn, uint32_t wanted_features)
     return ptn->acked_features;
 }
 
-/* XXX: set mem info in net_init_netmap()?? */
 int
-ptnetmap_get_mem(PTNetmapState *ptn)
+ptnetmap_get_netmap_if(PTNetmapState *ptn, NetmapIf *nif)
 {
     NetmapState *s = ptn->netmap;
 
-    if (s->nmd == NULL)
+    memset(nif, 0, sizeof(*nif));
+
+    if (s->nmd == NULL) {
         return EINVAL;
-    ptn->offset = s->nmd->req.nr_offset;
-    ptn->num_tx_rings = s->nmd->req.nr_tx_rings;
-    ptn->num_rx_rings = s->nmd->req.nr_rx_rings;
-    ptn->num_tx_slots = s->nmd->req.nr_tx_slots;
-    ptn->num_rx_slots = s->nmd->req.nr_rx_slots;
+    }
+
+    nif->nifp_offset = s->nmd->req.nr_offset;
+    nif->num_tx_rings = s->nmd->req.nr_tx_rings;
+    nif->num_rx_rings = s->nmd->req.nr_rx_rings;
+    nif->num_tx_slots = s->nmd->req.nr_tx_slots;
+    nif->num_rx_slots = s->nmd->req.nr_rx_slots;
+
     return 0;
 }
 
