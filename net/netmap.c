@@ -381,34 +381,16 @@ static void netmap_cleanup(NetClientState *nc)
 /* Offloading manipulation support callbacks. */
 static bool netmap_has_ufo(NetClientState *nc)
 {
-#ifdef CONFIG_NETMAP_PASSTHROUGH
-    NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
-    if (s->ptnetmap.required) {
-        return false;
-    }
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
     return true;
 }
 
 static bool netmap_has_vnet_hdr(NetClientState *nc)
 {
-#ifdef CONFIG_NETMAP_PASSTHROUGH
-    NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
-    if (s->ptnetmap.required) {
-        return false;
-    }
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
     return true;
 }
 
 static bool netmap_has_vnet_hdr_len(NetClientState *nc, int len)
 {
-#ifdef CONFIG_NETMAP_PASSTHROUGH
-    NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
-    if (s->ptnetmap.required) {
-        return false;
-    }
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
     return len == 0 || len == sizeof(struct virtio_net_hdr) ||
                 len == sizeof(struct virtio_net_hdr_mrg_rxbuf);
 }
