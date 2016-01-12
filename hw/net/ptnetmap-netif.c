@@ -56,9 +56,7 @@ static int debugflags = DBGBIT(TXERR) | DBGBIT(GENERAL);
 #define PNPMMIO_SIZE      0x20000
 
 typedef struct PtNetState_st {
-    /*< private >*/
-    PCIDevice parent_obj;
-    /*< public >*/
+    PCIDevice pci_device; /* Private field. */
 
     NICState *nic;
     NICConf conf;
@@ -68,20 +66,10 @@ typedef struct PtNetState_st {
     uint32_t mac_reg[32];
 } PtNetState;
 
-typedef struct PTNETBaseClass {
-    PCIDeviceClass parent_class;
-    uint16_t phy_id2;
-} PTNETBaseClass;
-
-#define TYPE_PTNET_BASE "ptnet-pci"
+#define TYPE_PTNET_PCI  "ptnet-pci"
 
 #define PTNET(obj) \
-    OBJECT_CHECK(PtNetState, (obj), TYPE_PTNET_BASE)
-
-#define PTNET_DEVICE_CLASS(klass) \
-     OBJECT_CLASS_CHECK(PTNETBaseClass, (klass), TYPE_PTNET_BASE)
-#define PTNET_DEVICE_GET_CLASS(obj) \
-    OBJECT_GET_CLASS(PTNETBaseClass, (obj), TYPE_PTNET_BASE)
+            OBJECT_CHECK(PtNetState, (obj), TYPE_PTNET_PCI)
 
 static void
 ptnet_set_link_status(NetClientState *nc)
@@ -233,7 +221,7 @@ static const VMStateDescription vmstate_ptnet = {
     .pre_save = ptnet_pre_save,
     .post_load = ptnet_post_load,
     .fields = (VMStateField[]) {
-        VMSTATE_PCI_DEVICE(parent_obj, PtNetState),
+        VMSTATE_PCI_DEVICE(pci_device, PtNetState),
         VMSTATE_UINT32(mac_reg[PTNET_IO_PTFEAT], PtNetState),
         VMSTATE_UINT32(mac_reg[PTNET_IO_PTCTL], PtNetState),
         VMSTATE_UINT32(mac_reg[PTNET_IO_PTSTS], PtNetState),
@@ -281,7 +269,6 @@ static void ptnet_write_config(PCIDevice *pci_dev, uint32_t address,
     }
 }
 
-
 static void pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 {
     DeviceState *dev = DEVICE(pci_dev);
@@ -290,25 +277,17 @@ static void pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     uint8_t *macaddr;
 
     pci_dev->config_write = ptnet_write_config;
-
     pci_conf = pci_dev->config;
-
     pci_conf[PCI_CACHE_LINE_SIZE] = 0x10;
-
     pci_conf[PCI_INTERRUPT_PIN] = 1; /* interrupt pin A */
-
     ptnet_mmio_setup(s);
-
     pci_register_bar(pci_dev, 0, PCI_BASE_ADDRESS_SPACE_MEMORY, &s->mmio);
-
     pci_register_bar(pci_dev, 1, PCI_BASE_ADDRESS_SPACE_IO, &s->io);
-
     qemu_macaddr_default_if_unset(&s->conf.macaddr);
     macaddr = s->conf.macaddr.a;
 
     s->nic = qemu_new_nic(&net_ptnet_info, &s->conf,
                           object_get_typename(OBJECT(s)), dev->id, s);
-
     qemu_format_nic_info_str(qemu_get_queue(s->nic), macaddr);
 }
 
@@ -324,27 +303,15 @@ static Property ptnet_properties[] = {
     DEFINE_PROP_END_OF_LIST(),
 };
 
-typedef struct PTNETInfo {
-    const char *name;
-    uint16_t   device_id;
-    uint8_t    revision;
-    uint16_t   phy_id2;
-} PTNETInfo;
-
 static void ptnet_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
     PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
-    PTNETBaseClass *e = PTNET_DEVICE_CLASS(klass);
-    const PTNETInfo *info = data;
 
     k->realize = pci_ptnet_realize;
     k->exit = pci_ptnet_uninit;
-    k->romfile = "efi-ptnet.rom";
     k->vendor_id = PTNETMAP_PCI_VENDOR_ID;
-    k->device_id = info->device_id;
-    k->revision = info->revision;
-    e->phy_id2 = info->phy_id2;
+    k->device_id = PTNETMAP_PCI_NETIF_ID;
     k->class_id = PCI_CLASS_NETWORK_ETHERNET;
     set_bit(DEVICE_CATEGORY_NETWORK, dc->categories);
     dc->desc = "Netmap passthrough network device";
@@ -355,27 +322,18 @@ static void ptnet_class_init(ObjectClass *klass, void *data)
 
 static void ptnet_instance_init(Object *obj)
 {
-    PtNetState *n = PTNET(obj);
-    device_add_bootindex_property(obj, &n->conf.bootindex,
+    PtNetState *s = PTNET(obj);
+    device_add_bootindex_property(obj, &s->conf.bootindex,
                                   "bootindex", "/ethernet-phy@0",
-                                  DEVICE(n), NULL);
+                                  DEVICE(s), NULL);
 }
 
 static const TypeInfo ptnet_info = {
-    .name          = TYPE_PTNET_BASE,
+    .name          = TYPE_PTNET_PCI,
     .parent        = TYPE_PCI_DEVICE,
     .instance_size = sizeof(PtNetState),
     .instance_init = ptnet_instance_init,
     .class_init    = ptnet_class_init,
-};
-
-static const PTNETInfo ptnet_devices[] = {
-    {
-        .name      = "ptnet",
-        .device_id = PTNETMAP_PCI_NETIF_ID,
-        .revision  = 0x00,
-        .phy_id2   = 0x00,
-    },
 };
 
 static void ptnet_register_types(void)
