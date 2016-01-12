@@ -55,7 +55,7 @@ static int debugflags = DBGBIT(TXERR) | DBGBIT(GENERAL);
 #define IOPORT_SIZE       0x40
 #define PNPMMIO_SIZE      0x20000
 
-typedef struct PTNETState_st {
+typedef struct PtNetState_st {
     /*< private >*/
     PCIDevice parent_obj;
     /*< public >*/
@@ -66,7 +66,7 @@ typedef struct PTNETState_st {
     MemoryRegion io;
 
     uint32_t mac_reg[32];
-} PTNETState;
+} PtNetState;
 
 typedef struct PTNETBaseClass {
     PCIDeviceClass parent_class;
@@ -76,7 +76,7 @@ typedef struct PTNETBaseClass {
 #define TYPE_PTNET_BASE "ptnet-pci"
 
 #define PTNET(obj) \
-    OBJECT_CHECK(PTNETState, (obj), TYPE_PTNET_BASE)
+    OBJECT_CHECK(PtNetState, (obj), TYPE_PTNET_BASE)
 
 #define PTNET_DEVICE_CLASS(klass) \
      OBJECT_CLASS_CHECK(PTNETBaseClass, (klass), TYPE_PTNET_BASE)
@@ -86,7 +86,7 @@ typedef struct PTNETBaseClass {
 static void
 ptnet_set_link_status(NetClientState *nc)
 {
-    PTNETState *s = qemu_get_nic_opaque(nc);
+    PtNetState *s = qemu_get_nic_opaque(nc);
 
     printf("%s(%p)\n", __func__, s);
 }
@@ -115,13 +115,13 @@ ptnet_receive(NetClientState *nc, const uint8_t *buf, size_t size)
 }
 
 static uint32_t
-mac_readreg(PTNETState *s, int index)
+mac_readreg(PtNetState *s, int index)
 {
     return s->mac_reg[index];
 }
 
 static void
-mac_writereg(PTNETState *s, int index, uint32_t val)
+mac_writereg(PtNetState *s, int index, uint32_t val)
 {
     s->mac_reg[index] = val;
 }
@@ -132,7 +132,7 @@ mac_writereg(PTNETState *s, int index, uint32_t val)
 #define PTNET_IO_MAX            12
 
 #define getreg(x)    [x] = mac_readreg
-static uint32_t (*macreg_readops[])(PTNETState *, int) = {
+static uint32_t (*macreg_readops[])(PtNetState *, int) = {
     [PTNET_IO_PTFEAT] = mac_readreg,
     [PTNET_IO_PTCTL] = mac_readreg,
     [PTNET_IO_PTSTS] = mac_readreg,
@@ -140,7 +140,7 @@ static uint32_t (*macreg_readops[])(PTNETState *, int) = {
 enum { NREADOPS = ARRAY_SIZE(macreg_readops) };
 
 #define putreg(x)    [x] = mac_writereg
-static void (*macreg_writeops[])(PTNETState *, int, uint32_t) = {
+static void (*macreg_writeops[])(PtNetState *, int, uint32_t) = {
     [PTNET_IO_PTFEAT] = mac_writereg,
     [PTNET_IO_PTCTL] = mac_writereg,
     [PTNET_IO_PTSTS] = mac_writereg,
@@ -152,7 +152,7 @@ static void
 ptnet_mmio_write(void *opaque, hwaddr addr, uint64_t val,
                  unsigned size)
 {
-    PTNETState *s = opaque;
+    PtNetState *s = opaque;
     unsigned int index = (addr & 0x1ffff) >> 2;
 
     if (index < NWRITEOPS && macreg_writeops[index]) {
@@ -169,7 +169,7 @@ ptnet_mmio_write(void *opaque, hwaddr addr, uint64_t val,
 static uint64_t
 ptnet_mmio_read(void *opaque, hwaddr addr, unsigned size)
 {
-    PTNETState *s = opaque;
+    PtNetState *s = opaque;
     unsigned int index = (addr & 0x1ffff) >> 2;
 
     if (index < NREADOPS && macreg_readops[index]) {
@@ -193,7 +193,7 @@ static const MemoryRegionOps ptnet_mmio_ops = {
 static uint64_t ptnet_io_read(void *opaque, hwaddr addr,
                               unsigned size)
 {
-    PTNETState *s = opaque;
+    PtNetState *s = opaque;
 
     (void)s;
     return 0;
@@ -202,7 +202,7 @@ static uint64_t ptnet_io_read(void *opaque, hwaddr addr,
 static void ptnet_io_write(void *opaque, hwaddr addr,
                            uint64_t val, unsigned size)
 {
-    PTNETState *s = opaque;
+    PtNetState *s = opaque;
 
     (void)s;
 }
@@ -215,13 +215,13 @@ static const MemoryRegionOps ptnet_io_ops = {
 
 static void ptnet_pre_save(void *opaque)
 {
-    PTNETState *s = opaque;
+    PtNetState *s = opaque;
     printf("%s(%p)\n", __func__, s);
 }
 
 static int ptnet_post_load(void *opaque, int version_id)
 {
-    PTNETState *s = opaque;
+    PtNetState *s = opaque;
     printf("%s(%p)\n", __func__, s);
     return 0;
 }
@@ -233,10 +233,10 @@ static const VMStateDescription vmstate_ptnet = {
     .pre_save = ptnet_pre_save,
     .post_load = ptnet_post_load,
     .fields = (VMStateField[]) {
-        VMSTATE_PCI_DEVICE(parent_obj, PTNETState),
-        VMSTATE_UINT32(mac_reg[PTNET_IO_PTFEAT], PTNETState),
-        VMSTATE_UINT32(mac_reg[PTNET_IO_PTCTL], PTNETState),
-        VMSTATE_UINT32(mac_reg[PTNET_IO_PTSTS], PTNETState),
+        VMSTATE_PCI_DEVICE(parent_obj, PtNetState),
+        VMSTATE_UINT32(mac_reg[PTNET_IO_PTFEAT], PtNetState),
+        VMSTATE_UINT32(mac_reg[PTNET_IO_PTCTL], PtNetState),
+        VMSTATE_UINT32(mac_reg[PTNET_IO_PTSTS], PtNetState),
         VMSTATE_END_OF_LIST()
     }
 };
@@ -244,17 +244,17 @@ static const VMStateDescription vmstate_ptnet = {
 /* PCI interface */
 
 static void
-ptnet_mmio_setup(PTNETState *d)
+ptnet_mmio_setup(PtNetState *s)
 {
-    memory_region_init_io(&d->mmio, OBJECT(d), &ptnet_mmio_ops, d,
+    memory_region_init_io(&s->mmio, OBJECT(s), &ptnet_mmio_ops, s,
                           "ptnet-mmio", PNPMMIO_SIZE);
-    memory_region_init_io(&d->io, OBJECT(d), &ptnet_io_ops, d, "ptnet-io", IOPORT_SIZE);
+    memory_region_init_io(&s->io, OBJECT(s), &ptnet_io_ops, s, "ptnet-io", IOPORT_SIZE);
 }
 
 static void
 pci_ptnet_uninit(PCIDevice *dev)
 {
-    PTNETState *s = PTNET(dev);
+    PtNetState *s = PTNET(dev);
 
     qemu_del_nic(s->nic);
 }
@@ -271,7 +271,7 @@ static NetClientInfo net_ptnet_info = {
 static void ptnet_write_config(PCIDevice *pci_dev, uint32_t address,
                                 uint32_t val, int len)
 {
-    PTNETState *s = PTNET(pci_dev);
+    PtNetState *s = PTNET(pci_dev);
 
     pci_default_write_config(pci_dev, address, val, len);
 
@@ -285,7 +285,7 @@ static void ptnet_write_config(PCIDevice *pci_dev, uint32_t address,
 static void pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 {
     DeviceState *dev = DEVICE(pci_dev);
-    PTNETState *d = PTNET(pci_dev);
+    PtNetState *s = PTNET(pci_dev);
     uint8_t *pci_conf;
     uint8_t *macaddr;
 
@@ -297,30 +297,30 @@ static void pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 
     pci_conf[PCI_INTERRUPT_PIN] = 1; /* interrupt pin A */
 
-    ptnet_mmio_setup(d);
+    ptnet_mmio_setup(s);
 
-    pci_register_bar(pci_dev, 0, PCI_BASE_ADDRESS_SPACE_MEMORY, &d->mmio);
+    pci_register_bar(pci_dev, 0, PCI_BASE_ADDRESS_SPACE_MEMORY, &s->mmio);
 
-    pci_register_bar(pci_dev, 1, PCI_BASE_ADDRESS_SPACE_IO, &d->io);
+    pci_register_bar(pci_dev, 1, PCI_BASE_ADDRESS_SPACE_IO, &s->io);
 
-    qemu_macaddr_default_if_unset(&d->conf.macaddr);
-    macaddr = d->conf.macaddr.a;
+    qemu_macaddr_default_if_unset(&s->conf.macaddr);
+    macaddr = s->conf.macaddr.a;
 
-    d->nic = qemu_new_nic(&net_ptnet_info, &d->conf,
-                          object_get_typename(OBJECT(d)), dev->id, d);
+    s->nic = qemu_new_nic(&net_ptnet_info, &s->conf,
+                          object_get_typename(OBJECT(s)), dev->id, s);
 
-    qemu_format_nic_info_str(qemu_get_queue(d->nic), macaddr);
+    qemu_format_nic_info_str(qemu_get_queue(s->nic), macaddr);
 }
 
 static void qdev_ptnet_reset(DeviceState *dev)
 {
-    PTNETState *s = PTNET(dev);
+    PtNetState *s = PTNET(dev);
     /* Init registers */
     printf("%s(%p)", __func__, s);
 }
 
 static Property ptnet_properties[] = {
-    DEFINE_NIC_PROPERTIES(PTNETState, conf),
+    DEFINE_NIC_PROPERTIES(PtNetState, conf),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -355,7 +355,7 @@ static void ptnet_class_init(ObjectClass *klass, void *data)
 
 static void ptnet_instance_init(Object *obj)
 {
-    PTNETState *n = PTNET(obj);
+    PtNetState *n = PTNET(obj);
     device_add_bootindex_property(obj, &n->conf.bootindex,
                                   "bootindex", "/ethernet-phy@0",
                                   DEVICE(n), NULL);
@@ -364,7 +364,7 @@ static void ptnet_instance_init(Object *obj)
 static const TypeInfo ptnet_info = {
     .name          = TYPE_PTNET_BASE,
     .parent        = TYPE_PCI_DEVICE,
-    .instance_size = sizeof(PTNETState),
+    .instance_size = sizeof(PtNetState),
     .instance_init = ptnet_instance_init,
     .class_init    = ptnet_class_init,
 };
