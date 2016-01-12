@@ -21,10 +21,7 @@
 #include "hw/hw.h"
 #include "hw/pci/pci.h"
 #include "net/net.h"
-#include "net/checksum.h"
-#include "hw/loader.h"
 #include "sysemu/sysemu.h"
-#include "sysemu/dma.h"
 #include "qemu/iov.h"
 #include "qemu/range.h"
 
