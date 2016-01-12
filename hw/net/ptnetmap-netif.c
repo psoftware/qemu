@@ -247,7 +247,7 @@ static void ptnet_write_config(PCIDevice *pci_dev, uint32_t address,
 
     if (range_covers_byte(address, len, PCI_COMMAND) &&
         (pci_dev->config[PCI_COMMAND] & PCI_COMMAND_MASTER)) {
-        printf("%s(%p)", __func__, s);
+        DBG("%s(%p)", __func__, s);
     }
 }
 
@@ -289,7 +289,7 @@ static void qdev_ptnet_reset(DeviceState *dev)
 {
     PtNetState *s = PTNET(dev);
     /* Init registers */
-    printf("%s(%p)", __func__, s);
+    DBG("%s(%p)", __func__, s);
 }
 
 static Property ptnet_properties[] = {
