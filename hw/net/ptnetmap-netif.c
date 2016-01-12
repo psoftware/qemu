@@ -81,20 +81,9 @@ ptnet_can_receive(NetClientState *nc)
 }
 
 static ssize_t
-ptnet_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
-{
-    return iov_size(iov, iovcnt);
-}
-
-static ssize_t
 ptnet_receive(NetClientState *nc, const uint8_t *buf, size_t size)
 {
-    const struct iovec iov = {
-        .iov_base = (uint8_t *)buf,
-        .iov_len = size
-    };
-
-    return ptnet_receive_iov(nc, &iov, 1);
+    return size;
 }
 
 static void
@@ -240,6 +229,8 @@ pci_ptnet_uninit(PCIDevice *dev)
     PtNetState *s = PTNET(dev);
 
     qemu_del_nic(s->nic);
+
+    DBG("%s: %p", __func__, s);
 }
 
 static NetClientInfo net_ptnet_info = {
@@ -247,7 +238,6 @@ static NetClientInfo net_ptnet_info = {
     .size = sizeof(NICState),
     .can_receive = ptnet_can_receive,
     .receive = ptnet_receive,
-    .receive_iov = ptnet_receive_iov,
     .link_status_changed = ptnet_set_link_status,
 };
 
@@ -294,6 +284,8 @@ static void pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     s->nic = qemu_new_nic(&net_ptnet_info, &s->conf,
                           object_get_typename(OBJECT(s)), dev->id, s);
     qemu_format_nic_info_str(qemu_get_queue(s->nic), macaddr);
+
+    DBG("%s: %p", __func__, s);
 }
 
 static void qdev_ptnet_reset(DeviceState *dev)
