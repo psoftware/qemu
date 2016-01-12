@@ -52,8 +52,12 @@ static int debugflags = DBGBIT(TXERR) | DBGBIT(GENERAL);
 #define DBGOUT(what, fmt, ...) do {} while (0)
 #endif
 
-#define IOPORT_SIZE       0x40
-#define PNPMMIO_SIZE      0x20000
+#define CSB_SIZE      4096
+
+#define PTNET_IO_PTFEAT         0
+#define PTNET_IO_PTCTL          4
+#define PTNET_IO_PTSTS          8
+#define PTNET_IO_MAX            12
 
 typedef struct PtNetState_st {
     PCIDevice pci_device; /* Private field. */
@@ -63,7 +67,7 @@ typedef struct PtNetState_st {
     MemoryRegion mmio;
     MemoryRegion io;
 
-    uint32_t mac_reg[32];
+    uint32_t mac_reg[PTNET_IO_MAX];
 } PtNetState;
 
 #define TYPE_PTNET_PCI  "ptnet-pci"
@@ -114,12 +118,6 @@ mac_writereg(PtNetState *s, int index, uint32_t val)
     s->mac_reg[index] = val;
 }
 
-#define PTNET_IO_PTFEAT         0
-#define PTNET_IO_PTCTL          4
-#define PTNET_IO_PTSTS          8
-#define PTNET_IO_MAX            12
-
-#define getreg(x)    [x] = mac_readreg
 static uint32_t (*macreg_readops[])(PtNetState *, int) = {
     [PTNET_IO_PTFEAT] = mac_readreg,
     [PTNET_IO_PTCTL] = mac_readreg,
@@ -127,7 +125,6 @@ static uint32_t (*macreg_readops[])(PtNetState *, int) = {
 };
 enum { NREADOPS = ARRAY_SIZE(macreg_readops) };
 
-#define putreg(x)    [x] = mac_writereg
 static void (*macreg_writeops[])(PtNetState *, int, uint32_t) = {
     [PTNET_IO_PTFEAT] = mac_writereg,
     [PTNET_IO_PTCTL] = mac_writereg,
@@ -137,7 +134,7 @@ static void (*macreg_writeops[])(PtNetState *, int, uint32_t) = {
 enum { NWRITEOPS = ARRAY_SIZE(macreg_writeops) };
 
 static void
-ptnet_mmio_write(void *opaque, hwaddr addr, uint64_t val,
+ptnet_io_write(void *opaque, hwaddr addr, uint64_t val,
                  unsigned size)
 {
     PtNetState *s = opaque;
@@ -155,7 +152,7 @@ ptnet_mmio_write(void *opaque, hwaddr addr, uint64_t val,
 }
 
 static uint64_t
-ptnet_mmio_read(void *opaque, hwaddr addr, unsigned size)
+ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
 {
     PtNetState *s = opaque;
     unsigned int index = (addr & 0x1ffff) >> 2;
@@ -168,9 +165,9 @@ ptnet_mmio_read(void *opaque, hwaddr addr, unsigned size)
     return 0;
 }
 
-static const MemoryRegionOps ptnet_mmio_ops = {
-    .read = ptnet_mmio_read,
-    .write = ptnet_mmio_write,
+static const MemoryRegionOps ptnet_io_ops = {
+    .read = ptnet_io_read,
+    .write = ptnet_io_write,
     .endianness = DEVICE_LITTLE_ENDIAN,
     .impl = {
         .min_access_size = 4,
@@ -178,8 +175,8 @@ static const MemoryRegionOps ptnet_mmio_ops = {
     },
 };
 
-static uint64_t ptnet_io_read(void *opaque, hwaddr addr,
-                              unsigned size)
+static uint64_t ptnet_mmio_read(void *opaque, hwaddr addr,
+                                unsigned size)
 {
     PtNetState *s = opaque;
 
@@ -187,17 +184,17 @@ static uint64_t ptnet_io_read(void *opaque, hwaddr addr,
     return 0;
 }
 
-static void ptnet_io_write(void *opaque, hwaddr addr,
-                           uint64_t val, unsigned size)
+static void ptnet_mmio_write(void *opaque, hwaddr addr,
+                             uint64_t val, unsigned size)
 {
     PtNetState *s = opaque;
 
     (void)s;
 }
 
-static const MemoryRegionOps ptnet_io_ops = {
-    .read = ptnet_io_read,
-    .write = ptnet_io_write,
+static const MemoryRegionOps ptnet_mmio_ops = {
+    .read = ptnet_mmio_read,
+    .write = ptnet_mmio_write,
     .endianness = DEVICE_LITTLE_ENDIAN,
 };
 
@@ -230,14 +227,6 @@ static const VMStateDescription vmstate_ptnet = {
 };
 
 /* PCI interface */
-
-static void
-ptnet_mmio_setup(PtNetState *s)
-{
-    memory_region_init_io(&s->mmio, OBJECT(s), &ptnet_mmio_ops, s,
-                          "ptnet-mmio", PNPMMIO_SIZE);
-    memory_region_init_io(&s->io, OBJECT(s), &ptnet_io_ops, s, "ptnet-io", IOPORT_SIZE);
-}
 
 static void
 pci_ptnet_uninit(PCIDevice *dev)
@@ -280,9 +269,19 @@ static void pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     pci_conf = pci_dev->config;
     pci_conf[PCI_CACHE_LINE_SIZE] = 0x10;
     pci_conf[PCI_INTERRUPT_PIN] = 1; /* interrupt pin A */
-    ptnet_mmio_setup(s);
-    pci_register_bar(pci_dev, 0, PCI_BASE_ADDRESS_SPACE_MEMORY, &s->mmio);
-    pci_register_bar(pci_dev, 1, PCI_BASE_ADDRESS_SPACE_IO, &s->io);
+
+    /* Init I/O mapped memory region, exposing ptnetmap registers. */
+    memory_region_init_io(&s->io, OBJECT(s), &ptnet_io_ops, s,
+                          "ptnet-io", PTNET_IO_MAX);
+    pci_register_bar(pci_dev, PTNETMAP_IO_PCI_BAR,
+                     PCI_BASE_ADDRESS_SPACE_IO, &s->io);
+
+    /* Init memory mapped memory region, exposing CSB. */
+    memory_region_init_io(&s->mmio, OBJECT(s), &ptnet_mmio_ops, s,
+                          "ptnet-mmio", CSB_SIZE);
+    pci_register_bar(pci_dev, PTNETMAP_MEM_PCI_BAR,
+                     PCI_BASE_ADDRESS_SPACE_MEMORY, &s->mmio);
+
     qemu_macaddr_default_if_unset(&s->conf.macaddr);
     macaddr = s->conf.macaddr.a;
 
