@@ -35,21 +35,11 @@
 #define PTNET_DEBUG
 
 #ifdef PTNET_DEBUG
-enum {
-    DEBUG_GENERAL,      DEBUG_IO,       DEBUG_MMIO,     DEBUG_INTERRUPT,
-    DEBUG_RX,           DEBUG_TX,       DEBUG_MDIC,     DEBUG_EEPROM,
-    DEBUG_UNKNOWN,      DEBUG_TXSUM,    DEBUG_TXERR,    DEBUG_RXERR,
-    DEBUG_RXFILTER,     DEBUG_PHY,      DEBUG_NOTYET,
-};
-#define DBGBIT(x)    (1<<DEBUG_##x)
-static int debugflags = DBGBIT(TXERR) | DBGBIT(GENERAL);
-
-#define DBGOUT(what, fmt, ...) do { \
-    if (debugflags & DBGBIT(what)) \
-        fprintf(stderr, "ptnet: " fmt, ## __VA_ARGS__); \
+#define DBG(fmt, ...) do { \
+        fprintf(stderr, "ptnet: " fmt "\n", ## __VA_ARGS__); \
     } while (0)
 #else
-#define DBGOUT(what, fmt, ...) do {} while (0)
+#define DBG(what, fmt, ...) do {} while (0)
 #endif
 
 #define CSB_SIZE      4096
@@ -58,6 +48,7 @@ static int debugflags = DBGBIT(TXERR) | DBGBIT(GENERAL);
 #define PTNET_IO_PTCTL          4
 #define PTNET_IO_PTSTS          8
 #define PTNET_IO_MAX            12
+#define PTNET_IO_MASK           0xf
 
 typedef struct PtNetState_st {
     PCIDevice pci_device; /* Private field. */
@@ -80,7 +71,7 @@ ptnet_set_link_status(NetClientState *nc)
 {
     PtNetState *s = qemu_get_nic_opaque(nc);
 
-    printf("%s(%p)\n", __func__, s);
+    DBG("%s(%p)", __func__, s);
 }
 
 static int
@@ -106,63 +97,78 @@ ptnet_receive(NetClientState *nc, const uint8_t *buf, size_t size)
     return ptnet_receive_iov(nc, &iov, 1);
 }
 
-static uint32_t
-mac_readreg(PtNetState *s, int index)
-{
-    return s->mac_reg[index];
-}
-
-static void
-mac_writereg(PtNetState *s, int index, uint32_t val)
-{
-    s->mac_reg[index] = val;
-}
-
-static uint32_t (*macreg_readops[])(PtNetState *, int) = {
-    [PTNET_IO_PTFEAT] = mac_readreg,
-    [PTNET_IO_PTCTL] = mac_readreg,
-    [PTNET_IO_PTSTS] = mac_readreg,
-};
-enum { NREADOPS = ARRAY_SIZE(macreg_readops) };
-
-static void (*macreg_writeops[])(PtNetState *, int, uint32_t) = {
-    [PTNET_IO_PTFEAT] = mac_writereg,
-    [PTNET_IO_PTCTL] = mac_writereg,
-    [PTNET_IO_PTSTS] = mac_writereg,
-};
-
-enum { NWRITEOPS = ARRAY_SIZE(macreg_writeops) };
-
 static void
 ptnet_io_write(void *opaque, hwaddr addr, uint64_t val,
                  unsigned size)
 {
     PtNetState *s = opaque;
-    unsigned int index = (addr & 0x1ffff) >> 2;
+    unsigned int index;
+    const char *regname = "";
 
-    if (index < NWRITEOPS && macreg_writeops[index]) {
-        macreg_writeops[index](s, index, val);
-    } else if (index < NREADOPS && macreg_readops[index]) {
-        DBGOUT(MMIO, "ptnet_mmio_writel RO %x: 0x%04"PRIx64"\n",
-               index<<2, val);
-    } else {
-        DBGOUT(UNKNOWN, "MMIO unknown write addr=0x%08x,val=0x%08"PRIx64"\n",
-               index<<2, val);
+    addr = addr & PTNET_IO_MASK;
+    index = addr >> 2;
+
+    (void)s;
+
+    if (addr >= PTNET_IO_MAX) {
+        DBG("Unknown I/O write addr=0x%08"PRIx64", val=0x%08"PRIx64,
+            addr, val);
+        return;
     }
+
+    switch (addr) {
+        case PTNET_IO_PTFEAT:
+            regname = "PTNET_IO_PTFEAT";
+            break;
+
+        case PTNET_IO_PTCTL:
+            regname = "PTNET_IO_PTCTL";
+            break;
+
+        case PTNET_IO_PTSTS:
+            regname = "PTNET_IO_PTSTS";
+            break;
+    }
+
+    DBG("I/O write to %s, val=0x%08" PRIx64, regname, val);
+
+    s->mac_reg[index] = val;
 }
 
 static uint64_t
 ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
 {
     PtNetState *s = opaque;
-    unsigned int index = (addr & 0x1ffff) >> 2;
+    unsigned int index;
+    const char *regname = "";
 
-    if (index < NREADOPS && macreg_readops[index]) {
-        return macreg_readops[index](s, index);
-    } else {
-        DBGOUT(UNKNOWN, "MMIO unknown read addr=0x%08x\n", index<<2);
+    addr = addr & PTNET_IO_MASK;
+    index = addr >> 2;
+
+    (void)s;
+
+    if (addr >= PTNET_IO_MAX) {
+        DBG("Unknown I/O read addr=0x%08"PRIx64, addr);
+        return 0;
     }
-    return 0;
+
+    switch (addr) {
+        case PTNET_IO_PTFEAT:
+            regname = "PTNET_IO_PTFEAT";
+            break;
+
+        case PTNET_IO_PTCTL:
+            regname = "PTNET_IO_PTCTL";
+            break;
+
+        case PTNET_IO_PTSTS:
+            regname = "PTNET_IO_PTSTS";
+            break;
+    }
+
+    DBG("I/O read from %s, val=0x%04x", regname, s->mac_reg[index]);
+
+    return s->mac_reg[index];
 }
 
 static const MemoryRegionOps ptnet_io_ops = {
@@ -201,13 +207,13 @@ static const MemoryRegionOps ptnet_mmio_ops = {
 static void ptnet_pre_save(void *opaque)
 {
     PtNetState *s = opaque;
-    printf("%s(%p)\n", __func__, s);
+    DBG("%s(%p)", __func__, s);
 }
 
 static int ptnet_post_load(void *opaque, int version_id)
 {
     PtNetState *s = opaque;
-    printf("%s(%p)\n", __func__, s);
+    DBG("%s(%p)", __func__, s);
     return 0;
 }
 
