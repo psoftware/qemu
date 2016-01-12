@@ -37,6 +37,10 @@
 
 #include "e1000_regs.h"
 
+#include <net/if.h>
+#include "net/netmap.h"
+#include "dev/netmap/netmap_virt.h"
+
 static const uint8_t bcast[] = {0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 
 #define E1000_DEBUG
@@ -151,7 +155,7 @@ typedef struct E1000BaseClass {
     uint16_t phy_id2;
 } E1000BaseClass;
 
-#define TYPE_E1000_BASE "ptnetmap-netif"
+#define TYPE_E1000_BASE "e1000-base"
 
 #define E1000(obj) \
     OBJECT_CHECK(E1000State, (obj), TYPE_E1000_BASE)
@@ -1881,7 +1885,7 @@ static void e1000_class_init(ObjectClass *klass, void *data)
     k->realize = pci_e1000_realize;
     k->exit = pci_e1000_uninit;
     k->romfile = "efi-e1000.rom";
-    k->vendor_id = PCI_VENDOR_ID_INTEL;
+    k->vendor_id = PTNETMAP_PCI_VENDOR_ID;
     k->device_id = info->device_id;
     k->revision = info->revision;
     e->phy_id2 = info->phy_id2;
@@ -1912,22 +1916,10 @@ static const TypeInfo e1000_base_info = {
 
 static const E1000Info e1000_devices[] = {
     {
-        .name      = "e1000",
+        .name      = "ptnet",
         .device_id = E1000_DEV_ID_82540EM,
-        .revision  = 0x03,
-        .phy_id2   = E1000_PHY_ID2_8254xx_DEFAULT,
-    },
-    {
-        .name      = "e1000-82544gc",
-        .device_id = E1000_DEV_ID_82544GC_COPPER,
-        .revision  = 0x03,
-        .phy_id2   = E1000_PHY_ID2_82544x,
-    },
-    {
-        .name      = "e1000-82545em",
-        .device_id = E1000_DEV_ID_82545EM_COPPER,
-        .revision  = 0x03,
-        .phy_id2   = E1000_PHY_ID2_8254xx_DEFAULT,
+        .revision  = 0x00,
+        .phy_id2   = 0x00,
     },
 };
 
