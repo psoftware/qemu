@@ -27,7 +27,6 @@
 #include "qemu/event_notifier.h"
 #include "qemu/osdep.h"
 #include "hw/net/ptnetmap.h"
-#include "dev/netmap/netmap_virt.h"
 
 #undef DEBUF
 #define DEBUG
