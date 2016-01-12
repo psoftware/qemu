@@ -44,7 +44,7 @@
 #define PTNET_IO_PTFEAT         0
 #define PTNET_IO_PTCTL          4
 #define PTNET_IO_PTSTS          8
-#define PTNET_IO_MAX            12
+#define PTNET_IO_END            12
 #define PTNET_IO_MASK           0xf
 
 typedef struct PtNetState_st {
@@ -55,7 +55,7 @@ typedef struct PtNetState_st {
     MemoryRegion mmio;
     MemoryRegion io;
 
-    uint32_t mac_reg[PTNET_IO_MAX];
+    uint32_t mac_reg[PTNET_IO_END];
 } PtNetState;
 
 #define TYPE_PTNET_PCI  "ptnet-pci"
@@ -96,7 +96,7 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val,
 
     (void)s;
 
-    if (addr >= PTNET_IO_MAX) {
+    if (addr >= PTNET_IO_END) {
         DBG("Unknown I/O write addr=0x%08"PRIx64", val=0x%08"PRIx64,
             addr, val);
         return;
@@ -133,7 +133,7 @@ ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
 
     (void)s;
 
-    if (addr >= PTNET_IO_MAX) {
+    if (addr >= PTNET_IO_END) {
         DBG("Unknown I/O read addr=0x%08"PRIx64, addr);
         return 0;
     }
@@ -265,7 +265,7 @@ static void pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 
     /* Init I/O mapped memory region, exposing ptnetmap registers. */
     memory_region_init_io(&s->io, OBJECT(s), &ptnet_io_ops, s,
-                          "ptnet-io", PTNET_IO_MAX);
+                          "ptnet-io", PTNET_IO_MASK + 1);
     pci_register_bar(pci_dev, PTNETMAP_IO_PCI_BAR,
                      PCI_BASE_ADDRESS_SPACE_IO, &s->io);
 
