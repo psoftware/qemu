@@ -54,7 +54,8 @@ typedef struct PtNetState_st {
     PTNetmapState *ptbe;
 
     EventNotifier guest_notifier;
-    EventNotifier host_notifier;
+    EventNotifier host_tx_notifier;
+    EventNotifier host_rx_notifier;
 
     uint32_t mac_reg[PTNET_IO_END];
     char csb[CSB_SIZE];
@@ -300,6 +301,27 @@ static void ptnet_write_config(PCIDevice *pci_dev, uint32_t address,
     }
 }
 
+static void
+ptnet_host_notifier_init(PtNetState *s, EventNotifier *e, hwaddr ofs)
+{
+    int ret = event_notifier_init(e, 0);
+
+    if (ret) {
+        printf("%s: host notifier initialization failed\n", __func__);
+    }
+    event_notifier_set_handler(e, NULL);
+    memory_region_add_eventfd(&s->io, ofs, 4, false, 0, e);
+
+}
+
+static void
+ptnet_host_notifier_fini(PtNetState *s, EventNotifier *e, hwaddr ofs)
+{
+    memory_region_del_eventfd(&s->io, ofs, 4, false, 0, e);
+    event_notifier_set_handler(e, NULL);
+    event_notifier_cleanup(e);
+}
+
 static void pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 {
     DeviceState *dev = DEVICE(pci_dev);
@@ -348,13 +370,8 @@ static void pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     }
     event_notifier_set_handler(&s->guest_notifier, NULL);
 
-    ret = event_notifier_init(&s->host_notifier, 0);
-    if (ret) {
-        printf("%s: host notifier initialization failed\n", __func__);
-    }
-    event_notifier_set_handler(&s->host_notifier, NULL);
-    memory_region_add_eventfd(&s->io, PTNET_IO_TXKICK, 4, false, 0,
-                              &s->host_notifier);
+    ptnet_host_notifier_init(s, &s->host_tx_notifier, PTNET_IO_TXKICK);
+    ptnet_host_notifier_init(s, &s->host_rx_notifier, PTNET_IO_RXKICK);
 
     DBG("%s: %p", __func__, s);
 }
@@ -366,10 +383,8 @@ pci_ptnet_uninit(PCIDevice *dev)
 
     event_notifier_cleanup(&s->guest_notifier);
 
-    memory_region_del_eventfd(&s->io, PTNET_IO_TXKICK, 4, false, 0,
-                              &s->host_notifier);
-    event_notifier_set_handler(&s->host_notifier, NULL);
-    event_notifier_cleanup(&s->host_notifier);
+    ptnet_host_notifier_fini(s, &s->host_tx_notifier, PTNET_IO_TXKICK);
+    ptnet_host_notifier_fini(s, &s->host_rx_notifier, PTNET_IO_RXKICK);
 
     qemu_del_nic(s->nic);
 
