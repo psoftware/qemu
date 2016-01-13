@@ -52,10 +52,12 @@ typedef struct PtNetState_st {
 
     NICState *nic;
     NICConf conf;
-    MemoryRegion mmio;
     MemoryRegion io;
+    MemoryRegion mem;
+    MemoryRegion csb_ram;
 
     uint32_t mac_reg[PTNET_IO_END];
+    char csb[CSB_SIZE];
 } PtNetState;
 
 #define TYPE_PTNET_PCI  "ptnet-pci"
@@ -167,29 +169,6 @@ static const MemoryRegionOps ptnet_io_ops = {
     },
 };
 
-static uint64_t ptnet_mmio_read(void *opaque, hwaddr addr,
-                                unsigned size)
-{
-    PtNetState *s = opaque;
-
-    (void)s;
-    return 0;
-}
-
-static void ptnet_mmio_write(void *opaque, hwaddr addr,
-                             uint64_t val, unsigned size)
-{
-    PtNetState *s = opaque;
-
-    (void)s;
-}
-
-static const MemoryRegionOps ptnet_mmio_ops = {
-    .read = ptnet_mmio_read,
-    .write = ptnet_mmio_write,
-    .endianness = DEVICE_LITTLE_ENDIAN,
-};
-
 static void ptnet_pre_save(void *opaque)
 {
     PtNetState *s = opaque;
@@ -269,11 +248,17 @@ static void pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     pci_register_bar(pci_dev, PTNETMAP_IO_PCI_BAR,
                      PCI_BASE_ADDRESS_SPACE_IO, &s->io);
 
-    /* Init memory mapped memory region, exposing CSB. */
-    memory_region_init_io(&s->mmio, OBJECT(s), &ptnet_mmio_ops, s,
-                          "ptnet-mmio", CSB_SIZE);
+    /* Init memory mapped memory region, exposing CSB.
+     * It is important that size(s->csb_ram) < size(s->mem),
+     * otherwise KVM memory setup routines fail. */
+    memory_region_init(&s->mem, OBJECT(s), "ptnet-mem", CSB_SIZE);
+    memory_region_init_ram_ptr(&s->csb_ram, OBJECT(s), "ptnet-csb-ram",
+                               sizeof(struct paravirt_csb), s->csb);
+    memory_region_add_subregion(&s->mem, 0, &s->csb_ram);
+    vmstate_register_ram(&s->csb_ram, DEVICE(s));
     pci_register_bar(pci_dev, PTNETMAP_MEM_PCI_BAR,
-                     PCI_BASE_ADDRESS_SPACE_MEMORY, &s->mmio);
+                     PCI_BASE_ADDRESS_SPACE_MEMORY |
+		     PCI_BASE_ADDRESS_MEM_PREFETCH, &s->mem);
 
     qemu_macaddr_default_if_unset(&s->conf.macaddr);
     macaddr = s->conf.macaddr.a;
