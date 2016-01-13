@@ -28,6 +28,7 @@
 #include <net/if.h>
 #include "net/netmap.h"
 #include "dev/netmap/netmap_virt.h"
+#include "include/hw/net/ptnetmap.h"
 
 #define PTNET_DEBUG
 
@@ -49,6 +50,8 @@ typedef struct PtNetState_st {
     MemoryRegion io;
     MemoryRegion mem;
     MemoryRegion csb_ram;
+
+    PTNetmapState *ptbe;
 
     uint32_t mac_reg[PTNET_IO_END];
     char csb[CSB_SIZE];
@@ -87,6 +90,11 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val,
     unsigned int index;
     const char *regname = "";
 
+    if (!s->ptbe) {
+        printf("Invalid I/O write, backend does not support passthrough\n");
+        return;
+    }
+
     addr = addr & PTNET_IO_MASK;
     index = addr >> 2;
 
@@ -100,6 +108,7 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val,
 
     switch (addr) {
         case PTNET_IO_PTFEAT:
+            val = ptnetmap_ack_features(s->ptbe, val);
             regname = "PTNET_IO_PTFEAT";
             break;
 
@@ -244,6 +253,7 @@ static void pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 {
     DeviceState *dev = DEVICE(pci_dev);
     PtNetState *s = PTNET(pci_dev);
+    NetClientState *nc;
     uint8_t *pci_conf;
     uint8_t *macaddr;
 
@@ -275,7 +285,10 @@ static void pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 
     s->nic = qemu_new_nic(&net_ptnet_info, &s->conf,
                           object_get_typename(OBJECT(s)), dev->id, s);
-    qemu_format_nic_info_str(qemu_get_queue(s->nic), macaddr);
+    nc = qemu_get_queue(s->nic);
+    qemu_format_nic_info_str(nc, macaddr);
+
+    s->ptbe = nc->peer ? get_ptnetmap(nc->peer) : NULL;
 
     DBG("%s: %p", __func__, s);
 }
