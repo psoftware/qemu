@@ -20,6 +20,7 @@
 
 #include "hw/hw.h"
 #include "hw/pci/pci.h"
+#include "hw/pci/msix.h"
 #include "net/net.h"
 #include "sysemu/sysemu.h"
 #include "qemu/iov.h"
@@ -322,7 +323,8 @@ ptnet_host_notifier_fini(PtNetState *s, EventNotifier *e, hwaddr ofs)
     event_notifier_cleanup(e);
 }
 
-static void pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
+static void
+pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 {
     DeviceState *dev = DEVICE(pci_dev);
     PtNetState *s = PTNET(pci_dev);
@@ -354,6 +356,10 @@ static void pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
                      PCI_BASE_ADDRESS_SPACE_MEMORY |
 		     PCI_BASE_ADDRESS_MEM_PREFETCH, &s->mem);
 
+    if (msix_init_exclusive_bar(pci_dev, 2, PTNETMAP_MSIX_PCI_BAR)) {
+        printf("[ERR] Failed to intialize MSI-X BAR\n");
+    }
+
     qemu_macaddr_default_if_unset(&s->conf.macaddr);
     macaddr = s->conf.macaddr.a;
 
@@ -364,14 +370,18 @@ static void pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 
     s->ptbe = nc->peer ? get_ptnetmap(nc->peer) : NULL;
 
+    ptnet_host_notifier_init(s, &s->host_tx_notifier, PTNET_IO_TXKICK);
+    ptnet_host_notifier_init(s, &s->host_rx_notifier, PTNET_IO_RXKICK);
+
     ret = event_notifier_init(&s->guest_notifier, 0);
     if (ret) {
         printf("%s: guest notifier initialization failed\n", __func__);
     }
     event_notifier_set_handler(&s->guest_notifier, NULL);
 
-    ptnet_host_notifier_init(s, &s->host_tx_notifier, PTNET_IO_TXKICK);
-    ptnet_host_notifier_init(s, &s->host_rx_notifier, PTNET_IO_RXKICK);
+    msix_unuse_all_vectors(pci_dev);
+    msix_vector_use(pci_dev, 0);
+    msix_vector_use(pci_dev, 1);
 
     DBG("%s: %p", __func__, s);
 }
@@ -380,11 +390,15 @@ static void
 pci_ptnet_uninit(PCIDevice *dev)
 {
     PtNetState *s = PTNET(dev);
+    PCIDevice *pci_dev = PCI_DEVICE(s);
 
     event_notifier_cleanup(&s->guest_notifier);
 
     ptnet_host_notifier_fini(s, &s->host_tx_notifier, PTNET_IO_TXKICK);
     ptnet_host_notifier_fini(s, &s->host_rx_notifier, PTNET_IO_RXKICK);
+
+    msix_unuse_all_vectors(pci_dev);
+    msix_uninit_exclusive_bar(pci_dev);
 
     qemu_del_nic(s->nic);
 
@@ -394,7 +408,9 @@ pci_ptnet_uninit(PCIDevice *dev)
 static void qdev_ptnet_reset(DeviceState *dev)
 {
     PtNetState *s = PTNET(dev);
+
     /* Init registers */
+
     DBG("%s(%p)", __func__, s);
 }
 
