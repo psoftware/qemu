@@ -53,6 +53,9 @@ typedef struct PtNetState_st {
 
     PTNetmapState *ptbe;
 
+    EventNotifier guest_notifier;
+    EventNotifier host_notifier;
+
     uint32_t mac_reg[PTNET_IO_END];
     char csb[CSB_SIZE];
 } PtNetState;
@@ -276,16 +279,6 @@ static const VMStateDescription vmstate_ptnet = {
 
 /* PCI interface */
 
-static void
-pci_ptnet_uninit(PCIDevice *dev)
-{
-    PtNetState *s = PTNET(dev);
-
-    qemu_del_nic(s->nic);
-
-    DBG("%s: %p", __func__, s);
-}
-
 static NetClientInfo net_ptnet_info = {
     .type = NET_CLIENT_OPTIONS_KIND_NIC,
     .size = sizeof(NICState),
@@ -314,6 +307,7 @@ static void pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     NetClientState *nc;
     uint8_t *pci_conf;
     uint8_t *macaddr;
+    int ret;
 
     pci_dev->config_write = ptnet_write_config;
     pci_conf = pci_dev->config;
@@ -347,6 +341,37 @@ static void pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     qemu_format_nic_info_str(nc, macaddr);
 
     s->ptbe = nc->peer ? get_ptnetmap(nc->peer) : NULL;
+
+    ret = event_notifier_init(&s->guest_notifier, 0);
+    if (ret) {
+        printf("%s: guest notifier initialization failed\n", __func__);
+    }
+    event_notifier_set_handler(&s->guest_notifier, NULL);
+
+    ret = event_notifier_init(&s->host_notifier, 0);
+    if (ret) {
+        printf("%s: host notifier initialization failed\n", __func__);
+    }
+    event_notifier_set_handler(&s->host_notifier, NULL);
+    memory_region_add_eventfd(&s->io, PTNET_IO_TXKICK, 4, false, 0,
+                              &s->host_notifier);
+
+    DBG("%s: %p", __func__, s);
+}
+
+static void
+pci_ptnet_uninit(PCIDevice *dev)
+{
+    PtNetState *s = PTNET(dev);
+
+    event_notifier_cleanup(&s->guest_notifier);
+
+    memory_region_del_eventfd(&s->io, PTNET_IO_TXKICK, 4, false, 0,
+                              &s->host_notifier);
+    event_notifier_set_handler(&s->host_notifier, NULL);
+    event_notifier_cleanup(&s->host_notifier);
+
+    qemu_del_nic(s->nic);
 
     DBG("%s: %p", __func__, s);
 }
