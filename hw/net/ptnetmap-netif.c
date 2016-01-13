@@ -41,12 +41,6 @@
 
 #define CSB_SIZE      4096
 
-#define PTNET_IO_PTFEAT         0
-#define PTNET_IO_PTCTL          4
-#define PTNET_IO_PTSTS          8
-#define PTNET_IO_END            12
-#define PTNET_IO_MASK           0xf
-
 typedef struct PtNetState_st {
     PCIDevice pci_device; /* Private field. */
 
@@ -116,6 +110,14 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val,
         case PTNET_IO_PTSTS:
             regname = "PTNET_IO_PTSTS";
             break;
+
+        case PTNET_IO_TXKICK:
+            regname = "PTNET_IO_TXKICK";
+            break;
+
+        case PTNET_IO_RXKICK:
+            regname = "PTNET_IO_RXKICK";
+            break;
     }
 
     DBG("I/O write to %s, val=0x%08" PRIx64, regname, val);
@@ -151,6 +153,14 @@ ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
 
         case PTNET_IO_PTSTS:
             regname = "PTNET_IO_PTSTS";
+            break;
+
+        case PTNET_IO_TXKICK:
+            regname = "PTNET_IO_TXKICK";
+            break;
+
+        case PTNET_IO_RXKICK:
+            regname = "PTNET_IO_RXKICK";
             break;
     }
 
