@@ -82,9 +82,66 @@ ptnet_receive(NetClientState *nc, const uint8_t *buf, size_t size)
     return size;
 }
 
+static int
+ptnet_get_netmap_if(PtNetState *s)
+{
+    struct paravirt_csb *csb = (struct paravirt_csb *)s->csb;
+    NetmapIf nif;
+    int ret;
+
+    ret = ptnetmap_get_netmap_if(s->ptbe, &nif);
+    if (ret) {
+        return ret;
+    }
+
+    csb->nifp_offset = nif.nifp_offset;
+    csb->num_tx_rings = nif.num_tx_rings;
+    csb->num_rx_rings = nif.num_rx_rings;
+    csb->num_tx_slots = nif.num_tx_slots;
+    csb->num_rx_slots = nif.num_rx_slots;
+    printf("txr %u rxr %u txd %u rxd %u nifp_offset %u\n",
+            csb->num_tx_rings,
+            csb->num_rx_rings,
+            csb->num_tx_slots,
+            csb->num_rx_slots,
+            csb->nifp_offset);
+
+    return 0;
+}
+
 static void
-ptnet_io_write(void *opaque, hwaddr addr, uint64_t val,
-                 unsigned size)
+ptnet_ptctl(PtNetState *s, uint64_t cmd)
+{
+    int ret = EINVAL;
+
+    switch (cmd) {
+        case NET_PARAVIRT_PTCTL_CONFIG:
+            /* Fill CSB fields: nifp_offset, num_*x_rings,
+             * and num_*x_slots. */
+            ret = ptnet_get_netmap_if(s);
+            break;
+
+        case NET_PARAVIRT_PTCTL_REGIF:
+            /* Emulate a REGIF for the guest. */
+            break;
+
+        case NET_PARAVIRT_PTCTL_UNREGIF:
+            /* Emulate an UNREGIF for the guest. */
+            break;
+
+        case NET_PARAVIRT_PTCTL_HOSTMEMID:
+            ret = ptnetmap_get_hostmemid(s->ptbe);
+            break;
+
+        default:
+            break;
+    }
+
+    s->mac_reg[PTNET_IO_PTSTS >> 2] = ret;
+}
+
+static void
+ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 {
     PtNetState *s = opaque;
     unsigned int index;
@@ -113,6 +170,7 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val,
             break;
 
         case PTNET_IO_PTCTL:
+            ptnet_ptctl(s, val);
             regname = "PTNET_IO_PTCTL";
             break;
 
