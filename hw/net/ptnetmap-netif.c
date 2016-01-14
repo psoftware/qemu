@@ -463,7 +463,7 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     ptnet_host_notifier_init(s, &s->host_tx_notifier, PTNET_IO_TXKICK);
     ptnet_host_notifier_init(s, &s->host_rx_notifier, PTNET_IO_RXKICK);
 
-    DBG("%s: %p", __func__, s);
+    DBG("%s(%p)", __func__, s);
 }
 
 static void
