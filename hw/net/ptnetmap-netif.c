@@ -123,6 +123,7 @@ ptnet_host_notifier_fini(PtNetState *s, EventNotifier *e, hwaddr ofs)
 static void
 ptnet_guest_notifier_init(PtNetState *s, EventNotifier *e, unsigned int vector)
 {
+    /* Initialize an eventfd. */
     int ret = event_notifier_init(e, 0);
     MSIMessage msg;
 
@@ -135,6 +136,9 @@ ptnet_guest_notifier_init(PtNetState *s, EventNotifier *e, unsigned int vector)
 
     msix_vector_use(PCI_DEVICE(s), vector);
 
+    /* Read the MSI-X message prepared by the guest and use it
+     * to setup KVM irqfd, using the eventfd initialized
+     * above. */
     msg = msix_get_message(PCI_DEVICE(s), vector);
     s->virqs[vector] = kvm_irqchip_add_msi_route(kvm_state, msg,
                                                  PCI_DEVICE(s));
@@ -291,9 +295,15 @@ ptnet_ctrl(PtNetState *s, uint64_t cmd)
 
     switch (cmd) {
         case PTNET_CTRL_IRQINIT:
+            /* Guest has allocated MSI-X, we can setup
+             * the irqfd notification mechanism. */
             ret = ptnet_guest_notifiers_init(s);
             break;
+
         case PTNET_CTRL_IRQFINI:
+            /* Guest is going to deallocate MSI-X, we
+             * can tear donw the irqfd notification
+             * mechanism. */
             ret = ptnet_guest_notifiers_fini(s);
             break;
 
