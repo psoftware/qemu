@@ -95,6 +95,10 @@ ptnet_receive(NetClientState *nc, const uint8_t *buf, size_t size)
     return size;
 }
 
+/* Initialize an eventfd and tell the VMM to write() into the eventfd
+ * each time the guest acesses the I/O register specified by 'ofs'.
+ * We don't need an handler, since the eventfd will be drained
+ * in kernelspace. */
 static void
 ptnet_host_notifier_init(PtNetState *s, EventNotifier *e, hwaddr ofs)
 {
@@ -128,6 +132,8 @@ ptnet_guest_notifier_init(PtNetState *s, EventNotifier *e, unsigned int vector)
     }
 
     event_notifier_set_handler(e, NULL);
+
+    msix_vector_use(PCI_DEVICE(s), vector);
 
     msg = msix_get_message(PCI_DEVICE(s), vector);
     s->virqs[vector] = kvm_irqchip_add_msi_route(kvm_state, msg,
@@ -170,29 +176,23 @@ ptnet_guest_notifier_fini(PtNetState *s, EventNotifier *e, unsigned int vector)
 }
 
 static int
-ptnet_notifiers_init(PtNetState *s)
+ptnet_guest_notifiers_init(PtNetState *s)
 {
-    PCIDevice *pci_dev = PCI_DEVICE(s);
+    msix_unuse_all_vectors(PCI_DEVICE(s));
 
-    msix_unuse_all_vectors(pci_dev);
-    msix_vector_use(pci_dev, 0);
-    msix_vector_use(pci_dev, 1);
-
-    ptnet_guest_notifier_init(s, &s->guest_tx_notifier, 0);
-    ptnet_guest_notifier_init(s, &s->guest_rx_notifier, 1);
+    ptnet_guest_notifier_init(s, &s->guest_tx_notifier, PTNETMAP_MSIX_VEC_TX);
+    ptnet_guest_notifier_init(s, &s->guest_rx_notifier, PTNETMAP_MSIX_VEC_RX);
 
     return 0;
 }
 
 static int
-ptnet_notifiers_fini(PtNetState *s)
+ptnet_guest_notifiers_fini(PtNetState *s)
 {
-    PCIDevice *pci_dev = PCI_DEVICE(s);
+    ptnet_guest_notifier_fini(s, &s->guest_tx_notifier, PTNETMAP_MSIX_VEC_TX);
+    ptnet_guest_notifier_fini(s, &s->guest_rx_notifier, PTNETMAP_MSIX_VEC_RX);
 
-    ptnet_guest_notifier_fini(s, &s->guest_tx_notifier, 0);
-    ptnet_guest_notifier_fini(s, &s->guest_rx_notifier, 1);
-
-    msix_unuse_all_vectors(pci_dev);
+    msix_unuse_all_vectors(PCI_DEVICE(s));
 
     return 0;
 }
@@ -291,10 +291,10 @@ ptnet_ctrl(PtNetState *s, uint64_t cmd)
 
     switch (cmd) {
         case PTNET_CTRL_IRQINIT:
-            ret = ptnet_notifiers_init(s);
+            ret = ptnet_guest_notifiers_init(s);
             break;
         case PTNET_CTRL_IRQFINI:
-            ret = ptnet_notifiers_fini(s);
+            ret = ptnet_guest_notifiers_fini(s);
             break;
 
         default:
@@ -502,6 +502,7 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
                      PCI_BASE_ADDRESS_SPACE_MEMORY |
 		     PCI_BASE_ADDRESS_MEM_PREFETCH, &s->mem);
 
+    /* Allocate a PCI bar to manage MSI-X information for this device. */
     if (msix_init_exclusive_bar(pci_dev, 2, PTNETMAP_MSIX_PCI_BAR)) {
         printf("[ERR] Failed to intialize MSI-X BAR\n");
     }
@@ -516,6 +517,9 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 
     s->ptbe = nc->peer ? get_ptnetmap(nc->peer) : NULL;
 
+    /* We can setup host --> guest notifications immediately, since
+     * we already have the information we need: the address of
+     * TXKICK/RXKICK registers. */
     ptnet_host_notifier_init(s, &s->host_tx_notifier, PTNET_IO_TXKICK);
     ptnet_host_notifier_init(s, &s->host_rx_notifier, PTNET_IO_RXKICK);
 
@@ -531,6 +535,7 @@ pci_ptnet_uninit(PCIDevice *dev)
     ptnet_host_notifier_fini(s, &s->host_rx_notifier, PTNET_IO_RXKICK);
 
     msix_uninit_exclusive_bar(PCI_DEVICE(s));
+
     qemu_del_nic(s->nic);
 
     DBG("%s: %p", __func__, s);
