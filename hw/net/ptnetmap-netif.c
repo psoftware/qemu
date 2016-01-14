@@ -64,6 +64,8 @@ typedef struct PtNetState_st {
     EventNotifier guest_rx_notifier;
     int virqs[2];
 
+    struct ptnetmap_cfg host_cfg;
+
     uint32_t mac_reg[PTNET_IO_END];
     char csb[CSB_SIZE];
 } PtNetState;
@@ -120,6 +122,27 @@ ptnet_get_netmap_if(PtNetState *s)
     return 0;
 }
 
+static int
+ptnet_regif(PtNetState *s)
+{
+    struct paravirt_csb *csb = (struct paravirt_csb *)s->csb;
+
+    s->host_cfg.features = PTNETMAP_CFG_FEAT_CSB | PTNETMAP_CFG_FEAT_EVENTFD;
+
+    s->host_cfg.tx_ring.ioeventfd = event_notifier_get_fd(&s->host_tx_notifier);
+    s->host_cfg.tx_ring.irqfd = event_notifier_get_fd(&s->guest_tx_notifier);
+    s->host_cfg.rx_ring.ioeventfd = event_notifier_get_fd(&s->host_rx_notifier);
+    s->host_cfg.rx_ring.irqfd = event_notifier_get_fd(&s->guest_rx_notifier);
+
+    s->host_cfg.csb = csb;
+    csb->host_need_txkick = 1;
+    csb->guest_need_txkick = 0;
+    csb->guest_need_rxkick = 1;
+    csb->host_need_rxkick = 1;
+
+    return ptnetmap_create(s->ptbe, &s->host_cfg);
+}
+
 static void
 ptnet_ptctl(PtNetState *s, uint64_t cmd)
 {
@@ -134,10 +157,12 @@ ptnet_ptctl(PtNetState *s, uint64_t cmd)
 
         case NET_PARAVIRT_PTCTL_REGIF:
             /* Emulate a REGIF for the guest. */
+            ret = ptnet_regif(s);
             break;
 
         case NET_PARAVIRT_PTCTL_UNREGIF:
             /* Emulate an UNREGIF for the guest. */
+            ret = ptnetmap_delete(s->ptbe);
             break;
 
         case NET_PARAVIRT_PTCTL_HOSTMEMID:
