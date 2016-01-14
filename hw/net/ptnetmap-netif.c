@@ -20,6 +20,7 @@
 
 #include "hw/hw.h"
 #include "hw/pci/pci.h"
+#include "hw/pci/msi.h"
 #include "hw/pci/msix.h"
 #include "net/net.h"
 #include "sysemu/sysemu.h"
@@ -54,9 +55,14 @@ typedef struct PtNetState_st {
 
     PTNetmapState *ptbe;
 
-    EventNotifier guest_notifier;
+    /* Guest --> Host notification support. */
     EventNotifier host_tx_notifier;
     EventNotifier host_rx_notifier;
+
+    /* Host --> Guest notification support. */
+    EventNotifier guest_tx_notifier;
+    EventNotifier guest_rx_notifier;
+    int virqs[2];
 
     uint32_t mac_reg[PTNET_IO_END];
     char csb[CSB_SIZE];
@@ -309,6 +315,7 @@ ptnet_host_notifier_init(PtNetState *s, EventNotifier *e, hwaddr ofs)
 
     if (ret) {
         printf("%s: host notifier initialization failed\n", __func__);
+        return;
     }
     event_notifier_set_handler(e, NULL);
     memory_region_add_eventfd(&s->io, ofs, 4, false, 0, e);
@@ -319,7 +326,59 @@ static void
 ptnet_host_notifier_fini(PtNetState *s, EventNotifier *e, hwaddr ofs)
 {
     memory_region_del_eventfd(&s->io, ofs, 4, false, 0, e);
+    event_notifier_cleanup(e);
+}
+
+static void
+ptnet_guest_notifier_init(PtNetState *s, EventNotifier *e, unsigned int vector)
+{
+    int ret = event_notifier_init(e, 0);
+    MSIMessage msg;
+
+    if (ret) {
+        printf("%s: guest notifier initialization failed\n", __func__);
+        return;
+    }
+
     event_notifier_set_handler(e, NULL);
+
+    msg = msix_get_message(PCI_DEVICE(s), vector);
+    s->virqs[vector] = kvm_irqchip_add_msi_route(kvm_state, msg,
+                                                 PCI_DEVICE(s));
+    if (s->virqs[vector] < 0) {
+        printf("%s: kvm_irqchip_add_msi_route() failed: %d\n", __func__,
+               -s->virqs[vector]);
+        goto err_msi_route;
+    }
+
+    ret = kvm_irqchip_add_irqfd_notifier_gsi(kvm_state, e, NULL,
+                                             s->virqs[vector]);
+    if (ret) {
+        printf("%s: kvm_irqchip_add_irqfd_notifier_gsi() failed: %d\n",
+               __func__, ret);
+        goto err_add_irqfd;
+    }
+
+    return;
+
+err_add_irqfd:
+    kvm_irqchip_release_virq(kvm_state, s->virqs[vector]);
+err_msi_route:
+    event_notifier_cleanup(e);
+}
+
+static void
+ptnet_guest_notifier_fini(PtNetState *s, EventNotifier *e, unsigned int vector)
+{
+    int ret;
+
+    ret = kvm_irqchip_remove_irqfd_notifier_gsi(kvm_state, e,
+                                                s->virqs[vector]);
+    if (ret) {
+        printf("%s: kvm_irqchip_add_irqfd_notifier_gsi() failed: %d\n",
+               __func__, ret);
+    }
+    kvm_irqchip_release_virq(kvm_state, s->virqs[vector]);
     event_notifier_cleanup(e);
 }
 
@@ -331,7 +390,6 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     NetClientState *nc;
     uint8_t *pci_conf;
     uint8_t *macaddr;
-    int ret;
 
     pci_dev->config_write = ptnet_write_config;
     pci_conf = pci_dev->config;
@@ -370,18 +428,15 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 
     s->ptbe = nc->peer ? get_ptnetmap(nc->peer) : NULL;
 
-    ptnet_host_notifier_init(s, &s->host_tx_notifier, PTNET_IO_TXKICK);
-    ptnet_host_notifier_init(s, &s->host_rx_notifier, PTNET_IO_RXKICK);
-
-    ret = event_notifier_init(&s->guest_notifier, 0);
-    if (ret) {
-        printf("%s: guest notifier initialization failed\n", __func__);
-    }
-    event_notifier_set_handler(&s->guest_notifier, NULL);
-
     msix_unuse_all_vectors(pci_dev);
     msix_vector_use(pci_dev, 0);
     msix_vector_use(pci_dev, 1);
+
+    ptnet_guest_notifier_init(s, &s->guest_tx_notifier, 0);
+    ptnet_guest_notifier_init(s, &s->guest_rx_notifier, 1);
+
+    ptnet_host_notifier_init(s, &s->host_tx_notifier, PTNET_IO_TXKICK);
+    ptnet_host_notifier_init(s, &s->host_rx_notifier, PTNET_IO_RXKICK);
 
     DBG("%s: %p", __func__, s);
 }
@@ -392,10 +447,11 @@ pci_ptnet_uninit(PCIDevice *dev)
     PtNetState *s = PTNET(dev);
     PCIDevice *pci_dev = PCI_DEVICE(s);
 
-    event_notifier_cleanup(&s->guest_notifier);
-
     ptnet_host_notifier_fini(s, &s->host_tx_notifier, PTNET_IO_TXKICK);
     ptnet_host_notifier_fini(s, &s->host_rx_notifier, PTNET_IO_RXKICK);
+
+    ptnet_guest_notifier_fini(s, &s->guest_tx_notifier, 0);
+    ptnet_guest_notifier_fini(s, &s->guest_rx_notifier, 1);
 
     msix_unuse_all_vectors(pci_dev);
     msix_uninit_exclusive_bar(pci_dev);
