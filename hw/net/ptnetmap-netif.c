@@ -66,7 +66,7 @@ typedef struct PtNetState_st {
 
     struct ptnetmap_cfg host_cfg;
 
-    uint32_t mac_reg[PTNET_IO_END];
+    uint32_t ioregs[PTNET_IO_END];
     char csb[CSB_SIZE];
 } PtNetState;
 
@@ -285,7 +285,7 @@ ptnet_ptctl(PtNetState *s, uint64_t cmd)
             break;
     }
 
-    s->mac_reg[PTNET_IO_PTSTS >> 2] = ret;
+    s->ioregs[PTNET_IO_PTSTS >> 2] = ret;
 }
 
 static void
@@ -311,7 +311,7 @@ ptnet_ctrl(PtNetState *s, uint64_t cmd)
             break;
     }
 
-    s->mac_reg[PTNET_IO_PTSTS >> 2] = ret;
+    s->ioregs[PTNET_IO_PTSTS >> 2] = ret;
 }
 
 static void
@@ -368,7 +368,7 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 
     DBG("I/O write to %s, val=0x%08" PRIx64, regname, val);
 
-    s->mac_reg[index] = val;
+    s->ioregs[index] = val;
 }
 
 static uint64_t
@@ -414,9 +414,9 @@ ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
             break;
     }
 
-    DBG("I/O read from %s, val=0x%04x", regname, s->mac_reg[index]);
+    DBG("I/O read from %s, val=0x%04x", regname, s->ioregs[index]);
 
-    return s->mac_reg[index];
+    return s->ioregs[index];
 }
 
 static const MemoryRegionOps ptnet_io_ops = {
@@ -450,9 +450,9 @@ static const VMStateDescription vmstate_ptnet = {
     .post_load = ptnet_post_load,
     .fields = (VMStateField[]) {
         VMSTATE_PCI_DEVICE(pci_device, PtNetState),
-        VMSTATE_UINT32(mac_reg[PTNET_IO_PTFEAT], PtNetState),
-        VMSTATE_UINT32(mac_reg[PTNET_IO_PTCTL], PtNetState),
-        VMSTATE_UINT32(mac_reg[PTNET_IO_PTSTS], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_PTFEAT], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_PTCTL], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_PTSTS], PtNetState),
         VMSTATE_END_OF_LIST()
     }
 };
