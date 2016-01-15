@@ -320,6 +320,7 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     PtNetState *s = opaque;
     unsigned int index;
     const char *regname = "";
+    bool do_write = false;
 
     if (!s->ptbe) {
         printf("Invalid I/O write, backend does not support passthrough\n");
@@ -340,6 +341,7 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     switch (addr) {
         case PTNET_IO_PTFEAT:
             val = ptnetmap_ack_features(s->ptbe, val);
+            do_write = true;
             regname = "PTNET_IO_PTFEAT";
             break;
 
@@ -357,6 +359,14 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
             regname = "PTNET_IO_CTRL";
             break;
 
+        case PTNET_IO_MAC_LO:
+            regname = "PTNET_IO_MAC_LO";
+            break;
+
+        case PTNET_IO_MAC_HI:
+            regname = "PTNET_IO_MAC_HI";
+            break;
+
         case PTNET_IO_TXKICK:
             regname = "PTNET_IO_TXKICK";
             break;
@@ -368,7 +378,9 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 
     DBG("I/O write to %s, val=0x%08" PRIx64, regname, val);
 
-    s->ioregs[index] = val;
+    if (do_write) {
+        s->ioregs[index] = val;
+    }
 }
 
 static uint64_t
@@ -403,6 +415,14 @@ ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
 
         case PTNET_IO_CTRL:
             regname = "PTNET_IO_CTRL";
+            break;
+
+        case PTNET_IO_MAC_LO:
+            regname = "PTNET_IO_MAC_LO";
+            break;
+
+        case PTNET_IO_MAC_HI:
+            regname = "PTNET_IO_MAC_HI";
             break;
 
         case PTNET_IO_TXKICK:
@@ -520,6 +540,11 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     qemu_macaddr_default_if_unset(&s->conf.macaddr);
     macaddr = s->conf.macaddr.a;
 
+    /* Init MAC address registers. */
+    memcpy(&s->ioregs[PTNET_IO_MAC_LO >> 2], macaddr + 2, 4);
+    memcpy(((uint8_t *)&s->ioregs[PTNET_IO_MAC_HI >> 2]) + 2, macaddr, 2);
+    memset(&s->ioregs[PTNET_IO_MAC_HI >> 2], 0, 2);
+
     s->nic = qemu_new_nic(&net_ptnet_info, &s->conf,
                           object_get_typename(OBJECT(s)), dev->id, s);
     nc = qemu_get_queue(s->nic);
@@ -556,7 +581,6 @@ static void qdev_ptnet_reset(DeviceState *dev)
     PtNetState *s = PTNET(dev);
 
     /* Init registers */
-
     DBG("%s(%p)", __func__, s);
 }
 
