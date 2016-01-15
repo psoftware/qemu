@@ -414,7 +414,7 @@ ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
             break;
     }
 
-    DBG("I/O read from %s, val=0x%04x", regname, s->ioregs[index]);
+    DBG("I/O read from %s, val=0x%08x", regname, s->ioregs[index]);
 
     return s->ioregs[index];
 }
