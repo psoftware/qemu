@@ -48,6 +48,7 @@ static const char *regnames[] = {
     "PTFEAT",
     "PTCTL",
     "PTSTS",
+    "CTRL",
     "MAC_LO",
     "MAC_HI",
     "TXKICK",
@@ -498,9 +499,9 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     macaddr = s->conf.macaddr.a;
 
     /* Init MAC address registers. */
-    memcpy(&s->ioregs[PTNET_IO_MAC_LO >> 2], macaddr + 2, 4);
-    memcpy(((uint8_t *)&s->ioregs[PTNET_IO_MAC_HI >> 2]) + 2, macaddr, 2);
-    memset(&s->ioregs[PTNET_IO_MAC_HI >> 2], 0, 2);
+    s->ioregs[PTNET_IO_MAC_HI] = (macaddr[0] << 8) | macaddr[1];
+    s->ioregs[PTNET_IO_MAC_LO] = (macaddr[2] << 24) | (macaddr[3] << 16)
+                                 | (macaddr[4] << 8) | macaddr[5];
 
     s->nic = qemu_new_nic(&net_ptnet_info, &s->conf,
                           object_get_typename(OBJECT(s)), dev->id, s);
