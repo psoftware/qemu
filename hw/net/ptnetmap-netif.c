@@ -365,7 +365,7 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
             break;
     }
 
-    DBG("I/O write to PTNET_IO_%s, val=0x%08" PRIx64, regname, val);
+    DBG("I/O write to %s, val=0x%08" PRIx64, regname, val);
 
     if (do_write) {
         s->ioregs[index] = val;
@@ -391,7 +391,7 @@ ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
 
     regname = regnames[index];
 
-    DBG("I/O read from PTNET_IO_%s, val=0x%08x", regname, s->ioregs[index]);
+    DBG("I/O read from %s, val=0x%08x", regname, s->ioregs[index]);
 
     return s->ioregs[index];
 }
