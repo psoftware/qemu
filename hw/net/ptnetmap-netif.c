@@ -79,7 +79,7 @@ typedef struct PtNetState_st {
 
     struct ptnetmap_cfg host_cfg;
 
-    uint32_t ioregs[PTNET_IO_END];
+    uint32_t ioregs[PTNET_IO_END >> 2];
     char csb[CSB_SIZE];
 } PtNetState;
 
@@ -432,9 +432,9 @@ static const VMStateDescription vmstate_ptnet = {
     .post_load = ptnet_post_load,
     .fields = (VMStateField[]) {
         VMSTATE_PCI_DEVICE(pci_device, PtNetState),
-        VMSTATE_UINT32(ioregs[PTNET_IO_PTFEAT], PtNetState),
-        VMSTATE_UINT32(ioregs[PTNET_IO_PTCTL], PtNetState),
-        VMSTATE_UINT32(ioregs[PTNET_IO_PTSTS], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_PTFEAT >> 2], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_PTCTL >> 2], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_PTSTS >> 2], PtNetState),
         VMSTATE_END_OF_LIST()
     }
 };
@@ -469,7 +469,6 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     PtNetState *s = PTNET(pci_dev);
     NetClientState *nc;
     uint8_t *pci_conf;
-    uint8_t *macaddr;
 
     pci_dev->config_write = ptnet_write_config;
     pci_conf = pci_dev->config;
@@ -500,17 +499,11 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     }
 
     qemu_macaddr_default_if_unset(&s->conf.macaddr);
-    macaddr = s->conf.macaddr.a;
-
-    /* Init MAC address registers. */
-    s->ioregs[PTNET_IO_MAC_HI] = (macaddr[0] << 8) | macaddr[1];
-    s->ioregs[PTNET_IO_MAC_LO] = (macaddr[2] << 24) | (macaddr[3] << 16)
-                                 | (macaddr[4] << 8) | macaddr[5];
 
     s->nic = qemu_new_nic(&net_ptnet_info, &s->conf,
                           object_get_typename(OBJECT(s)), dev->id, s);
     nc = qemu_get_queue(s->nic);
-    qemu_format_nic_info_str(nc, macaddr);
+    qemu_format_nic_info_str(nc, s->conf.macaddr.a);
 
     s->ptbe = nc->peer ? get_ptnetmap(nc->peer) : NULL;
 
@@ -541,8 +534,13 @@ pci_ptnet_uninit(PCIDevice *dev)
 static void qdev_ptnet_reset(DeviceState *dev)
 {
     PtNetState *s = PTNET(dev);
+    uint8_t *macaddr;
 
-    /* Init registers */
+    /* Init MAC address registers. */
+    macaddr = s->conf.macaddr.a;
+    s->ioregs[PTNET_IO_MAC_HI >> 2] = (macaddr[0] << 8) | macaddr[1];
+    s->ioregs[PTNET_IO_MAC_LO >> 2] = (macaddr[2] << 24) | (macaddr[3] << 16)
+                                 | (macaddr[4] << 8) | macaddr[5];
     DBG("%s(%p)", __func__, s);
 }
 
