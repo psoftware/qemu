@@ -55,6 +55,8 @@ static const char *regnames[] = {
     "RXKICK",
 };
 
+#define REGNAMES_LEN  (sizeof(regnames)/(sizeof(regnames[0])))
+
 typedef struct PtNetState_st {
     PCIDevice pci_device; /* Private field. */
 
@@ -349,6 +351,7 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         return;
     }
 
+    assert(index < REGNAMES_LEN);
     regname = regnames[index];
 
     switch (addr) {
@@ -390,6 +393,7 @@ ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
         return 0;
     }
 
+    assert(index < REGNAMES_LEN);
     regname = regnames[index];
 
     DBG("I/O read from %s, val=0x%08x", regname, s->ioregs[index]);
