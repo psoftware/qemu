@@ -44,6 +44,16 @@
 
 #define CSB_SIZE      4096
 
+static const char *regnames[] = {
+    "PTFEAT",
+    "PTCTL",
+    "PTSTS",
+    "MAC_LO",
+    "MAC_HI",
+    "TXKICK",
+    "RXKICK",
+};
+
 typedef struct PtNetState_st {
     PCIDevice pci_device; /* Private field. */
 
@@ -338,45 +348,24 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         return;
     }
 
+    regname = regnames[index];
+
     switch (addr) {
         case PTNET_IO_PTFEAT:
             val = ptnetmap_ack_features(s->ptbe, val);
             do_write = true;
-            regname = "PTNET_IO_PTFEAT";
             break;
 
         case PTNET_IO_PTCTL:
             ptnet_ptctl(s, val);
-            regname = "PTNET_IO_PTCTL";
-            break;
-
-        case PTNET_IO_PTSTS:
-            regname = "PTNET_IO_PTSTS";
             break;
 
         case PTNET_IO_CTRL:
             ptnet_ctrl(s, val);
-            regname = "PTNET_IO_CTRL";
-            break;
-
-        case PTNET_IO_MAC_LO:
-            regname = "PTNET_IO_MAC_LO";
-            break;
-
-        case PTNET_IO_MAC_HI:
-            regname = "PTNET_IO_MAC_HI";
-            break;
-
-        case PTNET_IO_TXKICK:
-            regname = "PTNET_IO_TXKICK";
-            break;
-
-        case PTNET_IO_RXKICK:
-            regname = "PTNET_IO_RXKICK";
             break;
     }
 
-    DBG("I/O write to %s, val=0x%08" PRIx64, regname, val);
+    DBG("I/O write to PTNET_IO_%s, val=0x%08" PRIx64, regname, val);
 
     if (do_write) {
         s->ioregs[index] = val;
@@ -400,41 +389,9 @@ ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
         return 0;
     }
 
-    switch (addr) {
-        case PTNET_IO_PTFEAT:
-            regname = "PTNET_IO_PTFEAT";
-            break;
+    regname = regnames[index];
 
-        case PTNET_IO_PTCTL:
-            regname = "PTNET_IO_PTCTL";
-            break;
-
-        case PTNET_IO_PTSTS:
-            regname = "PTNET_IO_PTSTS";
-            break;
-
-        case PTNET_IO_CTRL:
-            regname = "PTNET_IO_CTRL";
-            break;
-
-        case PTNET_IO_MAC_LO:
-            regname = "PTNET_IO_MAC_LO";
-            break;
-
-        case PTNET_IO_MAC_HI:
-            regname = "PTNET_IO_MAC_HI";
-            break;
-
-        case PTNET_IO_TXKICK:
-            regname = "PTNET_IO_TXKICK";
-            break;
-
-        case PTNET_IO_RXKICK:
-            regname = "PTNET_IO_RXKICK";
-            break;
-    }
-
-    DBG("I/O read from %s, val=0x%08x", regname, s->ioregs[index]);
+    DBG("I/O read from PTNET_IO_%s, val=0x%08x", regname, s->ioregs[index]);
 
     return s->ioregs[index];
 }
