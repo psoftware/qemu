@@ -53,6 +53,8 @@ static const char *regnames[] = {
     "MAC_HI",
     "TXKICK",
     "RXKICK",
+    "CSBBAH",
+    "CSBBAL",
 };
 
 #define REGNAMES_LEN  (sizeof(regnames)/(sizeof(regnames[0])))
@@ -63,8 +65,10 @@ typedef struct PtNetState_st {
     NICState *nic;
     NICConf conf;
     MemoryRegion io;
+#ifndef PTNET_CSB_ALLOC
     MemoryRegion mem;
     MemoryRegion csb_ram;
+#endif  /* !PTNET_CSB_ALLOC */
 
     PTNetmapState *ptbe;
 
@@ -80,7 +84,11 @@ typedef struct PtNetState_st {
     struct ptnetmap_cfg host_cfg;
 
     uint32_t ioregs[PTNET_IO_END >> 2];
+#ifndef PTNET_CSB_ALLOC
     char csb[CSB_SIZE];
+#else /* PTNET_CSB_ALLOC */
+    struct paravirt_csb *csb;
+#endif
 } PtNetState;
 
 #define TYPE_PTNET_PCI  "ptnet-pci"
@@ -327,13 +335,30 @@ ptnet_ctrl(PtNetState *s, uint64_t cmd)
     s->ioregs[PTNET_IO_PTSTS >> 2] = ret;
 }
 
+#ifdef PTNET_CSB_ALLOC
+static void
+ptnet_csb_mapping(PtNetState *s)
+{
+    hwaddr base = ((uint64_t)s->ioregs[PTNET_IO_CSBBAH >> 2] << 32) |
+                    s->ioregs[PTNET_IO_CSBBAL >> 2];
+    hwaddr len = 4096;
+
+    if (s->csb) {
+        cpu_physical_memory_unmap(s->csb, len, 1, len);
+        s->csb = NULL;
+    }
+    if (base) {
+        s->csb = cpu_physical_memory_map(base, &len, 1 /* is_write */);
+    }
+}
+#endif  /* PTNET_CSB_ALLOC */
+
 static void
 ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 {
     PtNetState *s = opaque;
     unsigned int index;
     const char *regname = "";
-    bool do_write = false;
 
     if (!s->ptbe) {
         printf("Invalid I/O write, backend does not support passthrough\n");
@@ -357,7 +382,7 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     switch (addr) {
         case PTNET_IO_PTFEAT:
             val = ptnetmap_ack_features(s->ptbe, val);
-            do_write = true;
+            s->ioregs[index] = val;
             break;
 
         case PTNET_IO_PTCTL:
@@ -367,13 +392,20 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         case PTNET_IO_CTRL:
             ptnet_ctrl(s, val);
             break;
+
+        case PTNET_IO_CSBBAH:
+            s->ioregs[index] = val;
+            break;
+
+        case PTNET_IO_CSBBAL:
+            s->ioregs[index] = val;
+#ifdef PTNET_CSB_ALLOC
+            ptnet_csb_mapping(s);
+#endif  /* PTNET_CSB_ALLOC */
+            break;
     }
 
     DBG("I/O write to %s, val=0x%08" PRIx64, regname, val);
-
-    if (do_write) {
-        s->ioregs[index] = val;
-    }
 }
 
 static uint64_t
@@ -481,6 +513,7 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     pci_register_bar(pci_dev, PTNETMAP_IO_PCI_BAR,
                      PCI_BASE_ADDRESS_SPACE_IO, &s->io);
 
+#ifndef PTNET_CSB_ALLOC
     /* Init memory mapped memory region, exposing CSB.
      * It is important that size(s->csb_ram) < size(s->mem),
      * otherwise KVM memory setup routines fail. */
@@ -492,6 +525,7 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     pci_register_bar(pci_dev, PTNETMAP_MEM_PCI_BAR,
                      PCI_BASE_ADDRESS_SPACE_MEMORY |
 		     PCI_BASE_ADDRESS_MEM_PREFETCH, &s->mem);
+#endif /* !PTNET_CSB_ALLOC */
 
     /* Allocate a PCI bar to manage MSI-X information for this device. */
     if (msix_init_exclusive_bar(pci_dev, 2, PTNETMAP_MSIX_PCI_BAR)) {
@@ -541,6 +575,9 @@ static void qdev_ptnet_reset(DeviceState *dev)
     s->ioregs[PTNET_IO_MAC_HI >> 2] = (macaddr[0] << 8) | macaddr[1];
     s->ioregs[PTNET_IO_MAC_LO >> 2] = (macaddr[2] << 24) | (macaddr[3] << 16)
                                  | (macaddr[4] << 8) | macaddr[5];
+#ifdef PTNET_CSB_ALLOC
+    s->csb = NULL;
+#endif  /* PTNET_CSB_ALLOC */
     DBG("%s(%p)", __func__, s);
 }
 
