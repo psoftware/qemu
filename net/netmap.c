@@ -389,17 +389,7 @@ static bool netmap_has_vnet_hdr(NetClientState *nc)
     return true;
 }
 
-static bool netmap_has_vnet_hdr_len(NetClientState *nc, int len)
-{
-    return len == 0 || len == sizeof(struct virtio_net_hdr) ||
-                len == sizeof(struct virtio_net_hdr_mrg_rxbuf);
-}
-
-static void netmap_using_vnet_hdr(NetClientState *nc, bool enable)
-{
-}
-
-static void netmap_set_vnet_hdr_len(NetClientState *nc, int len)
+static int netmap_do_set_vnet_hdr_len(NetClientState *nc, int len)
 {
     NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
     int err;
@@ -407,7 +397,7 @@ static void netmap_set_vnet_hdr_len(NetClientState *nc, int len)
 
 #ifdef CONFIG_NETMAP_PASSTHROUGH
     if (s->nmd->req.nr_flags & NR_PTNETMAP_HOST) {
-        return;
+        return -1;
     }
 #endif /* CONFIG_NETMAP_PASSTHROUGH */
 
@@ -423,10 +413,36 @@ static void netmap_set_vnet_hdr_len(NetClientState *nc, int len)
     if (err) {
         error_report("Unable to execute NETMAP_BDG_VNET_HDR on %s: %s",
                      s->ifname, strerror(errno));
-    } else {
-        /* Keep track of the current length. */
-        s->vnet_hdr_len = len;
+        return -1;
     }
+
+    /* Keep track of the current length. */
+    s->vnet_hdr_len = len;
+
+    return 0;
+}
+
+static bool netmap_has_vnet_hdr_len(NetClientState *nc, int len)
+{
+    NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
+    int prev_len = s->vnet_hdr_len;
+
+    if (netmap_do_set_vnet_hdr_len(nc, len)) {
+        return false;
+    }
+
+    netmap_do_set_vnet_hdr_len(nc, prev_len);
+
+    return true;
+}
+
+static void netmap_using_vnet_hdr(NetClientState *nc, bool enable)
+{
+}
+
+static void netmap_set_vnet_hdr_len(NetClientState *nc, int len)
+{
+    netmap_do_set_vnet_hdr_len(nc, len);
 }
 
 static void netmap_set_offload(NetClientState *nc, int csum, int tso4, int tso6,
