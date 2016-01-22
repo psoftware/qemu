@@ -395,12 +395,6 @@ static int netmap_do_set_vnet_hdr_len(NetClientState *nc, int len)
     int err;
     struct nmreq req;
 
-#ifdef CONFIG_NETMAP_PASSTHROUGH
-    if (s->nmd->req.nr_flags & NR_PTNETMAP_HOST) {
-        return -1;
-    }
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
-
     /* Issue a NETMAP_BDG_VNET_HDR command to change the virtio-net header
      * length for the netmap adapter associated to 's->ifname'.
      */
@@ -449,12 +443,6 @@ static void netmap_set_offload(NetClientState *nc, int csum, int tso4, int tso6,
                                int ecn, int ufo)
 {
     NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
-
-#ifdef CONFIG_NETMAP_PASSTHROUGH
-    if (s->nmd->req.nr_flags & NR_PTNETMAP_HOST) {
-        return;
-    }
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
 
     /* Setting a virtio-net header length greater than zero automatically
      * enables the offloadings.
@@ -558,6 +546,10 @@ ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *conf)
         return 0;
     }
 
+    if (!(ptn->acked_features & NET_PTN_FEATURES_VNET_HDR)) {
+        netmap_set_vnet_hdr_len(&s->nc, 0);
+    }
+
     /* Tell QEMU not to poll the netmap fd. */
     netmap_poll(&s->nc, false);
     qemu_purge_queued_packets(&s->nc);
@@ -641,16 +633,20 @@ int net_init_netmap(const NetClientOptions *opts,
     s->tx = NETMAP_TXRING(nmd->nifp, 0);
     s->rx = NETMAP_RXRING(nmd->nifp, 0);
     s->vnet_hdr_len = 0;
+    pstrcpy(s->ifname, sizeof(s->ifname), netmap_opts->ifname);
+    QTAILQ_INSERT_TAIL(&netmap_clients, s, next);
 #ifdef CONFIG_NETMAP_PASSTHROUGH
     if (netmap_opts->passthrough) {
         s->ptnetmap.netmap = s;
         s->ptnetmap.features = NET_PTN_FEATURES_BASE;
         s->ptnetmap.acked_features = 0;
         s->ptnetmap.running = false;
+
+        if (netmap_has_vnet_hdr_len(nc, sizeof(struct virtio_net_hdr_v1))) {
+            s->ptnetmap.features |= NET_PTN_FEATURES_VNET_HDR;
+        }
     }
 #endif /* CONFIG_NETMAP_PASSTHROUGH */
-    pstrcpy(s->ifname, sizeof(s->ifname), netmap_opts->ifname);
-    QTAILQ_INSERT_TAIL(&netmap_clients, s, next);
     netmap_read_poll(s, true); /* Initially only poll for reads. */
 
 
