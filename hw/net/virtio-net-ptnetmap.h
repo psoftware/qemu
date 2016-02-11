@@ -335,7 +335,7 @@ static void virtio_net_ptnetmap_init(VirtIODevice *vdev)
     n->ptn.up = false;
     n->ptn.state = peer_get_ptnetmap(n);
     if (n->ptn.state == NULL) {
-        printf("ptnetmap not supported by backend\n");
+        printf("%s: backend does not support ptnetmap\n", __func__);
     }
 }
 #endif /* _QEMU_VIRTIO_PTNETMAP_H */
