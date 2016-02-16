@@ -186,6 +186,33 @@
            '*fragmented-clusters': 'int', '*compressed-clusters': 'int' } }
 
 ##
+# @MapEntry:
+#
+# Mapping information from a virtual block range to a host file range
+#
+# @start: the start byte of the mapped virtual range
+#
+# @length: the number of bytes of the mapped virtual range
+#
+# @data: whether the mapped range has data
+#
+# @zero: whether the virtual blocks are zeroed
+#
+# @depth: the depth of the mapping
+#
+# @offset: #optional the offset in file that the virtual sectors are mapped to
+#
+# @filename: #optional filename that is referred to by @offset
+#
+# Since: 2.6
+#
+##
+{ 'struct': 'MapEntry',
+  'data': {'start': 'int', 'length': 'int', 'data': 'bool',
+           'zero': 'bool', 'depth': 'int', '*offset': 'int',
+           '*filename': 'str' } }
+
+##
 # @BlockdevCacheInfo
 #
 # Cache mode information for a block device
@@ -382,8 +409,8 @@
 # @locked: True if the guest has locked this device from having its media
 #          removed
 #
-# @tray_open: #optional True if the device has a tray and it is open
-#             (only present if removable is true)
+# @tray_open: #optional True if the device's tray is open
+#             (only present if it has a tray)
 #
 # @dirty-bitmaps: #optional dirty bitmaps information (only present if the
 #                 driver has one or more dirty bitmaps) (Since 2.0)
@@ -1182,6 +1209,54 @@
 ##
 { 'command': 'block-dirty-bitmap-clear',
   'data': 'BlockDirtyBitmap' }
+
+##
+# @blockdev-mirror
+#
+# Start mirroring a block device's writes to a new destination.
+#
+# @device: the name of the device whose writes should be mirrored.
+#
+# @target: the id or node-name of the block device to mirror to. This mustn't be
+#          attached to guest.
+#
+# @replaces: #optional with sync=full graph node name to be replaced by the new
+#            image when a whole image copy is done. This can be used to repair
+#            broken Quorum files.
+#
+# @speed:  #optional the maximum speed, in bytes per second
+#
+# @sync: what parts of the disk image should be copied to the destination
+#        (all the disk, only the sectors allocated in the topmost image, or
+#        only new I/O).
+#
+# @granularity: #optional granularity of the dirty bitmap, default is 64K
+#               if the image format doesn't have clusters, 4K if the clusters
+#               are smaller than that, else the cluster size.  Must be a
+#               power of 2 between 512 and 64M
+#
+# @buf-size: #optional maximum amount of data in flight from source to
+#            target
+#
+# @on-source-error: #optional the action to take on an error on the source,
+#                   default 'report'.  'stop' and 'enospc' can only be used
+#                   if the block device supports io-status (see BlockInfo).
+#
+# @on-target-error: #optional the action to take on an error on the target,
+#                   default 'report' (no limitations, since this applies to
+#                   a different block device than @device).
+#
+# Returns: nothing on success.
+#
+# Since 2.6
+##
+{ 'command': 'blockdev-mirror',
+  'data': { 'device': 'str', 'target': 'str',
+            '*replaces': 'str',
+            'sync': 'MirrorSyncMode',
+            '*speed': 'int', '*granularity': 'uint32',
+            '*buf-size': 'int', '*on-source-error': 'BlockdevOnError',
+            '*on-target-error': 'BlockdevOnError' } }
 
 ##
 # @block_set_io_throttle:
@@ -2050,8 +2125,7 @@
 #   respond to the eject request
 # - if the BlockBackend denoted by @device does not have a guest device attached
 #   to it
-# - if the guest device does not have an actual tray and is empty, for instance
-#   for floppy disk drives
+# - if the guest device does not have an actual tray
 #
 # @device: block device name
 #

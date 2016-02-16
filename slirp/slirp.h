@@ -135,6 +135,7 @@ void free(void *ptr);
 
 #include "qemu/queue.h"
 #include "qemu/sockets.h"
+#include "net/eth.h"
 
 #include "libslirp.h"
 #include "ip.h"
@@ -157,12 +158,6 @@ void free(void *ptr);
 
 #include "bootp.h"
 #include "tftp.h"
-
-#define ETH_ALEN 6
-#define ETH_HLEN 14
-
-#define ETH_P_IP  0x0800        /* Internet Protocol packet  */
-#define ETH_P_ARP 0x0806        /* Address Resolution packet */
 
 #define ARPOP_REQUEST 1         /* ARP request */
 #define ARPOP_REPLY   2         /* ARP reply   */
@@ -332,7 +327,7 @@ void tcp_respond(struct tcpcb *, register struct tcpiphdr *, register struct mbu
 struct tcpcb * tcp_newtcpcb(struct socket *);
 struct tcpcb * tcp_close(register struct tcpcb *);
 void tcp_sockclosed(struct tcpcb *);
-int tcp_fconnect(struct socket *);
+int tcp_fconnect(struct socket *, unsigned short af);
 void tcp_connect(struct socket *);
 int tcp_attach(struct socket *);
 uint8_t tcp_tos(struct socket *);

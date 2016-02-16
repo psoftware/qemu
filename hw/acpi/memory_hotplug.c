@@ -1,3 +1,4 @@
+#include "qemu/osdep.h"
 #include "hw/acpi/memory_hotplug.h"
 #include "hw/acpi/pc-hotplug.h"
 #include "hw/mem/pc-dimm.h"
@@ -250,7 +251,6 @@ void acpi_memory_plug_cb(ACPIREGS *ar, qemu_irq irq, MemHotplugState *mem_st,
         /* do ACPI magic */
         acpi_send_gpe_event(ar, irq, ACPI_MEMORY_HOTPLUG_STATUS);
     }
-    return;
 }
 
 void acpi_memory_unplug_request_cb(ACPIREGS *ar, qemu_irq irq,

@@ -2,13 +2,10 @@
 #define HW_COMPAT_H
 
 #define HW_COMPAT_2_5 \
-    /* empty */
-
-#define HW_COMPAT_2_4 \
     {\
-        .driver   = "virtio-blk-device",\
-        .property = "scsi",\
-        .value    = "true",\
+        .driver   = "isa-fdc",\
+        .property = "fallback",\
+        .value    = "144",\
     },{\
         .driver   = "pvscsi",\
         .property = "x-old-pci-configuration",\
@@ -17,6 +14,22 @@
         .driver   = "pvscsi",\
         .property = "x-disable-pcie",\
         .value    = "on",\
+    },\
+    {\
+        .driver   = "vmxnet3",\
+        .property = "x-old-msi-offsets",\
+        .value    = "on",\
+    },{\
+        .driver   = "vmxnet3",\
+        .property = "x-disable-pcie",\
+        .value    = "on",\
+    },
+
+#define HW_COMPAT_2_4 \
+    {\
+        .driver   = "virtio-blk-device",\
+        .property = "scsi",\
+        .value    = "true",\
     },{\
         .driver   = "e1000",\
         .property = "extra_mac_registers",\

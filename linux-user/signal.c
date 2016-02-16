@@ -16,12 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdarg.h>
-#include <unistd.h>
-#include <errno.h>
+#include "qemu/osdep.h"
 #include <sys/ucontext.h>
 #include <sys/resource.h>
 
@@ -3210,7 +3205,6 @@ static void setup_frame(int sig, struct target_sigaction *ka,
     struct target_sigframe *frame;
     abi_ulong frame_addr;
     int i;
-    int err = 0;
 
     frame_addr = get_sigframe(ka, regs->gregs[15], sizeof(*frame));
     trace_user_setup_frame(regs, frame_addr);
@@ -3229,14 +3223,13 @@ static void setup_frame(int sig, struct target_sigaction *ka,
         regs->pr = (unsigned long) ka->sa_restorer;
     } else {
         /* Generate return code (system call to sigreturn) */
+        abi_ulong retcode_addr = frame_addr +
+                                 offsetof(struct target_sigframe, retcode);
         __put_user(MOVW(2), &frame->retcode[0]);
         __put_user(TRAP_NOARG, &frame->retcode[1]);
         __put_user((TARGET_NR_sigreturn), &frame->retcode[2]);
-        regs->pr = (unsigned long) frame->retcode;
+        regs->pr = (unsigned long) retcode_addr;
     }
-
-    if (err)
-        goto give_sigsegv;
 
     /* Set up registers for signal handler */
     regs->gregs[15] = frame_addr;
@@ -3260,7 +3253,6 @@ static void setup_rt_frame(int sig, struct target_sigaction *ka,
     struct target_rt_sigframe *frame;
     abi_ulong frame_addr;
     int i;
-    int err = 0;
 
     frame_addr = get_sigframe(ka, regs->gregs[15], sizeof(*frame));
     trace_user_setup_rt_frame(regs, frame_addr);
@@ -3290,14 +3282,13 @@ static void setup_rt_frame(int sig, struct target_sigaction *ka,
         regs->pr = (unsigned long) ka->sa_restorer;
     } else {
         /* Generate return code (system call to sigreturn) */
+        abi_ulong retcode_addr = frame_addr +
+                                 offsetof(struct target_rt_sigframe, retcode);
         __put_user(MOVW(2), &frame->retcode[0]);
         __put_user(TRAP_NOARG, &frame->retcode[1]);
         __put_user((TARGET_NR_rt_sigreturn), &frame->retcode[2]);
-        regs->pr = (unsigned long) frame->retcode;
+        regs->pr = (unsigned long) retcode_addr;
     }
-
-    if (err)
-        goto give_sigsegv;
 
     /* Set up registers for signal handler */
     regs->gregs[15] = frame_addr;

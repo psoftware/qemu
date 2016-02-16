@@ -16,6 +16,8 @@
 #define ACPI_BUILD_RSDP_FILE "etc/acpi/rsdp"
 #define ACPI_BUILD_TPMLOG_FILE "etc/tpm/log"
 
+#define AML_NOTIFY_METHOD "NTFY"
+
 typedef enum {
     AML_NO_OPCODE = 0,/* has only data */
     AML_OPCODE,       /* has opcode optionally followed by data */
@@ -80,6 +82,7 @@ typedef enum {
 typedef enum {
     AML_SYSTEM_MEMORY = 0X00,
     AML_SYSTEM_IO = 0X01,
+    AML_PCI_CONFIG = 0X02,
 } AmlRegionSpace;
 
 typedef enum {
@@ -354,13 +357,14 @@ Aml *aml_sizeof(Aml *arg);
 void
 build_header(GArray *linker, GArray *table_data,
              AcpiTableHeader *h, const char *sig, int len, uint8_t rev,
-             const char *oem_table_id);
+             const char *oem_id, const char *oem_table_id);
 void *acpi_data_push(GArray *table_data, unsigned size);
 unsigned acpi_data_len(GArray *table);
 void acpi_add_table(GArray *table_offsets, GArray *table_data);
 void acpi_build_tables_init(AcpiBuildTables *tables);
 void acpi_build_tables_cleanup(AcpiBuildTables *tables, bool mfre);
 void
-build_rsdt(GArray *table_data, GArray *linker, GArray *table_offsets);
+build_rsdt(GArray *table_data, GArray *linker, GArray *table_offsets,
+           const char *oem_id, const char *oem_table_id);
 
 #endif

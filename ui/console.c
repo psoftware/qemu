@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#include "qemu/osdep.h"
 #include "qemu-common.h"
 #include "ui/console.h"
 #include "hw/qdev-core.h"
@@ -261,6 +262,16 @@ void graphic_hw_update(QemuConsole *con)
     }
 }
 
+void graphic_hw_gl_block(QemuConsole *con, bool block)
+{
+    if (!con) {
+        con = active_console;
+    }
+    if (con && con->hw_ops->gl_block) {
+        con->hw_ops->gl_block(con->hw, block);
+    }
+}
+
 void graphic_hw_invalidate(QemuConsole *con)
 {
     if (!con) {
@@ -376,42 +387,29 @@ static void vga_bitblt(QemuConsole *con,
 
 #include "vgafont.h"
 
-#ifndef CONFIG_CURSES
-enum color_names {
-    COLOR_BLACK   = 0,
-    COLOR_RED     = 1,
-    COLOR_GREEN   = 2,
-    COLOR_YELLOW  = 3,
-    COLOR_BLUE    = 4,
-    COLOR_MAGENTA = 5,
-    COLOR_CYAN    = 6,
-    COLOR_WHITE   = 7
-};
-#endif
-
 #define QEMU_RGB(r, g, b)                                               \
     { .red = r << 8, .green = g << 8, .blue = b << 8, .alpha = 0xffff }
 
 static const pixman_color_t color_table_rgb[2][8] = {
     {   /* dark */
-        QEMU_RGB(0x00, 0x00, 0x00),  /* black */
-        QEMU_RGB(0xaa, 0x00, 0x00),  /* red */
-        QEMU_RGB(0x00, 0xaa, 0x00),  /* green */
-        QEMU_RGB(0xaa, 0xaa, 0x00),  /* yellow */
-        QEMU_RGB(0x00, 0x00, 0xaa),  /* blue */
-        QEMU_RGB(0xaa, 0x00, 0xaa),  /* magenta */
-        QEMU_RGB(0x00, 0xaa, 0xaa),  /* cyan */
-        QEMU_RGB(0xaa, 0xaa, 0xaa),  /* white */
+        [QEMU_COLOR_BLACK]   = QEMU_RGB(0x00, 0x00, 0x00),  /* black */
+        [QEMU_COLOR_BLUE]    = QEMU_RGB(0x00, 0x00, 0xaa),  /* blue */
+        [QEMU_COLOR_GREEN]   = QEMU_RGB(0x00, 0xaa, 0x00),  /* green */
+        [QEMU_COLOR_CYAN]    = QEMU_RGB(0x00, 0xaa, 0xaa),  /* cyan */
+        [QEMU_COLOR_RED]     = QEMU_RGB(0xaa, 0x00, 0x00),  /* red */
+        [QEMU_COLOR_MAGENTA] = QEMU_RGB(0xaa, 0x00, 0xaa),  /* magenta */
+        [QEMU_COLOR_YELLOW]  = QEMU_RGB(0xaa, 0xaa, 0x00),  /* yellow */
+        [QEMU_COLOR_WHITE]   = QEMU_RGB(0xaa, 0xaa, 0xaa),  /* white */
     },
     {   /* bright */
-        QEMU_RGB(0x00, 0x00, 0x00),  /* black */
-        QEMU_RGB(0xff, 0x00, 0x00),  /* red */
-        QEMU_RGB(0x00, 0xff, 0x00),  /* green */
-        QEMU_RGB(0xff, 0xff, 0x00),  /* yellow */
-        QEMU_RGB(0x00, 0x00, 0xff),  /* blue */
-        QEMU_RGB(0xff, 0x00, 0xff),  /* magenta */
-        QEMU_RGB(0x00, 0xff, 0xff),  /* cyan */
-        QEMU_RGB(0xff, 0xff, 0xff),  /* white */
+        [QEMU_COLOR_BLACK]   = QEMU_RGB(0x00, 0x00, 0x00),  /* black */
+        [QEMU_COLOR_BLUE]    = QEMU_RGB(0x00, 0x00, 0xff),  /* blue */
+        [QEMU_COLOR_GREEN]   = QEMU_RGB(0x00, 0xff, 0x00),  /* green */
+        [QEMU_COLOR_CYAN]    = QEMU_RGB(0x00, 0xff, 0xff),  /* cyan */
+        [QEMU_COLOR_RED]     = QEMU_RGB(0xff, 0x00, 0x00),  /* red */
+        [QEMU_COLOR_MAGENTA] = QEMU_RGB(0xff, 0x00, 0xff),  /* magenta */
+        [QEMU_COLOR_YELLOW]  = QEMU_RGB(0xff, 0xff, 0x00),  /* yellow */
+        [QEMU_COLOR_WHITE]   = QEMU_RGB(0xff, 0xff, 0xff),  /* white */
     }
 };
 
@@ -560,7 +558,7 @@ static void console_refresh(QemuConsole *s)
     }
 
     vga_fill_rect(s, 0, 0, surface_width(surface), surface_height(surface),
-                  color_table_rgb[0][COLOR_BLACK]);
+                  color_table_rgb[0][QEMU_COLOR_BLACK]);
     y1 = s->y_displayed;
     for (y = 0; y < s->height; y++) {
         c = s->cells + y1 * s->width;
@@ -698,53 +696,53 @@ static void console_handle_escape(QemuConsole *s)
                 break;
             /* set foreground color */
             case 30:
-                s->t_attrib.fgcol=COLOR_BLACK;
+                s->t_attrib.fgcol = QEMU_COLOR_BLACK;
                 break;
             case 31:
-                s->t_attrib.fgcol=COLOR_RED;
+                s->t_attrib.fgcol = QEMU_COLOR_RED;
                 break;
             case 32:
-                s->t_attrib.fgcol=COLOR_GREEN;
+                s->t_attrib.fgcol = QEMU_COLOR_GREEN;
                 break;
             case 33:
-                s->t_attrib.fgcol=COLOR_YELLOW;
+                s->t_attrib.fgcol = QEMU_COLOR_YELLOW;
                 break;
             case 34:
-                s->t_attrib.fgcol=COLOR_BLUE;
+                s->t_attrib.fgcol = QEMU_COLOR_BLUE;
                 break;
             case 35:
-                s->t_attrib.fgcol=COLOR_MAGENTA;
+                s->t_attrib.fgcol = QEMU_COLOR_MAGENTA;
                 break;
             case 36:
-                s->t_attrib.fgcol=COLOR_CYAN;
+                s->t_attrib.fgcol = QEMU_COLOR_CYAN;
                 break;
             case 37:
-                s->t_attrib.fgcol=COLOR_WHITE;
+                s->t_attrib.fgcol = QEMU_COLOR_WHITE;
                 break;
             /* set background color */
             case 40:
-                s->t_attrib.bgcol=COLOR_BLACK;
+                s->t_attrib.bgcol = QEMU_COLOR_BLACK;
                 break;
             case 41:
-                s->t_attrib.bgcol=COLOR_RED;
+                s->t_attrib.bgcol = QEMU_COLOR_RED;
                 break;
             case 42:
-                s->t_attrib.bgcol=COLOR_GREEN;
+                s->t_attrib.bgcol = QEMU_COLOR_GREEN;
                 break;
             case 43:
-                s->t_attrib.bgcol=COLOR_YELLOW;
+                s->t_attrib.bgcol = QEMU_COLOR_YELLOW;
                 break;
             case 44:
-                s->t_attrib.bgcol=COLOR_BLUE;
+                s->t_attrib.bgcol = QEMU_COLOR_BLUE;
                 break;
             case 45:
-                s->t_attrib.bgcol=COLOR_MAGENTA;
+                s->t_attrib.bgcol = QEMU_COLOR_MAGENTA;
                 break;
             case 46:
-                s->t_attrib.bgcol=COLOR_CYAN;
+                s->t_attrib.bgcol = QEMU_COLOR_CYAN;
                 break;
             case 47:
-                s->t_attrib.bgcol=COLOR_WHITE;
+                s->t_attrib.bgcol = QEMU_COLOR_WHITE;
                 break;
         }
     }
@@ -1165,11 +1163,13 @@ static void text_console_update(void *opaque, console_ch_t *chardata)
         src = (s->y_base + s->text_y[0]) * s->width;
         chardata += s->text_y[0] * s->width;
         for (i = s->text_y[0]; i <= s->text_y[1]; i ++)
-            for (j = 0; j < s->width; j ++, src ++)
-                console_write_ch(chardata ++, s->cells[src].ch |
-                                (s->cells[src].t_attrib.fgcol << 12) |
-                                (s->cells[src].t_attrib.bgcol << 8) |
-                                (s->cells[src].t_attrib.bold << 21));
+            for (j = 0; j < s->width; j++, src++) {
+                console_write_ch(chardata ++,
+                                 ATTR2CHTYPE(s->cells[src].ch,
+                                             s->cells[src].t_attrib.fgcol,
+                                             s->cells[src].t_attrib.bgcol,
+                                             s->cells[src].t_attrib.bold));
+            }
         dpy_text_update(s, s->text_x[0], s->text_y[0],
                         s->text_x[1] - s->text_x[0], i - s->text_y[0]);
         s->text_x[0] = s->width;
@@ -1306,8 +1306,8 @@ static DisplaySurface *qemu_create_message_surface(int w, int h,
                                                    const char *msg)
 {
     DisplaySurface *surface = qemu_create_displaysurface(w, h);
-    pixman_color_t bg = color_table_rgb[0][COLOR_BLACK];
-    pixman_color_t fg = color_table_rgb[0][COLOR_WHITE];
+    pixman_color_t bg = color_table_rgb[0][QEMU_COLOR_BLACK];
+    pixman_color_t fg = color_table_rgb[0][QEMU_COLOR_WHITE];
     pixman_image_t *glyph;
     int len, x, y, i;
 
@@ -1941,8 +1941,8 @@ static void text_console_do_init(CharDriverState *chr, DisplayState *ds)
     s->t_attrib_default.blink = 0;
     s->t_attrib_default.invers = 0;
     s->t_attrib_default.unvisible = 0;
-    s->t_attrib_default.fgcol = COLOR_WHITE;
-    s->t_attrib_default.bgcol = COLOR_BLACK;
+    s->t_attrib_default.fgcol = QEMU_COLOR_WHITE;
+    s->t_attrib_default.bgcol = QEMU_COLOR_BLACK;
     /* set current text attributes to default */
     s->t_attrib = s->t_attrib_default;
     text_console_resize(s);
@@ -1951,7 +1951,7 @@ static void text_console_do_init(CharDriverState *chr, DisplayState *ds)
         char msg[128];
         int len;
 
-        s->t_attrib.bgcol = COLOR_BLUE;
+        s->t_attrib.bgcol = QEMU_COLOR_BLUE;
         len = snprintf(msg, sizeof(msg), "%s console\r\n", chr->label);
         console_puts(chr, (uint8_t*)msg, len);
         s->t_attrib = s->t_attrib_default;
@@ -1964,12 +1964,16 @@ static void text_console_do_init(CharDriverState *chr, DisplayState *ds)
 
 static CharDriverState *text_console_init(ChardevVC *vc, Error **errp)
 {
+    ChardevCommon *common = qapi_ChardevVC_base(vc);
     CharDriverState *chr;
     QemuConsole *s;
     unsigned width = 0;
     unsigned height = 0;
 
-    chr = qemu_chr_alloc();
+    chr = qemu_chr_alloc(common, errp);
+    if (!chr) {
+        return NULL;
+    }
 
     if (vc->has_width) {
         width = vc->width;

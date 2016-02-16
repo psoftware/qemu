@@ -62,7 +62,7 @@ typedef struct VirtIONetQueue {
     QEMUBH *tx_bh;
     int tx_waiting;
     struct {
-        VirtQueueElement elem;
+        VirtQueueElement *elem;
     } async_tx;
     struct VirtIONet *n;
 } VirtIONetQueue;

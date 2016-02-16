@@ -37,7 +37,7 @@ static int virtio_net_ptnetmap_up(VirtIODevice *vdev)
     VirtioBusClass *k = VIRTIO_BUS_GET_CLASS(vbus);
     VirtIONet *n = VIRTIO_NET(vdev);
     VirtIONetQueue *q;
-    VirtQueueElement elem;
+    VirtQueueElement *elem;
     PTNetmapState *ptns = n->ptn.state;
     int i, ret, nvqs = 0;
 
@@ -109,8 +109,9 @@ static int virtio_net_ptnetmap_up(VirtIODevice *vdev)
 
     /* Push fake responses in the used ring of the RX VQ to keep RX interrupts
      * enabled. */
-    if (virtqueue_pop(q->rx_vq, &elem)) {
-        virtqueue_push(q->rx_vq, &elem, 0);
+    if ((elem = virtqueue_pop(q->rx_vq, sizeof(*elem)))) {
+        virtqueue_push(q->rx_vq, elem, 0);
+	g_free(elem);
     }
 
     /* Make sure TX/RX kicks are enabled. */

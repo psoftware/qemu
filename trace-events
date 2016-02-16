@@ -59,6 +59,9 @@ virtio_console_chr_event(unsigned int port, int event) "port %u, event %d"
 
 # block.c
 bdrv_open_common(void *bs, const char *filename, int flags, const char *format_name) "bs %p filename \"%s\" flags %#x format_name \"%s\""
+bdrv_lock_medium(void *bs, bool locked) "bs %p locked %d"
+
+# block/io.c
 multiwrite_cb(void *mcb, int ret) "mcb %p ret %d"
 bdrv_aio_multiwrite(void *mcb, int num_callbacks, int num_reqs) "mcb %p num_callbacks %d num_reqs %d"
 bdrv_aio_discard(void *bs, int64_t sector_num, int nb_sectors, void *opaque) "bs %p sector_num %"PRId64" nb_sectors %d opaque %p"
@@ -66,7 +69,6 @@ bdrv_aio_flush(void *bs, void *opaque) "bs %p opaque %p"
 bdrv_aio_readv(void *bs, int64_t sector_num, int nb_sectors, void *opaque) "bs %p sector_num %"PRId64" nb_sectors %d opaque %p"
 bdrv_aio_writev(void *bs, int64_t sector_num, int nb_sectors, void *opaque) "bs %p sector_num %"PRId64" nb_sectors %d opaque %p"
 bdrv_aio_write_zeroes(void *bs, int64_t sector_num, int nb_sectors, int flags, void *opaque) "bs %p sector_num %"PRId64" nb_sectors %d flags %#x opaque %p"
-bdrv_lock_medium(void *bs, bool locked) "bs %p locked %d"
 bdrv_co_readv(void *bs, int64_t sector_num, int nb_sector) "bs %p sector_num %"PRId64" nb_sectors %d"
 bdrv_co_copy_on_readv(void *bs, int64_t sector_num, int nb_sector) "bs %p sector_num %"PRId64" nb_sectors %d"
 bdrv_co_readv_no_serialising(void *bs, int64_t sector_num, int nb_sector) "bs %p sector_num %"PRId64" nb_sectors %d"
@@ -723,6 +725,28 @@ lm32_timer_irq_state(int level) "irq state %d"
 lm32_uart_memory_write(uint32_t addr, uint32_t value) "addr 0x%08x value 0x%08x"
 lm32_uart_memory_read(uint32_t addr, uint32_t value) "addr 0x%08x value 0x%08x"
 lm32_uart_irq_state(int level) "irq state %d"
+
+# hw/scsi/mptsas.c
+mptsas_command_complete(void *dev, uint32_t ctx, uint32_t status, uint32_t resid) "dev %p context 0x%08x status %x resid %d"
+mptsas_diag_read(void *dev, uint32_t addr, uint32_t val) "dev %p addr 0x%08x value 0x%08x"
+mptsas_diag_write(void *dev, uint32_t addr, uint32_t val) "dev %p addr 0x%08x value 0x%08x"
+mptsas_irq_intx(void *dev, int level) "dev %p level %d"
+mptsas_irq_msi(void *dev) "dev %p "
+mptsas_mmio_read(void *dev, uint32_t addr, uint32_t val) "dev %p addr 0x%08x value 0x%x"
+mptsas_mmio_unhandled_read(void *dev, uint32_t addr) "dev %p addr 0x%08x"
+mptsas_mmio_unhandled_write(void *dev, uint32_t addr, uint32_t val) "dev %p addr 0x%08x value 0x%x"
+mptsas_mmio_write(void *dev, uint32_t addr, uint32_t val) "dev %p addr 0x%08x value 0x%x"
+mptsas_process_message(void *dev, int msg, uint32_t ctx) "dev %p cmd %d context 0x%08x\n"
+mptsas_process_scsi_io_request(void *dev, int bus, int target, int lun, uint64_t len) "dev %p dev %d:%d:%d length %"PRIu64""
+mptsas_reset(void *dev) "dev %p "
+mptsas_scsi_overflow(void *dev, uint32_t ctx, uint64_t req, uint64_t found) "dev %p context 0x%08x: %"PRIu64"/%"PRIu64""
+mptsas_sgl_overflow(void *dev, uint32_t ctx, uint64_t req, uint64_t found) "dev %p context 0x%08x: %"PRIu64"/%"PRIu64""
+mptsas_unhandled_cmd(void *dev, uint32_t ctx, uint8_t msg_cmd) "dev %p context 0x%08x: Unhandled cmd %x"
+mptsas_unhandled_doorbell_cmd(void *dev, int cmd) "dev %p value 0x%08x"
+
+# hw/scsi/mptconfig.c
+mptsas_config_sas_device(void *dev, int address, int port, int phy_handle, int dev_handle, int page) "dev %p address %d (port %d, handles: phy %d dev %d) page %d"
+mptsas_config_sas_phy(void *dev, int address, int port, int phy_handle, int dev_handle, int page) "dev %p address %d (port %d, handles: phy %d dev %d) page %d"
 
 # hw/scsi/megasas.c
 megasas_init_firmware(uint64_t pa) "pa %" PRIx64 " "
@@ -1629,6 +1653,8 @@ vfio_msi_interrupt(const char *name, int index, uint64_t addr, int data) " (%s) 
 vfio_msix_vector_do_use(const char *name, int index) " (%s) vector %d used"
 vfio_msix_vector_release(const char *name, int index) " (%s) vector %d released"
 vfio_msix_enable(const char *name) " (%s)"
+vfio_msix_pba_disable(const char *name) " (%s)"
+vfio_msix_pba_enable(const char *name) " (%s)"
 vfio_msix_disable(const char *name) " (%s)"
 vfio_msi_enable(const char *name, int nr_vectors) " (%s) Enabled %d MSI vectors"
 vfio_msi_disable(const char *name) " (%s)"
@@ -1799,15 +1825,15 @@ qcrypto_tls_session_new(void *session, void *creds, const char *hostname, const 
 vhost_user_event(const char *chr, int event) "chr: %s got event: %d"
 
 # linux-user/signal.c
-user_setup_frame(void *env, uint64_t frame_addr) "env=%p frame_addr="PRIx64""
-user_setup_rt_frame(void *env, uint64_t frame_addr) "env=%p frame_addr="PRIx64""
-user_do_rt_sigreturn(void *env, uint64_t frame_addr) "env=%p frame_addr="PRIx64""
-user_do_sigreturn(void *env, uint64_t frame_addr) "env=%p frame_addr="PRIx64""
+user_setup_frame(void *env, uint64_t frame_addr) "env=%p frame_addr=%"PRIx64""
+user_setup_rt_frame(void *env, uint64_t frame_addr) "env=%p frame_addr=%"PRIx64""
+user_do_rt_sigreturn(void *env, uint64_t frame_addr) "env=%p frame_addr=%"PRIx64""
+user_do_sigreturn(void *env, uint64_t frame_addr) "env=%p frame_addr=%"PRIx64""
 user_force_sig(void *env, int target_sig, int host_sig) "env=%p signal %d (host %d)"
 user_handle_signal(void *env, int target_sig) "env=%p signal %d"
 user_host_signal(void *env, int host_sig, int target_sig) "env=%p signal %d (target %d("
 user_queue_signal(void *env, int target_sig) "env=%p signal %d"
-user_s390x_restore_sigregs(void *env, uint64_t sc_psw_addr, uint64_t env_psw_addr) "env=%p frame psw.addr "PRIx64 " current psw.addr "PRIx64""
+user_s390x_restore_sigregs(void *env, uint64_t sc_psw_addr, uint64_t env_psw_addr) "env=%p frame psw.addr %"PRIx64 " current psw.addr %"PRIx64""
 
 # io/task.c
 qio_task_new(void *task, void *source, void *func, void *opaque) "Task new task=%p source=%p func=%p opaque=%p"

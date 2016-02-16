@@ -26,6 +26,7 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>
  */
 
+#include "qemu/osdep.h"
 #include "hw/acpi/acpi.h"
 #include "hw/acpi/aml-build.h"
 #include "hw/mem/nvdimm.h"
@@ -353,17 +354,19 @@ static void nvdimm_build_nfit(GSList *device_list, GArray *table_offsets,
                               GArray *table_data, GArray *linker)
 {
     GArray *structures = nvdimm_build_device_structure(device_list);
-    void *header;
+    unsigned int header;
 
     acpi_add_table(table_offsets, table_data);
 
     /* NFIT header. */
-    header = acpi_data_push(table_data, sizeof(NvdimmNfitHeader));
+    header = table_data->len;
+    acpi_data_push(table_data, sizeof(NvdimmNfitHeader));
     /* NVDIMM device structures. */
     g_array_append_vals(table_data, structures->data, structures->len);
 
-    build_header(linker, table_data, header, "NFIT",
-                 sizeof(NvdimmNfitHeader) + structures->len, 1, NULL);
+    build_header(linker, table_data,
+                 (void *)(table_data->data + header), "NFIT",
+                 sizeof(NvdimmNfitHeader) + structures->len, 1, NULL, NULL);
     g_array_free(structures, true);
 }
 
@@ -468,7 +471,7 @@ static void nvdimm_build_ssdt(GSList *device_list, GArray *table_offsets,
     g_array_append_vals(table_data, ssdt->buf->data, ssdt->buf->len);
     build_header(linker, table_data,
         (void *)(table_data->data + table_data->len - ssdt->buf->len),
-        "SSDT", ssdt->buf->len, 1, "NVDIMM");
+        "SSDT", ssdt->buf->len, 1, NULL, "NVDIMM");
     free_aml_allocator();
 }
 

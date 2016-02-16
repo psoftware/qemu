@@ -22,7 +22,6 @@
 
 #define TFR(expr) do { if ((expr) != -1) break; } while (errno == EINTR)
 
-#include "glib-compat.h"
 #include "qemu/option.h"
 #include "qemu/host-utils.h"
 
@@ -330,12 +329,6 @@ void tcg_exec_init(unsigned long tb_size);
 bool tcg_enabled(void);
 
 void cpu_exec_init_all(void);
-
-/* CPU save/load.  */
-#ifdef CPU_SAVE_VERSION
-void cpu_save(QEMUFile *f, void *opaque);
-int cpu_load(QEMUFile *f, void *opaque, int version_id);
-#endif
 
 /* Unblock cpu */
 void qemu_cpu_kick_self(void);

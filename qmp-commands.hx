@@ -1635,7 +1635,7 @@ Arguments:
 - "speed": maximum speed of the streaming job, in bytes per second
   (json-int)
 - "granularity": granularity of the dirty bitmap, in bytes (json-int, optional)
-- "buf_size": maximum amount of data in flight from source to target, in bytes
+- "buf-size": maximum amount of data in flight from source to target, in bytes
   (json-int, default 10M)
 - "sync": what parts of the disk image should be copied to the destination;
   possibilities include "full" for all the disk, "top" for only the sectors
@@ -1664,6 +1664,54 @@ Example:
 
 EQMP
 
+    {
+        .name       = "blockdev-mirror",
+        .args_type  = "sync:s,device:B,target:B,replaces:s?,speed:i?,"
+                      "on-source-error:s?,on-target-error:s?,"
+                      "granularity:i?,buf-size:i?",
+        .mhandler.cmd_new = qmp_marshal_blockdev_mirror,
+    },
+
+SQMP
+blockdev-mirror
+------------
+
+Start mirroring a block device's writes to another block device. target
+specifies the target of mirror operation.
+
+Arguments:
+
+- "device": device name to operate on (json-string)
+- "target": device name to mirror to (json-string)
+- "replaces": the block driver node name to replace when finished
+              (json-string, optional)
+- "speed": maximum speed of the streaming job, in bytes per second
+  (json-int)
+- "granularity": granularity of the dirty bitmap, in bytes (json-int, optional)
+- "buf_size": maximum amount of data in flight from source to target, in bytes
+  (json-int, default 10M)
+- "sync": what parts of the disk image should be copied to the destination;
+  possibilities include "full" for all the disk, "top" for only the sectors
+  allocated in the topmost image, or "none" to only replicate new I/O
+  (MirrorSyncMode).
+- "on-source-error": the action to take on an error on the source
+  (BlockdevOnError, default 'report')
+- "on-target-error": the action to take on an error on the target
+  (BlockdevOnError, default 'report')
+
+The default value of the granularity is the image cluster size clamped
+between 4096 and 65536, if the image format defines one.  If the format
+does not define a cluster size, the default value of the granularity
+is 65536.
+
+Example:
+
+-> { "execute": "blockdev-mirror", "arguments": { "device": "ide-hd0",
+                                                  "target": "target0",
+                                                  "sync": "full" } }
+<- { "return": {} }
+
+EQMP
     {
         .name       = "change-backing-file",
         .args_type  = "device:s,image-node-name:s,backing-file:s",
@@ -3599,7 +3647,9 @@ Enable/Disable migration capabilities
 - "rdma-pin-all": pin all pages when using RDMA during migration
 - "auto-converge": throttle down guest to help convergence of migration
 - "zero-blocks": compress zero blocks during block migration
+- "compress": use multiple compression threads to accelerate live migration
 - "events": generate events for each migration state change
+- "x-postcopy-ram": postcopy mode for live migration
 
 Arguments:
 
@@ -3627,13 +3677,24 @@ Query current migration capabilities
          - "rdma-pin-all" : RDMA Pin Page state (json-bool)
          - "auto-converge" : Auto Converge state (json-bool)
          - "zero-blocks" : Zero Blocks state (json-bool)
+         - "compress": Multiple compression threads state (json-bool)
+         - "events": Migration state change event state (json-bool)
+         - "x-postcopy-ram": postcopy ram state (json-bool)
 
 Arguments:
 
 Example:
 
 -> { "execute": "query-migrate-capabilities" }
-<- { "return": [ { "state": false, "capability": "xbzrle" } ] }
+<- {"return": [
+     {"state": false, "capability": "xbzrle"},
+     {"state": false, "capability": "rdma-pin-all"},
+     {"state": false, "capability": "auto-converge"},
+     {"state": false, "capability": "zero-blocks"},
+     {"state": false, "capability": "compress"},
+     {"state": true, "capability": "events"},
+     {"state": false, "capability": "x-postcopy-ram"}
+   ]}
 
 EQMP
 
@@ -3652,6 +3713,10 @@ Set migration parameters
 - "compress-level": set compression level during migration (json-int)
 - "compress-threads": set compression thread count for migration (json-int)
 - "decompress-threads": set decompression thread count for migration (json-int)
+- "x-cpu-throttle-initial": set initial percentage of time guest cpus are
+                           throttled for auto-converge (json-int)
+- "x-cpu-throttle-increment": set throttle increasing percentage for
+                             auto-converge (json-int)
 
 Arguments:
 
@@ -3665,7 +3730,7 @@ EQMP
     {
         .name       = "migrate-set-parameters",
         .args_type  =
-            "compress-level:i?,compress-threads:i?,decompress-threads:i?",
+            "compress-level:i?,compress-threads:i?,decompress-threads:i?,x-cpu-throttle-initial:i?,x-cpu-throttle-increment:i?",
         .mhandler.cmd_new = qmp_marshal_migrate_set_parameters,
     },
 SQMP
@@ -3678,6 +3743,10 @@ Query current migration parameters
          - "compress-level" : compression level value (json-int)
          - "compress-threads" : compression thread count value (json-int)
          - "decompress-threads" : decompression thread count value (json-int)
+         - "x-cpu-throttle-initial" : initial percentage of time guest cpus are
+                                      throttled (json-int)
+         - "x-cpu-throttle-increment" : throttle increasing percentage for
+                                        auto-converge (json-int)
 
 Arguments:
 
@@ -3686,9 +3755,11 @@ Example:
 -> { "execute": "query-migrate-parameters" }
 <- {
       "return": {
-         "decompress-threads", 2,
-         "compress-threads", 8,
-         "compress-level", 1
+         "decompress-threads": 2,
+         "x-cpu-throttle-increment": 10,
+         "compress-threads": 8,
+         "compress-level": 1,
+         "x-cpu-throttle-initial": 20
       }
    }
 

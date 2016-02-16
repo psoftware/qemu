@@ -15,6 +15,7 @@
  * GNU General Public License for more details.
  */
 
+#include "qemu/osdep.h"
 #include "hw/hw.h"
 #include "hw/pci/pci.h"
 #include "hw/pci/msix.h"
@@ -232,6 +233,9 @@ static int tx_consume(Rocker *r, DescInfo *info)
         frag_addr = rocker_tlv_get_le64(tlvs[ROCKER_TLV_TX_FRAG_ATTR_ADDR]);
         frag_len = rocker_tlv_get_le16(tlvs[ROCKER_TLV_TX_FRAG_ATTR_LEN]);
 
+        if (iovcnt >= ROCKER_TX_FRAGS_MAX) {
+            goto err_too_many_frags;
+        }
         iov[iovcnt].iov_len = frag_len;
         iov[iovcnt].iov_base = g_malloc(frag_len);
         if (!iov[iovcnt].iov_base) {
@@ -244,10 +248,7 @@ static int tx_consume(Rocker *r, DescInfo *info)
             err = -ROCKER_ENXIO;
             goto err_bad_io;
         }
-
-        if (++iovcnt > ROCKER_TX_FRAGS_MAX) {
-            goto err_too_many_frags;
-        }
+        iovcnt++;
     }
 
     if (iovcnt) {
