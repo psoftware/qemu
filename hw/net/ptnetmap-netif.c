@@ -276,7 +276,7 @@ ptnet_ptctl(PtNetState *s, uint64_t cmd)
 
     switch (cmd) {
         case NET_PARAVIRT_PTCTL_CONFIG:
-            printf("Ignoring deprecated CONFIG PTCTL");
+            printf("Ignoring deprecated CONFIG PTCTL\n");
             break;
 
         case NET_PARAVIRT_PTCTL_REGIF:
