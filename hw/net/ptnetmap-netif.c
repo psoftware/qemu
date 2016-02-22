@@ -229,6 +229,11 @@ ptnet_get_netmap_if(PtNetState *s)
     NetmapIf nif;
     int ret;
 
+    if (csb == NULL) {
+        printf("%s: Unexpected NULL CSB", __func__);
+        return -1;
+    }
+
     ret = ptnetmap_get_netmap_if(s->ptbe, &nif);
     if (ret) {
         return ret;
@@ -253,6 +258,11 @@ static int
 ptnet_regif(PtNetState *s)
 {
     struct paravirt_csb *csb = (struct paravirt_csb *)s->csb;
+
+    if (csb == NULL) {
+        printf("%s: Unexpected NULL CSB", __func__);
+        return -1;
+    }
 
     s->host_cfg.features = PTNETMAP_CFG_FEAT_CSB | PTNETMAP_CFG_FEAT_EVENTFD;
 
