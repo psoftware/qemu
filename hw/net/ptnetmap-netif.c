@@ -51,10 +51,13 @@ static const char *regnames[] = {
     "CTRL",
     "MAC_LO",
     "MAC_HI",
-    "TXKICK",
-    "RXKICK",
     "CSBBAH",
     "CSBBAL",
+    "NIFP_OFS",
+    "NUM_TX_RINGS",
+    "NUM_RX_RINGS",
+    "NUM_TX_SLOTS",
+    "NUM_RX_SLOTS",
 };
 
 #define REGNAMES_LEN  (sizeof(regnames)/(sizeof(regnames[0])))
