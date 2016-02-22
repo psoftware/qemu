@@ -119,11 +119,11 @@ static int virtio_net_ptnetmap_up(VirtIODevice *vdev)
     virtio_queue_set_notification(q->tx_vq, 1);
 
     /* Prepare CSB pointer for the host and complete CSB configuration. */
-    n->ptn.cfg.csb = n->ptn.csb;
-    n->ptn.csb->host_need_txkick = 1;
-    n->ptn.csb->guest_need_txkick = 0;
-    n->ptn.csb->guest_need_rxkick = 1;
-    n->ptn.csb->host_need_rxkick = 1;
+    n->ptn.cfg.ptrings = &n->ptn.csb->tx_ring;
+    n->ptn.csb->tx_ring.host_need_kick = 1;
+    n->ptn.csb->tx_ring.guest_need_kick = 0;
+    n->ptn.csb->rx_ring.guest_need_kick = 1;
+    n->ptn.csb->rx_ring.host_need_kick = 1;
 
     n->ptn.cfg.features = PTNETMAP_CFG_FEAT_CSB | PTNETMAP_CFG_FEAT_EVENTFD;
 

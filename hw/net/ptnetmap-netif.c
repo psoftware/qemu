@@ -271,11 +271,11 @@ ptnet_regif(PtNetState *s)
     s->host_cfg.rx_ring.ioeventfd = event_notifier_get_fd(&s->host_rx_notifier);
     s->host_cfg.rx_ring.irqfd = event_notifier_get_fd(&s->guest_rx_notifier);
 
-    s->host_cfg.csb = csb;
-    csb->host_need_txkick = 1;
-    csb->guest_need_txkick = 0;
-    csb->guest_need_rxkick = 1;
-    csb->host_need_rxkick = 1;
+    s->host_cfg.ptrings = &csb->tx_ring;
+    csb->tx_ring.host_need_kick = 1;
+    csb->tx_ring.guest_need_kick = 0;
+    csb->rx_ring.guest_need_kick = 1;
+    csb->rx_ring.host_need_kick = 1;
 
     return ptnetmap_create(s->ptbe, &s->host_cfg);
 }
