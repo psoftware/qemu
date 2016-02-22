@@ -42,8 +42,6 @@
 #define DBG(what, fmt, ...) do {} while (0)
 #endif
 
-#define CSB_SIZE      4096
-
 static const char *regnames[] = {
     "PTFEAT",
     "PTCTL",
@@ -88,9 +86,9 @@ typedef struct PtNetState_st {
 
     uint32_t ioregs[PTNET_IO_END >> 2];
 #ifndef PTNET_CSB_ALLOC
-    char csb[CSB_SIZE];
+    char csb[NET_PARAVIRT_CSB_SIZE];
 #else /* PTNET_CSB_ALLOC */
-    struct paravirt_csb *csb;
+    char *csb;
 #endif
 } PtNetState;
 
@@ -241,12 +239,6 @@ ptnet_get_netmap_if(PtNetState *s)
     s->ioregs[PTNET_IO_NUM_RX_RINGS >> 2] = nif.num_rx_rings;
     s->ioregs[PTNET_IO_NUM_TX_SLOTS >> 2] = nif.num_tx_slots;
     s->ioregs[PTNET_IO_NUM_RX_SLOTS >> 2] = nif.num_rx_slots;
-    printf("txr %u rxr %u txd %u rxd %u nifp_offset %u\n",
-	    nif.num_tx_rings,
-            nif.num_rx_rings,
-            nif.num_tx_slots,
-            nif.num_rx_slots,
-            nif.nifp_offset);
 
     return 0;
 }
@@ -254,9 +246,7 @@ ptnet_get_netmap_if(PtNetState *s)
 static int
 ptnet_regif(PtNetState *s)
 {
-    struct paravirt_csb *csb = (struct paravirt_csb *)s->csb;
-
-    if (csb == NULL) {
+    if (s->csb == NULL) {
         printf("%s: Unexpected NULL CSB", __func__);
         return -1;
     }
@@ -268,11 +258,7 @@ ptnet_regif(PtNetState *s)
     s->host_cfg.rx_ring.ioeventfd = event_notifier_get_fd(&s->host_rx_notifier);
     s->host_cfg.rx_ring.irqfd = event_notifier_get_fd(&s->guest_rx_notifier);
 
-    s->host_cfg.ptrings = &csb->tx_ring;
-    csb->tx_ring.host_need_kick = 1;
-    csb->tx_ring.guest_need_kick = 0;
-    csb->rx_ring.guest_need_kick = 1;
-    csb->rx_ring.host_need_kick = 1;
+    s->host_cfg.ptrings = s->csb;
 
     return ptnetmap_create(s->ptbe, &s->host_cfg);
 }
@@ -534,9 +520,9 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     /* Init memory mapped memory region, exposing CSB.
      * It is important that size(s->csb_ram) < size(s->mem),
      * otherwise KVM memory setup routines fail. */
-    memory_region_init(&s->mem, OBJECT(s), "ptnet-mem", CSB_SIZE);
+    memory_region_init(&s->mem, OBJECT(s), "ptnet-mem", NET_PARAVIRT_CSB_SIZE);
     memory_region_init_ram_ptr(&s->csb_ram, OBJECT(s), "ptnet-csb-ram",
-                               sizeof(struct paravirt_csb), s->csb);
+                               sizeof(struct ptnet_csb), s->csb);
     memory_region_add_subregion(&s->mem, 0, &s->csb_ram);
     vmstate_register_ram(&s->csb_ram, DEVICE(s));
     pci_register_bar(pci_dev, PTNETMAP_MEM_PCI_BAR,
