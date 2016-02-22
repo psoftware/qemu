@@ -228,31 +228,25 @@ ptnet_guest_notifiers_fini(PtNetState *s)
 static int
 ptnet_get_netmap_if(PtNetState *s)
 {
-    struct paravirt_csb *csb = (struct paravirt_csb *)s->csb;
     NetmapIf nif;
     int ret;
-
-    if (csb == NULL) {
-        printf("%s: Unexpected NULL CSB", __func__);
-        return -1;
-    }
 
     ret = ptnetmap_get_netmap_if(s->ptbe, &nif);
     if (ret) {
         return ret;
     }
 
-    csb->nifp_offset = nif.nifp_offset;
-    csb->num_tx_rings = nif.num_tx_rings;
-    csb->num_rx_rings = nif.num_rx_rings;
-    csb->num_tx_slots = nif.num_tx_slots;
-    csb->num_rx_slots = nif.num_rx_slots;
+    s->ioregs[PTNET_IO_NIFP_OFS >> 2] = nif.nifp_offset;
+    s->ioregs[PTNET_IO_NUM_TX_RINGS >> 2] = nif.num_tx_rings;
+    s->ioregs[PTNET_IO_NUM_RX_RINGS >> 2] = nif.num_rx_rings;
+    s->ioregs[PTNET_IO_NUM_TX_SLOTS >> 2] = nif.num_tx_slots;
+    s->ioregs[PTNET_IO_NUM_RX_SLOTS >> 2] = nif.num_rx_slots;
     printf("txr %u rxr %u txd %u rxd %u nifp_offset %u\n",
-            csb->num_tx_rings,
-            csb->num_rx_rings,
-            csb->num_tx_slots,
-            csb->num_rx_slots,
-            csb->nifp_offset);
+	    nif.num_tx_rings,
+            nif.num_rx_rings,
+            nif.num_tx_slots,
+            nif.num_rx_slots,
+            nif.nifp_offset);
 
     return 0;
 }
@@ -296,9 +290,7 @@ ptnet_ptctl(PtNetState *s, uint64_t cmd)
 
     switch (cmd) {
         case NET_PARAVIRT_PTCTL_CONFIG:
-            /* Fill CSB fields: nifp_offset, num_*x_rings,
-             * and num_*x_slots. */
-            ret = ptnet_get_netmap_if(s);
+            printf("Ignoring deprecated CONFIG PTCTL");
             break;
 
         case NET_PARAVIRT_PTCTL_REGIF:
@@ -442,6 +434,18 @@ ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
     regname = regnames[index];
 
     DBG("I/O read from %s, val=0x%08x", regname, s->ioregs[index]);
+
+    switch (addr) {
+        case PTNET_IO_NIFP_OFS:
+        case PTNET_IO_NUM_TX_RINGS:
+        case PTNET_IO_NUM_RX_RINGS:
+        case PTNET_IO_NUM_TX_SLOTS:
+        case PTNET_IO_NUM_RX_SLOTS:
+            /* Fill in device registers with information about nifp_offset,
+             * num_*x_rings, and num_*x_slots. */
+            ptnet_get_netmap_if(s);
+            break;
+    }
 
     return s->ioregs[index];
 }
