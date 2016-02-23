@@ -73,14 +73,14 @@ typedef struct PtNetState_st {
 
     PTNetmapState *ptbe;
 
+    unsigned int num_rings;
+
     /* Guest --> Host notification support. */
-    EventNotifier host_tx_notifier;
-    EventNotifier host_rx_notifier;
+    EventNotifier *host_notifiers;
 
     /* Host --> Guest notification support. */
-    EventNotifier guest_tx_notifier;
-    EventNotifier guest_rx_notifier;
-    int virqs[2];
+    EventNotifier *guest_notifiers;
+    int *virqs;
 
     struct ptnetmap_cfg host_cfg;
 
@@ -204,10 +204,14 @@ ptnet_guest_notifier_fini(PtNetState *s, EventNotifier *e, unsigned int vector)
 static int
 ptnet_guest_notifiers_init(PtNetState *s)
 {
+    unsigned int vec = PTNETMAP_MSIX_VEC_TX;
+    int i;
+
     msix_unuse_all_vectors(PCI_DEVICE(s));
 
-    ptnet_guest_notifier_init(s, &s->guest_tx_notifier, PTNETMAP_MSIX_VEC_TX);
-    ptnet_guest_notifier_init(s, &s->guest_rx_notifier, PTNETMAP_MSIX_VEC_RX);
+    for (i = 0; i < s->num_rings; i++, vec ++) {
+        ptnet_guest_notifier_init(s, s->guest_notifiers + i, vec);
+    }
 
     return 0;
 }
@@ -215,8 +219,12 @@ ptnet_guest_notifiers_init(PtNetState *s)
 static int
 ptnet_guest_notifiers_fini(PtNetState *s)
 {
-    ptnet_guest_notifier_fini(s, &s->guest_tx_notifier, PTNETMAP_MSIX_VEC_TX);
-    ptnet_guest_notifier_fini(s, &s->guest_rx_notifier, PTNETMAP_MSIX_VEC_RX);
+    unsigned int vec = PTNETMAP_MSIX_VEC_TX;
+    int i;
+
+    for (i = 0; i < s->num_rings; i++, vec ++) {
+        ptnet_guest_notifier_fini(s, s->guest_notifiers + i, vec);
+    }
 
     msix_unuse_all_vectors(PCI_DEVICE(s));
 
@@ -226,6 +234,7 @@ ptnet_guest_notifiers_fini(PtNetState *s)
 static int
 ptnet_get_netmap_if(PtNetState *s)
 {
+    unsigned int num_rings;
     NetmapIf nif;
     int ret;
 
@@ -240,6 +249,14 @@ ptnet_get_netmap_if(PtNetState *s)
     s->ioregs[PTNET_IO_NUM_TX_SLOTS >> 2] = nif.num_tx_slots;
     s->ioregs[PTNET_IO_NUM_RX_SLOTS >> 2] = nif.num_rx_slots;
 
+    num_rings = s->ioregs[PTNET_IO_NUM_TX_RINGS >> 2] +
+                s->ioregs[PTNET_IO_NUM_RX_RINGS >> 2];
+    if (s->num_rings && num_rings && s->num_rings != num_rings) {
+        printf("Number of rings change is not supported");
+        return -1;
+    }
+    s->num_rings = num_rings;
+
     return 0;
 }
 
@@ -253,10 +270,10 @@ ptnet_regif(PtNetState *s)
 
     s->host_cfg.features = PTNETMAP_CFG_FEAT_CSB | PTNETMAP_CFG_FEAT_EVENTFD;
 
-    s->host_cfg.tx_ring.ioeventfd = event_notifier_get_fd(&s->host_tx_notifier);
-    s->host_cfg.tx_ring.irqfd = event_notifier_get_fd(&s->guest_tx_notifier);
-    s->host_cfg.rx_ring.ioeventfd = event_notifier_get_fd(&s->host_rx_notifier);
-    s->host_cfg.rx_ring.irqfd = event_notifier_get_fd(&s->guest_rx_notifier);
+    s->host_cfg.tx_ring.ioeventfd = event_notifier_get_fd(s->host_notifiers + 0);
+    s->host_cfg.tx_ring.irqfd = event_notifier_get_fd(s->guest_notifiers + 0);
+    s->host_cfg.rx_ring.ioeventfd = event_notifier_get_fd(s->host_notifiers + 1);
+    s->host_cfg.rx_ring.irqfd = event_notifier_get_fd(s->guest_notifiers + 1);
 
     s->host_cfg.ptrings = s->csb;
 
@@ -500,10 +517,12 @@ static void ptnet_write_config(PCIDevice *pci_dev, uint32_t address,
 static void
 pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 {
+    unsigned int kick_reg = PTNET_IO_TXKICK;
     DeviceState *dev = DEVICE(pci_dev);
     PtNetState *s = PTNET(pci_dev);
     NetClientState *nc;
     uint8_t *pci_conf;
+    int i;
 
     pci_dev->config_write = ptnet_write_config;
     pci_conf = pci_dev->config;
@@ -544,11 +563,19 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 
     s->ptbe = nc->peer ? get_ptnetmap(nc->peer) : NULL;
 
+    s->num_rings = 0;
+    ptnet_get_netmap_if(s);
+
     /* We can setup host --> guest notifications immediately, since
      * we already have the information we need: the address of
      * TXKICK/RXKICK registers. */
-    ptnet_host_notifier_init(s, &s->host_tx_notifier, PTNET_IO_TXKICK);
-    ptnet_host_notifier_init(s, &s->host_rx_notifier, PTNET_IO_RXKICK);
+    s->host_notifiers = g_malloc(2 * s->num_rings * sizeof(EventNotifier));
+    s->guest_notifiers = s->host_notifiers + s->num_rings;
+    s->virqs = g_malloc(s->num_rings * sizeof(*s->virqs));
+
+    for (i = 0; i < s->num_rings; i++, kick_reg += 4) {
+        ptnet_host_notifier_init(s, s->host_notifiers + i, kick_reg);
+    }
 
     DBG("%s(%p)", __func__, s);
 }
@@ -556,10 +583,15 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 static void
 pci_ptnet_uninit(PCIDevice *dev)
 {
+    unsigned int kick_reg = PTNET_IO_TXKICK;
     PtNetState *s = PTNET(dev);
+    int i;
 
-    ptnet_host_notifier_fini(s, &s->host_tx_notifier, PTNET_IO_TXKICK);
-    ptnet_host_notifier_fini(s, &s->host_rx_notifier, PTNET_IO_RXKICK);
+    for (i = 0; i < s->num_rings; i++, kick_reg += 4) {
+        ptnet_host_notifier_fini(s, s->host_notifiers + i, kick_reg);
+    }
+    g_free(s->host_notifiers);
+    g_free(s->virqs);
 
     msix_uninit_exclusive_bar(PCI_DEVICE(s));
 
