@@ -549,11 +549,6 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 		     PCI_BASE_ADDRESS_MEM_PREFETCH, &s->mem);
 #endif /* !PTNET_CSB_ALLOC */
 
-    /* Allocate a PCI bar to manage MSI-X information for this device. */
-    if (msix_init_exclusive_bar(pci_dev, 2, PTNETMAP_MSIX_PCI_BAR)) {
-        printf("[ERR] Failed to intialize MSI-X BAR\n");
-    }
-
     qemu_macaddr_default_if_unset(&s->conf.macaddr);
 
     s->nic = qemu_new_nic(&net_ptnet_info, &s->conf,
@@ -565,6 +560,11 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 
     s->num_rings = 0;
     ptnet_get_netmap_if(s);
+
+    /* Allocate a PCI bar to manage MSI-X information for this device. */
+    if (msix_init_exclusive_bar(pci_dev, s->num_rings, PTNETMAP_MSIX_PCI_BAR)) {
+        printf("[ERR] Failed to intialize MSI-X BAR\n");
+    }
 
     /* We can setup host --> guest notifications immediately, since
      * we already have the information we need: the address of
