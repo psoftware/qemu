@@ -36,10 +36,11 @@ static int virtio_net_ptnetmap_up(VirtIODevice *vdev)
     VirtioBusState *vbus = VIRTIO_BUS(qbus);
     VirtioBusClass *k = VIRTIO_BUS_GET_CLASS(vbus);
     VirtIONet *n = VIRTIO_NET(vdev);
-    VirtIONetQueue *q;
-    VirtQueueElement *elem;
     PTNetmapState *ptns = n->ptn.state;
+    struct ptnetmap_cfg *cfg;
+    VirtQueueElement *elem;
     int i, ret, nvqs = 0;
+    VirtIONetQueue *q;
 
     if (!k->set_host_notifier || !k->set_guest_notifiers) {
         printf("ERROR ptnetmap: binding does not support notifiers\n");
@@ -95,17 +96,19 @@ static int virtio_net_ptnetmap_up(VirtIODevice *vdev)
         qemu_bh_cancel(q->tx_bh);
     }
 #endif
-    /* Configure the RX ring */
-    n->ptn.cfg.rx_ring.ioeventfd =
-        event_notifier_get_fd(virtio_queue_get_host_notifier(q->rx_vq));
-    n->ptn.cfg.rx_ring.irqfd =
-        event_notifier_get_fd(virtio_queue_get_guest_notifier(q->rx_vq));
+    cfg = g_malloc(sizeof(*cfg) + 2 * sizeof(cfg->entries[0]));
 
     /* Configure the TX ring */
-    n->ptn.cfg.tx_ring.ioeventfd =
+    cfg->entries[0].ioeventfd =
         event_notifier_get_fd(virtio_queue_get_host_notifier(q->tx_vq));
-    n->ptn.cfg.tx_ring.irqfd =
+    cfg->entries[0].irqfd =
         event_notifier_get_fd(virtio_queue_get_guest_notifier(q->tx_vq));
+
+    /* Configure the RX ring */
+    cfg->entries[1].ioeventfd =
+        event_notifier_get_fd(virtio_queue_get_host_notifier(q->rx_vq));
+    cfg->entries[1].irqfd =
+        event_notifier_get_fd(virtio_queue_get_guest_notifier(q->rx_vq));
 
     /* Push fake responses in the used ring of the RX VQ to keep RX interrupts
      * enabled. */
@@ -119,16 +122,18 @@ static int virtio_net_ptnetmap_up(VirtIODevice *vdev)
     virtio_queue_set_notification(q->tx_vq, 1);
 
     /* Prepare CSB pointer for the host and complete CSB configuration. */
-    n->ptn.cfg.ptrings = &n->ptn.csb->tx_ring;
+    cfg->features = PTNETMAP_CFG_FEAT_CSB | PTNETMAP_CFG_FEAT_EVENTFD;
+    cfg->ptrings = &n->ptn.csb->tx_ring;
+    cfg->num_rings = 2;
+
     n->ptn.csb->tx_ring.host_need_kick = 1;
     n->ptn.csb->tx_ring.guest_need_kick = 0;
     n->ptn.csb->rx_ring.guest_need_kick = 1;
     n->ptn.csb->rx_ring.host_need_kick = 1;
 
-    n->ptn.cfg.features = PTNETMAP_CFG_FEAT_CSB | PTNETMAP_CFG_FEAT_EVENTFD;
-
     /* Start ptnetmap on the backend. */
-    ret = ptnetmap_create(n->ptn.state, &n->ptn.cfg);
+    ret = ptnetmap_create(n->ptn.state, cfg);
+    g_free(cfg);
     if (ret)
         goto err_ptn_create;
 

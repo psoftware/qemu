@@ -530,7 +530,7 @@ ptnetmap_get_hostmemid(PTNetmapState *ptn)
 }
 
 int
-ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *conf)
+ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *cfg)
 {
     NetmapState *s = ptn->netmap;
     struct nmreq req;
@@ -560,7 +560,7 @@ ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *conf)
     memset(&req, 0, sizeof(req));
     pstrcpy(req.nr_name, sizeof(req.nr_name), s->ifname);
     req.nr_version = NETMAP_API;
-    ptnetmap_write_cfg(&req, conf);
+    ptnetmap_write_cfg(&req, cfg);
     req.nr_cmd = NETMAP_PT_HOST_CREATE;
     err = ioctl(s->nmd->fd, NIOCREGIF, &req);
     if (err) {

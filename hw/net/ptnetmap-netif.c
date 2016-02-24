@@ -82,8 +82,6 @@ typedef struct PtNetState_st {
     EventNotifier *guest_notifiers;
     int *virqs;
 
-    struct ptnetmap_cfg host_cfg;
-
     uint32_t ioregs[PTNET_IO_END >> 2];
 #ifndef PTNET_CSB_ALLOC
     char csb[NET_PARAVIRT_CSB_SIZE];
@@ -263,21 +261,30 @@ ptnet_get_netmap_if(PtNetState *s)
 static int
 ptnet_regif(PtNetState *s)
 {
+    struct ptnetmap_cfg *cfg;
+    int ret;
+    int i;
+
     if (s->csb == NULL) {
         printf("%s: Unexpected NULL CSB", __func__);
         return -1;
     }
 
-    s->host_cfg.features = PTNETMAP_CFG_FEAT_CSB | PTNETMAP_CFG_FEAT_EVENTFD;
+    cfg = g_malloc(sizeof(*cfg) + s->num_rings * sizeof(cfg->entries[0]));
 
-    s->host_cfg.tx_ring.ioeventfd = event_notifier_get_fd(s->host_notifiers + 0);
-    s->host_cfg.tx_ring.irqfd = event_notifier_get_fd(s->guest_notifiers + 0);
-    s->host_cfg.rx_ring.ioeventfd = event_notifier_get_fd(s->host_notifiers + 1);
-    s->host_cfg.rx_ring.irqfd = event_notifier_get_fd(s->guest_notifiers + 1);
+    cfg->features = PTNETMAP_CFG_FEAT_CSB | PTNETMAP_CFG_FEAT_EVENTFD;
+    cfg->num_rings = s->num_rings;
+    cfg->ptrings = s->csb;
 
-    s->host_cfg.ptrings = s->csb;
+    for (i = 0; i < s->num_rings; i++) {
+        cfg->entries[i].ioeventfd = event_notifier_get_fd(s->host_notifiers + i);
+        cfg->entries[i].irqfd = event_notifier_get_fd(s->guest_notifiers + i);
+    }
 
-    return ptnetmap_create(s->ptbe, &s->host_cfg);
+    ret = ptnetmap_create(s->ptbe, cfg);
+    g_free(cfg);
+
+    return ret;
 }
 
 static int

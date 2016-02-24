@@ -48,7 +48,6 @@ typedef struct VirtIONetPTNetmap
     struct paravirt_csb *csb;           /* Communication Status Block. */
     bool up;                            /* ptnetmap up/down */
     PTNetmapState *state;               /* ptnetmap state (shared with backend) */
-    struct ptnetmap_cfg cfg;            /* ptnetmap configuration */
 
     /* ptnetmap register */
     uint8_t reg[PTNETMAP_VIRTIO_IO_SIZE];
