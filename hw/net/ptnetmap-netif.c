@@ -494,6 +494,16 @@ static const VMStateDescription vmstate_ptnet = {
         VMSTATE_UINT32(ioregs[PTNET_IO_PTFEAT >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_PTCTL >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_PTSTS >> 2], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_CTRL >> 2], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_MAC_LO >> 2], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_MAC_HI >> 2], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_CSBBAH >> 2], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_CSBBAL >> 2], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_NIFP_OFS >> 2], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_NUM_TX_RINGS >> 2], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_NUM_RX_RINGS >> 2], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_NUM_TX_SLOTS >> 2], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_NUM_RX_SLOTS >> 2], PtNetState),
         VMSTATE_END_OF_LIST()
     }
 };
