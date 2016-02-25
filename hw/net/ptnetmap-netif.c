@@ -534,7 +534,7 @@ static void ptnet_write_config(PCIDevice *pci_dev, uint32_t address,
 static void
 pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 {
-    unsigned int kick_reg = PTNET_IO_TXKICK;
+    unsigned int kick_reg = PTNET_IO_KICK_BASE;
     DeviceState *dev = DEVICE(pci_dev);
     PtNetState *s = PTNET(pci_dev);
     NetClientState *nc;
@@ -600,7 +600,7 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 static void
 pci_ptnet_uninit(PCIDevice *dev)
 {
-    unsigned int kick_reg = PTNET_IO_TXKICK;
+    unsigned int kick_reg = PTNET_IO_KICK_BASE;
     PtNetState *s = PTNET(dev);
     int i;
 
