@@ -1790,6 +1790,29 @@ QemuConsole *qemu_console_lookup_by_device(DeviceState *dev, uint32_t head)
     return NULL;
 }
 
+QemuConsole *qemu_console_lookup_by_device_name(const char *device_id,
+                                                uint32_t head, Error **errp)
+{
+    DeviceState *dev;
+    QemuConsole *con;
+
+    dev = qdev_find_recursive(sysbus_get_default(), device_id);
+    if (dev == NULL) {
+        error_set(errp, ERROR_CLASS_DEVICE_NOT_FOUND,
+                  "Device '%s' not found", device_id);
+        return NULL;
+    }
+
+    con = qemu_console_lookup_by_device(dev, head);
+    if (con == NULL) {
+        error_setg(errp, "Device %s (head %d) is not bound to a QemuConsole",
+                   device_id, head);
+        return NULL;
+    }
+
+    return con;
+}
+
 bool qemu_console_is_visible(QemuConsole *con)
 {
     return (con == active_console) || (con->dcls > 0);
@@ -2060,31 +2083,33 @@ static void qemu_chr_parse_vc(QemuOpts *opts, ChardevBackend *backend,
                               Error **errp)
 {
     int val;
+    ChardevVC *vc;
 
-    backend->u.vc = g_new0(ChardevVC, 1);
+    vc = backend->u.vc = g_new0(ChardevVC, 1);
+    qemu_chr_parse_common(opts, qapi_ChardevVC_base(vc));
 
     val = qemu_opt_get_number(opts, "width", 0);
     if (val != 0) {
-        backend->u.vc->has_width = true;
-        backend->u.vc->width = val;
+        vc->has_width = true;
+        vc->width = val;
     }
 
     val = qemu_opt_get_number(opts, "height", 0);
     if (val != 0) {
-        backend->u.vc->has_height = true;
-        backend->u.vc->height = val;
+        vc->has_height = true;
+        vc->height = val;
     }
 
     val = qemu_opt_get_number(opts, "cols", 0);
     if (val != 0) {
-        backend->u.vc->has_cols = true;
-        backend->u.vc->cols = val;
+        vc->has_cols = true;
+        vc->cols = val;
     }
 
     val = qemu_opt_get_number(opts, "rows", 0);
     if (val != 0) {
-        backend->u.vc->has_rows = true;
-        backend->u.vc->rows = val;
+        vc->has_rows = true;
+        vc->rows = val;
     }
 }
 

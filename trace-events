@@ -97,7 +97,6 @@ mirror_yield(void *s, int64_t cnt, int buf_free_count, int in_flight) "s %p dirt
 mirror_yield_in_flight(void *s, int64_t sector_num, int in_flight) "s %p sector_num %"PRId64" in_flight %d"
 mirror_yield_buf_busy(void *s, int nb_chunks, int in_flight) "s %p requested chunks %d in_flight %d"
 mirror_break_buf_busy(void *s, int nb_chunks, int in_flight) "s %p requested chunks %d in_flight %d"
-mirror_break_iov_max(void *s, int nb_chunks, int added_chunks) "s %p requested chunks %d added_chunks %d"
 
 # block/backup.c
 backup_do_cow_enter(void *job, int64_t start, int64_t sector_num, int nb_sectors) "job %p start %"PRId64" sector_num %"PRId64" nb_sectors %d"
@@ -126,9 +125,6 @@ virtio_blk_submit_multireq(void *mrb, int start, int num_reqs, uint64_t sector, 
 virtio_blk_data_plane_start(void *s) "dataplane %p"
 virtio_blk_data_plane_stop(void *s) "dataplane %p"
 virtio_blk_data_plane_process_request(void *s, unsigned int out_num, unsigned int in_num, unsigned int head) "dataplane %p out_num %u in_num %u head %u"
-
-# hw/virtio/dataplane/vring.c
-vring_setup(uint64_t physical, void *desc, void *avail, void *used) "vring physical %#"PRIx64" desc %p avail %p used %p"
 
 # thread-pool.c
 thread_pool_submit(void *pool, void *req, void *opaque) "pool %p req %p opaque %p"
@@ -1412,8 +1408,6 @@ xics_ics_write_xive(int nr, int srcno, int server, uint8_t priority) "ics_write_
 xics_ics_reject(int nr, int srcno) "reject irq %#x [src %d]"
 xics_ics_eoi(int nr) "ics_eoi: irq %#x"
 xics_alloc(int src, int irq) "source#%d, irq %d"
-xics_alloc_failed_hint(int src, int irq) "source#%d, irq %d is already in use"
-xics_alloc_failed_no_left(int src) "source#%d, no irq left"
 xics_alloc_block(int src, int first, int num, bool lsi, int align) "source#%d, first irq %d, %d irqs, lsi=%d, alignnum %d"
 xics_ics_free(int src, int irq, int num) "Source#%d, first irq %d, %d irqs"
 xics_ics_free_warn(int src, int irq) "Source#%d, irq %d is already free"

@@ -966,9 +966,9 @@ static gboolean gd_scroll_event(GtkWidget *widget, GdkEventScroll *scroll,
     InputButton btn;
 
     if (scroll->direction == GDK_SCROLL_UP) {
-        btn = INPUT_BUTTON_WHEELUP;
+        btn = INPUT_BUTTON_WHEEL_UP;
     } else if (scroll->direction == GDK_SCROLL_DOWN) {
-        btn = INPUT_BUTTON_WHEELDOWN;
+        btn = INPUT_BUTTON_WHEEL_DOWN;
     } else {
         return TRUE;
     }
@@ -1613,7 +1613,7 @@ static CharDriverState *gd_vc_handler(ChardevVC *vc, Error **errp)
     chr->chr_set_echo = gd_vc_chr_set_echo;
 
     /* Temporary, until gd_vc_vte_init runs.  */
-    chr->opaque = g_new(VirtualConsole, 1);
+    chr->opaque = g_new0(VirtualConsole, 1);
 
     /* defer OPENED events until our vc is fully initialized */
     chr->explicit_be_open = true;
