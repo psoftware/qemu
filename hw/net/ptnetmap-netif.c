@@ -189,6 +189,12 @@ ptnet_guest_notifier_fini(PtNetState *s, EventNotifier *e, unsigned int vector)
 {
     int ret;
 
+    if (s->virqs[vector] == -1) {
+        printf("%s: guest notifier #%u not initialized, nothing to do\n",
+               __func__, vector);
+        return;
+    }
+
     ret = kvm_irqchip_remove_irqfd_notifier_gsi(kvm_state, e,
                                                 s->virqs[vector]);
     if (ret) {
@@ -196,6 +202,7 @@ ptnet_guest_notifier_fini(PtNetState *s, EventNotifier *e, unsigned int vector)
                __func__, ret);
     }
     kvm_irqchip_release_virq(kvm_state, s->virqs[vector]);
+    s->virqs[vector] = -1;
     event_notifier_cleanup(e);
 }
 
@@ -591,6 +598,7 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     s->virqs = g_malloc(s->num_rings * sizeof(*s->virqs));
 
     for (i = 0; i < s->num_rings; i++, kick_reg += 4) {
+        s->virqs[i] = -1; /* start from a known value */
         ptnet_host_notifier_init(s, s->host_notifiers + i, kick_reg);
     }
 
