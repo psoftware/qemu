@@ -192,7 +192,7 @@ ptnet_guest_notifier_fini(PtNetState *s, EventNotifier *e, unsigned int vector)
     ret = kvm_irqchip_remove_irqfd_notifier_gsi(kvm_state, e,
                                                 s->virqs[vector]);
     if (ret) {
-        printf("%s: kvm_irqchip_add_irqfd_notifier_gsi() failed: %d\n",
+        printf("%s: kvm_irqchip_remove_irqfd_notifier_gsi() failed: %d\n",
                __func__, ret);
     }
     kvm_irqchip_release_virq(kvm_state, s->virqs[vector]);
