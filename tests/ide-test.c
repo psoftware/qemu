@@ -22,9 +22,7 @@
  * THE SOFTWARE.
  */
 
-#include <stdint.h>
-#include <string.h>
-#include <stdio.h>
+#include "qemu/osdep.h"
 
 #include <glib.h>
 
@@ -593,12 +591,12 @@ static void test_flush_nodev(void)
     ide_test_quit();
 }
 
-static void test_pci_retry_flush(const char *machine)
+static void test_pci_retry_flush(void)
 {
     test_retry_flush("pc");
 }
 
-static void test_isa_retry_flush(const char *machine)
+static void test_isa_retry_flush(void)
 {
     test_retry_flush("isapc");
 }

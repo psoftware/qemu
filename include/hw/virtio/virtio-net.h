@@ -47,7 +47,7 @@ typedef struct VirtIONetQueue {
     QEMUBH *tx_bh;
     int tx_waiting;
     struct {
-        VirtQueueElement elem;
+        VirtQueueElement *elem;
     } async_tx;
     struct VirtIONet *n;
 } VirtIONetQueue;
@@ -95,6 +95,7 @@ typedef struct VirtIONet {
     QEMUTimer *announce_timer;
     IFRATE(QEMUTimer *rate_timer);
     int announce_counter;
+    bool needs_vnet_hdr_swap;
 } VirtIONet;
 
 void virtio_net_set_netclient_name(VirtIONet *n, const char *name,
