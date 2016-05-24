@@ -534,7 +534,6 @@ ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *cfg)
 {
     NetmapState *s = ptn->netmap;
     struct nmreq req;
-    int vnet_hdr_len = 0;
     int err;
 
     if (!(ptn->acked_features & NET_PTN_FEATURES_BASE)) {
@@ -545,12 +544,6 @@ ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *cfg)
     if (ptn->running) {
         return 0;
     }
-
-    if (ptn->acked_features & NET_PTN_FEATURES_VNET_HDR) {
-        vnet_hdr_len = sizeof(struct virtio_net_hdr_v1);
-    }
-
-    netmap_set_vnet_hdr_len(&s->nc, vnet_hdr_len);
 
     /* Tell QEMU not to poll the netmap fd. */
     netmap_poll(&s->nc, false);
