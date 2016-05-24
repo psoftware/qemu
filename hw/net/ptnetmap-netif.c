@@ -56,6 +56,7 @@ static const char *regnames[] = {
     "NUM_RX_RINGS",
     "NUM_TX_SLOTS",
     "NUM_RX_SLOTS",
+    "VNET_HDR_LEN",
 };
 
 #define REGNAMES_LEN  (sizeof(regnames)/(sizeof(regnames[0])))
@@ -424,6 +425,11 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 #ifdef PTNET_CSB_ALLOC
             ptnet_csb_mapping(s);
 #endif  /* PTNET_CSB_ALLOC */
+            break;
+
+	case PTNET_IO_VNET_HDR_LEN:
+            qemu_set_vnet_hdr_len(qemu_get_queue(s->nic)->peer, val);
+            s->ioregs[index] = val;
             break;
     }
 
