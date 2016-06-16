@@ -46,7 +46,7 @@ static const char *regnames[] = {
     "PTFEAT",
     "PTCTL",
     "PTSTS",
-    "CTRL",
+    "DEPRECATED",
     "MAC_LO",
     "MAC_HI",
     "CSBBAH",
@@ -278,6 +278,13 @@ ptnet_regif(PtNetState *s)
         return -1;
     }
 
+    /* Guest must haave allocated MSI-X now, we can setup
+     * the irqfd notification mechanism. */
+    ret = ptnet_guest_notifiers_init(s);
+    if (ret) {
+        return ret;
+    }
+
     cfg = g_malloc(sizeof(*cfg) + s->num_rings * sizeof(cfg->entries[0]));
 
     cfg->features = PTNETMAP_CFG_FEAT_CSB | PTNETMAP_CFG_FEAT_EVENTFD;
@@ -298,6 +305,10 @@ ptnet_regif(PtNetState *s)
 static int
 ptnet_unregif(PtNetState *s)
 {
+    /* Guest is not going to use MSI-X until next regif, we
+     * can tear donw the irqfd notification mechanism. */
+    ptnet_guest_notifiers_fini(s);
+
     return ptnetmap_delete(s->ptbe);
 }
 
@@ -323,32 +334,6 @@ ptnet_ptctl(PtNetState *s, uint64_t cmd)
 
         case NET_PARAVIRT_PTCTL_HOSTMEMID:
             ret = ptnetmap_get_hostmemid(s->ptbe);
-            break;
-
-        default:
-            break;
-    }
-
-    s->ioregs[PTNET_IO_PTSTS >> 2] = ret;
-}
-
-static void
-ptnet_ctrl(PtNetState *s, uint64_t cmd)
-{
-    int ret = EINVAL;
-
-    switch (cmd) {
-        case PTNET_CTRL_IRQINIT:
-            /* Guest has allocated MSI-X, we can setup
-             * the irqfd notification mechanism. */
-            ret = ptnet_guest_notifiers_init(s);
-            break;
-
-        case PTNET_CTRL_IRQFINI:
-            /* Guest is going to deallocate MSI-X, we
-             * can tear donw the irqfd notification
-             * mechanism. */
-            ret = ptnet_guest_notifiers_fini(s);
             break;
 
         default:
@@ -410,10 +395,6 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 
         case PTNET_IO_PTCTL:
             ptnet_ptctl(s, val);
-            break;
-
-        case PTNET_IO_CTRL:
-            ptnet_ctrl(s, val);
             break;
 
         case PTNET_IO_CSBBAH:
@@ -507,7 +488,6 @@ static const VMStateDescription vmstate_ptnet = {
         VMSTATE_UINT32(ioregs[PTNET_IO_PTFEAT >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_PTCTL >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_PTSTS >> 2], PtNetState),
-        VMSTATE_UINT32(ioregs[PTNET_IO_CTRL >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_MAC_LO >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_MAC_HI >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_CSBBAH >> 2], PtNetState),
