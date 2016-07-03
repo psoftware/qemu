@@ -3,25 +3,8 @@
 #define QEMU_SOCKET_H
 
 #ifdef _WIN32
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-
-#define socket_error() WSAGetLastError()
 
 int inet_aton(const char *cp, struct in_addr *ia);
-
-#else
-
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <arpa/inet.h>
-#include <netdb.h>
-#include <sys/un.h>
-
-#define socket_error() errno
-#define closesocket(s) close(s)
 
 #endif /* !_WIN32 */
 
@@ -68,6 +51,7 @@ SocketAddress *socket_parse(const char *str, Error **errp);
 int socket_connect(SocketAddress *addr, Error **errp,
                    NonBlockingConnectHandler *callback, void *opaque);
 int socket_listen(SocketAddress *addr, Error **errp);
+void socket_listen_cleanup(int fd, Error **errp);
 int socket_dgram(SocketAddress *remote, SocketAddress *local, Error **errp);
 
 /* Old, ipv4 only bits.  Don't use for new code. */
@@ -127,4 +111,18 @@ SocketAddress *socket_remote_address(int fd, Error **errp);
 void qapi_copy_SocketAddress(SocketAddress **p_dest,
                              SocketAddress *src);
 
+/**
+ * socket_address_to_string:
+ * @addr: the socket address struct
+ * @errp: pointer to uninitialized error object
+ *
+ * Get the string representation of the socket
+ * address. A pointer to the char array containing
+ * string format will be returned, the caller is
+ * required to release the returned value when no
+ * longer required with g_free.
+ *
+ * Returns: the socket address in string format, or NULL on error
+ */
+char *socket_address_to_string(struct SocketAddress *addr, Error **errp);
 #endif /* QEMU_SOCKET_H */

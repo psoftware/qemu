@@ -27,6 +27,7 @@
 
 #include "qemu/osdep.h"
 #include "hw/hw.h"
+#include "qapi/error.h"
 #include "qemu/timer.h"
 #include "hw/usb.h"
 #include "hw/pci/pci.h"
@@ -1473,7 +1474,7 @@ static uint32_t ohci_get_frame_remaining(OHCIState *ohci)
     if (tks >= usb_frame_time)
         return (ohci->frt << 31);
 
-    tks = muldiv64(1, tks, usb_bit_time);
+    tks = tks / usb_bit_time;
     fr = (uint16_t)(ohci->fi - tks);
 
     return (ohci->frt << 31) | fr;
@@ -1847,14 +1848,20 @@ static void usb_ohci_init(OHCIState *ohci, DeviceState *dev,
 
     ohci->as = as;
 
+    if (num_ports > OHCI_MAX_PORTS) {
+        error_setg(errp, "OHCI num-ports=%d is too big (limit is %d ports)",
+                   num_ports, OHCI_MAX_PORTS);
+        return;
+    }
+
     if (usb_frame_time == 0) {
 #ifdef OHCI_TIME_WARP
-        usb_frame_time = get_ticks_per_sec();
-        usb_bit_time = muldiv64(1, get_ticks_per_sec(), USB_HZ/1000);
+        usb_frame_time = NANOSECONDS_PER_SECOND;
+        usb_bit_time = NANOSECONDS_PER_SECOND / (USB_HZ / 1000);
 #else
-        usb_frame_time = muldiv64(1, get_ticks_per_sec(), 1000);
-        if (get_ticks_per_sec() >= USB_HZ) {
-            usb_bit_time = muldiv64(1, get_ticks_per_sec(), USB_HZ);
+        usb_frame_time = NANOSECONDS_PER_SECOND / 1000;
+        if (NANOSECONDS_PER_SECOND >= USB_HZ) {
+            usb_bit_time = NANOSECONDS_PER_SECOND / USB_HZ;
         } else {
             usb_bit_time = 1;
         }

@@ -22,6 +22,7 @@
 #include "cpu.h"
 #include "exec/helper-proto.h"
 #include "qemu/host-utils.h"
+#include "exec/exec-all.h"
 #include "exec/cpu_ldst.h"
 
 #define FPU_RC_MASK         0xc00
@@ -297,18 +298,12 @@ int32_t helper_fistt_ST0(CPUX86State *env)
 
 int32_t helper_fisttl_ST0(CPUX86State *env)
 {
-    int32_t val;
-
-    val = floatx80_to_int32_round_to_zero(ST0, &env->fp_status);
-    return val;
+    return floatx80_to_int32_round_to_zero(ST0, &env->fp_status);
 }
 
 int64_t helper_fisttll_ST0(CPUX86State *env)
 {
-    int64_t val;
-
-    val = floatx80_to_int64_round_to_zero(ST0, &env->fp_status);
-    return val;
+    return floatx80_to_int64_round_to_zero(ST0, &env->fp_status);
 }
 
 void helper_fldt_ST0(CPUX86State *env, target_ulong ptr)
@@ -1184,6 +1179,11 @@ static void do_xsave_bndcsr(CPUX86State *env, target_ulong addr, uintptr_t ra)
     cpu_stq_data_ra(env, addr + 8, env->bndcs_regs.sts, ra);
 }
 
+static void do_xsave_pkru(CPUX86State *env, target_ulong addr, uintptr_t ra)
+{
+    cpu_stq_data_ra(env, addr, env->pkru, ra);
+}
+
 void helper_fxsave(CPUX86State *env, target_ulong ptr)
 {
     uintptr_t ra = GETPC();
@@ -1256,6 +1256,10 @@ static void do_xsave(CPUX86State *env, target_ulong ptr, uint64_t rfbm,
     if (opt & XSTATE_BNDCSR_MASK) {
         target_ulong off = x86_ext_save_areas[XSTATE_BNDCSR_BIT].offset;
         do_xsave_bndcsr(env, ptr + off, ra);
+    }
+    if (opt & XSTATE_PKRU_MASK) {
+        target_ulong off = x86_ext_save_areas[XSTATE_PKRU_BIT].offset;
+        do_xsave_pkru(env, ptr + off, ra);
     }
 
     /* Update the XSTATE_BV field.  */
@@ -1337,6 +1341,11 @@ static void do_xrstor_bndcsr(CPUX86State *env, target_ulong addr, uintptr_t ra)
     /* FIXME: Extend highest implemented bit of linear address.  */
     env->bndcs_regs.cfgu = cpu_ldq_data_ra(env, addr, ra);
     env->bndcs_regs.sts = cpu_ldq_data_ra(env, addr + 8, ra);
+}
+
+static void do_xrstor_pkru(CPUX86State *env, target_ulong addr, uintptr_t ra)
+{
+    env->pkru = cpu_ldq_data_ra(env, addr, ra);
 }
 
 void helper_fxrstor(CPUX86State *env, target_ulong ptr)
@@ -1437,6 +1446,19 @@ void helper_xrstor(CPUX86State *env, target_ulong ptr, uint64_t rfbm)
             memset(&env->bndcs_regs, 0, sizeof(env->bndcs_regs));
         }
         cpu_sync_bndcs_hflags(env);
+    }
+    if (rfbm & XSTATE_PKRU_MASK) {
+        uint64_t old_pkru = env->pkru;
+        if (xstate_bv & XSTATE_PKRU_MASK) {
+            target_ulong off = x86_ext_save_areas[XSTATE_PKRU_BIT].offset;
+            do_xrstor_pkru(env, ptr + off, ra);
+        } else {
+            env->pkru = 0;
+        }
+        if (env->pkru != old_pkru) {
+            CPUState *cs = CPU(x86_env_get_cpu(env));
+            tlb_flush(cs, 1);
+        }
     }
 }
 

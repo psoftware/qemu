@@ -26,7 +26,6 @@
 #include "qemu/osdep.h"
 #include <sys/wait.h>
 /*needed for MAP_POPULATE before including qemu-options.h */
-#include <sys/mman.h>
 #include <pwd.h>
 #include <grp.h>
 #include <libgen.h>
@@ -38,6 +37,7 @@
 #include "qemu/rcu.h"
 #include "qemu/error-report.h"
 #include "qemu/log.h"
+#include "qemu/cutils.h"
 
 #ifdef CONFIG_LINUX
 #include <sys/prctl.h>

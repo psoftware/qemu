@@ -24,6 +24,7 @@
 #include "hw/pci/msix.h"
 #include "net/net.h"
 #include "sysemu/sysemu.h"
+#include "sysemu/kvm.h"
 #include "qemu/iov.h"
 #include "qemu/range.h"
 
@@ -129,7 +130,7 @@ ptnet_host_notifier_init(PtNetState *s, EventNotifier *e, hwaddr ofs)
         printf("%s: host notifier initialization failed\n", __func__);
         return;
     }
-    event_notifier_set_handler(e, NULL);
+    event_notifier_set_handler(e, true, NULL);
     memory_region_add_eventfd(&s->io, ofs, 4, false, 0, e);
 
 }
@@ -153,7 +154,7 @@ ptnet_guest_notifier_init(PtNetState *s, EventNotifier *e, unsigned int vector)
         return;
     }
 
-    event_notifier_set_handler(e, NULL);
+    event_notifier_set_handler(e, false, NULL);
 
     msix_vector_use(PCI_DEVICE(s), vector);
 

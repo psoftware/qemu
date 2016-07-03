@@ -22,6 +22,7 @@
  */
 
 #include "qemu/osdep.h"
+#include "qapi/error.h"
 #include <libfdt.h>
 #include "qemu-common.h"
 #ifdef CONFIG_LINUX
@@ -240,7 +241,7 @@ static int add_calxeda_midway_xgmac_fdt_node(SysBusDevice *sbdev, void *opaque)
         mmio_base = platform_bus_get_mmio_addr(pbus, sbdev, i);
         reg_attr[2 * i] = cpu_to_be32(mmio_base);
         reg_attr[2 * i + 1] = cpu_to_be32(
-                                memory_region_size(&vdev->regions[i]->mem));
+                                memory_region_size(vdev->regions[i]->mem));
     }
     qemu_fdt_setprop(fdt, nodename, "reg", reg_attr,
                      vbasedev->num_regions * 2 * sizeof(uint32_t));
@@ -374,7 +375,7 @@ static int add_amd_xgbe_fdt_node(SysBusDevice *sbdev, void *opaque)
         mmio_base = platform_bus_get_mmio_addr(pbus, sbdev, i);
         reg_attr[2 * i] = cpu_to_be32(mmio_base);
         reg_attr[2 * i + 1] = cpu_to_be32(
-                                memory_region_size(&vdev->regions[i]->mem));
+                                memory_region_size(vdev->regions[i]->mem));
     }
     qemu_fdt_setprop(guest_fdt, nodename, "reg", reg_attr,
                      vbasedev->num_regions * 2 * sizeof(uint32_t));

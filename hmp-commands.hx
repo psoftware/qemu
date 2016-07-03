@@ -1008,7 +1008,7 @@ ETEXI
 
     {
         .name       = "migrate_set_parameter",
-        .args_type  = "parameter:s,value:i",
+        .args_type  = "parameter:s,value:s",
         .params     = "parameter value",
         .help       = "Set the parameter for migration",
         .mhandler.cmd = hmp_migrate_set_parameter,
@@ -1026,7 +1026,7 @@ ETEXI
         .args_type  = "",
         .params     = "",
         .help       = "Followup to a migration command to switch the migration"
-                      " to postcopy mode. The x-postcopy-ram capability must "
+                      " to postcopy mode. The postcopy-ram capability must "
                       "be set before the original migration command.",
         .mhandler.cmd = hmp_migrate_start_postcopy,
     },
@@ -1201,8 +1201,8 @@ ETEXI
 
     {
         .name       = "drive_add",
-        .args_type  = "pci_addr:s,opts:s",
-        .params     = "[[<domain>:]<bus>:]<slot>\n"
+        .args_type  = "node:-n,pci_addr:s,opts:s",
+        .params     = "[-n] [[<domain>:]<bus>:]<slot>\n"
                       "[file=file][,if=type][,bus=n]\n"
                       "[,unit=m][,media=d][,index=i]\n"
                       "[,cyls=c,heads=h,secs=s[,trans=t]]\n"

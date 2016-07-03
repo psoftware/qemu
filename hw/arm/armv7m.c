@@ -8,6 +8,9 @@
  */
 
 #include "qemu/osdep.h"
+#include "qapi/error.h"
+#include "qemu-common.h"
+#include "cpu.h"
 #include "hw/sysbus.h"
 #include "hw/arm/arm.h"
 #include "hw/loader.h"
@@ -129,14 +132,14 @@ typedef struct {
     uint32_t base;
 } BitBandState;
 
-static int bitband_init(SysBusDevice *dev)
+static void bitband_init(Object *obj)
 {
-    BitBandState *s = BITBAND(dev);
+    BitBandState *s = BITBAND(obj);
+    SysBusDevice *dev = SYS_BUS_DEVICE(obj);
 
-    memory_region_init_io(&s->iomem, OBJECT(s), &bitband_ops, &s->base,
+    memory_region_init_io(&s->iomem, obj, &bitband_ops, &s->base,
                           "bitband", 0x02000000);
     sysbus_init_mmio(dev, &s->iomem);
-    return 0;
 }
 
 static void armv7m_bitband_init(void)
@@ -211,7 +214,7 @@ DeviceState *armv7m_init(MemoryRegion *system_memory, int mem_size, int num_irq,
 
     if (kernel_filename) {
         image_size = load_elf(kernel_filename, NULL, NULL, &entry, &lowaddr,
-                              NULL, big_endian, EM_ARM, 1);
+                              NULL, big_endian, EM_ARM, 1, 0);
         if (image_size < 0) {
             image_size = load_image_targphys(kernel_filename, 0, mem_size);
             lowaddr = 0;
@@ -241,9 +244,7 @@ static Property bitband_properties[] = {
 static void bitband_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
-    SysBusDeviceClass *k = SYS_BUS_DEVICE_CLASS(klass);
 
-    k->init = bitband_init;
     dc->props = bitband_properties;
 }
 
@@ -251,6 +252,7 @@ static const TypeInfo bitband_info = {
     .name          = TYPE_BITBAND,
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(BitBandState),
+    .instance_init = bitband_init,
     .class_init    = bitband_class_init,
 };
 

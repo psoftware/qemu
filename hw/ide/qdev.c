@@ -19,6 +19,7 @@
 #include "qemu/osdep.h"
 #include <hw/hw.h>
 #include "sysemu/dma.h"
+#include "qapi/error.h"
 #include "qemu/error-report.h"
 #include <hw/ide/internal.h>
 #include "sysemu/block-backend.h"
@@ -232,9 +233,7 @@ static void ide_dev_set_bootindex(Object *obj, Visitor *v, const char *name,
                              d->unit ? "/disk@1" : "/disk@0");
     }
 out:
-    if (local_err) {
-        error_propagate(errp, local_err);
-    }
+    error_propagate(errp, local_err);
 }
 
 static void ide_dev_instance_init(Object *obj)

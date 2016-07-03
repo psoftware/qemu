@@ -72,7 +72,7 @@ void msix_set_pending(PCIDevice *dev, unsigned int vector)
     *msix_pending_byte(dev, vector) |= msix_pending_mask(vector);
 }
 
-static void msix_clr_pending(PCIDevice *dev, int vector)
+void msix_clr_pending(PCIDevice *dev, int vector)
 {
     *msix_pending_byte(dev, vector) &= ~msix_pending_mask(vector);
 }
@@ -249,7 +249,7 @@ int msix_init(struct PCIDevice *dev, unsigned short nentries,
     uint8_t *config;
 
     /* Nothing to do if MSI is not supported by interrupt controller */
-    if (!msi_supported) {
+    if (!msi_nonbroken) {
         return -ENOTSUP;
     }
 

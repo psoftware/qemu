@@ -9,6 +9,9 @@
  */
 
 #include "qemu/osdep.h"
+#include "qapi/error.h"
+#include "qemu-common.h"
+#include "cpu.h"
 #include "hw/arm/bcm2836.h"
 #include "hw/arm/raspi_platform.h"
 #include "hw/sysbus.h"
@@ -42,6 +45,8 @@ static void bcm2836_init(Object *obj)
                               &error_abort);
     object_property_add_alias(obj, "board-rev", OBJECT(&s->peripherals),
                               "board-rev", &error_abort);
+    object_property_add_alias(obj, "vcram-size", OBJECT(&s->peripherals),
+                              "vcram-size", &error_abort);
     qdev_set_parent_bus(DEVICE(&s->peripherals), sysbus_get_default());
 }
 
@@ -134,9 +139,13 @@ static void bcm2836_realize(DeviceState *dev, Error **errp)
 
         /* Connect timers from the CPU to the interrupt controller */
         qdev_connect_gpio_out(DEVICE(&s->cpus[n]), GTIMER_PHYS,
-                qdev_get_gpio_in_named(DEVICE(&s->control), "cntpsirq", n));
+                qdev_get_gpio_in_named(DEVICE(&s->control), "cntpnsirq", n));
         qdev_connect_gpio_out(DEVICE(&s->cpus[n]), GTIMER_VIRT,
                 qdev_get_gpio_in_named(DEVICE(&s->control), "cntvirq", n));
+        qdev_connect_gpio_out(DEVICE(&s->cpus[n]), GTIMER_HYP,
+                qdev_get_gpio_in_named(DEVICE(&s->control), "cnthpirq", n));
+        qdev_connect_gpio_out(DEVICE(&s->cpus[n]), GTIMER_SEC,
+                qdev_get_gpio_in_named(DEVICE(&s->control), "cntpsirq", n));
     }
 }
 

@@ -19,7 +19,6 @@
 #include "qemu-common.h"
 #include "hw/virtio/virtio.h"
 #include "hw/i386/pc.h"
-#include "cpu.h"
 #include "sysemu/balloon.h"
 #include "hw/virtio/virtio-balloon.h"
 #include "sysemu/kvm.h"
@@ -28,19 +27,17 @@
 #include "qapi-event.h"
 #include "trace.h"
 
-#if defined(__linux__)
-#include <sys/mman.h>
-#endif
-
 #include "hw/virtio/virtio-bus.h"
 #include "hw/virtio/virtio-access.h"
+
+#define BALLOON_PAGE_SIZE  (1 << VIRTIO_BALLOON_PFN_SHIFT)
 
 static void balloon_page(void *addr, int deflate)
 {
 #if defined(__linux__)
     if (!qemu_balloon_is_inhibited() && (!kvm_enabled() ||
                                          kvm_has_sync_mmu())) {
-        qemu_madvise(addr, TARGET_PAGE_SIZE,
+        qemu_madvise(addr, BALLOON_PAGE_SIZE,
                 deflate ? QEMU_MADV_WILLNEED : QEMU_MADV_DONTNEED);
     }
 #endif
@@ -53,6 +50,7 @@ static const char *balloon_stat_names[] = {
    [VIRTIO_BALLOON_S_MINFLT] = "stat-minor-faults",
    [VIRTIO_BALLOON_S_MEMFREE] = "stat-free-memory",
    [VIRTIO_BALLOON_S_MEMTOT] = "stat-total-memory",
+   [VIRTIO_BALLOON_S_AVAIL] = "stat-available-memory",
    [VIRTIO_BALLOON_S_NR] = NULL
 };
 
@@ -101,7 +99,7 @@ static void balloon_stats_poll_cb(void *opaque)
     VirtIOBalloon *s = opaque;
     VirtIODevice *vdev = VIRTIO_DEVICE(s);
 
-    if (!balloon_stats_supported(s)) {
+    if (s->stats_vq_elem == NULL || !balloon_stats_supported(s)) {
         /* re-schedule */
         balloon_stats_change_timer(s, s->stats_poll_interval);
         return;
@@ -136,17 +134,18 @@ static void balloon_stats_get_all(Object *obj, Visitor *v, const char *name,
     for (i = 0; i < VIRTIO_BALLOON_S_NR; i++) {
         visit_type_uint64(v, balloon_stat_names[i], &s->stats[i], &err);
         if (err) {
-            break;
+            goto out_nested;
         }
     }
-    error_propagate(errp, err);
-    err = NULL;
-    visit_end_struct(v, &err);
+    visit_check_struct(v, &err);
+out_nested:
+    visit_end_struct(v);
 
+    if (!err) {
+        visit_check_struct(v, &err);
+    }
 out_end:
-    error_propagate(errp, err);
-    err = NULL;
-    visit_end_struct(v, &err);
+    visit_end_struct(v);
 out:
     error_propagate(errp, err);
 }
@@ -258,10 +257,19 @@ static void virtio_balloon_receive_stats(VirtIODevice *vdev, VirtQueue *vq)
     size_t offset = 0;
     qemu_timeval tv;
 
-    s->stats_vq_elem = elem = virtqueue_pop(vq, sizeof(VirtQueueElement));
+    elem = virtqueue_pop(vq, sizeof(VirtQueueElement));
     if (!elem) {
         goto out;
     }
+
+    if (s->stats_vq_elem != NULL) {
+        /* This should never happen if the driver follows the spec. */
+        virtqueue_push(vq, s->stats_vq_elem, 0);
+        virtio_notify(vdev, vq);
+        g_free(s->stats_vq_elem);
+    }
+
+    s->stats_vq_elem = elem;
 
     /* Initialize the stats to get rid of any stale values.  This is only
      * needed to handle the case where a guest supports fewer stats than it
@@ -416,6 +424,10 @@ static int virtio_balloon_load_device(VirtIODevice *vdev, QEMUFile *f,
 
     s->num_pages = qemu_get_be32(f);
     s->actual = qemu_get_be32(f);
+
+    if (balloon_stats_enabled(s)) {
+        balloon_stats_change_timer(s, s->stats_poll_interval);
+    }
     return 0;
 }
 
@@ -458,6 +470,16 @@ static void virtio_balloon_device_unrealize(DeviceState *dev, Error **errp)
     virtio_cleanup(vdev);
 }
 
+static void virtio_balloon_device_reset(VirtIODevice *vdev)
+{
+    VirtIOBalloon *s = VIRTIO_BALLOON(vdev);
+
+    if (s->stats_vq_elem != NULL) {
+        g_free(s->stats_vq_elem);
+        s->stats_vq_elem = NULL;
+    }
+}
+
 static void virtio_balloon_instance_init(Object *obj)
 {
     VirtIOBalloon *s = VIRTIO_BALLOON(obj);
@@ -486,6 +508,7 @@ static void virtio_balloon_class_init(ObjectClass *klass, void *data)
     set_bit(DEVICE_CATEGORY_MISC, dc->categories);
     vdc->realize = virtio_balloon_device_realize;
     vdc->unrealize = virtio_balloon_device_unrealize;
+    vdc->reset = virtio_balloon_device_reset;
     vdc->get_config = virtio_balloon_get_config;
     vdc->set_config = virtio_balloon_set_config;
     vdc->get_features = virtio_balloon_get_features;

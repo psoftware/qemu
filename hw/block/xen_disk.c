@@ -21,7 +21,6 @@
 
 #include "qemu/osdep.h"
 #include <sys/ioctl.h>
-#include <sys/mman.h>
 #include <sys/uio.h>
 
 #include "hw/hw.h"
@@ -29,6 +28,7 @@
 #include "xen_blkif.h"
 #include "sysemu/blockdev.h"
 #include "sysemu/block-backend.h"
+#include "qapi/error.h"
 #include "qapi/qmp/qdict.h"
 #include "qapi/qmp/qstring.h"
 
@@ -553,9 +553,8 @@ static int ioreq_runio_qemu_aio(struct ioreq *ioreq)
         block_acct_start(blk_get_stats(blkdev->blk), &ioreq->acct,
                          ioreq->v.size, BLOCK_ACCT_READ);
         ioreq->aio_inflight++;
-        blk_aio_readv(blkdev->blk, ioreq->start / BLOCK_SIZE,
-                      &ioreq->v, ioreq->v.size / BLOCK_SIZE,
-                      qemu_aio_complete, ioreq);
+        blk_aio_preadv(blkdev->blk, ioreq->start, &ioreq->v, 0,
+                       qemu_aio_complete, ioreq);
         break;
     case BLKIF_OP_WRITE:
     case BLKIF_OP_FLUSH_DISKCACHE:
@@ -568,9 +567,8 @@ static int ioreq_runio_qemu_aio(struct ioreq *ioreq)
                          ioreq->req.operation == BLKIF_OP_WRITE ?
                          BLOCK_ACCT_WRITE : BLOCK_ACCT_FLUSH);
         ioreq->aio_inflight++;
-        blk_aio_writev(blkdev->blk, ioreq->start / BLOCK_SIZE,
-                       &ioreq->v, ioreq->v.size / BLOCK_SIZE,
-                       qemu_aio_complete, ioreq);
+        blk_aio_pwritev(blkdev->blk, ioreq->start, &ioreq->v, 0,
+                        qemu_aio_complete, ioreq);
         break;
     case BLKIF_OP_DISCARD:
     {
@@ -680,6 +678,8 @@ static int blk_get_request(struct XenBlkDev *blkdev, struct ioreq *ioreq, RING_I
                              RING_GET_REQUEST(&blkdev->rings.x86_64_part, rc));
         break;
     }
+    /* Prevent the compiler from accessing the on-ring fields instead. */
+    barrier();
     return 0;
 }
 
@@ -888,12 +888,14 @@ static int blk_connect(struct XenDevice *xendev)
     struct XenBlkDev *blkdev = container_of(xendev, struct XenBlkDev, xendev);
     int pers, index, qflags;
     bool readonly = true;
+    bool writethrough = true;
 
     /* read-only ? */
     if (blkdev->directiosafe) {
         qflags = BDRV_O_NOCACHE | BDRV_O_NATIVE_AIO;
     } else {
-        qflags = BDRV_O_CACHE_WB;
+        qflags = 0;
+        writethrough = false;
     }
     if (strcmp(blkdev->mode, "w") == 0) {
         qflags |= BDRV_O_RDWR;
@@ -917,7 +919,7 @@ static int blk_connect(struct XenDevice *xendev)
 
         /* setup via xenbus -> create new block driver instance */
         xen_be_printf(&blkdev->xendev, 2, "create new bdrv (xenbus setup)\n");
-        blkdev->blk = blk_new_open(blkdev->dev, blkdev->filename, NULL, options,
+        blkdev->blk = blk_new_open(blkdev->filename, NULL, options,
                                    qflags, &local_err);
         if (!blkdev->blk) {
             xen_be_printf(&blkdev->xendev, 0, "error: %s\n",
@@ -925,6 +927,7 @@ static int blk_connect(struct XenDevice *xendev)
             error_free(local_err);
             return -1;
         }
+        blk_set_enable_write_cache(blkdev->blk, !writethrough);
     } else {
         /* setup via qemu cmdline -> already setup for us */
         xen_be_printf(&blkdev->xendev, 2, "get configured bdrv (cmdline setup)\n");

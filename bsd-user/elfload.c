@@ -1,10 +1,10 @@
 /* This is the Linux kernel elf-loading code, ported into user space */
 
 #include "qemu/osdep.h"
-#include <sys/mman.h>
 
 #include "qemu.h"
 #include "disas/disas.h"
+#include "qemu/path.h"
 
 #ifdef _ARCH_PPC64
 #undef ARCH_DLINFO

@@ -22,6 +22,7 @@
  * THE SOFTWARE.
  */
 #include "qemu/osdep.h"
+#include "qapi/error.h"
 #include "qemu-common.h"
 #include "qemu/error-report.h"
 #include "block/block_int.h"
@@ -29,15 +30,22 @@
 #include "qapi/qmp/qstring.h"
 #include "crypto/secret.h"
 #include <curl/curl.h>
+#include "qemu/cutils.h"
 
 // #define DEBUG_CURL
 // #define DEBUG_VERBOSE
 
 #ifdef DEBUG_CURL
-#define DPRINTF(fmt, ...) do { printf(fmt, ## __VA_ARGS__); } while (0)
+#define DEBUG_CURL_PRINT 1
 #else
-#define DPRINTF(fmt, ...) do { } while (0)
+#define DEBUG_CURL_PRINT 0
 #endif
+#define DPRINTF(fmt, ...)                                            \
+    do {                                                             \
+        if (DEBUG_CURL_PRINT) {                                      \
+            fprintf(stderr, fmt, ## __VA_ARGS__);                    \
+        }                                                            \
+    } while (0)
 
 #if LIBCURL_VERSION_NUM >= 0x071000
 /* The multi interface timer callback was introduced in 7.16.0 */

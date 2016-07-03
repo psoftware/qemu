@@ -11,9 +11,9 @@
  */
 
 #include "qemu/osdep.h"
-#include <glib.h>
 
 #include "qemu-common.h"
+#include "qapi/error.h"
 #include "qapi/qmp-input-visitor.h"
 #include "test-qapi-types.h"
 #include "test-qapi-visit.h"
@@ -50,7 +50,7 @@ static Visitor *visitor_input_test_init_internal(TestInputVisitorData *data,
     data->obj = qobject_from_jsonv(json_string, ap);
     g_assert(data->obj);
 
-    data->qiv = qmp_input_visitor_new(data->obj);
+    data->qiv = qmp_input_visitor_new(data->obj, false);
     g_assert(data->qiv);
 
     v = qmp_input_get_visitor(data->qiv);
@@ -278,6 +278,34 @@ static void test_visitor_in_any(TestInputVisitorData *data,
     qobject_decref(res);
 }
 
+static void test_visitor_in_null(TestInputVisitorData *data,
+                                 const void *unused)
+{
+    Visitor *v;
+    Error *err = NULL;
+    char *tmp;
+
+    /*
+     * FIXME: Since QAPI doesn't know the 'null' type yet, we can't
+     * test visit_type_null() by reading into a QAPI struct then
+     * checking that it was populated correctly.  The best we can do
+     * for now is ensure that we consumed null from the input, proven
+     * by the fact that we can't re-read the key; and that we detect
+     * when input is not null.
+     */
+
+    v = visitor_input_test_init(data, "{ 'a': null, 'b': '' }");
+    visit_start_struct(v, NULL, NULL, 0, &error_abort);
+    visit_type_null(v, "a", &error_abort);
+    visit_type_str(v, "a", &tmp, &err);
+    g_assert(!tmp);
+    error_free_or_abort(&err);
+    visit_type_null(v, "b", &err);
+    error_free_or_abort(&err);
+    visit_check_struct(v, &error_abort);
+    visit_end_struct(v);
+}
+
 static void test_visitor_in_union_flat(TestInputVisitorData *data,
                                        const void *unused)
 {
@@ -477,63 +505,64 @@ static void test_native_list_integer_helper(TestInputVisitorData *data,
     switch (kind) {
     case USER_DEF_NATIVE_LIST_UNION_KIND_INTEGER: {
         intList *elem = NULL;
-        for (i = 0, elem = cvalue->u.integer; elem; elem = elem->next, i++) {
+        for (i = 0, elem = cvalue->u.integer.data;
+             elem; elem = elem->next, i++) {
             g_assert_cmpint(elem->value, ==, i);
         }
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_S8: {
         int8List *elem = NULL;
-        for (i = 0, elem = cvalue->u.s8; elem; elem = elem->next, i++) {
+        for (i = 0, elem = cvalue->u.s8.data; elem; elem = elem->next, i++) {
             g_assert_cmpint(elem->value, ==, i);
         }
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_S16: {
         int16List *elem = NULL;
-        for (i = 0, elem = cvalue->u.s16; elem; elem = elem->next, i++) {
+        for (i = 0, elem = cvalue->u.s16.data; elem; elem = elem->next, i++) {
             g_assert_cmpint(elem->value, ==, i);
         }
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_S32: {
         int32List *elem = NULL;
-        for (i = 0, elem = cvalue->u.s32; elem; elem = elem->next, i++) {
+        for (i = 0, elem = cvalue->u.s32.data; elem; elem = elem->next, i++) {
             g_assert_cmpint(elem->value, ==, i);
         }
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_S64: {
         int64List *elem = NULL;
-        for (i = 0, elem = cvalue->u.s64; elem; elem = elem->next, i++) {
+        for (i = 0, elem = cvalue->u.s64.data; elem; elem = elem->next, i++) {
             g_assert_cmpint(elem->value, ==, i);
         }
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_U8: {
         uint8List *elem = NULL;
-        for (i = 0, elem = cvalue->u.u8; elem; elem = elem->next, i++) {
+        for (i = 0, elem = cvalue->u.u8.data; elem; elem = elem->next, i++) {
             g_assert_cmpint(elem->value, ==, i);
         }
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_U16: {
         uint16List *elem = NULL;
-        for (i = 0, elem = cvalue->u.u16; elem; elem = elem->next, i++) {
+        for (i = 0, elem = cvalue->u.u16.data; elem; elem = elem->next, i++) {
             g_assert_cmpint(elem->value, ==, i);
         }
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_U32: {
         uint32List *elem = NULL;
-        for (i = 0, elem = cvalue->u.u32; elem; elem = elem->next, i++) {
+        for (i = 0, elem = cvalue->u.u32.data; elem; elem = elem->next, i++) {
             g_assert_cmpint(elem->value, ==, i);
         }
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_U64: {
         uint64List *elem = NULL;
-        for (i = 0, elem = cvalue->u.u64; elem; elem = elem->next, i++) {
+        for (i = 0, elem = cvalue->u.u64.data; elem; elem = elem->next, i++) {
             g_assert_cmpint(elem->value, ==, i);
         }
         break;
@@ -635,7 +664,7 @@ static void test_visitor_in_native_list_bool(TestInputVisitorData *data,
     g_assert(cvalue != NULL);
     g_assert_cmpint(cvalue->type, ==, USER_DEF_NATIVE_LIST_UNION_KIND_BOOLEAN);
 
-    for (i = 0, elem = cvalue->u.boolean; elem; elem = elem->next, i++) {
+    for (i = 0, elem = cvalue->u.boolean.data; elem; elem = elem->next, i++) {
         g_assert_cmpint(elem->value, ==, (i % 3 == 0) ? 1 : 0);
     }
 
@@ -668,7 +697,7 @@ static void test_visitor_in_native_list_string(TestInputVisitorData *data,
     g_assert(cvalue != NULL);
     g_assert_cmpint(cvalue->type, ==, USER_DEF_NATIVE_LIST_UNION_KIND_STRING);
 
-    for (i = 0, elem = cvalue->u.string; elem; elem = elem->next, i++) {
+    for (i = 0, elem = cvalue->u.string.data; elem; elem = elem->next, i++) {
         gchar str[8];
         sprintf(str, "%d", i);
         g_assert_cmpstr(elem->value, ==, str);
@@ -705,7 +734,7 @@ static void test_visitor_in_native_list_number(TestInputVisitorData *data,
     g_assert(cvalue != NULL);
     g_assert_cmpint(cvalue->type, ==, USER_DEF_NATIVE_LIST_UNION_KIND_NUMBER);
 
-    for (i = 0, elem = cvalue->u.number; elem; elem = elem->next, i++) {
+    for (i = 0, elem = cvalue->u.number.data; elem; elem = elem->next, i++) {
         GString *double_expected = g_string_new("");
         GString *double_actual = g_string_new("");
 
@@ -737,24 +766,30 @@ static void test_visitor_in_errors(TestInputVisitorData *data,
     Error *err = NULL;
     Visitor *v;
     strList *q = NULL;
+    UserDefTwo *r = NULL;
+    WrapAlternate *s = NULL;
 
     v = visitor_input_test_init(data, "{ 'integer': false, 'boolean': 'foo', "
                                 "'string': -42 }");
 
     visit_type_TestStruct(v, NULL, &p, &err);
     error_free_or_abort(&err);
-    /* FIXME - a failed parse should not leave a partially-allocated p
-     * for us to clean up; this could cause callers to leak memory. */
-    g_assert(p->string == NULL);
-
-    g_free(p->string);
-    g_free(p);
+    g_assert(!p);
 
     v = visitor_input_test_init(data, "[ '1', '2', false, '3' ]");
     visit_type_strList(v, NULL, &q, &err);
     error_free_or_abort(&err);
-    assert(q);
-    qapi_free_strList(q);
+    assert(!q);
+
+    v = visitor_input_test_init(data, "{ 'str':'hi' }");
+    visit_type_UserDefTwo(v, NULL, &r, &err);
+    error_free_or_abort(&err);
+    assert(!r);
+
+    v = visitor_input_test_init(data, "{ }");
+    visit_type_WrapAlternate(v, NULL, &s, &err);
+    error_free_or_abort(&err);
+    assert(!s);
 }
 
 static void test_visitor_in_wrong_type(TestInputVisitorData *data,
@@ -827,6 +862,8 @@ int main(int argc, char **argv)
                            &in_visitor_data, test_visitor_in_list);
     input_visitor_test_add("/visitor/input/any",
                            &in_visitor_data, test_visitor_in_any);
+    input_visitor_test_add("/visitor/input/null",
+                           &in_visitor_data, test_visitor_in_null);
     input_visitor_test_add("/visitor/input/union-flat",
                            &in_visitor_data, test_visitor_in_union_flat);
     input_visitor_test_add("/visitor/input/alternate",

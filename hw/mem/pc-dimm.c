@@ -20,6 +20,7 @@
 
 #include "qemu/osdep.h"
 #include "hw/mem/pc-dimm.h"
+#include "qapi/error.h"
 #include "qemu/config-file.h"
 #include "qapi/visitor.h"
 #include "qemu/range.h"
@@ -39,6 +40,8 @@ void pc_dimm_memory_plug(DeviceState *dev, MemoryHotplugState *hpms,
     int slot;
     MachineState *machine = MACHINE(qdev_get_machine());
     PCDIMMDevice *dimm = PC_DIMM(dev);
+    PCDIMMDeviceClass *ddc = PC_DIMM_GET_CLASS(dimm);
+    MemoryRegion *vmstate_mr = ddc->get_vmstate_memory_region(dimm);
     Error *local_err = NULL;
     uint64_t existing_dimms_capacity = 0;
     uint64_t addr;
@@ -104,7 +107,7 @@ void pc_dimm_memory_plug(DeviceState *dev, MemoryHotplugState *hpms,
     }
 
     memory_region_add_subregion(&hpms->mr, addr - hpms->base, mr);
-    vmstate_register_ram(mr, dev);
+    vmstate_register_ram(vmstate_mr, dev);
     numa_set_mem_node_id(addr, memory_region_size(mr), dimm->node);
 
 out:
@@ -115,10 +118,12 @@ void pc_dimm_memory_unplug(DeviceState *dev, MemoryHotplugState *hpms,
                            MemoryRegion *mr)
 {
     PCDIMMDevice *dimm = PC_DIMM(dev);
+    PCDIMMDeviceClass *ddc = PC_DIMM_GET_CLASS(dimm);
+    MemoryRegion *vmstate_mr = ddc->get_vmstate_memory_region(dimm);
 
     numa_unset_mem_node_id(dimm->addr, memory_region_size(mr), dimm->node);
     memory_region_del_subregion(&hpms->mr, mr);
-    vmstate_unregister_ram(mr, dev);
+    vmstate_unregister_ram(vmstate_mr, dev);
 }
 
 static int pc_existing_dimms_capacity_internal(Object *obj, void *opaque)
@@ -180,7 +185,7 @@ int qmp_pc_dimm_device_list(Object *obj, void *opaque)
                                                NULL);
             di->memdev = object_get_canonical_path(OBJECT(dimm->hostmem));
 
-            info->u.dimm = di;
+            info->u.dimm.data = di;
             elem->value = info;
             elem->next = NULL;
             **prev = elem;
@@ -353,8 +358,9 @@ static void pc_dimm_get_size(Object *obj, Visitor *v, const char *name,
     int64_t value;
     MemoryRegion *mr;
     PCDIMMDevice *dimm = PC_DIMM(obj);
+    PCDIMMDeviceClass *ddc = PC_DIMM_GET_CLASS(obj);
 
-    mr = host_memory_backend_get_memory(dimm->hostmem, errp);
+    mr = ddc->get_memory_region(dimm);
     value = memory_region_size(mr);
 
     visit_type_int(v, name, &value, errp);
@@ -364,15 +370,22 @@ static void pc_dimm_check_memdev_is_busy(Object *obj, const char *name,
                                       Object *val, Error **errp)
 {
     MemoryRegion *mr;
+    Error *local_err = NULL;
 
-    mr = host_memory_backend_get_memory(MEMORY_BACKEND(val), errp);
+    mr = host_memory_backend_get_memory(MEMORY_BACKEND(val), &local_err);
+    if (local_err) {
+        goto out;
+    }
     if (memory_region_is_mapped(mr)) {
         char *path = object_get_canonical_path_component(val);
-        error_setg(errp, "can't use already busy memdev: %s", path);
+        error_setg(&local_err, "can't use already busy memdev: %s", path);
         g_free(path);
     } else {
-        qdev_prop_allow_set_link_before_realize(obj, name, val, errp);
+        qdev_prop_allow_set_link_before_realize(obj, name, val, &local_err);
     }
+
+out:
+    error_propagate(errp, local_err);
 }
 
 static void pc_dimm_init(Object *obj)
@@ -391,6 +404,7 @@ static void pc_dimm_init(Object *obj)
 static void pc_dimm_realize(DeviceState *dev, Error **errp)
 {
     PCDIMMDevice *dimm = PC_DIMM(dev);
+    PCDIMMDeviceClass *ddc = PC_DIMM_GET_CLASS(dimm);
 
     if (!dimm->hostmem) {
         error_setg(errp, "'" PC_DIMM_MEMDEV_PROP "' property is not set");
@@ -403,9 +417,18 @@ static void pc_dimm_realize(DeviceState *dev, Error **errp)
                    dimm->node, nb_numa_nodes ? nb_numa_nodes : 1);
         return;
     }
+
+    if (ddc->realize) {
+        ddc->realize(dimm, errp);
+    }
 }
 
 static MemoryRegion *pc_dimm_get_memory_region(PCDIMMDevice *dimm)
+{
+    return host_memory_backend_get_memory(dimm->hostmem, &error_abort);
+}
+
+static MemoryRegion *pc_dimm_get_vmstate_memory_region(PCDIMMDevice *dimm)
 {
     return host_memory_backend_get_memory(dimm->hostmem, &error_abort);
 }
@@ -420,6 +443,7 @@ static void pc_dimm_class_init(ObjectClass *oc, void *data)
     dc->desc = "DIMM memory module";
 
     ddc->get_memory_region = pc_dimm_get_memory_region;
+    ddc->get_vmstate_memory_region = pc_dimm_get_vmstate_memory_region;
 }
 
 static TypeInfo pc_dimm_info = {

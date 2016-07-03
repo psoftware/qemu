@@ -30,6 +30,7 @@
 #include "qemu/osdep.h"
 #include "hw/hw.h"
 #include "hw/block/fdc.h"
+#include "qapi/error.h"
 #include "qemu/error-report.h"
 #include "qemu/timer.h"
 #include "hw/isa/isa.h"
@@ -220,6 +221,13 @@ static int fd_sector(FDrive *drv)
 {
     return fd_sector_calc(drv->head, drv->track, drv->sect, drv->last_sect,
                           NUM_SIDES(drv));
+}
+
+/* Returns current position, in bytes, for given drive */
+static int fd_offset(FDrive *drv)
+{
+    g_assert(fd_sector(drv) < INT_MAX >> BDRV_SECTOR_BITS);
+    return fd_sector(drv) << BDRV_SECTOR_BITS;
 }
 
 /* Seek to a new position:
@@ -1628,8 +1636,8 @@ static int fdctrl_transfer_handler (void *opaque, int nchan,
         if (fdctrl->data_dir != FD_DIR_WRITE ||
             len < FD_SECTOR_LEN || rel_pos != 0) {
             /* READ & SCAN commands and realign to a sector for WRITE */
-            if (blk_read(cur_drv->blk, fd_sector(cur_drv),
-                         fdctrl->fifo, 1) < 0) {
+            if (blk_pread(cur_drv->blk, fd_offset(cur_drv),
+                          fdctrl->fifo, BDRV_SECTOR_SIZE) < 0) {
                 FLOPPY_DPRINTF("Floppy: error getting sector %d\n",
                                fd_sector(cur_drv));
                 /* Sure, image size is too small... */
@@ -1656,8 +1664,8 @@ static int fdctrl_transfer_handler (void *opaque, int nchan,
 
             k->read_memory(fdctrl->dma, nchan, fdctrl->fifo + rel_pos,
                            fdctrl->data_pos, len);
-            if (blk_write(cur_drv->blk, fd_sector(cur_drv),
-                          fdctrl->fifo, 1) < 0) {
+            if (blk_pwrite(cur_drv->blk, fd_offset(cur_drv),
+                           fdctrl->fifo, BDRV_SECTOR_SIZE, 0) < 0) {
                 FLOPPY_DPRINTF("error writing sector %d\n",
                                fd_sector(cur_drv));
                 fdctrl_stop_transfer(fdctrl, FD_SR0_ABNTERM | FD_SR0_SEEK, 0x00, 0x00);
@@ -1740,7 +1748,8 @@ static uint32_t fdctrl_read_data(FDCtrl *fdctrl)
                                    fd_sector(cur_drv));
                     return 0;
                 }
-            if (blk_read(cur_drv->blk, fd_sector(cur_drv), fdctrl->fifo, 1)
+            if (blk_pread(cur_drv->blk, fd_offset(cur_drv), fdctrl->fifo,
+                          BDRV_SECTOR_SIZE)
                 < 0) {
                 FLOPPY_DPRINTF("error getting sector %d\n",
                                fd_sector(cur_drv));
@@ -1819,7 +1828,8 @@ static void fdctrl_format_sector(FDCtrl *fdctrl)
     }
     memset(fdctrl->fifo, 0, FD_SECTOR_LEN);
     if (cur_drv->blk == NULL ||
-        blk_write(cur_drv->blk, fd_sector(cur_drv), fdctrl->fifo, 1) < 0) {
+        blk_pwrite(cur_drv->blk, fd_offset(cur_drv), fdctrl->fifo,
+                   BDRV_SECTOR_SIZE, 0) < 0) {
         FLOPPY_DPRINTF("error formatting sector %d\n", fd_sector(cur_drv));
         fdctrl_stop_transfer(fdctrl, FD_SR0_ABNTERM | FD_SR0_SEEK, 0x00, 0x00);
     } else {
@@ -1938,8 +1948,8 @@ static void fdctrl_handle_readid(FDCtrl *fdctrl, int direction)
     FDrive *cur_drv = get_cur_drv(fdctrl);
 
     cur_drv->head = (fdctrl->fifo[1] >> 2) & 1;
-    timer_mod(fdctrl->result_timer,
-                   qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) + (get_ticks_per_sec() / 50));
+    timer_mod(fdctrl->result_timer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) +
+             (NANOSECONDS_PER_SECOND / 50));
 }
 
 static void fdctrl_handle_format_track(FDCtrl *fdctrl, int direction)
@@ -2242,8 +2252,8 @@ static void fdctrl_write_data(FDCtrl *fdctrl, uint32_t value)
         if (pos == FD_SECTOR_LEN - 1 ||
             fdctrl->data_pos == fdctrl->data_len) {
             cur_drv = get_cur_drv(fdctrl);
-            if (blk_write(cur_drv->blk, fd_sector(cur_drv), fdctrl->fifo, 1)
-                < 0) {
+            if (blk_pwrite(cur_drv->blk, fd_offset(cur_drv), fdctrl->fifo,
+                           BDRV_SECTOR_SIZE, 0) < 0) {
                 FLOPPY_DPRINTF("error writing sector %d\n",
                                fd_sector(cur_drv));
                 break;
@@ -2555,6 +2565,29 @@ FloppyDriveType isa_fdc_get_drive_type(ISADevice *fdc, int i)
     FDCtrlISABus *isa = ISA_FDC(fdc);
 
     return isa->state.drives[i].drive;
+}
+
+void isa_fdc_get_drive_max_chs(FloppyDriveType type,
+                               uint8_t *maxc, uint8_t *maxh, uint8_t *maxs)
+{
+    const FDFormat *fdf;
+
+    *maxc = *maxh = *maxs = 0;
+    for (fdf = fd_formats; fdf->drive != FLOPPY_DRIVE_TYPE_NONE; fdf++) {
+        if (fdf->drive != type) {
+            continue;
+        }
+        if (*maxc < fdf->max_track) {
+            *maxc = fdf->max_track;
+        }
+        if (*maxh < fdf->max_head) {
+            *maxh = fdf->max_head;
+        }
+        if (*maxs < fdf->last_sect) {
+            *maxs = fdf->last_sect;
+        }
+    }
+    (*maxc)--;
 }
 
 static const VMStateDescription vmstate_isa_fdc ={

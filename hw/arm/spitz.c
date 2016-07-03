@@ -11,6 +11,7 @@
  */
 
 #include "qemu/osdep.h"
+#include "qapi/error.h"
 #include "hw/hw.h"
 #include "hw/arm/pxa.h"
 #include "hw/arm/arm.h"
@@ -163,9 +164,10 @@ static void sl_flash_register(PXA2xxState *cpu, int size)
     sysbus_mmio_map(SYS_BUS_DEVICE(dev), 0, FLASH_BASE);
 }
 
-static int sl_nand_init(SysBusDevice *dev)
+static void sl_nand_init(Object *obj)
 {
-    SLNANDState *s = SL_NAND(dev);
+    SLNANDState *s = SL_NAND(obj);
+    SysBusDevice *dev = SYS_BUS_DEVICE(obj);
     DriveInfo *nand;
 
     s->ctl = 0;
@@ -174,10 +176,8 @@ static int sl_nand_init(SysBusDevice *dev)
     s->nand = nand_init(nand ? blk_by_legacy_dinfo(nand) : NULL,
                         s->manf_id, s->chip_id);
 
-    memory_region_init_io(&s->iomem, OBJECT(s), &sl_ops, s, "sl", 0x40);
+    memory_region_init_io(&s->iomem, obj, &sl_ops, s, "sl", 0x40);
     sysbus_init_mmio(dev, &s->iomem);
-
-    return 0;
 }
 
 /* Spitz Keyboard */
@@ -404,7 +404,7 @@ static void spitz_keyboard_tick(void *opaque)
     }
 
     timer_mod(s->kbdtimer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) +
-                   get_ticks_per_sec() / 32);
+                   NANOSECONDS_PER_SECOND / 32);
 }
 
 static void spitz_keyboard_pre_map(SpitzKeyboardState *s)
@@ -500,10 +500,10 @@ static void spitz_keyboard_register(PXA2xxState *cpu)
     qemu_add_kbd_event_handler(spitz_keyboard_handler, s);
 }
 
-static int spitz_keyboard_init(SysBusDevice *sbd)
+static void spitz_keyboard_init(Object *obj)
 {
-    DeviceState *dev = DEVICE(sbd);
-    SpitzKeyboardState *s = SPITZ_KEYBOARD(dev);
+    DeviceState *dev = DEVICE(obj);
+    SpitzKeyboardState *s = SPITZ_KEYBOARD(obj);
     int i, j;
 
     for (i = 0; i < 0x80; i ++)
@@ -518,8 +518,6 @@ static int spitz_keyboard_init(SysBusDevice *sbd)
     s->kbdtimer = timer_new_ns(QEMU_CLOCK_VIRTUAL, spitz_keyboard_tick, s);
     qdev_init_gpio_in(dev, spitz_keyboard_strobe, SPITZ_KEY_STROBE_NUM);
     qdev_init_gpio_out(dev, s->sense, SPITZ_KEY_SENSE_NUM);
-
-    return 0;
 }
 
 /* LCD backlight controller */
@@ -1037,7 +1035,7 @@ static void spitz_machine_init(void)
     type_register_static(&terrierpda_type);
 }
 
-machine_init(spitz_machine_init)
+type_init(spitz_machine_init)
 
 static bool is_version_0(void *opaque, int version_id)
 {
@@ -1064,9 +1062,7 @@ static Property sl_nand_properties[] = {
 static void sl_nand_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
-    SysBusDeviceClass *k = SYS_BUS_DEVICE_CLASS(klass);
 
-    k->init = sl_nand_init;
     dc->vmsd = &vmstate_sl_nand_info;
     dc->props = sl_nand_properties;
     /* Reason: init() method uses drive_get() */
@@ -1077,6 +1073,7 @@ static const TypeInfo sl_nand_info = {
     .name          = TYPE_SL_NAND,
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(SLNANDState),
+    .instance_init = sl_nand_init,
     .class_init    = sl_nand_class_init,
 };
 
@@ -1096,9 +1093,7 @@ static VMStateDescription vmstate_spitz_kbd = {
 static void spitz_keyboard_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
-    SysBusDeviceClass *k = SYS_BUS_DEVICE_CLASS(klass);
 
-    k->init = spitz_keyboard_init;
     dc->vmsd = &vmstate_spitz_kbd;
 }
 
@@ -1106,6 +1101,7 @@ static const TypeInfo spitz_keyboard_info = {
     .name          = TYPE_SPITZ_KEYBOARD,
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(SpitzKeyboardState),
+    .instance_init = spitz_keyboard_init,
     .class_init    = spitz_keyboard_class_init,
 };
 

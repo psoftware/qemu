@@ -10,6 +10,8 @@
  * See the COPYING file in the top-level directory.
  */
 #include "qemu/osdep.h"
+#include "qemu-common.h"
+#include "cpu.h"
 #include "hw/i386/apic_internal.h"
 #include "hw/pci/msi.h"
 #include "sysemu/kvm.h"
@@ -186,7 +188,7 @@ static void kvm_apic_realize(DeviceState *dev, Error **errp)
                           APIC_SPACE_SIZE);
 
     if (kvm_has_gsi_routing()) {
-        msi_supported = true;
+        msi_nonbroken = true;
     }
 }
 

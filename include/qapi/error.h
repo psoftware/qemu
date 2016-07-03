@@ -118,11 +118,6 @@
 #include "qapi-types.h"
 
 /*
- * Opaque error object.
- */
-typedef struct Error Error;
-
-/*
  * Overall category of an error.
  * Based on the qapi type QapiErrorClass, but reproduced here for nicer
  * enum names.
@@ -139,7 +134,7 @@ typedef enum ErrorClass {
 /*
  * Get @err's human-readable error message.
  */
-const char *error_get_pretty(Error *err);
+const char *error_get_pretty(const Error *err);
 
 /*
  * Get @err's error class.

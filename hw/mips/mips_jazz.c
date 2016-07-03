@@ -45,6 +45,7 @@
 #include "exec/address-spaces.h"
 #include "sysemu/qtest.h"
 #include "qemu/error-report.h"
+#include "qemu/help_option.h"
 
 enum jazz_model_e
 {
@@ -200,8 +201,8 @@ static void mips_jazz_init(MachineState *machine,
     }
 
     /* Init CPU internal devices */
-    cpu_mips_irq_init_cpu(env);
-    cpu_mips_clock_init(env);
+    cpu_mips_irq_init_cpu(cpu);
+    cpu_mips_clock_init(cpu);
 
     /* Chipset */
     rc4030 = rc4030_init(&dmas, &rc4030_dma_mr);
@@ -387,4 +388,4 @@ static void mips_jazz_machine_init(void)
     type_register_static(&mips_pica61_type);
 }
 
-machine_init(mips_jazz_machine_init)
+type_init(mips_jazz_machine_init)

@@ -26,6 +26,7 @@
  */
 
 #include "qemu/osdep.h"
+#include "qapi/error.h"
 #include "qemu-common.h"
 #include "qemu/timer.h"
 #include "sysemu/sysemu.h"
@@ -34,11 +35,13 @@
 #include "qemu/iov.h"
 #include "sysemu/char.h"
 
-#include <sys/ioctl.h>
 #include <usbredirparser.h>
 #include <usbredirfilter.h>
 
 #include "hw/usb.h"
+
+/* ERROR is defined below. Remove any previous definition. */
+#undef ERROR
 
 #define MAX_ENDPOINTS 32
 #define NO_INTERFACE_INFO 255 /* Valid interface_count always <= 32 */
@@ -539,9 +542,9 @@ static void usbredir_handle_iso_data(USBRedirDevice *dev, USBPacket *p,
             start_iso.pkts_per_urb = 32;
         }
 
-        start_iso.no_urbs = (dev->endpoint[EP2I(ep)].bufpq_target_size +
-                             start_iso.pkts_per_urb - 1) /
-                            start_iso.pkts_per_urb;
+        start_iso.no_urbs = DIV_ROUND_UP(
+                                     dev->endpoint[EP2I(ep)].bufpq_target_size,
+                                     start_iso.pkts_per_urb);
         /* Output endpoints pre-fill only 1/2 of the packets, keeping the rest
            as overflow buffer. Also see the usbredir protocol documentation */
         if (!(ep & USB_DIR_IN)) {

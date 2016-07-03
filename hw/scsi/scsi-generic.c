@@ -12,6 +12,7 @@
  */
 
 #include "qemu/osdep.h"
+#include "qapi/error.h"
 #include "qemu-common.h"
 #include "qemu/error-report.h"
 #include "hw/scsi/scsi.h"
@@ -219,6 +220,18 @@ static void scsi_read_complete(void * opaque, int ret)
             r->buf[2] |= 0x80;
         } else  {
             r->buf[3] |= 0x80;
+        }
+    }
+    if (s->type == TYPE_DISK &&
+        r->req.cmd.buf[0] == INQUIRY &&
+        r->req.cmd.buf[2] == 0xb0) {
+        uint32_t max_xfer_len = blk_get_max_transfer_length(s->conf.blk);
+        if (max_xfer_len) {
+            stl_be_p(&r->buf[8], max_xfer_len);
+            /* Also take care of the opt xfer len. */
+            if (ldl_be_p(&r->buf[12]) > max_xfer_len) {
+                stl_be_p(&r->buf[12], max_xfer_len);
+            }
         }
     }
     scsi_req_data(&r->req, len);
@@ -566,10 +579,7 @@ const SCSIReqOps scsi_generic_req_ops = {
 static SCSIRequest *scsi_new_request(SCSIDevice *d, uint32_t tag, uint32_t lun,
                                      uint8_t *buf, void *hba_private)
 {
-    SCSIRequest *req;
-
-    req = scsi_req_alloc(&scsi_generic_req_ops, d, tag, lun, hba_private);
-    return req;
+    return scsi_req_alloc(&scsi_generic_req_ops, d, tag, lun, hba_private);
 }
 
 static Property scsi_generic_properties[] = {

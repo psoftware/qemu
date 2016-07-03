@@ -151,6 +151,8 @@ typedef struct sPAPRDRConnector {
     bool configured;
 
     bool awaiting_release;
+    bool signalled;
+    bool awaiting_allocation;
 
     /* device pointer, via link property */
     DeviceState *dev;
@@ -188,6 +190,7 @@ typedef struct sPAPRDRConnectorClass {
                    spapr_drc_detach_cb *detach_cb,
                    void *detach_cb_opaque, Error **errp);
     bool (*release_pending)(sPAPRDRConnector *drc);
+    void (*set_signalled)(sPAPRDRConnector *drc);
 } sPAPRDRConnectorClass;
 
 sPAPRDRConnector *spapr_dr_connector_new(Object *owner,

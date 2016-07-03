@@ -15,6 +15,7 @@
 #include "trace.h"
 #include "block/block_int.h"
 #include "block/blockjob.h"
+#include "qapi/error.h"
 #include "qapi/qmp/qerror.h"
 #include "qemu/ratelimit.h"
 #include "sysemu/block-backend.h"
@@ -38,7 +39,7 @@ typedef struct StreamBlockJob {
     char *backing_file_str;
 } StreamBlockJob;
 
-static int coroutine_fn stream_populate(BlockDriverState *bs,
+static int coroutine_fn stream_populate(BlockBackend *blk,
                                         int64_t sector_num, int nb_sectors,
                                         void *buf)
 {
@@ -51,7 +52,8 @@ static int coroutine_fn stream_populate(BlockDriverState *bs,
     qemu_iovec_init_external(&qiov, &iov, 1);
 
     /* Copy-on-read the unallocated clusters */
-    return bdrv_co_copy_on_readv(bs, sector_num, nb_sectors, &qiov);
+    return blk_co_preadv(blk, sector_num * BDRV_SECTOR_SIZE, qiov.size, &qiov,
+                         BDRV_REQ_COPY_ON_READ);
 }
 
 typedef struct {
@@ -63,6 +65,7 @@ static void stream_complete(BlockJob *job, void *opaque)
 {
     StreamBlockJob *s = container_of(job, StreamBlockJob, common);
     StreamCompleteData *data = opaque;
+    BlockDriverState *bs = blk_bs(job->blk);
     BlockDriverState *base = s->base;
 
     if (!block_job_is_cancelled(&s->common) && data->reached_end &&
@@ -74,8 +77,8 @@ static void stream_complete(BlockJob *job, void *opaque)
                 base_fmt = base->drv->format_name;
             }
         }
-        data->ret = bdrv_change_backing_file(job->bs, base_id, base_fmt);
-        bdrv_set_backing_hd(job->bs, base);
+        data->ret = bdrv_change_backing_file(bs, base_id, base_fmt);
+        bdrv_set_backing_hd(bs, base);
     }
 
     g_free(s->backing_file_str);
@@ -87,23 +90,24 @@ static void coroutine_fn stream_run(void *opaque)
 {
     StreamBlockJob *s = opaque;
     StreamCompleteData *data;
-    BlockDriverState *bs = s->common.bs;
+    BlockBackend *blk = s->common.blk;
+    BlockDriverState *bs = blk_bs(blk);
     BlockDriverState *base = s->base;
-    int64_t sector_num, end;
+    int64_t sector_num = 0;
+    int64_t end = -1;
     int error = 0;
     int ret = 0;
     int n = 0;
     void *buf;
 
     if (!bs->backing) {
-        block_job_completed(&s->common, 0);
-        return;
+        goto out;
     }
 
     s->common.len = bdrv_getlength(bs);
     if (s->common.len < 0) {
-        block_job_completed(&s->common, s->common.len);
-        return;
+        ret = s->common.len;
+        goto out;
     }
 
     end = s->common.len >> BDRV_SECTOR_BITS;
@@ -158,12 +162,11 @@ wait:
                     goto wait;
                 }
             }
-            ret = stream_populate(bs, sector_num, n, buf);
+            ret = stream_populate(blk, sector_num, n, buf);
         }
         if (ret < 0) {
             BlockErrorAction action =
-                block_job_error_action(&s->common, s->common.bs, s->on_error,
-                                       true, -ret);
+                block_job_error_action(&s->common, s->on_error, true, -ret);
             if (action == BLOCK_ERROR_ACTION_STOP) {
                 n = 0;
                 continue;
@@ -190,6 +193,7 @@ wait:
 
     qemu_vfree(buf);
 
+out:
     /* Modify backing chain and close BDSes in main loop */
     data = g_malloc(sizeof(*data));
     data->ret = ret;
@@ -221,13 +225,6 @@ void stream_start(BlockDriverState *bs, BlockDriverState *base,
                   void *opaque, Error **errp)
 {
     StreamBlockJob *s;
-
-    if ((on_error == BLOCKDEV_ON_ERROR_STOP ||
-         on_error == BLOCKDEV_ON_ERROR_ENOSPC) &&
-        (!bs->blk || !blk_iostatus_is_enabled(bs->blk))) {
-        error_setg(errp, QERR_INVALID_PARAMETER, "on-error");
-        return;
-    }
 
     s = block_job_create(&stream_job_driver, bs, speed, cb, opaque, errp);
     if (!s) {

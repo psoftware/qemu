@@ -33,6 +33,7 @@
 #include "sysemu/dma.h"
 #include "hw/block/block.h"
 #include "sysemu/block-backend.h"
+#include "qemu/cutils.h"
 
 #include <hw/ide/internal.h>
 
@@ -56,7 +57,6 @@ static const int smart_attributes[][12] = {
     { 190,  0x03, 0x00, 0x45, 0x45, 0x1f, 0x00, 0x1f, 0x1f, 0x00, 0x00, 0x32},
 };
 
-static int ide_handle_rw_error(IDEState *s, int error, int op);
 static void ide_dummy_transfer_stop(IDEState *s);
 
 static void padstr(char *str, const char *src, int len)
@@ -441,13 +441,14 @@ static void ide_issue_trim_cb(void *opaque, int ret)
     }
 }
 
-BlockAIOCB *ide_issue_trim(BlockBackend *blk,
-        int64_t sector_num, QEMUIOVector *qiov, int nb_sectors,
-        BlockCompletionFunc *cb, void *opaque)
+BlockAIOCB *ide_issue_trim(
+        int64_t offset, QEMUIOVector *qiov,
+        BlockCompletionFunc *cb, void *cb_opaque, void *opaque)
 {
+    BlockBackend *blk = opaque;
     TrimAIOCB *iocb;
 
-    iocb = blk_aio_get(&trim_aiocb_info, blk, cb, opaque);
+    iocb = blk_aio_get(&trim_aiocb_info, blk, cb, cb_opaque);
     iocb->blk = blk;
     iocb->bh = qemu_bh_new(ide_trim_bh_cb, iocb);
     iocb->ret = 0;
@@ -616,8 +617,8 @@ BlockAIOCB *ide_buffered_readv(IDEState *s, int64_t sector_num,
     req->iov.iov_len = iov->size;
     qemu_iovec_init_external(&req->qiov, &req->iov, 1);
 
-    aioreq = blk_aio_readv(s->blk, sector_num, &req->qiov, nb_sectors,
-                           ide_buffered_readv_cb, req);
+    aioreq = blk_aio_preadv(s->blk, sector_num << BDRV_SECTOR_BITS,
+                            &req->qiov, 0, ide_buffered_readv_cb, req);
 
     QLIST_INSERT_HEAD(&s->buffered_requests, req, list);
     return aioreq;
@@ -772,7 +773,7 @@ void ide_dma_error(IDEState *s)
     ide_set_irq(s->bus);
 }
 
-static int ide_handle_rw_error(IDEState *s, int error, int op)
+int ide_handle_rw_error(IDEState *s, int error, int op)
 {
     bool is_read = (op & IDE_RETRY_READ) != 0;
     BlockErrorAction action = blk_get_error_action(s->blk, is_read, error);
@@ -782,8 +783,10 @@ static int ide_handle_rw_error(IDEState *s, int error, int op)
         s->bus->error_status = op;
     } else if (action == BLOCK_ERROR_ACTION_REPORT) {
         block_acct_failed(blk_get_stats(s->blk), &s->acct);
-        if (op & IDE_RETRY_DMA) {
+        if (IS_IDE_RETRY_DMA(op)) {
             ide_dma_error(s);
+        } else if (IS_IDE_RETRY_ATAPI(op)) {
+            ide_atapi_io_error(s, -error);
         } else {
             ide_rw_error(s);
         }
@@ -797,20 +800,14 @@ static void ide_dma_cb(void *opaque, int ret)
     IDEState *s = opaque;
     int n;
     int64_t sector_num;
+    uint64_t offset;
     bool stay_active = false;
 
     if (ret == -ECANCELED) {
         return;
     }
     if (ret < 0) {
-        int op = IDE_RETRY_DMA;
-
-        if (s->dma_cmd == IDE_DMA_READ)
-            op |= IDE_RETRY_READ;
-        else if (s->dma_cmd == IDE_DMA_TRIM)
-            op |= IDE_RETRY_TRIM;
-
-        if (ide_handle_rw_error(s, -ret, op)) {
+        if (ide_handle_rw_error(s, -ret, ide_dma_cmd_to_retry(s->dma_cmd))) {
             return;
         }
     }
@@ -864,20 +861,24 @@ static void ide_dma_cb(void *opaque, int ret)
         return;
     }
 
+    offset = sector_num << BDRV_SECTOR_BITS;
     switch (s->dma_cmd) {
     case IDE_DMA_READ:
-        s->bus->dma->aiocb = dma_blk_read(s->blk, &s->sg, sector_num,
+        s->bus->dma->aiocb = dma_blk_read(s->blk, &s->sg, offset,
                                           ide_dma_cb, s);
         break;
     case IDE_DMA_WRITE:
-        s->bus->dma->aiocb = dma_blk_write(s->blk, &s->sg, sector_num,
+        s->bus->dma->aiocb = dma_blk_write(s->blk, &s->sg, offset,
                                            ide_dma_cb, s);
         break;
     case IDE_DMA_TRIM:
-        s->bus->dma->aiocb = dma_blk_io(s->blk, &s->sg, sector_num,
-                                        ide_issue_trim, ide_dma_cb, s,
+        s->bus->dma->aiocb = dma_blk_io(blk_get_aio_context(s->blk),
+                                        &s->sg, offset,
+                                        ide_issue_trim, s->blk, ide_dma_cb, s,
                                         DMA_DIRECTION_TO_DEVICE);
         break;
+    default:
+        abort();
     }
     return;
 
@@ -975,8 +976,8 @@ static void ide_sector_write_cb(void *opaque, int ret)
            that at the expense of slower write performances. Use this
            option _only_ to install Windows 2000. You must disable it
            for normal use. */
-        timer_mod(s->sector_write_timer,
-                       qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) + (get_ticks_per_sec() / 1000));
+        timer_mod(s->sector_write_timer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) +
+                  (NANOSECONDS_PER_SECOND / 1000));
     } else {
         ide_set_irq(s->bus);
     }
@@ -1009,8 +1010,8 @@ static void ide_sector_write(IDEState *s)
 
     block_acct_start(blk_get_stats(s->blk), &s->acct,
                      n * BDRV_SECTOR_SIZE, BLOCK_ACCT_WRITE);
-    s->pio_aiocb = blk_aio_writev(s->blk, sector_num, &s->qiov, n,
-                                  ide_sector_write_cb, s);
+    s->pio_aiocb = blk_aio_pwritev(s->blk, sector_num << BDRV_SECTOR_BITS,
+                                   &s->qiov, 0, ide_sector_write_cb, s);
 }
 
 static void ide_flush_cb(void *opaque, int ret)
@@ -1640,6 +1641,9 @@ static bool cmd_packet(IDEState *s, uint8_t cmd)
 
     s->status = READY_STAT | SEEK_STAT;
     s->atapi_dma = s->feature & 1;
+    if (s->atapi_dma) {
+        s->dma_cmd = IDE_DMA_ATAPI;
+    }
     s->nsector = 1;
     ide_transfer_start(s, s->io_buffer, ATAPI_PACKET_SIZE,
                        ide_atapi_cmd);
@@ -2524,15 +2528,13 @@ static void ide_restart_bh(void *opaque)
         if (s->bus->dma->ops->restart) {
             s->bus->dma->ops->restart(s->bus->dma);
         }
-    }
-
-    if (error_status & IDE_RETRY_DMA) {
+    } else if (IS_IDE_RETRY_DMA(error_status)) {
         if (error_status & IDE_RETRY_TRIM) {
             ide_restart_dma(s, IDE_DMA_TRIM);
         } else {
             ide_restart_dma(s, is_read ? IDE_DMA_READ : IDE_DMA_WRITE);
         }
-    } else if (error_status & IDE_RETRY_PIO) {
+    } else if (IS_IDE_RETRY_PIO(error_status)) {
         if (is_read) {
             ide_sector_read(s);
         } else {
@@ -2540,15 +2542,11 @@ static void ide_restart_bh(void *opaque)
         }
     } else if (error_status & IDE_RETRY_FLUSH) {
         ide_flush_cache(s);
+    } else if (IS_IDE_RETRY_ATAPI(error_status)) {
+        assert(s->end_transfer_func == ide_atapi_cmd);
+        ide_atapi_dma_restart(s);
     } else {
-        /*
-         * We've not got any bits to tell us about ATAPI - but
-         * we do have the end_transfer_func that tells us what
-         * we're trying to do.
-         */
-        if (s->end_transfer_func == ide_atapi_cmd) {
-            ide_atapi_dma_restart(s);
-        }
+        abort();
     }
 }
 

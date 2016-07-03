@@ -18,8 +18,10 @@
  */
 
 #include "qemu/osdep.h"
+#include "qapi/error.h"
 #include "cpu.h"
 #include "qemu/error-report.h"
+#include "exec/exec-all.h"
 
 //#define DEBUG_FEATURES
 

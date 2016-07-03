@@ -22,7 +22,8 @@
  * THE SOFTWARE.
  */
 #include "qemu/osdep.h"
-#include "qemu-common.h"
+#include "qapi/error.h"
+#include "qemu/cutils.h"
 #include "qemu/error-report.h"
 #include "qemu/timer.h"
 #include "qemu/log.h"
@@ -44,6 +45,7 @@
 #include <IOKit/storage/IOMedia.h>
 #include <IOKit/storage/IOCDMedia.h>
 //#include <IOKit/storage/IOCDTypes.h>
+#include <IOKit/storage/IODVDMedia.h>
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
@@ -137,7 +139,7 @@ typedef struct BDRVRawState {
 
 #ifdef CONFIG_LINUX_AIO
     int use_aio;
-    void *aio_ctx;
+    LinuxAioState *aio_ctx;
 #endif
 #ifdef CONFIG_XFS
     bool is_xfs:1;
@@ -396,7 +398,7 @@ static void raw_attach_aio_context(BlockDriverState *bs,
 }
 
 #ifdef CONFIG_LINUX_AIO
-static int raw_set_aio(void **aio_ctx, int *use_aio, int bdrv_flags)
+static int raw_set_aio(LinuxAioState **aio_ctx, int *use_aio, int bdrv_flags)
 {
     int ret = -1;
     assert(aio_ctx != NULL);
@@ -515,6 +517,7 @@ static int raw_open_common(BlockDriverState *bs, QDict *options,
 
     s->has_discard = true;
     s->has_write_zeroes = true;
+    bs->supported_zero_flags = BDRV_REQ_MAY_UNMAP;
     if ((bs->open_flags & BDRV_O_NOCACHE) != 0) {
         s->needs_alignment = true;
     }
@@ -579,15 +582,9 @@ static int raw_open(BlockDriverState *bs, QDict *options, int flags,
                     Error **errp)
 {
     BDRVRawState *s = bs->opaque;
-    Error *local_err = NULL;
-    int ret;
 
     s->type = FTYPE_FILE;
-    ret = raw_open_common(bs, options, flags, 0, &local_err);
-    if (local_err) {
-        error_propagate(errp, local_err);
-    }
-    return ret;
+    return raw_open_common(bs, options, flags, 0, errp);
 }
 
 static int raw_reopen_prepare(BDRVReopenState *state,
@@ -726,9 +723,33 @@ static void raw_reopen_abort(BDRVReopenState *state)
     state->opaque = NULL;
 }
 
+static int hdev_get_max_transfer_length(int fd)
+{
+#ifdef BLKSECTGET
+    int max_sectors = 0;
+    if (ioctl(fd, BLKSECTGET, &max_sectors) == 0) {
+        return max_sectors;
+    } else {
+        return -errno;
+    }
+#else
+    return -ENOSYS;
+#endif
+}
+
 static void raw_refresh_limits(BlockDriverState *bs, Error **errp)
 {
     BDRVRawState *s = bs->opaque;
+    struct stat st;
+
+    if (!fstat(s->fd, &st)) {
+        if (S_ISBLK(st.st_mode)) {
+            int ret = hdev_get_max_transfer_length(s->fd);
+            if (ret >= 0) {
+                bs->bl.max_transfer_length = ret;
+            }
+        }
+    }
 
     raw_probe_alignment(bs, s->fd, errp);
     bs->bl.min_mem_alignment = s->buf_align;
@@ -1249,8 +1270,8 @@ static int aio_worker(void *arg)
 }
 
 static int paio_submit_co(BlockDriverState *bs, int fd,
-        int64_t sector_num, QEMUIOVector *qiov, int nb_sectors,
-        int type)
+                          int64_t offset, QEMUIOVector *qiov,
+                          int count, int type)
 {
     RawPosixAIOData *acb = g_new(RawPosixAIOData, 1);
     ThreadPool *pool;
@@ -1259,16 +1280,16 @@ static int paio_submit_co(BlockDriverState *bs, int fd,
     acb->aio_type = type;
     acb->aio_fildes = fd;
 
-    acb->aio_nbytes = nb_sectors * BDRV_SECTOR_SIZE;
-    acb->aio_offset = sector_num * BDRV_SECTOR_SIZE;
+    acb->aio_nbytes = count;
+    acb->aio_offset = offset;
 
     if (qiov) {
         acb->aio_iov = qiov->iov;
         acb->aio_niov = qiov->niov;
-        assert(qiov->size == acb->aio_nbytes);
+        assert(qiov->size == count);
     }
 
-    trace_paio_submit_co(sector_num, nb_sectors, type);
+    trace_paio_submit_co(offset, count, type);
     pool = aio_get_thread_pool(bdrv_get_aio_context(bs));
     return thread_pool_submit_co(pool, aio_worker, acb);
 }
@@ -1298,14 +1319,13 @@ static BlockAIOCB *paio_submit(BlockDriverState *bs, int fd,
     return thread_pool_submit_aio(pool, aio_worker, acb, cb, opaque);
 }
 
-static BlockAIOCB *raw_aio_submit(BlockDriverState *bs,
-        int64_t sector_num, QEMUIOVector *qiov, int nb_sectors,
-        BlockCompletionFunc *cb, void *opaque, int type)
+static int coroutine_fn raw_co_prw(BlockDriverState *bs, uint64_t offset,
+                                   uint64_t bytes, QEMUIOVector *qiov, int type)
 {
     BDRVRawState *s = bs->opaque;
 
     if (fd_open(bs) < 0)
-        return NULL;
+        return -EIO;
 
     /*
      * Check if the underlying device requires requests to be aligned,
@@ -1318,14 +1338,28 @@ static BlockAIOCB *raw_aio_submit(BlockDriverState *bs,
             type |= QEMU_AIO_MISALIGNED;
 #ifdef CONFIG_LINUX_AIO
         } else if (s->use_aio) {
-            return laio_submit(bs, s->aio_ctx, s->fd, sector_num, qiov,
-                               nb_sectors, cb, opaque, type);
+            assert(qiov->size == bytes);
+            return laio_co_submit(bs, s->aio_ctx, s->fd, offset, qiov, type);
 #endif
         }
     }
 
-    return paio_submit(bs, s->fd, sector_num, qiov, nb_sectors,
-                       cb, opaque, type);
+    return paio_submit_co(bs, s->fd, offset, qiov, bytes, type);
+}
+
+static int coroutine_fn raw_co_preadv(BlockDriverState *bs, uint64_t offset,
+                                      uint64_t bytes, QEMUIOVector *qiov,
+                                      int flags)
+{
+    return raw_co_prw(bs, offset, bytes, qiov, QEMU_AIO_READ);
+}
+
+static int coroutine_fn raw_co_pwritev(BlockDriverState *bs, uint64_t offset,
+                                       uint64_t bytes, QEMUIOVector *qiov,
+                                       int flags)
+{
+    assert(flags == 0);
+    return raw_co_prw(bs, offset, bytes, qiov, QEMU_AIO_WRITE);
 }
 
 static void raw_aio_plug(BlockDriverState *bs)
@@ -1343,35 +1377,9 @@ static void raw_aio_unplug(BlockDriverState *bs)
 #ifdef CONFIG_LINUX_AIO
     BDRVRawState *s = bs->opaque;
     if (s->use_aio) {
-        laio_io_unplug(bs, s->aio_ctx, true);
+        laio_io_unplug(bs, s->aio_ctx);
     }
 #endif
-}
-
-static void raw_aio_flush_io_queue(BlockDriverState *bs)
-{
-#ifdef CONFIG_LINUX_AIO
-    BDRVRawState *s = bs->opaque;
-    if (s->use_aio) {
-        laio_io_unplug(bs, s->aio_ctx, false);
-    }
-#endif
-}
-
-static BlockAIOCB *raw_aio_readv(BlockDriverState *bs,
-        int64_t sector_num, QEMUIOVector *qiov, int nb_sectors,
-        BlockCompletionFunc *cb, void *opaque)
-{
-    return raw_aio_submit(bs, sector_num, qiov, nb_sectors,
-                          cb, opaque, QEMU_AIO_READ);
-}
-
-static BlockAIOCB *raw_aio_writev(BlockDriverState *bs,
-        int64_t sector_num, QEMUIOVector *qiov, int nb_sectors,
-        BlockCompletionFunc *cb, void *opaque)
-{
-    return raw_aio_submit(bs, sector_num, qiov, nb_sectors,
-                          cb, opaque, QEMU_AIO_WRITE);
 }
 
 static BlockAIOCB *raw_aio_flush(BlockDriverState *bs,
@@ -1875,17 +1883,17 @@ static coroutine_fn BlockAIOCB *raw_aio_discard(BlockDriverState *bs,
                        cb, opaque, QEMU_AIO_DISCARD);
 }
 
-static int coroutine_fn raw_co_write_zeroes(
-    BlockDriverState *bs, int64_t sector_num,
-    int nb_sectors, BdrvRequestFlags flags)
+static int coroutine_fn raw_co_pwrite_zeroes(
+    BlockDriverState *bs, int64_t offset,
+    int count, BdrvRequestFlags flags)
 {
     BDRVRawState *s = bs->opaque;
 
     if (!(flags & BDRV_REQ_MAY_UNMAP)) {
-        return paio_submit_co(bs, s->fd, sector_num, NULL, nb_sectors,
+        return paio_submit_co(bs, s->fd, offset, NULL, count,
                               QEMU_AIO_WRITE_ZEROES);
     } else if (s->discard_zeroes) {
-        return paio_submit_co(bs, s->fd, sector_num, NULL, nb_sectors,
+        return paio_submit_co(bs, s->fd, offset, NULL, count,
                               QEMU_AIO_DISCARD);
     }
     return -ENOTSUP;
@@ -1938,16 +1946,15 @@ BlockDriver bdrv_file = {
     .bdrv_create = raw_create,
     .bdrv_has_zero_init = bdrv_has_zero_init_1,
     .bdrv_co_get_block_status = raw_co_get_block_status,
-    .bdrv_co_write_zeroes = raw_co_write_zeroes,
+    .bdrv_co_pwrite_zeroes = raw_co_pwrite_zeroes,
 
-    .bdrv_aio_readv = raw_aio_readv,
-    .bdrv_aio_writev = raw_aio_writev,
+    .bdrv_co_preadv         = raw_co_preadv,
+    .bdrv_co_pwritev        = raw_co_pwritev,
     .bdrv_aio_flush = raw_aio_flush,
     .bdrv_aio_discard = raw_aio_discard,
     .bdrv_refresh_limits = raw_refresh_limits,
     .bdrv_io_plug = raw_aio_plug,
     .bdrv_io_unplug = raw_aio_unplug,
-    .bdrv_flush_io_queue = raw_aio_flush_io_queue,
 
     .bdrv_truncate = raw_truncate,
     .bdrv_getlength = raw_getlength,
@@ -1965,33 +1972,47 @@ BlockDriver bdrv_file = {
 /* host device */
 
 #if defined(__APPLE__) && defined(__MACH__)
-static kern_return_t FindEjectableCDMedia( io_iterator_t *mediaIterator );
 static kern_return_t GetBSDPath(io_iterator_t mediaIterator, char *bsdPath,
                                 CFIndex maxPathSize, int flags);
-kern_return_t FindEjectableCDMedia( io_iterator_t *mediaIterator )
+static char *FindEjectableOpticalMedia(io_iterator_t *mediaIterator)
 {
-    kern_return_t       kernResult;
+    kern_return_t kernResult = KERN_FAILURE;
     mach_port_t     masterPort;
     CFMutableDictionaryRef  classesToMatch;
+    const char *matching_array[] = {kIODVDMediaClass, kIOCDMediaClass};
+    char *mediaType = NULL;
 
     kernResult = IOMasterPort( MACH_PORT_NULL, &masterPort );
     if ( KERN_SUCCESS != kernResult ) {
         printf( "IOMasterPort returned %d\n", kernResult );
     }
 
-    classesToMatch = IOServiceMatching( kIOCDMediaClass );
-    if ( classesToMatch == NULL ) {
-        printf( "IOServiceMatching returned a NULL dictionary.\n" );
-    } else {
-    CFDictionarySetValue( classesToMatch, CFSTR( kIOMediaEjectableKey ), kCFBooleanTrue );
-    }
-    kernResult = IOServiceGetMatchingServices( masterPort, classesToMatch, mediaIterator );
-    if ( KERN_SUCCESS != kernResult )
-    {
-        printf( "IOServiceGetMatchingServices returned %d\n", kernResult );
-    }
+    int index;
+    for (index = 0; index < ARRAY_SIZE(matching_array); index++) {
+        classesToMatch = IOServiceMatching(matching_array[index]);
+        if (classesToMatch == NULL) {
+            error_report("IOServiceMatching returned NULL for %s",
+                         matching_array[index]);
+            continue;
+        }
+        CFDictionarySetValue(classesToMatch, CFSTR(kIOMediaEjectableKey),
+                             kCFBooleanTrue);
+        kernResult = IOServiceGetMatchingServices(masterPort, classesToMatch,
+                                                  mediaIterator);
+        if (kernResult != KERN_SUCCESS) {
+            error_report("Note: IOServiceGetMatchingServices returned %d",
+                         kernResult);
+            continue;
+        }
 
-    return kernResult;
+        /* If a match was found, leave the loop */
+        if (*mediaIterator != 0) {
+            DPRINTF("Matching using %s\n", matching_array[index]);
+            mediaType = g_strdup(matching_array[index]);
+            break;
+        }
+    }
+    return mediaType;
 }
 
 kern_return_t GetBSDPath(io_iterator_t mediaIterator, char *bsdPath,
@@ -2023,7 +2044,46 @@ kern_return_t GetBSDPath(io_iterator_t mediaIterator, char *bsdPath,
     return kernResult;
 }
 
-#endif
+/* Sets up a real cdrom for use in QEMU */
+static bool setup_cdrom(char *bsd_path, Error **errp)
+{
+    int index, num_of_test_partitions = 2, fd;
+    char test_partition[MAXPATHLEN];
+    bool partition_found = false;
+
+    /* look for a working partition */
+    for (index = 0; index < num_of_test_partitions; index++) {
+        snprintf(test_partition, sizeof(test_partition), "%ss%d", bsd_path,
+                 index);
+        fd = qemu_open(test_partition, O_RDONLY | O_BINARY | O_LARGEFILE);
+        if (fd >= 0) {
+            partition_found = true;
+            qemu_close(fd);
+            break;
+        }
+    }
+
+    /* if a working partition on the device was not found */
+    if (partition_found == false) {
+        error_setg(errp, "Failed to find a working partition on disc");
+    } else {
+        DPRINTF("Using %s as optical disc\n", test_partition);
+        pstrcpy(bsd_path, MAXPATHLEN, test_partition);
+    }
+    return partition_found;
+}
+
+/* Prints directions on mounting and unmounting a device */
+static void print_unmounting_directions(const char *file_name)
+{
+    error_report("If device %s is mounted on the desktop, unmount"
+                 " it first before using it in QEMU", file_name);
+    error_report("Command to unmount device: diskutil unmountDisk %s",
+                 file_name);
+    error_report("Command to mount device: diskutil mountDisk %s", file_name);
+}
+
+#endif /* defined(__APPLE__) && defined(__MACH__) */
 
 static int hdev_probe_device(const char *filename)
 {
@@ -2114,41 +2174,72 @@ static int hdev_open(BlockDriverState *bs, QDict *options, int flags,
 
 #if defined(__APPLE__) && defined(__MACH__)
     const char *filename = qdict_get_str(options, "filename");
+    char bsd_path[MAXPATHLEN] = "";
+    bool error_occurred = false;
 
-    if (strstart(filename, "/dev/cdrom", NULL)) {
-        kern_return_t kernResult;
-        io_iterator_t mediaIterator;
-        char bsdPath[ MAXPATHLEN ];
-        int fd;
+    /* If using a real cdrom */
+    if (strcmp(filename, "/dev/cdrom") == 0) {
+        char *mediaType = NULL;
+        kern_return_t ret_val;
+        io_iterator_t mediaIterator = 0;
 
-        kernResult = FindEjectableCDMedia( &mediaIterator );
-        kernResult = GetBSDPath(mediaIterator, bsdPath, sizeof(bsdPath),
-                                flags);
-        if ( bsdPath[ 0 ] != '\0' ) {
-            strcat(bsdPath,"s0");
-            /* some CDs don't have a partition 0 */
-            fd = qemu_open(bsdPath, O_RDONLY | O_BINARY | O_LARGEFILE);
-            if (fd < 0) {
-                bsdPath[strlen(bsdPath)-1] = '1';
-            } else {
-                qemu_close(fd);
-            }
-            filename = bsdPath;
-            qdict_put(options, "filename", qstring_from_str(filename));
+        mediaType = FindEjectableOpticalMedia(&mediaIterator);
+        if (mediaType == NULL) {
+            error_setg(errp, "Please make sure your CD/DVD is in the optical"
+                       " drive");
+            error_occurred = true;
+            goto hdev_open_Mac_error;
         }
 
-        if ( mediaIterator )
-            IOObjectRelease( mediaIterator );
+        ret_val = GetBSDPath(mediaIterator, bsd_path, sizeof(bsd_path), flags);
+        if (ret_val != KERN_SUCCESS) {
+            error_setg(errp, "Could not get BSD path for optical drive");
+            error_occurred = true;
+            goto hdev_open_Mac_error;
+        }
+
+        /* If a real optical drive was not found */
+        if (bsd_path[0] == '\0') {
+            error_setg(errp, "Failed to obtain bsd path for optical drive");
+            error_occurred = true;
+            goto hdev_open_Mac_error;
+        }
+
+        /* If using a cdrom disc and finding a partition on the disc failed */
+        if (strncmp(mediaType, kIOCDMediaClass, 9) == 0 &&
+            setup_cdrom(bsd_path, errp) == false) {
+            print_unmounting_directions(bsd_path);
+            error_occurred = true;
+            goto hdev_open_Mac_error;
+        }
+
+        qdict_put(options, "filename", qstring_from_str(bsd_path));
+
+hdev_open_Mac_error:
+        g_free(mediaType);
+        if (mediaIterator) {
+            IOObjectRelease(mediaIterator);
+        }
+        if (error_occurred) {
+            return -ENOENT;
+        }
     }
-#endif
+#endif /* defined(__APPLE__) && defined(__MACH__) */
 
     s->type = FTYPE_FILE;
 
     ret = raw_open_common(bs, options, flags, 0, &local_err);
     if (ret < 0) {
-        if (local_err) {
-            error_propagate(errp, local_err);
+        error_propagate(errp, local_err);
+#if defined(__APPLE__) && defined(__MACH__)
+        if (*bsd_path) {
+            filename = bsd_path;
         }
+        /* if a physical device experienced an error while being opened */
+        if (strncmp(filename, "/dev/", 5) == 0) {
+            print_unmounting_directions(filename);
+        }
+#endif /* defined(__APPLE__) && defined(__MACH__) */
         return ret;
     }
 
@@ -2215,8 +2306,8 @@ static coroutine_fn BlockAIOCB *hdev_aio_discard(BlockDriverState *bs,
                        cb, opaque, QEMU_AIO_DISCARD|QEMU_AIO_BLKDEV);
 }
 
-static coroutine_fn int hdev_co_write_zeroes(BlockDriverState *bs,
-    int64_t sector_num, int nb_sectors, BdrvRequestFlags flags)
+static coroutine_fn int hdev_co_pwrite_zeroes(BlockDriverState *bs,
+    int64_t offset, int count, BdrvRequestFlags flags)
 {
     BDRVRawState *s = bs->opaque;
     int rc;
@@ -2226,10 +2317,10 @@ static coroutine_fn int hdev_co_write_zeroes(BlockDriverState *bs,
         return rc;
     }
     if (!(flags & BDRV_REQ_MAY_UNMAP)) {
-        return paio_submit_co(bs, s->fd, sector_num, NULL, nb_sectors,
+        return paio_submit_co(bs, s->fd, offset, NULL, count,
                               QEMU_AIO_WRITE_ZEROES|QEMU_AIO_BLKDEV);
     } else if (s->discard_zeroes) {
-        return paio_submit_co(bs, s->fd, sector_num, NULL, nb_sectors,
+        return paio_submit_co(bs, s->fd, offset, NULL, count,
                               QEMU_AIO_DISCARD|QEMU_AIO_BLKDEV);
     }
     return -ENOTSUP;
@@ -2301,16 +2392,15 @@ static BlockDriver bdrv_host_device = {
     .bdrv_reopen_abort   = raw_reopen_abort,
     .bdrv_create         = hdev_create,
     .create_opts         = &raw_create_opts,
-    .bdrv_co_write_zeroes = hdev_co_write_zeroes,
+    .bdrv_co_pwrite_zeroes = hdev_co_pwrite_zeroes,
 
-    .bdrv_aio_readv	= raw_aio_readv,
-    .bdrv_aio_writev	= raw_aio_writev,
+    .bdrv_co_preadv         = raw_co_preadv,
+    .bdrv_co_pwritev        = raw_co_pwritev,
     .bdrv_aio_flush	= raw_aio_flush,
     .bdrv_aio_discard   = hdev_aio_discard,
     .bdrv_refresh_limits = raw_refresh_limits,
     .bdrv_io_plug = raw_aio_plug,
     .bdrv_io_unplug = raw_aio_unplug,
-    .bdrv_flush_io_queue = raw_aio_flush_io_queue,
 
     .bdrv_truncate      = raw_truncate,
     .bdrv_getlength	= raw_getlength,
@@ -2345,17 +2435,11 @@ static int cdrom_open(BlockDriverState *bs, QDict *options, int flags,
                       Error **errp)
 {
     BDRVRawState *s = bs->opaque;
-    Error *local_err = NULL;
-    int ret;
 
     s->type = FTYPE_CD;
 
     /* open will not fail even if no CD is inserted, so add O_NONBLOCK */
-    ret = raw_open_common(bs, options, flags, O_NONBLOCK, &local_err);
-    if (local_err) {
-        error_propagate(errp, local_err);
-    }
-    return ret;
+    return raw_open_common(bs, options, flags, O_NONBLOCK, errp);
 }
 
 static int cdrom_probe_device(const char *filename)
@@ -2434,13 +2518,13 @@ static BlockDriver bdrv_host_cdrom = {
     .bdrv_create         = hdev_create,
     .create_opts         = &raw_create_opts,
 
-    .bdrv_aio_readv     = raw_aio_readv,
-    .bdrv_aio_writev    = raw_aio_writev,
+
+    .bdrv_co_preadv         = raw_co_preadv,
+    .bdrv_co_pwritev        = raw_co_pwritev,
     .bdrv_aio_flush	= raw_aio_flush,
     .bdrv_refresh_limits = raw_refresh_limits,
     .bdrv_io_plug = raw_aio_plug,
     .bdrv_io_unplug = raw_aio_unplug,
-    .bdrv_flush_io_queue = raw_aio_flush_io_queue,
 
     .bdrv_truncate      = raw_truncate,
     .bdrv_getlength      = raw_getlength,
@@ -2473,9 +2557,7 @@ static int cdrom_open(BlockDriverState *bs, QDict *options, int flags,
 
     ret = raw_open_common(bs, options, flags, 0, &local_err);
     if (ret) {
-        if (local_err) {
-            error_propagate(errp, local_err);
-        }
+        error_propagate(errp, local_err);
         return ret;
     }
 
@@ -2570,13 +2652,12 @@ static BlockDriver bdrv_host_cdrom = {
     .bdrv_create        = hdev_create,
     .create_opts        = &raw_create_opts,
 
-    .bdrv_aio_readv     = raw_aio_readv,
-    .bdrv_aio_writev    = raw_aio_writev,
+    .bdrv_co_preadv         = raw_co_preadv,
+    .bdrv_co_pwritev        = raw_co_pwritev,
     .bdrv_aio_flush	= raw_aio_flush,
     .bdrv_refresh_limits = raw_refresh_limits,
     .bdrv_io_plug = raw_aio_plug,
     .bdrv_io_unplug = raw_aio_unplug,
-    .bdrv_flush_io_queue = raw_aio_flush_io_queue,
 
     .bdrv_truncate      = raw_truncate,
     .bdrv_getlength      = raw_getlength,

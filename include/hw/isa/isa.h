@@ -3,8 +3,8 @@
 
 /* ISA bus */
 
-#include "exec/ioport.h"
 #include "exec/memory.h"
+#include "exec/ioport.h"
 #include "hw/qdev.h"
 
 #define ISA_NUM_IRQS 16
@@ -54,6 +54,9 @@ typedef enum {
     ISADMA_TRANSFER_ILLEGAL,
 } IsaDmaTransferMode;
 
+typedef int (*IsaDmaTransferHandler)(void *opaque, int nchan, int pos,
+                                     int size);
+
 typedef struct IsaDmaClass {
     InterfaceClass parent;
 
@@ -65,7 +68,7 @@ typedef struct IsaDmaClass {
     void (*release_DREQ)(IsaDma *obj, int nchan);
     void (*schedule)(IsaDma *obj);
     void (*register_channel)(IsaDma *obj, int nchan,
-                             DMA_transfer_handler transfer_handler,
+                             IsaDmaTransferHandler transfer_handler,
                              void *opaque);
 } IsaDmaClass;
 
@@ -99,6 +102,7 @@ ISABus *isa_bus_new(DeviceState *dev, MemoryRegion *address_space,
 void isa_bus_irqs(ISABus *bus, qemu_irq *irqs);
 qemu_irq isa_get_irq(ISADevice *dev, int isairq);
 void isa_init_irq(ISADevice *dev, qemu_irq *p, int isairq);
+void isa_connect_gpio_out(ISADevice *isadev, int gpioirq, int isairq);
 void isa_bus_dma(ISABus *bus, IsaDma *dma8, IsaDma *dma16);
 IsaDma *isa_get_dma(ISABus *bus, int nchan);
 MemoryRegion *isa_address_space(ISADevice *dev);

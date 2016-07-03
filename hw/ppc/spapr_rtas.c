@@ -26,19 +26,23 @@
  */
 #include "qemu/osdep.h"
 #include "cpu.h"
+#include "qemu/log.h"
 #include "sysemu/sysemu.h"
 #include "sysemu/char.h"
 #include "hw/qdev.h"
 #include "sysemu/device_tree.h"
 #include "sysemu/cpus.h"
+#include "sysemu/kvm.h"
 
 #include "hw/ppc/spapr.h"
 #include "hw/ppc/spapr_vio.h"
+#include "hw/ppc/ppc.h"
 #include "qapi-event.h"
 #include "hw/boards.h"
 
 #include <libfdt.h>
 #include "hw/ppc/spapr_drc.h"
+#include "qemu/cutils.h"
 
 /* #define DEBUG_SPAPR */
 
@@ -161,6 +165,27 @@ static void rtas_query_cpu_stopped_state(PowerPCCPU *cpu_,
     rtas_st(rets, 0, RTAS_OUT_PARAM_ERROR);
 }
 
+/*
+ * Set the timebase offset of the CPU to that of first CPU.
+ * This helps hotplugged CPU to have the correct timebase offset.
+ */
+static void spapr_cpu_update_tb_offset(PowerPCCPU *cpu)
+{
+    PowerPCCPU *fcpu = POWERPC_CPU(first_cpu);
+
+    cpu->env.tb_env->tb_offset = fcpu->env.tb_env->tb_offset;
+}
+
+static void spapr_cpu_set_endianness(PowerPCCPU *cpu)
+{
+    PowerPCCPU *fcpu = POWERPC_CPU(first_cpu);
+    PowerPCCPUClass *pcc = POWERPC_CPU_GET_CLASS(fcpu);
+
+    if (!pcc->interrupts_big_endian(fcpu)) {
+        cpu->env.spr[SPR_LPCR] |= LPCR_ILE;
+    }
+}
+
 static void rtas_start_cpu(PowerPCCPU *cpu_, sPAPRMachineState *spapr,
                            uint32_t token, uint32_t nargs,
                            target_ulong args,
@@ -197,6 +222,8 @@ static void rtas_start_cpu(PowerPCCPU *cpu_, sPAPRMachineState *spapr,
         env->nip = start;
         env->gpr[3] = r3;
         cs->halted = 0;
+        spapr_cpu_set_endianness(cpu);
+        spapr_cpu_update_tb_offset(cpu);
 
         qemu_cpu_kick(cs);
 
@@ -683,6 +710,9 @@ int spapr_rtas_device_tree_setup(void *fdt, hwaddr rtas_addr,
     int i;
     uint32_t lrdr_capacity[5];
     MachineState *machine = MACHINE(qdev_get_machine());
+    sPAPRMachineState *spapr = SPAPR_MACHINE(machine);
+    uint64_t max_hotplug_addr = spapr->hotplug_memory.base +
+                                memory_region_size(&spapr->hotplug_memory.mr);
 
     ret = fdt_add_mem_rsv(fdt, rtas_addr, rtas_size);
     if (ret < 0) {
@@ -732,8 +762,8 @@ int spapr_rtas_device_tree_setup(void *fdt, hwaddr rtas_addr,
 
     }
 
-    lrdr_capacity[0] = cpu_to_be32(((uint64_t)machine->maxram_size) >> 32);
-    lrdr_capacity[1] = cpu_to_be32(machine->maxram_size & 0xffffffff);
+    lrdr_capacity[0] = cpu_to_be32(max_hotplug_addr >> 32);
+    lrdr_capacity[1] = cpu_to_be32(max_hotplug_addr & 0xffffffff);
     lrdr_capacity[2] = 0;
     lrdr_capacity[3] = cpu_to_be32(SPAPR_MEMORY_BLOCK_SIZE);
     lrdr_capacity[4] = cpu_to_be32(max_cpus/smp_threads);

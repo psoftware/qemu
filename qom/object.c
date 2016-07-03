@@ -11,9 +11,10 @@
  */
 
 #include "qemu/osdep.h"
+#include "qapi/error.h"
 #include "qom/object.h"
 #include "qom/object_interfaces.h"
-#include "qemu-common.h"
+#include "qemu/cutils.h"
 #include "qapi/visitor.h"
 #include "qapi-visit.h"
 #include "qapi/string-input-visitor.h"
@@ -199,6 +200,14 @@ static size_t type_object_get_size(TypeImpl *ti)
     }
 
     return 0;
+}
+
+size_t object_type_get_instance_size(const char *typename)
+{
+    TypeImpl *type = type_get_by_name(typename);
+
+    g_assert(type != NULL);
+    return type_object_get_size(type);
 }
 
 static bool type_is_ancestor(TypeImpl *type, TypeImpl *target_type)
@@ -540,9 +549,7 @@ Object *object_new_with_propv(const char *typename,
     return obj;
 
  error:
-    if (local_err) {
-        error_propagate(errp, local_err);
-    }
+    error_propagate(errp, local_err);
     object_unref(obj);
     return NULL;
 }
@@ -2035,10 +2042,9 @@ static void property_get_tm(Object *obj, Visitor *v, const char *name,
     if (err) {
         goto out_end;
     }
+    visit_check_struct(v, &err);
 out_end:
-    error_propagate(errp, err);
-    err = NULL;
-    visit_end_struct(v, errp);
+    visit_end_struct(v);
 out:
     error_propagate(errp, err);
 

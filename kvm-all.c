@@ -15,7 +15,6 @@
 
 #include "qemu/osdep.h"
 #include <sys/ioctl.h>
-#include <sys/mman.h>
 
 #include <linux/kvm.h>
 
@@ -61,6 +60,12 @@
 
 #define KVM_MSI_HASHTAB_SIZE    256
 
+struct KVMParkedVcpu {
+    unsigned long vcpu_id;
+    int kvm_fd;
+    QLIST_ENTRY(KVMParkedVcpu) node;
+};
+
 struct KVMState
 {
     AccelState parent_obj;
@@ -89,11 +94,12 @@ struct KVMState
 #ifdef KVM_CAP_IRQ_ROUTING
     struct kvm_irq_routing *irq_routes;
     int nr_allocated_irq_routes;
-    uint32_t *used_gsi_bitmap;
+    unsigned long *used_gsi_bitmap;
     unsigned int gsi_count;
     QTAILQ_HEAD(msi_hashtab, KVMMSIRoute) msi_hashtab[KVM_MSI_HASHTAB_SIZE];
 #endif
     KVMMemoryListener memory_listener;
+    QLIST_HEAD(, KVMParkedVcpu) kvm_parked_vcpus;
 };
 
 KVMState *kvm_state;
@@ -118,6 +124,13 @@ static const KVMCapabilityInfo kvm_required_capabilites[] = {
     KVM_CAP_INFO(DESTROY_MEMORY_REGION_WORKS),
     KVM_CAP_LAST_INFO
 };
+
+int kvm_get_max_memslots(void)
+{
+    KVMState *s = KVM_STATE(current_machine->accelerator);
+
+    return s->nr_slots;
+}
 
 static KVMSlot *kvm_get_free_slot(KVMMemoryListener *kml)
 {
@@ -237,6 +250,53 @@ static int kvm_set_user_memory_region(KVMMemoryListener *kml, KVMSlot *slot)
     return kvm_vm_ioctl(s, KVM_SET_USER_MEMORY_REGION, &mem);
 }
 
+int kvm_destroy_vcpu(CPUState *cpu)
+{
+    KVMState *s = kvm_state;
+    long mmap_size;
+    struct KVMParkedVcpu *vcpu = NULL;
+    int ret = 0;
+
+    DPRINTF("kvm_destroy_vcpu\n");
+
+    mmap_size = kvm_ioctl(s, KVM_GET_VCPU_MMAP_SIZE, 0);
+    if (mmap_size < 0) {
+        ret = mmap_size;
+        DPRINTF("KVM_GET_VCPU_MMAP_SIZE failed\n");
+        goto err;
+    }
+
+    ret = munmap(cpu->kvm_run, mmap_size);
+    if (ret < 0) {
+        goto err;
+    }
+
+    vcpu = g_malloc0(sizeof(*vcpu));
+    vcpu->vcpu_id = kvm_arch_vcpu_id(cpu);
+    vcpu->kvm_fd = cpu->kvm_fd;
+    QLIST_INSERT_HEAD(&kvm_state->kvm_parked_vcpus, vcpu, node);
+err:
+    return ret;
+}
+
+static int kvm_get_vcpu(KVMState *s, unsigned long vcpu_id)
+{
+    struct KVMParkedVcpu *cpu;
+
+    QLIST_FOREACH(cpu, &s->kvm_parked_vcpus, node) {
+        if (cpu->vcpu_id == vcpu_id) {
+            int kvm_fd;
+
+            QLIST_REMOVE(cpu, node);
+            kvm_fd = cpu->kvm_fd;
+            g_free(cpu);
+            return kvm_fd;
+        }
+    }
+
+    return kvm_vm_ioctl(s, KVM_CREATE_VCPU, (void *)vcpu_id);
+}
+
 int kvm_init_vcpu(CPUState *cpu)
 {
     KVMState *s = kvm_state;
@@ -245,7 +305,7 @@ int kvm_init_vcpu(CPUState *cpu)
 
     DPRINTF("kvm_init_vcpu\n");
 
-    ret = kvm_vm_ioctl(s, KVM_CREATE_VCPU, (void *)kvm_arch_vcpu_id(cpu));
+    ret = kvm_get_vcpu(s, kvm_arch_vcpu_id(cpu));
     if (ret < 0) {
         DPRINTF("kvm_create_vcpu failed\n");
         goto err;
@@ -366,7 +426,8 @@ static void kvm_log_stop(MemoryListener *listener,
 static int kvm_get_dirty_pages_log_range(MemoryRegionSection *section,
                                          unsigned long *bitmap)
 {
-    ram_addr_t start = section->offset_within_region + section->mr->ram_addr;
+    ram_addr_t start = section->offset_within_region +
+                       memory_region_get_ram_addr(section->mr);
     ram_addr_t pages = int128_get64(section->size) / getpagesize();
 
     cpu_physical_memory_set_dirty_lebitmap(bitmap, start, pages);
@@ -412,7 +473,7 @@ static int kvm_physical_sync_dirty_bitmap(KVMMemoryListener *kml,
          * userspace memory corruption (which is not detectable by valgrind
          * too, in most cases).
          * So for now, let's align to 64 instead of HOST_LONG_BITS here, in
-         * a hope that sizeof(long) wont become >8 any time soon.
+         * a hope that sizeof(long) won't become >8 any time soon.
          */
         size = ALIGN(((mem->memory_size) >> TARGET_PAGE_BITS),
                      /*HOST_LONG_BITS*/ 64) / 8;
@@ -950,12 +1011,12 @@ typedef struct KVMMSIRoute {
 
 static void set_gsi(KVMState *s, unsigned int gsi)
 {
-    s->used_gsi_bitmap[gsi / 32] |= 1U << (gsi % 32);
+    set_bit(gsi, s->used_gsi_bitmap);
 }
 
 static void clear_gsi(KVMState *s, unsigned int gsi)
 {
-    s->used_gsi_bitmap[gsi / 32] &= ~(1U << (gsi % 32));
+    clear_bit(gsi, s->used_gsi_bitmap);
 }
 
 void kvm_init_irq_routing(KVMState *s)
@@ -964,17 +1025,9 @@ void kvm_init_irq_routing(KVMState *s)
 
     gsi_count = kvm_check_extension(s, KVM_CAP_IRQ_ROUTING) - 1;
     if (gsi_count > 0) {
-        unsigned int gsi_bits, i;
-
         /* Round up so we can search ints using ffs */
-        gsi_bits = ALIGN(gsi_count, 32);
-        s->used_gsi_bitmap = g_malloc0(gsi_bits / 8);
+        s->used_gsi_bitmap = bitmap_new(gsi_count);
         s->gsi_count = gsi_count;
-
-        /* Mark any over-allocated bits as already in use */
-        for (i = gsi_count; i < gsi_bits; i++) {
-            set_gsi(s, i);
-        }
     }
 
     s->irq_routes = g_malloc0(sizeof(*s->irq_routes));
@@ -1104,9 +1157,7 @@ static void kvm_flush_dynamic_msi_routes(KVMState *s)
 
 static int kvm_irqchip_get_virq(KVMState *s)
 {
-    uint32_t *word = s->used_gsi_bitmap;
-    int max_words = ALIGN(s->gsi_count, 32) / 32;
-    int i, zeroes;
+    int next_virq;
 
     /*
      * PIC and IOAPIC share the first 16 GSI numbers, thus the available
@@ -1119,16 +1170,12 @@ static int kvm_irqchip_get_virq(KVMState *s)
     }
 
     /* Return the lowest unused GSI in the bitmap */
-    for (i = 0; i < max_words; i++) {
-        zeroes = ctz32(~word[i]);
-        if (zeroes == 32) {
-            continue;
-        }
-
-        return zeroes + i * 32;
+    next_virq = find_first_zero_bit(s->used_gsi_bitmap, s->gsi_count);
+    if (next_virq >= s->gsi_count) {
+        return -ENOSPC;
+    } else {
+        return next_virq;
     }
-    return -ENOSPC;
-
 }
 
 static KVMMSIRoute *kvm_lookup_msi_route(KVMState *s, MSIMessage msg)
@@ -1472,6 +1519,18 @@ static int kvm_max_vcpus(KVMState *s)
     return (ret) ? ret : kvm_recommended_vcpus(s);
 }
 
+static int kvm_max_vcpu_id(KVMState *s)
+{
+    int ret = kvm_check_extension(s, KVM_CAP_MAX_VCPU_ID);
+    return (ret) ? ret : kvm_max_vcpus(s);
+}
+
+bool kvm_vcpu_id_is_valid(int vcpu_id)
+{
+    KVMState *s = KVM_STATE(current_machine->accelerator);
+    return vcpu_id >= 0 && vcpu_id < kvm_max_vcpu_id(s);
+}
+
 static int kvm_init(MachineState *ms)
 {
     MachineClass *mc = MACHINE_GET_CLASS(ms);
@@ -1508,6 +1567,7 @@ static int kvm_init(MachineState *ms)
 #ifdef KVM_CAP_SET_GUEST_DEBUG
     QTAILQ_INIT(&s->kvm_sw_breakpoints);
 #endif
+    QLIST_INIT(&s->kvm_parked_vcpus);
     s->vmfd = -1;
     s->fd = qemu_open("/dev/kvm", O_RDWR);
     if (s->fd == -1) {
@@ -2350,6 +2410,21 @@ int kvm_create_device(KVMState *s, uint64_t type, bool test)
     }
 
     return test ? 0 : create_dev.fd;
+}
+
+bool kvm_device_supported(int vmfd, uint64_t type)
+{
+    struct kvm_create_device create_dev = {
+        .type = type,
+        .fd = -1,
+        .flags = KVM_CREATE_DEVICE_TEST,
+    };
+
+    if (ioctl(vmfd, KVM_CHECK_EXTENSION, KVM_CAP_DEVICE_CTRL) <= 0) {
+        return false;
+    }
+
+    return (ioctl(vmfd, KVM_CREATE_DEVICE, &create_dev) >= 0);
 }
 
 int kvm_set_one_reg(CPUState *cs, uint64_t id, void *source)

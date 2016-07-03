@@ -51,7 +51,7 @@
  */
 
 #include "qemu/osdep.h"
-#include "qemu-common.h"
+#include "qemu/cutils.h"
 #include "block/block_int.h"
 #include "qemu/error-report.h"
 #include "qemu/thread.h"
@@ -974,11 +974,9 @@ err_exit2:
 
 static int64_t qemu_archipelago_getlength(BlockDriverState *bs)
 {
-    int64_t ret;
     BDRVArchipelagoState *s = bs->opaque;
 
-    ret = archipelago_volume_info(s);
-    return ret;
+    return archipelago_volume_info(s);
 }
 
 static int qemu_archipelago_truncate(BlockDriverState *bs, int64_t offset)

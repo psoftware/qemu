@@ -20,12 +20,17 @@
 #include "qemu/osdep.h"
 #include "qemu-common.h"
 #include "qemu/log.h"
+#include "qemu/range.h"
+#include "qemu/error-report.h"
+#include "qapi/error.h"
+#include "qemu/cutils.h"
 #include "trace/control.h"
 
 static char *logfilename;
 FILE *qemu_logfile;
 int qemu_loglevel;
 static int log_append = 0;
+static GArray *debug_regions;
 
 void qemu_log(const char *fmt, ...)
 {
@@ -38,25 +43,17 @@ void qemu_log(const char *fmt, ...)
     va_end(ap);
 }
 
-void qemu_log_mask(int mask, const char *fmt, ...)
-{
-    va_list ap;
-
-    va_start(ap, fmt);
-    if ((qemu_loglevel & mask) && qemu_logfile) {
-        vfprintf(qemu_logfile, fmt, ap);
-    }
-    va_end(ap);
-}
+static bool log_uses_own_buffers;
 
 /* enable or disable low levels log */
-void do_qemu_set_log(int log_flags, bool use_own_buffers)
+void qemu_set_log(int log_flags)
 {
     qemu_loglevel = log_flags;
 #ifdef CONFIG_TRACE_LOG
     qemu_loglevel |= LOG_TRACE;
 #endif
-    if ((qemu_loglevel || is_daemonized()) && !qemu_logfile) {
+    if (!qemu_logfile &&
+        (is_daemonized() ? logfilename != NULL : qemu_loglevel)) {
         if (logfilename) {
             qemu_logfile = fopen(logfilename, log_append ? "a" : "w");
             if (!qemu_logfile) {
@@ -72,10 +69,11 @@ void do_qemu_set_log(int log_flags, bool use_own_buffers)
             }
         } else {
             /* Default to stderr if no log file specified */
+            assert(!is_daemonized());
             qemu_logfile = stderr;
         }
         /* must avoid mmap() usage of glibc by setting a buffer "by hand" */
-        if (use_own_buffers) {
+        if (log_uses_own_buffers) {
             static char logfile_buf[4096];
 
             setvbuf(qemu_logfile, logfile_buf, _IOLBF, sizeof(logfile_buf));
@@ -89,17 +87,148 @@ void do_qemu_set_log(int log_flags, bool use_own_buffers)
             log_append = 1;
         }
     }
-    if (!qemu_loglevel && !is_daemonized() && qemu_logfile) {
+    if (qemu_logfile &&
+        (is_daemonized() ? logfilename == NULL : !qemu_loglevel)) {
         qemu_log_close();
     }
 }
 
-void qemu_set_log_filename(const char *filename)
+void qemu_log_needs_buffers(void)
 {
+    log_uses_own_buffers = true;
+}
+
+/*
+ * Allow the user to include %d in their logfile which will be
+ * substituted with the current PID. This is useful for debugging many
+ * nested linux-user tasks but will result in lots of logs.
+ */
+void qemu_set_log_filename(const char *filename, Error **errp)
+{
+    char *pidstr;
     g_free(logfilename);
-    logfilename = g_strdup(filename);
+
+    pidstr = strstr(filename, "%");
+    if (pidstr) {
+        /* We only accept one %d, no other format strings */
+        if (pidstr[1] != 'd' || strchr(pidstr + 2, '%')) {
+            error_setg(errp, "Bad logfile format: %s", filename);
+            return;
+        } else {
+            logfilename = g_strdup_printf(filename, getpid());
+        }
+    } else {
+        logfilename = g_strdup(filename);
+    }
     qemu_log_close();
     qemu_set_log(qemu_loglevel);
+}
+
+/* Returns true if addr is in our debug filter or no filter defined
+ */
+bool qemu_log_in_addr_range(uint64_t addr)
+{
+    if (debug_regions) {
+        int i = 0;
+        for (i = 0; i < debug_regions->len; i++) {
+            struct Range *range = &g_array_index(debug_regions, Range, i);
+            if (addr >= range->begin && addr <= range->end) {
+                return true;
+            }
+        }
+        return false;
+    } else {
+        return true;
+    }
+}
+
+
+void qemu_set_dfilter_ranges(const char *filter_spec, Error **errp)
+{
+    gchar **ranges = g_strsplit(filter_spec, ",", 0);
+    int i;
+
+    if (debug_regions) {
+        g_array_unref(debug_regions);
+        debug_regions = NULL;
+    }
+
+    debug_regions = g_array_sized_new(FALSE, FALSE,
+                                      sizeof(Range), g_strv_length(ranges));
+    for (i = 0; ranges[i]; i++) {
+        const char *r = ranges[i];
+        const char *range_op, *r2, *e;
+        uint64_t r1val, r2val;
+        struct Range range;
+
+        range_op = strstr(r, "-");
+        r2 = range_op ? range_op + 1 : NULL;
+        if (!range_op) {
+            range_op = strstr(r, "+");
+            r2 = range_op ? range_op + 1 : NULL;
+        }
+        if (!range_op) {
+            range_op = strstr(r, "..");
+            r2 = range_op ? range_op + 2 : NULL;
+        }
+        if (!range_op) {
+            error_setg(errp, "Bad range specifier");
+            goto out;
+        }
+
+        if (qemu_strtoull(r, &e, 0, &r1val)
+            || e != range_op) {
+            error_setg(errp, "Invalid number to the left of %.*s",
+                       (int)(r2 - range_op), range_op);
+            goto out;
+        }
+        if (qemu_strtoull(r2, NULL, 0, &r2val)) {
+            error_setg(errp, "Invalid number to the right of %.*s",
+                       (int)(r2 - range_op), range_op);
+            goto out;
+        }
+        if (r2val == 0) {
+            error_setg(errp, "Invalid range");
+            goto out;
+        }
+
+        switch (*range_op) {
+        case '+':
+            range.begin = r1val;
+            range.end = r1val + (r2val - 1);
+            break;
+        case '-':
+            range.end = r1val;
+            range.begin = r1val - (r2val - 1);
+            break;
+        case '.':
+            range.begin = r1val;
+            range.end = r2val;
+            break;
+        default:
+            g_assert_not_reached();
+        }
+        g_array_append_val(debug_regions, range);
+    }
+out:
+    g_strfreev(ranges);
+}
+
+/* fflush() the log file */
+void qemu_log_flush(void)
+{
+    fflush(qemu_logfile);
+}
+
+/* Close the log file */
+void qemu_log_close(void)
+{
+    if (qemu_logfile) {
+        if (qemu_logfile != stderr) {
+            fclose(qemu_logfile);
+        }
+        qemu_logfile = NULL;
+    }
 }
 
 const QEMULogItem qemu_log_items[] = {
@@ -117,7 +246,7 @@ const QEMULogItem qemu_log_items[] = {
     { CPU_LOG_EXEC, "exec",
       "show trace before each executed TB (lots of logs)" },
     { CPU_LOG_TB_CPU, "cpu",
-      "show CPU state before block translation" },
+      "show CPU registers before entering a TB (lots of logs)" },
     { CPU_LOG_MMU, "mmu",
       "log MMU-related activities" },
     { CPU_LOG_PCALL, "pcall",

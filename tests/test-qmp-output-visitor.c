@@ -11,9 +11,9 @@
  */
 
 #include "qemu/osdep.h"
-#include <glib.h>
 
 #include "qemu-common.h"
+#include "qapi/error.h"
 #include "qapi/qmp-output-visitor.h"
 #include "test-qapi-types.h"
 #include "test-qapi-visit.h"
@@ -40,6 +40,12 @@ static void visitor_output_teardown(TestOutputVisitorData *data,
     qmp_output_visitor_cleanup(data->qov);
     data->qov = NULL;
     data->ov = NULL;
+}
+
+static void visitor_reset(TestOutputVisitorData *data)
+{
+    visitor_output_teardown(data, NULL);
+    visitor_output_setup(data, NULL);
 }
 
 static void test_visitor_out_int(TestOutputVisitorData *data,
@@ -138,6 +144,7 @@ static void test_visitor_out_enum(TestOutputVisitorData *data,
         g_assert_cmpstr(qstring_get_str(qobject_to_qstring(obj)), ==,
                         EnumOne_lookup[i]);
         qobject_decref(obj);
+        visitor_reset(data);
     }
 }
 
@@ -152,6 +159,7 @@ static void test_visitor_out_enum_errors(TestOutputVisitorData *data,
         visit_type_EnumOne(data->ov, "unused", &bad_values[i], &err);
         g_assert(err);
         error_free(err);
+        visitor_reset(data);
     }
 }
 
@@ -261,6 +269,7 @@ static void test_visitor_out_struct_errors(TestOutputVisitorData *data,
         visit_type_UserDefOne(data->ov, "unused", &pu, &err);
         g_assert(err);
         error_free(err);
+        visitor_reset(data);
     }
 }
 
@@ -365,6 +374,7 @@ static void test_visitor_out_any(TestOutputVisitorData *data,
     qobject_decref(obj);
     qobject_decref(qobj);
 
+    visitor_reset(data);
     qdict = qdict_new();
     qdict_put(qdict, "integer", qint_from_int(-42));
     qdict_put(qdict, "boolean", qbool_from_bool(true));
@@ -441,6 +451,7 @@ static void test_visitor_out_alternate(TestOutputVisitorData *data,
     qapi_free_UserDefAlternate(tmp);
     qobject_decref(arg);
 
+    visitor_reset(data);
     tmp = g_new0(UserDefAlternate, 1);
     tmp->type = QTYPE_QSTRING;
     tmp->u.s = g_strdup("hello");
@@ -454,6 +465,7 @@ static void test_visitor_out_alternate(TestOutputVisitorData *data,
     qapi_free_UserDefAlternate(tmp);
     qobject_decref(arg);
 
+    visitor_reset(data);
     tmp = g_new0(UserDefAlternate, 1);
     tmp->type = QTYPE_QDICT;
     tmp->u.udfu.integer = 1;
@@ -476,15 +488,24 @@ static void test_visitor_out_alternate(TestOutputVisitorData *data,
     qobject_decref(arg);
 }
 
-static void test_visitor_out_empty(TestOutputVisitorData *data,
-                                   const void *unused)
+static void test_visitor_out_null(TestOutputVisitorData *data,
+                                  const void *unused)
 {
     QObject *arg;
+    QDict *qdict;
+    QObject *nil;
 
+    visit_start_struct(data->ov, NULL, NULL, 0, &error_abort);
+    visit_type_null(data->ov, "a", &error_abort);
+    visit_check_struct(data->ov, &error_abort);
+    visit_end_struct(data->ov);
     arg = qmp_output_get_qobject(data->qov);
-    g_assert(qobject_type(arg) == QTYPE_QNULL);
-    /* Check that qnull reference counting is sane */
-    g_assert(arg->refcnt == 2);
+    g_assert(qobject_type(arg) == QTYPE_QDICT);
+    qdict = qobject_to_qdict(arg);
+    g_assert_cmpint(qdict_size(qdict), ==, 1);
+    nil = qdict_get(qdict, "a");
+    g_assert(nil);
+    g_assert(qobject_type(nil) == QTYPE_QNULL);
     qobject_decref(arg);
 }
 
@@ -493,7 +514,7 @@ static void init_native_list(UserDefNativeListUnion *cvalue)
     int i;
     switch (cvalue->type) {
     case USER_DEF_NATIVE_LIST_UNION_KIND_INTEGER: {
-        intList **list = &cvalue->u.integer;
+        intList **list = &cvalue->u.integer.data;
         for (i = 0; i < 32; i++) {
             *list = g_new0(intList, 1);
             (*list)->value = i;
@@ -503,7 +524,7 @@ static void init_native_list(UserDefNativeListUnion *cvalue)
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_S8: {
-        int8List **list = &cvalue->u.s8;
+        int8List **list = &cvalue->u.s8.data;
         for (i = 0; i < 32; i++) {
             *list = g_new0(int8List, 1);
             (*list)->value = i;
@@ -513,7 +534,7 @@ static void init_native_list(UserDefNativeListUnion *cvalue)
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_S16: {
-        int16List **list = &cvalue->u.s16;
+        int16List **list = &cvalue->u.s16.data;
         for (i = 0; i < 32; i++) {
             *list = g_new0(int16List, 1);
             (*list)->value = i;
@@ -523,7 +544,7 @@ static void init_native_list(UserDefNativeListUnion *cvalue)
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_S32: {
-        int32List **list = &cvalue->u.s32;
+        int32List **list = &cvalue->u.s32.data;
         for (i = 0; i < 32; i++) {
             *list = g_new0(int32List, 1);
             (*list)->value = i;
@@ -533,7 +554,7 @@ static void init_native_list(UserDefNativeListUnion *cvalue)
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_S64: {
-        int64List **list = &cvalue->u.s64;
+        int64List **list = &cvalue->u.s64.data;
         for (i = 0; i < 32; i++) {
             *list = g_new0(int64List, 1);
             (*list)->value = i;
@@ -543,7 +564,7 @@ static void init_native_list(UserDefNativeListUnion *cvalue)
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_U8: {
-        uint8List **list = &cvalue->u.u8;
+        uint8List **list = &cvalue->u.u8.data;
         for (i = 0; i < 32; i++) {
             *list = g_new0(uint8List, 1);
             (*list)->value = i;
@@ -553,7 +574,7 @@ static void init_native_list(UserDefNativeListUnion *cvalue)
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_U16: {
-        uint16List **list = &cvalue->u.u16;
+        uint16List **list = &cvalue->u.u16.data;
         for (i = 0; i < 32; i++) {
             *list = g_new0(uint16List, 1);
             (*list)->value = i;
@@ -563,7 +584,7 @@ static void init_native_list(UserDefNativeListUnion *cvalue)
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_U32: {
-        uint32List **list = &cvalue->u.u32;
+        uint32List **list = &cvalue->u.u32.data;
         for (i = 0; i < 32; i++) {
             *list = g_new0(uint32List, 1);
             (*list)->value = i;
@@ -573,7 +594,7 @@ static void init_native_list(UserDefNativeListUnion *cvalue)
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_U64: {
-        uint64List **list = &cvalue->u.u64;
+        uint64List **list = &cvalue->u.u64.data;
         for (i = 0; i < 32; i++) {
             *list = g_new0(uint64List, 1);
             (*list)->value = i;
@@ -583,7 +604,7 @@ static void init_native_list(UserDefNativeListUnion *cvalue)
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_BOOLEAN: {
-        boolList **list = &cvalue->u.boolean;
+        boolList **list = &cvalue->u.boolean.data;
         for (i = 0; i < 32; i++) {
             *list = g_new0(boolList, 1);
             (*list)->value = (i % 3 == 0);
@@ -593,7 +614,7 @@ static void init_native_list(UserDefNativeListUnion *cvalue)
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_STRING: {
-        strList **list = &cvalue->u.string;
+        strList **list = &cvalue->u.string.data;
         for (i = 0; i < 32; i++) {
             *list = g_new0(strList, 1);
             (*list)->value = g_strdup_printf("%d", i);
@@ -603,7 +624,7 @@ static void init_native_list(UserDefNativeListUnion *cvalue)
         break;
     }
     case USER_DEF_NATIVE_LIST_UNION_KIND_NUMBER: {
-        numberList **list = &cvalue->u.number;
+        numberList **list = &cvalue->u.number.data;
         for (i = 0; i < 32; i++) {
             *list = g_new0(numberList, 1);
             (*list)->value = (double)i / 3;
@@ -838,8 +859,8 @@ int main(int argc, char **argv)
                             &out_visitor_data, test_visitor_out_union_flat);
     output_visitor_test_add("/visitor/output/alternate",
                             &out_visitor_data, test_visitor_out_alternate);
-    output_visitor_test_add("/visitor/output/empty",
-                            &out_visitor_data, test_visitor_out_empty);
+    output_visitor_test_add("/visitor/output/null",
+                            &out_visitor_data, test_visitor_out_null);
     output_visitor_test_add("/visitor/output/native_list/int",
                             &out_visitor_data,
                             test_visitor_out_native_list_int);

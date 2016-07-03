@@ -13,12 +13,14 @@
  */
 
 #include "qemu/osdep.h"
-#include "qemu-common.h"
+#include "qapi/error.h"
 #include "qemu/uri.h"
 #include "qemu/error-report.h"
 #include "qemu/sockets.h"
 #include "block/block_int.h"
+#include "sysemu/block-backend.h"
 #include "qemu/bitops.h"
+#include "qemu/cutils.h"
 
 #define SD_PROTO_VER 0x01
 
@@ -292,13 +294,16 @@ static inline size_t count_data_objs(const struct SheepdogInode *inode)
 
 #undef DPRINTF
 #ifdef DEBUG_SDOG
-#define DPRINTF(fmt, args...)                                       \
-    do {                                                            \
-        fprintf(stdout, "%s %d: " fmt, __func__, __LINE__, ##args); \
-    } while (0)
+#define DEBUG_SDOG_PRINT 1
 #else
-#define DPRINTF(fmt, args...)
+#define DEBUG_SDOG_PRINT 0
 #endif
+#define DPRINTF(fmt, args...)                                           \
+    do {                                                                \
+        if (DEBUG_SDOG_PRINT) {                                         \
+            fprintf(stderr, "%s %d: " fmt, __func__, __LINE__, ##args); \
+        }                                                               \
+    } while (0)
 
 typedef struct SheepdogAIOCB SheepdogAIOCB;
 
@@ -615,14 +620,13 @@ static coroutine_fn int send_co_req(int sockfd, SheepdogReq *hdr, void *data,
     ret = qemu_co_send(sockfd, hdr, sizeof(*hdr));
     if (ret != sizeof(*hdr)) {
         error_report("failed to send a req, %s", strerror(errno));
-        ret = -socket_error();
-        return ret;
+        return -errno;
     }
 
     ret = qemu_co_send(sockfd, data, *wlen);
     if (ret != *wlen) {
-        ret = -socket_error();
         error_report("failed to send a req, %s", strerror(errno));
+        return -errno;
     }
 
     return ret;
@@ -1637,7 +1641,7 @@ static int do_sd_create(BDRVSheepdogState *s, uint32_t *vdi_id, int snapshot,
 
 static int sd_prealloc(const char *filename, Error **errp)
 {
-    BlockDriverState *bs = NULL;
+    BlockBackend *blk = NULL;
     BDRVSheepdogState *base = NULL;
     unsigned long buf_size;
     uint32_t idx, max_idx;
@@ -1646,19 +1650,22 @@ static int sd_prealloc(const char *filename, Error **errp)
     void *buf = NULL;
     int ret;
 
-    ret = bdrv_open(&bs, filename, NULL, NULL, BDRV_O_RDWR | BDRV_O_PROTOCOL,
-                    errp);
-    if (ret < 0) {
+    blk = blk_new_open(filename, NULL, NULL,
+                       BDRV_O_RDWR | BDRV_O_PROTOCOL, errp);
+    if (blk == NULL) {
+        ret = -EIO;
         goto out_with_err_set;
     }
 
-    vdi_size = bdrv_getlength(bs);
+    blk_set_allow_write_beyond_eof(blk, true);
+
+    vdi_size = blk_getlength(blk);
     if (vdi_size < 0) {
         ret = vdi_size;
         goto out;
     }
 
-    base = bs->opaque;
+    base = blk_bs(blk)->opaque;
     object_size = (UINT32_C(1) << base->inode.block_size_shift);
     buf_size = MIN(object_size, SD_DATA_OBJ_SIZE);
     buf = g_malloc0(buf_size);
@@ -1670,23 +1677,24 @@ static int sd_prealloc(const char *filename, Error **errp)
          * The created image can be a cloned image, so we need to read
          * a data from the source image.
          */
-        ret = bdrv_pread(bs, idx * buf_size, buf, buf_size);
+        ret = blk_pread(blk, idx * buf_size, buf, buf_size);
         if (ret < 0) {
             goto out;
         }
-        ret = bdrv_pwrite(bs, idx * buf_size, buf, buf_size);
+        ret = blk_pwrite(blk, idx * buf_size, buf, buf_size, 0);
         if (ret < 0) {
             goto out;
         }
     }
 
+    ret = 0;
 out:
     if (ret < 0) {
         error_setg_errno(errp, -ret, "Can't pre-allocate");
     }
 out_with_err_set:
-    if (bs) {
-        bdrv_unref(bs);
+    if (blk) {
+        blk_unref(blk);
     }
     g_free(buf);
 
@@ -1826,7 +1834,7 @@ static int sd_create(const char *filename, QemuOpts *opts,
     }
 
     if (backing_file) {
-        BlockDriverState *bs;
+        BlockBackend *blk;
         BDRVSheepdogState *base;
         BlockDriver *drv;
 
@@ -1838,22 +1846,23 @@ static int sd_create(const char *filename, QemuOpts *opts,
             goto out;
         }
 
-        bs = NULL;
-        ret = bdrv_open(&bs, backing_file, NULL, NULL, BDRV_O_PROTOCOL, errp);
-        if (ret < 0) {
+        blk = blk_new_open(backing_file, NULL, NULL,
+                           BDRV_O_PROTOCOL, errp);
+        if (blk == NULL) {
+            ret = -EIO;
             goto out;
         }
 
-        base = bs->opaque;
+        base = blk_bs(blk)->opaque;
 
         if (!is_snapshot(&base->inode)) {
             error_setg(errp, "cannot clone from a non snapshot vdi");
-            bdrv_unref(bs);
+            blk_unref(blk);
             ret = -EINVAL;
             goto out;
         }
         s->inode.vdi_id = base->inode.vdi_id;
-        bdrv_unref(bs);
+        blk_unref(blk);
     }
 
     s->aio_context = qemu_get_aio_context();
@@ -2543,7 +2552,7 @@ static int sd_snapshot_delete(BlockDriverState *bs,
                               const char *name,
                               Error **errp)
 {
-    uint32_t snap_id = 0;
+    unsigned long snap_id = 0;
     char snap_tag[SD_MAX_VDI_TAG_LEN];
     Error *local_err = NULL;
     int fd, ret;
@@ -2565,12 +2574,15 @@ static int sd_snapshot_delete(BlockDriverState *bs,
     memset(buf, 0, sizeof(buf));
     memset(snap_tag, 0, sizeof(snap_tag));
     pstrcpy(buf, SD_MAX_VDI_LEN, s->name);
-    if (qemu_strtoul(snapshot_id, NULL, 10, (unsigned long *)&snap_id)) {
-        return -1;
+    ret = qemu_strtoul(snapshot_id, NULL, 10, &snap_id);
+    if (ret || snap_id > UINT32_MAX) {
+        error_setg(errp, "Invalid snapshot ID: %s",
+                         snapshot_id ? snapshot_id : "<null>");
+        return -EINVAL;
     }
 
     if (snap_id) {
-        hdr.snapid = snap_id;
+        hdr.snapid = (uint32_t) snap_id;
     } else {
         pstrcpy(snap_tag, sizeof(snap_tag), snapshot_id);
         pstrcpy(buf + SD_MAX_VDI_LEN, SD_MAX_VDI_TAG_LEN, snap_tag);
@@ -2772,12 +2784,19 @@ static int sd_save_vmstate(BlockDriverState *bs, QEMUIOVector *qiov,
     return ret;
 }
 
-static int sd_load_vmstate(BlockDriverState *bs, uint8_t *data,
-                           int64_t pos, int size)
+static int sd_load_vmstate(BlockDriverState *bs, QEMUIOVector *qiov,
+                           int64_t pos)
 {
     BDRVSheepdogState *s = bs->opaque;
+    void *buf;
+    int ret;
 
-    return do_load_save_vmstate(s, data, pos, size, 1);
+    buf = qemu_blockalign(bs, qiov->size);
+    ret = do_load_save_vmstate(s, buf, pos, qiov->size, 1);
+    qemu_iovec_from_buf(qiov, 0, buf, qiov->size);
+    qemu_vfree(buf);
+
+    return ret;
 }
 
 

@@ -41,8 +41,10 @@
 #include "hw/ppc/ppc_e500.h"
 #include "hw/sysbus.h"
 #include "hw/pci/msi.h"
+#include "qapi/error.h"
 #include "qemu/bitops.h"
 #include "qapi/qmp/qerror.h"
+#include "qemu/log.h"
 
 //#define DEBUG_OPENPIC
 
@@ -1375,7 +1377,7 @@ static void fsl_common_init(OpenPICState *opp)
 
     opp->irq_msi = 224;
 
-    msi_supported = true;
+    msi_nonbroken = true;
     for (i = 0; i < opp->fsl->max_ext; i++) {
         opp->src[i].level = false;
     }

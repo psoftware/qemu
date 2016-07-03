@@ -22,6 +22,9 @@
  */
 
 #include "qemu/osdep.h"
+#include "qapi/error.h"
+#include "qemu-common.h"
+#include "cpu.h"
 #include "hw/sysbus.h"
 #include "hw/arm/arm.h"
 #include "hw/arm/primecell.h"
@@ -36,6 +39,7 @@
 #include "sysemu/device_tree.h"
 #include "qemu/error-report.h"
 #include <libfdt.h>
+#include "hw/char/pl011.h"
 
 #define VEXPRESS_BOARD_ID 0x8e0
 #define VEXPRESS_FLASH_SIZE (64 * 1024 * 1024)
@@ -628,10 +632,10 @@ static void vexpress_common_init(MachineState *machine)
     sysbus_create_simple("pl050_keyboard", map[VE_KMI0], pic[12]);
     sysbus_create_simple("pl050_mouse", map[VE_KMI1], pic[13]);
 
-    sysbus_create_simple("pl011", map[VE_UART0], pic[5]);
-    sysbus_create_simple("pl011", map[VE_UART1], pic[6]);
-    sysbus_create_simple("pl011", map[VE_UART2], pic[7]);
-    sysbus_create_simple("pl011", map[VE_UART3], pic[8]);
+    pl011_create(map[VE_UART0], pic[5], serial_hds[0]);
+    pl011_create(map[VE_UART1], pic[6], serial_hds[1]);
+    pl011_create(map[VE_UART2], pic[7], serial_hds[2]);
+    pl011_create(map[VE_UART3], pic[8], serial_hds[3]);
 
     sysbus_create_simple("sp804", map[VE_TIMER01], pic[2]);
     sysbus_create_simple("sp804", map[VE_TIMER23], pic[3]);
@@ -800,4 +804,4 @@ static void vexpress_machine_init(void)
     type_register_static(&vexpress_a15_info);
 }
 
-machine_init(vexpress_machine_init);
+type_init(vexpress_machine_init);

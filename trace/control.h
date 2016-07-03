@@ -1,7 +1,7 @@
 /*
  * Interface for configuring and controlling the state of tracing events.
  *
- * Copyright (C) 2011-2014 Lluís Vilanova <vilanova@ac.upc.edu>
+ * Copyright (C) 2011-2016 Lluís Vilanova <vilanova@ac.upc.edu>
  *
  * This work is licensed under the terms of the GNU GPL, version 2 or later.
  * See the COPYING file in the top-level directory.
@@ -160,17 +160,6 @@ static void trace_event_set_state_dynamic(TraceEvent *ev, bool state);
 bool trace_init_backends(void);
 
 /**
- * trace_init_events:
- * @events: Name of file with events to be enabled at startup; may be NULL.
- *          Corresponds to commandline option "-trace events=...".
- *
- * Read the list of enabled tracing events.
- *
- * Returns: Whether the backends could be successfully initialized.
- */
-void trace_init_events(const char *file);
-
-/**
  * trace_init_file:
  * @file:   Name of trace output file; may be NULL.
  *          Corresponds to commandline option "-trace file=...".
@@ -197,6 +186,20 @@ void trace_list_events(void);
  */
 void trace_enable_events(const char *line_buf);
 
+/**
+ * Definition of QEMU options describing trace subsystem configuration
+ */
+extern QemuOptsList qemu_trace_opts;
+
+/**
+ * trace_opt_parse:
+ * @optarg: A string argument of --trace command line argument
+ *
+ * Initialize tracing subsystem.
+ *
+ * Returns the filename to save trace to.  It must be freed with g_free().
+ */
+char *trace_opt_parse(const char *optarg);
 
 #include "trace/control-internal.h"
 

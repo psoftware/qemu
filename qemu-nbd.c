@@ -17,18 +17,24 @@
  */
 
 #include "qemu/osdep.h"
+#include "qapi/error.h"
 #include "qemu-common.h"
+#include "qemu/cutils.h"
 #include "sysemu/block-backend.h"
 #include "block/block_int.h"
 #include "block/nbd.h"
 #include "qemu/main-loop.h"
 #include "qemu/error-report.h"
 #include "qemu/config-file.h"
+#include "qemu/bswap.h"
+#include "qemu/log.h"
 #include "block/snapshot.h"
 #include "qapi/util.h"
 #include "qapi/qmp/qstring.h"
 #include "qom/object_interfaces.h"
 #include "io/channel-socket.h"
+#include "crypto/init.h"
+#include "trace/control.h"
 
 #include <getopt.h>
 #include <libgen.h>
@@ -42,6 +48,8 @@
 #define QEMU_NBD_OPT_OBJECT        260
 #define QEMU_NBD_OPT_TLSCREDS      261
 #define QEMU_NBD_OPT_IMAGE_OPTS    262
+
+#define MBR_SIZE 512
 
 static NBDExport *exp;
 static bool newproto;
@@ -73,6 +81,7 @@ static void usage(const char *name)
 "  -e, --shared=NUM          device can be shared by NUM clients (default '1')\n"
 "  -t, --persistent          don't exit on the last connection\n"
 "  -v, --verbose             display extra debugging information\n"
+"  -x, --export-name=NAME    expose export by name\n"
 "\n"
 "Exposing part of the image:\n"
 "  -o, --offset=OFFSET       offset into the image\n"
@@ -81,6 +90,8 @@ static void usage(const char *name)
 "General purpose options:\n"
 "  --object type,id=ID,...   define an object such as 'secret' for providing\n"
 "                            passwords and/or encryption keys\n"
+"  -T, --trace [[enable=]<pattern>][,events=<file>][,file=<file>]\n"
+"                            specify tracing options\n"
 #ifdef __linux__
 "Kernel NBD client support:\n"
 "  -c, --connect=DEV         connect FILE to the local NBD device DEV\n"
@@ -147,20 +158,21 @@ static void read_partition(uint8_t *p, struct partition_record *r)
     r->end_cylinder = p[7] | ((p[6] << 2) & 0x300);
     r->end_sector = p[6] & 0x3f;
 
-    r->start_sector_abs = le32_to_cpup((uint32_t *)(p +  8));
-    r->nb_sectors_abs   = le32_to_cpup((uint32_t *)(p + 12));
+    r->start_sector_abs = ldl_le_p(p + 8);
+    r->nb_sectors_abs   = ldl_le_p(p + 12);
 }
 
 static int find_partition(BlockBackend *blk, int partition,
                           off_t *offset, off_t *size)
 {
     struct partition_record mbr[4];
-    uint8_t data[512];
+    uint8_t data[MBR_SIZE];
     int i;
     int ext_partnum = 4;
     int ret;
 
-    if ((ret = blk_read(blk, 0, data, 1)) < 0) {
+    ret = blk_pread(blk, 0, data, sizeof(data));
+    if (ret < 0) {
         error_report("error while reading: %s", strerror(-ret));
         exit(EXIT_FAILURE);
     }
@@ -178,10 +190,12 @@ static int find_partition(BlockBackend *blk, int partition,
 
         if (mbr[i].system == 0xF || mbr[i].system == 0x5) {
             struct partition_record ext[4];
-            uint8_t data1[512];
+            uint8_t data1[MBR_SIZE];
             int j;
 
-            if ((ret = blk_read(blk, mbr[i].start_sector_abs, data1, 1)) < 0) {
+            ret = blk_pread(blk, mbr[i].start_sector_abs * MBR_SIZE,
+                            data1, sizeof(data1));
+            if (ret < 0) {
                 error_report("error while reading: %s", strerror(-ret));
                 exit(EXIT_FAILURE);
             }
@@ -211,7 +225,7 @@ static int find_partition(BlockBackend *blk, int partition,
 
 static void termsig_handler(int signum)
 {
-    state = TERMINATE;
+    atomic_cmpxchg(&state, RUNNING, TERMINATE);
     qemu_notify_event();
 }
 
@@ -377,16 +391,17 @@ static SocketAddress *nbd_build_socket_address(const char *sockpath,
     saddr = g_new0(SocketAddress, 1);
     if (sockpath) {
         saddr->type = SOCKET_ADDRESS_KIND_UNIX;
-        saddr->u.q_unix = g_new0(UnixSocketAddress, 1);
-        saddr->u.q_unix->path = g_strdup(sockpath);
+        saddr->u.q_unix.data = g_new0(UnixSocketAddress, 1);
+        saddr->u.q_unix.data->path = g_strdup(sockpath);
     } else {
+        InetSocketAddress *inet;
         saddr->type = SOCKET_ADDRESS_KIND_INET;
-        saddr->u.inet = g_new0(InetSocketAddress, 1);
-        saddr->u.inet->host = g_strdup(bindto);
+        inet = saddr->u.inet.data = g_new0(InetSocketAddress, 1);
+        inet->host = g_strdup(bindto);
         if (port) {
-            saddr->u.inet->port = g_strdup(port);
+            inet->port = g_strdup(port);
         } else  {
-            saddr->u.inet->port = g_strdup_printf("%d", NBD_DEFAULT_PORT);
+            inet->port = g_strdup_printf("%d", NBD_DEFAULT_PORT);
         }
     }
 
@@ -459,7 +474,7 @@ int main(int argc, char **argv)
     off_t fd_size;
     QemuOpts *sn_opts = NULL;
     const char *sn_id_or_name = NULL;
-    const char *sopt = "hVb:o:p:rsnP:c:dvk:e:f:tl:x:";
+    const char *sopt = "hVb:o:p:rsnP:c:dvk:e:f:tl:x:T:";
     struct option lopt[] = {
         { "help", no_argument, NULL, 'h' },
         { "version", no_argument, NULL, 'V' },
@@ -487,6 +502,7 @@ int main(int argc, char **argv)
         { "export-name", required_argument, NULL, 'x' },
         { "tls-creds", required_argument, NULL, QEMU_NBD_OPT_TLSCREDS },
         { "image-opts", no_argument, NULL, QEMU_NBD_OPT_IMAGE_OPTS },
+        { "trace", required_argument, NULL, 'T' },
         { NULL, 0, NULL, 0 }
     };
     int ch;
@@ -506,6 +522,8 @@ int main(int argc, char **argv)
     const char *export_name = NULL;
     const char *tlscredsid = NULL;
     bool imageOpts = false;
+    bool writethrough = true;
+    char *trace_file = NULL;
 
     /* The client thread uses SIGTERM to interrupt the server.  A signal
      * handler ensures that "qemu-nbd -v -c" exits with a nice status code.
@@ -514,8 +532,12 @@ int main(int argc, char **argv)
     memset(&sa_sigterm, 0, sizeof(sa_sigterm));
     sa_sigterm.sa_handler = termsig_handler;
     sigaction(SIGTERM, &sa_sigterm, NULL);
+
+    qcrypto_init(&error_fatal);
+
     module_call_init(MODULE_INIT_QOM);
     qemu_add_opts(&qemu_object_opts);
+    qemu_add_opts(&qemu_trace_opts);
     qemu_init_exec_dir(argv[0]);
 
     while ((ch = getopt_long(argc, argv, sopt, lopt, &opt_ind)) != -1) {
@@ -532,7 +554,7 @@ int main(int argc, char **argv)
                 exit(EXIT_FAILURE);
             }
             seen_cache = true;
-            if (bdrv_parse_cache_flags(optarg, &flags) == -1) {
+            if (bdrv_parse_cache_mode(optarg, &flags, &writethrough) == -1) {
                 error_report("Invalid cache mode `%s'", optarg);
                 exit(EXIT_FAILURE);
             }
@@ -688,6 +710,10 @@ int main(int argc, char **argv)
         case QEMU_NBD_OPT_IMAGE_OPTS:
             imageOpts = true;
             break;
+        case 'T':
+            g_free(trace_file);
+            trace_file = trace_opt_parse(optarg);
+            break;
         }
     }
 
@@ -699,10 +725,15 @@ int main(int argc, char **argv)
 
     if (qemu_opts_foreach(&qemu_object_opts,
                           user_creatable_add_opts_foreach,
-                          NULL, &local_err)) {
-        error_report_err(local_err);
+                          NULL, NULL)) {
         exit(EXIT_FAILURE);
     }
+
+    if (!trace_init_backends()) {
+        exit(1);
+    }
+    trace_init_file(trace_file);
+    qemu_set_log(LOG_TRACE);
 
     if (tlscredsid) {
         if (sockpath) {
@@ -830,13 +861,13 @@ int main(int argc, char **argv)
         }
         options = qemu_opts_to_qdict(opts, NULL);
         qemu_opts_reset(&file_opts);
-        blk = blk_new_open("hda", NULL, NULL, options, flags, &local_err);
+        blk = blk_new_open(NULL, NULL, options, flags, &local_err);
     } else {
         if (fmt) {
             options = qdict_new();
             qdict_put(options, "driver", qstring_from_str(fmt));
         }
-        blk = blk_new_open("hda", srcpath, NULL, options, flags, &local_err);
+        blk = blk_new_open(srcpath, NULL, options, flags, &local_err);
     }
 
     if (!blk) {
@@ -845,6 +876,8 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
     bs = blk_bs(blk);
+
+    blk_set_enable_write_cache(blk, !writethrough);
 
     if (sn_opts) {
         ret = bdrv_snapshot_load_tmp(bs,

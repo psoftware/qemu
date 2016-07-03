@@ -36,36 +36,61 @@
 #define smp_wmb()   ({ barrier(); __atomic_thread_fence(__ATOMIC_RELEASE); barrier(); })
 #define smp_rmb()   ({ barrier(); __atomic_thread_fence(__ATOMIC_ACQUIRE); barrier(); })
 
+/* Most compilers currently treat consume and acquire the same, but really
+ * no processors except Alpha need a barrier here.  Leave it in if
+ * using Thread Sanitizer to avoid warnings, otherwise optimize it away.
+ */
+#if defined(__SANITIZE_THREAD__)
 #define smp_read_barrier_depends() ({ barrier(); __atomic_thread_fence(__ATOMIC_CONSUME); barrier(); })
+#elsif defined(__alpha__)
+#define smp_read_barrier_depends()   asm volatile("mb":::"memory")
+#else
+#define smp_read_barrier_depends()   barrier()
+#endif
+
 
 /* Weak atomic operations prevent the compiler moving other
  * loads/stores past the atomic operation load/store. However there is
  * no explicit memory barrier for the processor.
  */
-#define atomic_read(ptr)                          \
-    ({                                            \
-    typeof(*ptr) _val;                            \
-     __atomic_load(ptr, &_val, __ATOMIC_RELAXED); \
-    _val;                                         \
+#define atomic_read(ptr)                              \
+    ({                                                \
+    QEMU_BUILD_BUG_ON(sizeof(*ptr) > sizeof(void *)); \
+    typeof(*ptr) _val;                                \
+     __atomic_load(ptr, &_val, __ATOMIC_RELAXED);     \
+    _val;                                             \
     })
 
-#define atomic_set(ptr, i)  do {                  \
-    typeof(*ptr) _val = (i);                      \
-    __atomic_store(ptr, &_val, __ATOMIC_RELAXED); \
+#define atomic_set(ptr, i)  do {                      \
+    QEMU_BUILD_BUG_ON(sizeof(*ptr) > sizeof(void *)); \
+    typeof(*ptr) _val = (i);                          \
+    __atomic_store(ptr, &_val, __ATOMIC_RELAXED);     \
 } while(0)
 
-/* Atomic RCU operations imply weak memory barriers */
+/* See above: most compilers currently treat consume and acquire the
+ * same, but this slows down atomic_rcu_read unnecessarily.
+ */
+#ifdef __SANITIZE_THREAD__
+#define atomic_rcu_read__nocheck(ptr, valptr)           \
+    __atomic_load(ptr, valptr, __ATOMIC_CONSUME);
+#else
+#define atomic_rcu_read__nocheck(ptr, valptr)           \
+    __atomic_load(ptr, valptr, __ATOMIC_RELAXED);       \
+    smp_read_barrier_depends();
+#endif
 
-#define atomic_rcu_read(ptr)                      \
-    ({                                            \
-    typeof(*ptr) _val;                            \
-     __atomic_load(ptr, &_val, __ATOMIC_CONSUME); \
-    _val;                                         \
+#define atomic_rcu_read(ptr)                          \
+    ({                                                \
+    QEMU_BUILD_BUG_ON(sizeof(*ptr) > sizeof(void *)); \
+    typeof(*ptr) _val;                                \
+    atomic_rcu_read__nocheck(ptr, &_val);             \
+    _val;                                             \
     })
 
-#define atomic_rcu_set(ptr, i)  do {                    \
-    typeof(*ptr) _val = (i);                            \
-    __atomic_store(ptr, &_val, __ATOMIC_RELEASE);       \
+#define atomic_rcu_set(ptr, i) do {                   \
+    QEMU_BUILD_BUG_ON(sizeof(*ptr) > sizeof(void *)); \
+    typeof(*ptr) _val = (i);                          \
+    __atomic_store(ptr, &_val, __ATOMIC_RELEASE);     \
 } while(0)
 
 /* atomic_mb_read/set semantics map Java volatile variables. They are
@@ -79,6 +104,7 @@
 #if defined(_ARCH_PPC)
 #define atomic_mb_read(ptr)                             \
     ({                                                  \
+    QEMU_BUILD_BUG_ON(sizeof(*ptr) > sizeof(void *));   \
     typeof(*ptr) _val;                                  \
      __atomic_load(ptr, &_val, __ATOMIC_RELAXED);       \
      smp_rmb();                                         \
@@ -86,22 +112,25 @@
     })
 
 #define atomic_mb_set(ptr, i)  do {                     \
+    QEMU_BUILD_BUG_ON(sizeof(*ptr) > sizeof(void *));   \
     typeof(*ptr) _val = (i);                            \
     smp_wmb();                                          \
     __atomic_store(ptr, &_val, __ATOMIC_RELAXED);       \
     smp_mb();                                           \
 } while(0)
 #else
-#define atomic_mb_read(ptr)                       \
-    ({                                            \
-    typeof(*ptr) _val;                            \
-     __atomic_load(ptr, &_val, __ATOMIC_SEQ_CST); \
-    _val;                                         \
+#define atomic_mb_read(ptr)                             \
+    ({                                                  \
+    QEMU_BUILD_BUG_ON(sizeof(*ptr) > sizeof(void *));   \
+    typeof(*ptr) _val;                                  \
+    __atomic_load(ptr, &_val, __ATOMIC_SEQ_CST);        \
+    _val;                                               \
     })
 
-#define atomic_mb_set(ptr, i)  do {               \
-    typeof(*ptr) _val = (i);                      \
-    __atomic_store(ptr, &_val, __ATOMIC_SEQ_CST); \
+#define atomic_mb_set(ptr, i)  do {                     \
+    QEMU_BUILD_BUG_ON(sizeof(*ptr) > sizeof(void *));   \
+    typeof(*ptr) _val = (i);                            \
+    __atomic_store(ptr, &_val, __ATOMIC_SEQ_CST);       \
 } while(0)
 #endif
 
@@ -109,6 +138,7 @@
 /* All the remaining operations are fully sequentially consistent */
 
 #define atomic_xchg(ptr, i)    ({                           \
+    QEMU_BUILD_BUG_ON(sizeof(*ptr) > sizeof(void *));       \
     typeof(*ptr) _new = (i), _old;                          \
     __atomic_exchange(ptr, &_new, &_old, __ATOMIC_SEQ_CST); \
     _old;                                                   \
@@ -117,6 +147,7 @@
 /* Returns the eventual value, failed or not */
 #define atomic_cmpxchg(ptr, old, new)                                   \
     ({                                                                  \
+    QEMU_BUILD_BUG_ON(sizeof(*ptr) > sizeof(void *));                   \
     typeof(*ptr) _old = (old), _new = (new);                            \
     __atomic_compare_exchange(ptr, &_old, &_new, false,                 \
                               __ATOMIC_SEQ_CST, __ATOMIC_SEQ_CST);      \

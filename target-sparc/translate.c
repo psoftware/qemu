@@ -23,6 +23,7 @@
 #include "cpu.h"
 #include "disas/disas.h"
 #include "exec/helper-proto.h"
+#include "exec/exec-all.h"
 #include "tcg-op.h"
 #include "exec/cpu_ldst.h"
 
@@ -39,7 +40,8 @@
                          according to jump_pc[T2] */
 
 /* global register indexes */
-static TCGv_ptr cpu_env, cpu_regwptr;
+static TCGv_env cpu_env;
+static TCGv_ptr cpu_regwptr;
 static TCGv cpu_cc_src, cpu_cc_src2, cpu_cc_dst;
 static TCGv_i32 cpu_cc_op;
 static TCGv_i32 cpu_psr;
@@ -302,20 +304,30 @@ static inline TCGv gen_dest_gpr(DisasContext *dc, int reg)
     }
 }
 
+static inline bool use_goto_tb(DisasContext *s, target_ulong pc,
+                               target_ulong npc)
+{
+    if (unlikely(s->singlestep)) {
+        return false;
+    }
+
+#ifndef CONFIG_USER_ONLY
+    return (pc & TARGET_PAGE_MASK) == (s->tb->pc & TARGET_PAGE_MASK) &&
+           (npc & TARGET_PAGE_MASK) == (s->tb->pc & TARGET_PAGE_MASK);
+#else
+    return true;
+#endif
+}
+
 static inline void gen_goto_tb(DisasContext *s, int tb_num,
                                target_ulong pc, target_ulong npc)
 {
-    TranslationBlock *tb;
-
-    tb = s->tb;
-    if ((pc & TARGET_PAGE_MASK) == (tb->pc & TARGET_PAGE_MASK) &&
-        (npc & TARGET_PAGE_MASK) == (tb->pc & TARGET_PAGE_MASK) &&
-        !s->singlestep)  {
+    if (use_goto_tb(s, pc, npc))  {
         /* jump to same page: we can use a direct jump */
         tcg_gen_goto_tb(tb_num);
         tcg_gen_movi_tl(cpu_pc, pc);
         tcg_gen_movi_tl(cpu_npc, npc);
-        tcg_gen_exit_tb((uintptr_t)tb + tb_num);
+        tcg_gen_exit_tb((uintptr_t)s->tb + tb_num);
     } else {
         /* jump to another page: currently not optimized */
         tcg_gen_movi_tl(cpu_pc, pc);
@@ -2291,7 +2303,7 @@ static void gen_fmovq(DisasContext *dc, DisasCompare *cmp, int rd, int rs)
 }
 
 #ifndef CONFIG_USER_ONLY
-static inline void gen_load_trap_state_at_tl(TCGv_ptr r_tsptr, TCGv_ptr cpu_env)
+static inline void gen_load_trap_state_at_tl(TCGv_ptr r_tsptr, TCGv_env cpu_env)
 {
     TCGv_i32 r_tl = tcg_temp_new_i32();
 
@@ -4667,12 +4679,15 @@ static void disas_sparc_insn(DisasContext * dc, unsigned int insn)
                 case 0xd:       /* ldstub -- XXX: should be atomically */
                     {
                         TCGv r_const;
+                        TCGv tmp = tcg_temp_new();
 
                         gen_address_mask(dc, cpu_addr);
-                        tcg_gen_qemu_ld8s(cpu_val, cpu_addr, dc->mem_idx);
+                        tcg_gen_qemu_ld8u(tmp, cpu_addr, dc->mem_idx);
                         r_const = tcg_const_tl(0xff);
                         tcg_gen_qemu_st8(r_const, cpu_addr, dc->mem_idx);
+                        tcg_gen_mov_tl(cpu_val, tmp);
                         tcg_temp_free(r_const);
+                        tcg_temp_free(tmp);
                     }
                     break;
                 case 0x0f:
@@ -5318,7 +5333,8 @@ void gen_intermediate_code(CPUSPARCState * env, TranslationBlock * tb)
     tb->icount = num_insns;
 
 #ifdef DEBUG_DISAS
-    if (qemu_loglevel_mask(CPU_LOG_TB_IN_ASM)) {
+    if (qemu_loglevel_mask(CPU_LOG_TB_IN_ASM)
+        && qemu_log_in_addr_range(pc_start)) {
         qemu_log("--------------\n");
         qemu_log("IN: %s\n", lookup_symbol(pc_start));
         log_target_disas(cs, pc_start, last_pc + 4 - pc_start, 0);
@@ -5391,6 +5407,7 @@ void gen_intermediate_code_init(CPUSPARCState *env)
     inited = 1;
 
     cpu_env = tcg_global_reg_new_ptr(TCG_AREG0, "env");
+    tcg_ctx.tcg_env = cpu_env;
 
     cpu_regwptr = tcg_global_mem_new_ptr(cpu_env,
                                          offsetof(CPUSPARCState, regwptr),

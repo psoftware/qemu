@@ -42,6 +42,7 @@ typedef enum QIOChannelFeature QIOChannelFeature;
 enum QIOChannelFeature {
     QIO_CHANNEL_FEATURE_FD_PASS  = (1 << 0),
     QIO_CHANNEL_FEATURE_SHUTDOWN = (1 << 1),
+    QIO_CHANNEL_FEATURE_LISTEN   = (1 << 2),
 };
 
 
@@ -78,6 +79,9 @@ typedef gboolean (*QIOChannelFunc)(QIOChannel *ioc,
 struct QIOChannel {
     Object parent;
     unsigned int features; /* bitmask of QIOChannelFeatures */
+#ifdef _WIN32
+    HANDLE event; /* For use with GSource on Win32 */
+#endif
 };
 
 /**

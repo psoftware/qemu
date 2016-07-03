@@ -22,12 +22,13 @@ typedef struct VhostUserState {
     NetClientState nc;
     CharDriverState *chr;
     VHostNetState *vhost_net;
+    guint watch;
+    uint64_t acked_features;
 } VhostUserState;
 
 typedef struct VhostUserChardevProps {
     bool is_socket;
     bool is_unix;
-    bool is_server;
 } VhostUserChardevProps;
 
 VHostNetState *vhost_user_get_vhost_net(NetClientState *nc)
@@ -35,6 +36,13 @@ VHostNetState *vhost_user_get_vhost_net(NetClientState *nc)
     VhostUserState *s = DO_UPCAST(VhostUserState, nc, nc);
     assert(nc->info->type == NET_CLIENT_OPTIONS_KIND_VHOST_USER);
     return s->vhost_net;
+}
+
+uint64_t vhost_user_get_acked_features(NetClientState *nc)
+{
+    VhostUserState *s = DO_UPCAST(VhostUserState, nc, nc);
+    assert(nc->info->type == NET_CLIENT_OPTIONS_KIND_VHOST_USER);
+    return s->acked_features;
 }
 
 static int vhost_user_running(VhostUserState *s)
@@ -56,6 +64,8 @@ static void vhost_user_stop(int queues, NetClientState *ncs[])
         }
 
         if (s->vhost_net) {
+            /* save acked features */
+            s->acked_features = vhost_net_get_acked_features(s->vhost_net);
             vhost_net_cleanup(s->vhost_net);
             s->vhost_net = NULL;
         }
@@ -141,6 +151,11 @@ static void vhost_user_cleanup(NetClientState *nc)
         vhost_net_cleanup(s->vhost_net);
         s->vhost_net = NULL;
     }
+    if (s->chr) {
+        qemu_chr_add_handlers(s->chr, NULL, NULL, NULL, NULL);
+        qemu_chr_fe_release(s->chr);
+        s->chr = NULL;
+    }
 
     qemu_purge_queued_packets(nc);
 }
@@ -168,6 +183,20 @@ static NetClientInfo net_vhost_user_info = {
         .has_ufo = vhost_user_has_ufo,
 };
 
+static gboolean net_vhost_user_watch(GIOChannel *chan, GIOCondition cond,
+                                           void *opaque)
+{
+    VhostUserState *s = opaque;
+    uint8_t buf[1];
+
+    /* We don't actually want to read anything, but CHR_EVENT_CLOSED will be
+     * raised as a side-effect of the read.
+     */
+    qemu_chr_fe_read_all(s->chr, buf, sizeof(buf));
+
+    return FALSE;
+}
+
 static void net_vhost_user_event(void *opaque, int event)
 {
     const char *name = opaque;
@@ -179,18 +208,25 @@ static void net_vhost_user_event(void *opaque, int event)
     queues = qemu_find_net_clients_except(name, ncs,
                                           NET_CLIENT_OPTIONS_KIND_NIC,
                                           MAX_QUEUE_NUM);
+    assert(queues < MAX_QUEUE_NUM);
+
     s = DO_UPCAST(VhostUserState, nc, ncs[0]);
     trace_vhost_user_event(s->chr->label, event);
     switch (event) {
     case CHR_EVENT_OPENED:
+        s->watch = qemu_chr_fe_add_watch(s->chr, G_IO_HUP,
+                                         net_vhost_user_watch, s);
         if (vhost_user_start(queues, ncs) < 0) {
-            exit(1);
+            qemu_chr_disconnect(s->chr);
+            return;
         }
         qmp_set_link(name, true, &err);
         break;
     case CHR_EVENT_CLOSED:
         qmp_set_link(name, false, &err);
         vhost_user_stop(queues, ncs);
+        g_source_remove(s->watch);
+        s->watch = 0;
         break;
     }
 
@@ -207,6 +243,9 @@ static int net_vhost_user_init(NetClientState *peer, const char *device,
     VhostUserState *s;
     int i;
 
+    assert(name);
+    assert(queues > 0);
+
     for (i = 0; i < queues; i++) {
         nc = qemu_new_net_client(&net_vhost_user_info, peer, device, name);
 
@@ -219,7 +258,7 @@ static int net_vhost_user_init(NetClientState *peer, const char *device,
         s->chr = chr;
     }
 
-    qemu_chr_add_handlers(chr, NULL, NULL, net_vhost_user_event, (void*)name);
+    qemu_chr_add_handlers(chr, NULL, NULL, net_vhost_user_event, nc[0].name);
 
     return 0;
 }
@@ -235,7 +274,6 @@ static int net_vhost_chardev_opts(void *opaque,
     } else if (strcmp(name, "path") == 0) {
         props->is_unix = true;
     } else if (strcmp(name, "server") == 0) {
-        props->is_server = true;
     } else {
         error_setg(errp,
                    "vhost-user does not support a chardev with option %s=%s",
@@ -303,7 +341,7 @@ int net_init_vhost_user(const NetClientOptions *opts, const char *name,
     CharDriverState *chr;
 
     assert(opts->type == NET_CLIENT_OPTIONS_KIND_VHOST_USER);
-    vhost_user_opts = opts->u.vhost_user;
+    vhost_user_opts = opts->u.vhost_user.data;
 
     chr = net_vhost_parse_chardev(vhost_user_opts, errp);
     if (!chr) {
@@ -317,9 +355,10 @@ int net_init_vhost_user(const NetClientOptions *opts, const char *name,
     }
 
     queues = vhost_user_opts->has_queues ? vhost_user_opts->queues : 1;
-    if (queues < 1) {
+    if (queues < 1 || queues > MAX_QUEUE_NUM) {
         error_setg(errp,
-                   "vhost-user number of queues must be bigger than zero");
+                   "vhost-user number of queues must be in range [1, %d]",
+                   MAX_QUEUE_NUM);
         return -1;
     }
 

@@ -23,6 +23,7 @@
  */
 
 #include "qemu/osdep.h"
+#include "qapi/error.h"
 #include "qemu/throttle.h"
 #include "qemu/timer.h"
 #include "block/aio.h"
@@ -311,6 +312,14 @@ bool throttle_is_valid(ThrottleConfig *cfg, Error **errp)
     if (bps_flag || ops_flag || bps_max_flag || ops_max_flag) {
         error_setg(errp, "bps/iops/max total values and read/write values"
                    " cannot be used at the same time");
+        return false;
+    }
+
+    if (cfg->op_size &&
+        !cfg->buckets[THROTTLE_OPS_TOTAL].avg &&
+        !cfg->buckets[THROTTLE_OPS_READ].avg &&
+        !cfg->buckets[THROTTLE_OPS_WRITE].avg) {
+        error_setg(errp, "iops size requires an iops value to be set");
         return false;
     }
 

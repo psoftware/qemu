@@ -1,8 +1,8 @@
 #ifndef HW_ACPI_GEN_UTILS_H
 #define HW_ACPI_GEN_UTILS_H
 
-#include <glib.h>
 #include "hw/acpi/acpi-defs.h"
+#include "hw/acpi/bios-linker-loader.h"
 
 /* Reserve RAM space for tables: add another order of magnitude. */
 #define ACPI_BUILD_TABLE_MAX_SIZE         0x200000
@@ -198,12 +198,19 @@ typedef enum {
     AML_PULL_NONE = 3,
 } AmlPinConfig;
 
+typedef enum {
+    MEM_AFFINITY_NOFLAGS      = 0,
+    MEM_AFFINITY_ENABLED      = (1 << 0),
+    MEM_AFFINITY_HOTPLUGGABLE = (1 << 1),
+    MEM_AFFINITY_NON_VOLATILE = (1 << 2),
+} MemoryAffinityFlags;
+
 typedef
 struct AcpiBuildTables {
     GArray *table_data;
     GArray *rsdp;
     GArray *tcpalog;
-    GArray *linker;
+    BIOSLinker *linker;
 } AcpiBuildTables;
 
 /**
@@ -245,6 +252,7 @@ void aml_append(Aml *parent_ctx, Aml *child);
 /* non block AML object primitives */
 Aml *aml_name(const char *name_format, ...) GCC_FMT_ATTR(1, 2);
 Aml *aml_name_decl(const char *name, Aml *val);
+Aml *aml_debug(void);
 Aml *aml_return(Aml *val);
 Aml *aml_int(const uint64_t val);
 Aml *aml_arg(int pos);
@@ -269,6 +277,8 @@ Aml *aml_call1(const char *method, Aml *arg1);
 Aml *aml_call2(const char *method, Aml *arg1, Aml *arg2);
 Aml *aml_call3(const char *method, Aml *arg1, Aml *arg2, Aml *arg3);
 Aml *aml_call4(const char *method, Aml *arg1, Aml *arg2, Aml *arg3, Aml *arg4);
+Aml *aml_call5(const char *method, Aml *arg1, Aml *arg2, Aml *arg3, Aml *arg4,
+               Aml *arg5);
 Aml *aml_gpio_int(AmlConsumerAndProducer con_and_pro,
                   AmlLevelAndEdge edge_level,
                   AmlActiveHighAndLow active_level, AmlShared shared,
@@ -285,7 +295,7 @@ Aml *aml_interrupt(AmlConsumerAndProducer con_and_pro,
 Aml *aml_io(AmlIODecode dec, uint16_t min_base, uint16_t max_base,
             uint8_t aln, uint8_t len);
 Aml *aml_operation_region(const char *name, AmlRegionSpace rs,
-                          uint32_t offset, uint32_t len);
+                          Aml *offset, uint32_t len);
 Aml *aml_irq_no_flags(uint8_t irq);
 Aml *aml_named_field(const char *name, unsigned length);
 Aml *aml_reserved_field(unsigned length);
@@ -344,16 +354,21 @@ Aml *aml_mutex(const char *name, uint8_t sync_level);
 Aml *aml_acquire(Aml *mutex, uint16_t timeout);
 Aml *aml_release(Aml *mutex);
 Aml *aml_alias(const char *source_object, const char *alias_object);
+Aml *aml_create_field(Aml *srcbuf, Aml *bit_index, Aml *num_bits,
+                      const char *name);
 Aml *aml_create_dword_field(Aml *srcbuf, Aml *index, const char *name);
 Aml *aml_create_qword_field(Aml *srcbuf, Aml *index, const char *name);
 Aml *aml_varpackage(uint32_t num_elements);
 Aml *aml_touuid(const char *uuid);
 Aml *aml_unicode(const char *str);
+Aml *aml_refof(Aml *arg);
 Aml *aml_derefof(Aml *arg);
 Aml *aml_sizeof(Aml *arg);
+Aml *aml_concatenate(Aml *source1, Aml *source2, Aml *target);
+Aml *aml_object_type(Aml *object);
 
 void
-build_header(GArray *linker, GArray *table_data,
+build_header(BIOSLinker *linker, GArray *table_data,
              AcpiTableHeader *h, const char *sig, int len, uint8_t rev,
              const char *oem_id, const char *oem_table_id);
 void *acpi_data_push(GArray *table_data, unsigned size);
@@ -362,7 +377,14 @@ void acpi_add_table(GArray *table_offsets, GArray *table_data);
 void acpi_build_tables_init(AcpiBuildTables *tables);
 void acpi_build_tables_cleanup(AcpiBuildTables *tables, bool mfre);
 void
-build_rsdt(GArray *table_data, GArray *linker, GArray *table_offsets,
+build_rsdt(GArray *table_data, BIOSLinker *linker, GArray *table_offsets,
            const char *oem_id, const char *oem_table_id);
+
+int
+build_append_named_dword(GArray *array, const char *name_format, ...)
+GCC_FMT_ATTR(2, 3);
+
+void build_srat_memory(AcpiSratMemoryAffinity *numamem, uint64_t base,
+                       uint64_t len, int node, MemoryAffinityFlags flags);
 
 #endif

@@ -61,7 +61,7 @@ struct VIOsPAPRDevice {
     DeviceState qdev;
     uint32_t reg;
     uint32_t irq;
-    target_ulong signal_state;
+    uint64_t signal_state;
     VIOsPAPR_CRQ crq;
     AddressSpace as;
     MemoryRegion mrroot;
@@ -90,7 +90,7 @@ static inline qemu_irq spapr_vio_qirq(VIOsPAPRDevice *dev)
 {
     sPAPRMachineState *spapr = SPAPR_MACHINE(qdev_get_machine());
 
-    return xics_get_qirq(spapr->icp, dev->irq);
+    return xics_get_qirq(spapr->xics, dev->irq);
 }
 
 static inline bool spapr_vio_dma_valid(VIOsPAPRDevice *dev, uint64_t taddr,

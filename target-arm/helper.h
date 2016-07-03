@@ -48,6 +48,7 @@ DEF_HELPER_FLAGS_3(sel_flags, TCG_CALL_NO_RWG_SE,
                    i32, i32, i32, i32)
 DEF_HELPER_2(exception_internal, void, env, i32)
 DEF_HELPER_4(exception_with_syndrome, void, env, i32, i32, i32)
+DEF_HELPER_1(setend, void, env)
 DEF_HELPER_1(wfi, void, env)
 DEF_HELPER_1(wfe, void, env)
 DEF_HELPER_1(yield, void, env)
@@ -75,6 +76,9 @@ DEF_HELPER_1(exception_return, void, env)
 
 DEF_HELPER_2(get_r13_banked, i32, env, i32)
 DEF_HELPER_3(set_r13_banked, void, env, i32, i32)
+
+DEF_HELPER_3(mrs_banked, i32, env, i32, i32)
+DEF_HELPER_4(msr_banked, void, env, i32, i32, i32)
 
 DEF_HELPER_2(get_user_reg, i32, env, i32)
 DEF_HELPER_3(set_user_reg, void, env, i32, i32)

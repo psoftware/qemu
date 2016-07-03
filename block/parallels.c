@@ -28,9 +28,12 @@
  * THE SOFTWARE.
  */
 #include "qemu/osdep.h"
+#include "qapi/error.h"
 #include "qemu-common.h"
 #include "block/block_int.h"
+#include "sysemu/block-backend.h"
 #include "qemu/module.h"
+#include "qemu/bswap.h"
 #include "qemu/bitmap.h"
 #include "qapi/util.h"
 
@@ -201,13 +204,15 @@ static int64_t allocate_clusters(BlockDriverState *bs, int64_t sector_num,
         return -EINVAL;
     }
 
-    to_allocate = (sector_num + *pnum + s->tracks - 1) / s->tracks - idx;
+    to_allocate = DIV_ROUND_UP(sector_num + *pnum, s->tracks) - idx;
     space = to_allocate * s->tracks;
     if (s->data_end + space > bdrv_getlength(bs->file->bs) >> BDRV_SECTOR_BITS) {
         int ret;
         space += s->prealloc_size;
         if (s->prealloc_mode == PRL_PREALLOC_MODE_FALLOCATE) {
-            ret = bdrv_write_zeroes(bs->file->bs, s->data_end, space, 0);
+            ret = bdrv_pwrite_zeroes(bs->file->bs,
+                                     s->data_end << BDRV_SECTOR_BITS,
+                                     space << BDRV_SECTOR_BITS, 0);
         } else {
             ret = bdrv_truncate(bs->file->bs,
                                 (s->data_end + space) << BDRV_SECTOR_BITS);
@@ -461,7 +466,7 @@ static int parallels_create(const char *filename, QemuOpts *opts, Error **errp)
     int64_t total_size, cl_size;
     uint8_t tmp[BDRV_SECTOR_SIZE];
     Error *local_err = NULL;
-    BlockDriverState *file;
+    BlockBackend *file;
     uint32_t bat_entries, bat_sectors;
     ParallelsHeader header;
     int ret;
@@ -477,14 +482,16 @@ static int parallels_create(const char *filename, QemuOpts *opts, Error **errp)
         return ret;
     }
 
-    file = NULL;
-    ret = bdrv_open(&file, filename, NULL, NULL,
-                    BDRV_O_RDWR | BDRV_O_PROTOCOL, &local_err);
-    if (ret < 0) {
+    file = blk_new_open(filename, NULL, NULL,
+                        BDRV_O_RDWR | BDRV_O_PROTOCOL, &local_err);
+    if (file == NULL) {
         error_propagate(errp, local_err);
-        return ret;
+        return -EIO;
     }
-    ret = bdrv_truncate(file, 0);
+
+    blk_set_allow_write_beyond_eof(file, true);
+
+    ret = blk_truncate(file, 0);
     if (ret < 0) {
         goto exit;
     }
@@ -508,18 +515,19 @@ static int parallels_create(const char *filename, QemuOpts *opts, Error **errp)
     memset(tmp, 0, sizeof(tmp));
     memcpy(tmp, &header, sizeof(header));
 
-    ret = bdrv_pwrite(file, 0, tmp, BDRV_SECTOR_SIZE);
+    ret = blk_pwrite(file, 0, tmp, BDRV_SECTOR_SIZE, 0);
     if (ret < 0) {
         goto exit;
     }
-    ret = bdrv_write_zeroes(file, 1, bat_sectors - 1, 0);
+    ret = blk_pwrite_zeroes(file, BDRV_SECTOR_SIZE,
+                            (bat_sectors - 1) << BDRV_SECTOR_BITS, 0);
     if (ret < 0) {
         goto exit;
     }
     ret = 0;
 
 done:
-    bdrv_unref(file);
+    blk_unref(file);
     return ret;
 
 exit:

@@ -8,10 +8,10 @@
  */
 
 #include "qemu/osdep.h"
+#include "qapi/error.h"
 #include "qapi/qmp/qstring.h"
 #include "qemu/config-file.h"
 
-#include <glib.h>
 
 static QemuOptsList opts_list_01 = {
     .name = "opts_list_01",

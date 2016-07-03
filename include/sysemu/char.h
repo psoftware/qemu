@@ -41,6 +41,11 @@ typedef struct {
 #define CHR_IOCTL_PP_EPP_WRITE       11
 #define CHR_IOCTL_PP_DATA_DIR        12
 
+struct ParallelIOArg {
+    void *buffer;
+    int count;
+};
+
 #define CHR_IOCTL_SERIAL_SET_TIOCM   13
 #define CHR_IOCTL_SERIAL_GET_TIOCM   14
 
@@ -70,6 +75,7 @@ struct CharDriverState {
     IOReadHandler *chr_read;
     void *handler_opaque;
     void (*chr_close)(struct CharDriverState *chr);
+    void (*chr_disconnect)(struct CharDriverState *chr);
     void (*chr_accept_input)(struct CharDriverState *chr);
     void (*chr_set_echo)(struct CharDriverState *chr, bool echo);
     void (*chr_set_fe_open)(struct CharDriverState *chr, int fe_open);
@@ -86,6 +92,7 @@ struct CharDriverState {
     int is_mux;
     guint fd_in_tag;
     QemuOpts *opts;
+    bool replay;
     QTAILQ_ENTRY(CharDriverState) next;
 };
 
@@ -137,6 +144,28 @@ void qemu_chr_parse_common(QemuOpts *opts, ChardevCommon *backend);
  */
 CharDriverState *qemu_chr_new(const char *label, const char *filename,
                               void (*init)(struct CharDriverState *s));
+/**
+ * @qemu_chr_disconnect:
+ *
+ * Close a fd accpeted by character backend.
+ */
+void qemu_chr_disconnect(CharDriverState *chr);
+
+/**
+ * @qemu_chr_new_noreplay:
+ *
+ * Create a new character backend from a URI.
+ * Character device communications are not written
+ * into the replay log.
+ *
+ * @label the name of the backend
+ * @filename the URI
+ * @init not sure..
+ *
+ * Returns: a new character backend
+ */
+CharDriverState *qemu_chr_new_noreplay(const char *label, const char *filename,
+                                       void (*init)(struct CharDriverState *s));
 
 /**
  * @qemu_chr_delete:
@@ -192,8 +221,20 @@ void qemu_chr_fe_event(CharDriverState *s, int event);
 void qemu_chr_fe_printf(CharDriverState *s, const char *fmt, ...)
     GCC_FMT_ATTR(2, 3);
 
-int qemu_chr_fe_add_watch(CharDriverState *s, GIOCondition cond,
-                          GIOFunc func, void *user_data);
+/**
+ * @qemu_chr_fe_add_watch:
+ *
+ * If the backend is connected, create and add a #GSource that fires
+ * when the given condition (typically G_IO_OUT|G_IO_HUP or G_IO_HUP)
+ * is active; return the #GSource's tag.  If it is disconnected,
+ * return 0.
+ *
+ * @cond the condition to poll for
+ * @func the function to call when the condition happens
+ * @user_data the opaque pointer to pass to @func
+ */
+guint qemu_chr_fe_add_watch(CharDriverState *s, GIOCondition cond,
+                            GIOFunc func, void *user_data);
 
 /**
  * @qemu_chr_fe_write:
@@ -341,6 +382,15 @@ int qemu_chr_be_can_write(CharDriverState *s);
  */
 void qemu_chr_be_write(CharDriverState *s, uint8_t *buf, int len);
 
+/**
+ * @qemu_chr_be_write_impl:
+ *
+ * Implementation of back end writing. Used by replay module.
+ *
+ * @buf a buffer to receive data from the front end
+ * @len the number of bytes to receive from the front end
+ */
+void qemu_chr_be_write_impl(CharDriverState *s, uint8_t *buf, int len);
 
 /**
  * @qemu_chr_be_event:
@@ -372,7 +422,6 @@ void register_char_driver(const char *name, ChardevBackendKind kind,
 
 extern int term_escape_char;
 
-CharDriverState *qemu_char_get_next_serial(void);
 
 /* console.c */
 typedef CharDriverState *(VcHandler)(ChardevVC *vc, Error **errp);

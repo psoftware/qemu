@@ -22,9 +22,11 @@
  */
 
 #include "qemu/osdep.h"
+#include "qapi/error.h"
 #include "cpu.h"
 #include "qemu-common.h"
 #include "mmu.h"
+#include "exec/exec-all.h"
 
 
 static void cris_cpu_set_pc(CPUState *cs, vaddr value)

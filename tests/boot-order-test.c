@@ -11,13 +11,10 @@
  */
 
 #include "qemu/osdep.h"
-#include <glib.h>
 #include "libqos/fw_cfg.h"
 #include "libqtest.h"
 
-#define NO_QEMU_PROTOS
-#include "hw/nvram/fw_cfg.h"
-#undef NO_QEMU_PROTOS
+#include "hw/nvram/fw_cfg_keys.h"
 
 typedef struct {
     const char *args;

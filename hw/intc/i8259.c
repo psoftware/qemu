@@ -27,6 +27,7 @@
 #include "hw/isa/isa.h"
 #include "monitor/monitor.h"
 #include "qemu/timer.h"
+#include "qemu/log.h"
 #include "hw/isa/i8259_internal.h"
 
 /* debug PIC */
@@ -230,7 +231,7 @@ int pic_read_irq(DeviceState *d)
     printf("IRQ%d latency=%0.3fus\n",
            irq,
            (double)(qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) -
-                    irq_time[irq]) * 1000000.0 / get_ticks_per_sec());
+                    irq_time[irq]) * 1000000.0 / NANOSECONDS_PER_SECOND);
 #endif
     DPRINTF("pic_interrupt: irq=%d\n", irq);
     return intno;

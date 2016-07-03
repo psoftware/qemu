@@ -29,6 +29,7 @@
 #include "net/net.h"
 #include "ne2000.h"
 #include "exec/address-spaces.h"
+#include "qapi/error.h"
 #include "qapi/visitor.h"
 
 #define TYPE_ISA_NE2000 "ne2k_isa"
@@ -126,9 +127,7 @@ static void isa_ne2000_set_bootindex(Object *obj, Visitor *v,
     s->c.bootindex = boot_index;
 
 out:
-    if (local_err) {
-        error_propagate(errp, local_err);
-    }
+    error_propagate(errp, local_err);
 }
 
 static void isa_ne2000_instance_init(Object *obj)

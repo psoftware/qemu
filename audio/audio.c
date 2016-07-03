@@ -27,6 +27,7 @@
 #include "monitor/monitor.h"
 #include "qemu/timer.h"
 #include "sysemu/sysemu.h"
+#include "qemu/cutils.h"
 
 #define AUDIO_CAP "audio"
 #include "audio_int.h"
@@ -1130,8 +1131,6 @@ static void audio_timer (void *opaque)
  */
 int AUD_write (SWVoiceOut *sw, void *buf, int size)
 {
-    int bytes;
-
     if (!sw) {
         /* XXX: Consider options */
         return size;
@@ -1142,14 +1141,11 @@ int AUD_write (SWVoiceOut *sw, void *buf, int size)
         return 0;
     }
 
-    bytes = sw->hw->pcm_ops->write (sw, buf, size);
-    return bytes;
+    return sw->hw->pcm_ops->write(sw, buf, size);
 }
 
 int AUD_read (SWVoiceIn *sw, void *buf, int size)
 {
-    int bytes;
-
     if (!sw) {
         /* XXX: Consider options */
         return size;
@@ -1160,8 +1156,7 @@ int AUD_read (SWVoiceIn *sw, void *buf, int size)
         return 0;
     }
 
-    bytes = sw->hw->pcm_ops->read (sw, buf, size);
-    return bytes;
+    return sw->hw->pcm_ops->read(sw, buf, size);
 }
 
 int AUD_get_buffer_size_out (SWVoiceOut *sw)
@@ -1869,8 +1864,7 @@ static void audio_init (void)
         }
         conf.period.ticks = 1;
     } else {
-        conf.period.ticks =
-            muldiv64 (1, get_ticks_per_sec (), conf.period.hertz);
+        conf.period.ticks = NANOSECONDS_PER_SECOND / conf.period.hertz;
     }
 
     e = qemu_add_vm_change_state_handler (audio_vm_change_state_handler, s);

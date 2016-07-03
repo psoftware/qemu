@@ -19,10 +19,12 @@
  */
 
 #include "qemu/osdep.h"
+#include "qapi/error.h"
 #include "cpu.h"
 #include "kvm_mips.h"
 #include "qemu-common.h"
 #include "sysemu/kvm.h"
+#include "exec/exec-all.h"
 
 
 static void mips_cpu_set_pc(CPUState *cs, vaddr value)

@@ -68,13 +68,6 @@ typedef struct VirtIOSCSICommon {
     VirtQueue **cmd_vqs;
 } VirtIOSCSICommon;
 
-typedef struct VirtIOSCSIBlkChangeNotifier {
-    Notifier n;
-    struct VirtIOSCSI *s;
-    SCSIDevice *sd;
-    QTAILQ_ENTRY(VirtIOSCSIBlkChangeNotifier) next;
-} VirtIOSCSIBlkChangeNotifier;
-
 typedef struct VirtIOSCSI {
     VirtIOSCSICommon parent_obj;
 
@@ -85,15 +78,10 @@ typedef struct VirtIOSCSI {
     /* Fields for dataplane below */
     AioContext *ctx; /* one iothread per virtio-scsi-pci for now */
 
-    QTAILQ_HEAD(, VirtIOSCSIBlkChangeNotifier) insert_notifiers;
-    QTAILQ_HEAD(, VirtIOSCSIBlkChangeNotifier) remove_notifiers;
-
     bool dataplane_started;
     bool dataplane_starting;
     bool dataplane_stopping;
-    bool dataplane_disabled;
     bool dataplane_fenced;
-    Error *blocker;
     uint32_t host_features;
 } VirtIOSCSI;
 
@@ -140,9 +128,9 @@ void virtio_scsi_common_realize(DeviceState *dev, Error **errp,
                                 HandleOutput cmd);
 
 void virtio_scsi_common_unrealize(DeviceState *dev, Error **errp);
-void virtio_scsi_handle_ctrl_req(VirtIOSCSI *s, VirtIOSCSIReq *req);
-bool virtio_scsi_handle_cmd_req_prepare(VirtIOSCSI *s, VirtIOSCSIReq *req);
-void virtio_scsi_handle_cmd_req_submit(VirtIOSCSI *s, VirtIOSCSIReq *req);
+void virtio_scsi_handle_event_vq(VirtIOSCSI *s, VirtQueue *vq);
+void virtio_scsi_handle_cmd_vq(VirtIOSCSI *s, VirtQueue *vq);
+void virtio_scsi_handle_ctrl_vq(VirtIOSCSI *s, VirtQueue *vq);
 void virtio_scsi_init_req(VirtIOSCSI *s, VirtQueue *vq, VirtIOSCSIReq *req);
 void virtio_scsi_free_req(VirtIOSCSIReq *req);
 void virtio_scsi_push_event(VirtIOSCSI *s, SCSIDevice *dev,

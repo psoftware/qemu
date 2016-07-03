@@ -42,7 +42,7 @@ static int virtio_net_ptnetmap_up(VirtIODevice *vdev)
     int i, ret, nvqs = 0;
     VirtIONetQueue *q;
 
-    if (!k->set_host_notifier || !k->set_guest_notifiers) {
+    if (!k->set_guest_notifiers) {
         printf("ERROR ptnetmap: binding does not support notifiers\n");
         return ENOSYS;
     }
@@ -73,7 +73,7 @@ static int virtio_net_ptnetmap_up(VirtIODevice *vdev)
         if (!virtio_queue_get_num(vdev, i)) {
             break;
         }
-        ret = k->set_host_notifier(qbus->parent, i, true);
+        ret = virtio_bus_set_host_notifier(vbus, i, true);
         if (ret < 0) {
             printf("ERROR ptnetmap: VQ %d notifier binding failed %d\n", i, -ret);
             nvqs = i - 1;
@@ -145,7 +145,7 @@ err_ptn_create:
     k->set_guest_notifiers(qbus->parent, nvqs, false);
 err_notifiers:
     for (i = 0; i < nvqs; i++) {
-        k->set_host_notifier(qbus->parent, i, false);
+        virtio_bus_set_host_notifier(vbus, i, false);
     }
     return ret;
 }
@@ -173,7 +173,7 @@ static int virtio_net_ptnetmap_down(VirtIODevice *vdev)
         if (!virtio_queue_get_num(vdev, i)) {
             break;
         }
-        ret = k->set_host_notifier(qbus->parent, i, false);
+        ret = virtio_bus_set_host_notifier(vbus, i, false);
         if (ret < 0) {
             printf("ERROR ptnetmap: VQ %d notifier binding failed %d\n", i, -ret);
         }

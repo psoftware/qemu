@@ -587,6 +587,33 @@ Example:
 EQMP
 
     {
+        .name       = "xen-load-devices-state",
+        .args_type  = "filename:F",
+        .mhandler.cmd_new = qmp_marshal_xen_load_devices_state,
+    },
+
+SQMP
+xen-load-devices-state
+----------------------
+
+Load the state of all devices from file. The RAM and the block devices
+of the VM are not loaded by this command.
+
+Arguments:
+
+- "filename": the file to load the state of the devices from as binary
+data. See xen-save-devices-state.txt for a description of the binary
+format.
+
+Example:
+
+-> { "execute": "xen-load-devices-state",
+     "arguments": { "filename": "/tmp/resume" } }
+<- { "return": {} }
+
+EQMP
+
+    {
         .name       = "xen-set-global-dirty-log",
         .args_type  = "enable:b",
         .mhandler.cmd_new = qmp_marshal_xen_set_global_dirty_log,
@@ -3683,7 +3710,7 @@ Enable/Disable migration capabilities
 - "zero-blocks": compress zero blocks during block migration
 - "compress": use multiple compression threads to accelerate live migration
 - "events": generate events for each migration state change
-- "x-postcopy-ram": postcopy mode for live migration
+- "postcopy-ram": postcopy mode for live migration
 
 Arguments:
 
@@ -3713,7 +3740,7 @@ Query current migration capabilities
          - "zero-blocks" : Zero Blocks state (json-bool)
          - "compress": Multiple compression threads state (json-bool)
          - "events": Migration state change event state (json-bool)
-         - "x-postcopy-ram": postcopy ram state (json-bool)
+         - "postcopy-ram": postcopy ram state (json-bool)
 
 Arguments:
 
@@ -3727,7 +3754,7 @@ Example:
      {"state": false, "capability": "zero-blocks"},
      {"state": false, "capability": "compress"},
      {"state": true, "capability": "events"},
-     {"state": false, "capability": "x-postcopy-ram"}
+     {"state": false, "capability": "postcopy-ram"}
    ]}
 
 EQMP
@@ -3747,10 +3774,10 @@ Set migration parameters
 - "compress-level": set compression level during migration (json-int)
 - "compress-threads": set compression thread count for migration (json-int)
 - "decompress-threads": set decompression thread count for migration (json-int)
-- "x-cpu-throttle-initial": set initial percentage of time guest cpus are
-                           throttled for auto-converge (json-int)
-- "x-cpu-throttle-increment": set throttle increasing percentage for
-                             auto-converge (json-int)
+- "cpu-throttle-initial": set initial percentage of time guest cpus are
+                          throttled for auto-converge (json-int)
+- "cpu-throttle-increment": set throttle increasing percentage for
+                            auto-converge (json-int)
 
 Arguments:
 
@@ -3764,7 +3791,7 @@ EQMP
     {
         .name       = "migrate-set-parameters",
         .args_type  =
-            "compress-level:i?,compress-threads:i?,decompress-threads:i?,x-cpu-throttle-initial:i?,x-cpu-throttle-increment:i?",
+            "compress-level:i?,compress-threads:i?,decompress-threads:i?,cpu-throttle-initial:i?,cpu-throttle-increment:i?",
         .mhandler.cmd_new = qmp_marshal_migrate_set_parameters,
     },
 SQMP
@@ -3777,10 +3804,10 @@ Query current migration parameters
          - "compress-level" : compression level value (json-int)
          - "compress-threads" : compression thread count value (json-int)
          - "decompress-threads" : decompression thread count value (json-int)
-         - "x-cpu-throttle-initial" : initial percentage of time guest cpus are
-                                      throttled (json-int)
-         - "x-cpu-throttle-increment" : throttle increasing percentage for
-                                        auto-converge (json-int)
+         - "cpu-throttle-initial" : initial percentage of time guest cpus are
+                                    throttled (json-int)
+         - "cpu-throttle-increment" : throttle increasing percentage for
+                                      auto-converge (json-int)
 
 Arguments:
 
@@ -3790,10 +3817,10 @@ Example:
 <- {
       "return": {
          "decompress-threads": 2,
-         "x-cpu-throttle-increment": 10,
+         "cpu-throttle-increment": 10,
          "compress-threads": 8,
          "compress-level": 1,
-         "x-cpu-throttle-initial": 20
+         "cpu-throttle-initial": 20
       }
    }
 
@@ -4398,6 +4425,59 @@ Example:
 EQMP
 
     {
+        .name       = "x-blockdev-change",
+        .args_type  = "parent:B,child:B?,node:B?",
+        .mhandler.cmd_new = qmp_marshal_x_blockdev_change,
+    },
+
+SQMP
+x-blockdev-change
+-----------------
+
+Dynamically reconfigure the block driver state graph. It can be used
+to add, remove, insert or replace a graph node. Currently only the
+Quorum driver implements this feature to add or remove its child. This
+is useful to fix a broken quorum child.
+
+If @node is specified, it will be inserted under @parent. @child
+may not be specified in this case. If both @parent and @child are
+specified but @node is not, @child will be detached from @parent.
+
+Arguments:
+- "parent": the id or name of the parent node (json-string)
+- "child": the name of a child under the given parent node (json-string, optional)
+- "node": the name of the node that will be added (json-string, optional)
+
+Note: this command is experimental, and not a stable API. It doesn't
+support all kinds of operations, all kinds of children, nor all block
+drivers.
+
+Warning: The data in a new quorum child MUST be consistent with that of
+the rest of the array.
+
+Example:
+
+Add a new node to a quorum
+-> { "execute": "blockdev-add",
+     "arguments": { "options": { "driver": "raw",
+                                 "node-name": "new_node",
+                                 "file": { "driver": "file",
+                                           "filename": "test.raw" } } } }
+<- { "return": {} }
+-> { "execute": "x-blockdev-change",
+     "arguments": { "parent": "disk1",
+                    "node": "new_node" } }
+<- { "return": {} }
+
+Delete a quorum's node
+-> { "execute": "x-blockdev-change",
+     "arguments": { "parent": "disk1",
+                    "child": "children.1" } }
+<- { "return": {} }
+
+EQMP
+
+    {
         .name       = "query-named-block-nodes",
         .args_type  = "",
         .mhandler.cmd_new = qmp_marshal_query_named_block_nodes,
@@ -4853,3 +4933,53 @@ Example:
                  {"type": 0, "out-pport": 0, "pport": 0, "vlan-id": 3840,
                   "pop-vlan": 1, "id": 251658240}
    ]}
+
+EQMP
+
+#if defined TARGET_ARM
+    {
+        .name       = "query-gic-capabilities",
+        .args_type  = "",
+        .mhandler.cmd_new = qmp_marshal_query_gic_capabilities,
+    },
+#endif
+
+SQMP
+query-gic-capabilities
+---------------
+
+Return a list of GICCapability objects, describing supported GIC
+(Generic Interrupt Controller) versions.
+
+Arguments: None
+
+Example:
+
+-> { "execute": "query-gic-capabilities" }
+<- { "return": [{ "version": 2, "emulated": true, "kernel": false },
+                { "version": 3, "emulated": false, "kernel": true } ] }
+
+EQMP
+
+    {
+        .name       = "query-hotpluggable-cpus",
+        .args_type  = "",
+        .mhandler.cmd_new = qmp_marshal_query_hotpluggable_cpus,
+    },
+
+SQMP
+Show existing/possible CPUs
+---------------------------
+
+Arguments: None.
+
+Example for pseries machine type started with
+-smp 2,cores=2,maxcpus=4 -cpu POWER8:
+
+-> { "execute": "query-hotpluggable-cpus" }
+<- {"return": [
+     { "props": { "core-id": 8 }, "type": "POWER8-spapr-cpu-core",
+       "vcpus-count": 1 },
+     { "props": { "core-id": 0 }, "type": "POWER8-spapr-cpu-core",
+       "vcpus-count": 1, "qom-path": "/machine/unattached/device[0]"}
+   ]}'

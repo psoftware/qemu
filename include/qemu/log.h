@@ -66,29 +66,34 @@ qemu_log_vprintf(const char *fmt, va_list va)
     }
 }
 
-/* log only if a bit is set on the current loglevel mask
+/* log only if a bit is set on the current loglevel mask:
+ * @mask: bit to check in the mask
+ * @fmt: printf-style format string
+ * @args: optional arguments for format string
  */
-void GCC_FMT_ATTR(2, 3) qemu_log_mask(int mask, const char *fmt, ...);
+#define qemu_log_mask(MASK, FMT, ...)                   \
+    do {                                                \
+        if (unlikely(qemu_loglevel_mask(MASK))) {       \
+            qemu_log(FMT, ## __VA_ARGS__);              \
+        }                                               \
+    } while (0)
 
+/* log only if a bit is set on the current loglevel mask
+ * and we are in the address range we care about:
+ * @mask: bit to check in the mask
+ * @addr: address to check in dfilter
+ * @fmt: printf-style format string
+ * @args: optional arguments for format string
+ */
+#define qemu_log_mask_and_addr(MASK, ADDR, FMT, ...)    \
+    do {                                                \
+        if (unlikely(qemu_loglevel_mask(MASK)) &&       \
+                     qemu_log_in_addr_range(ADDR)) {    \
+            qemu_log(FMT, ## __VA_ARGS__);              \
+        }                                               \
+    } while (0)
 
 /* Maintenance: */
-
-/* fflush() the log file */
-static inline void qemu_log_flush(void)
-{
-    fflush(qemu_logfile);
-}
-
-/* Close the log file */
-static inline void qemu_log_close(void)
-{
-    if (qemu_logfile) {
-        if (qemu_logfile != stderr) {
-            fclose(qemu_logfile);
-        }
-        qemu_logfile = NULL;
-    }
-}
 
 /* define log items */
 typedef struct QEMULogItem {
@@ -99,27 +104,21 @@ typedef struct QEMULogItem {
 
 extern const QEMULogItem qemu_log_items[];
 
-/* This is the function that actually does the work of
- * changing the log level; it should only be accessed via
- * the qemu_set_log() wrapper.
- */
-void do_qemu_set_log(int log_flags, bool use_own_buffers);
-
-static inline void qemu_set_log(int log_flags)
-{
-#ifdef CONFIG_USER_ONLY
-    do_qemu_set_log(log_flags, true);
-#else
-    do_qemu_set_log(log_flags, false);
-#endif
-}
-
-void qemu_set_log_filename(const char *filename);
+void qemu_set_log(int log_flags);
+void qemu_log_needs_buffers(void);
+void qemu_set_log_filename(const char *filename, Error **errp);
+void qemu_set_dfilter_ranges(const char *ranges, Error **errp);
+bool qemu_log_in_addr_range(uint64_t addr);
 int qemu_str_to_log_mask(const char *str);
 
 /* Print a usage message listing all the valid logging categories
  * to the specified FILE*.
  */
 void qemu_print_log_usage(FILE *f);
+
+/* fflush() the log file */
+void qemu_log_flush(void);
+/* Close the log file */
+void qemu_log_close(void);
 
 #endif

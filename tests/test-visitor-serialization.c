@@ -12,12 +12,12 @@
  */
 
 #include "qemu/osdep.h"
-#include <glib.h>
 #include <float.h>
 
 #include "qemu-common.h"
 #include "test-qapi-types.h"
 #include "test-qapi-visit.h"
+#include "qapi/error.h"
 #include "qapi/qmp/types.h"
 #include "qapi/qmp-input-visitor.h"
 #include "qapi/qmp-output-visitor.h"
@@ -1037,7 +1037,7 @@ static void qmp_deserialize(void **native_out, void *datap,
     obj = qobject_from_json(qstring_get_str(output_json));
 
     QDECREF(output_json);
-    d->qiv = qmp_input_visitor_new(obj);
+    d->qiv = qmp_input_visitor_new(obj, true);
     qobject_decref(obj_orig);
     qobject_decref(obj);
     visit(qmp_input_get_visitor(d->qiv), native_out, errp);

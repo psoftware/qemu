@@ -242,11 +242,12 @@
 # @drv: the name of the block format used to open the backing device. As of
 #       0.14.0 this can be: 'blkdebug', 'bochs', 'cloop', 'cow', 'dmg',
 #       'file', 'file', 'ftp', 'ftps', 'host_cdrom', 'host_device',
-#       'http', 'https', 'nbd', 'parallels', 'qcow',
+#       'http', 'https', 'luks', 'nbd', 'parallels', 'qcow',
 #       'qcow2', 'raw', 'tftp', 'vdi', 'vmdk', 'vpc', 'vvfat'
 #       2.2: 'archipelago' added, 'cow' dropped
 #       2.3: 'host_floppy' deprecated
 #       2.5: 'host_floppy' dropped
+#       2.6: 'luks' added
 #
 # @backing_file: #optional the name of the backing file (for copy-on-write)
 #
@@ -1614,7 +1615,6 @@
 #
 # Includes cache-related options for block devices
 #
-# @writeback:   #optional enables writeback mode for any caches (default: true)
 # @direct:      #optional enables use of O_DIRECT (bypass the host page cache;
 #               default: false)
 # @no-flush:    #optional ignore any flush requests for the device (default:
@@ -1623,8 +1623,7 @@
 # Since: 1.7
 ##
 { 'struct': 'BlockdevCacheOptions',
-  'data': { '*writeback': 'bool',
-            '*direct': 'bool',
+  'data': { '*direct': 'bool',
             '*no-flush': 'bool' } }
 
 ##
@@ -1639,60 +1638,9 @@
 { 'enum': 'BlockdevDriver',
   'data': [ 'archipelago', 'blkdebug', 'blkverify', 'bochs', 'cloop',
             'dmg', 'file', 'ftp', 'ftps', 'host_cdrom', 'host_device',
-            'http', 'https', 'null-aio', 'null-co', 'parallels',
+            'http', 'https', 'luks', 'null-aio', 'null-co', 'parallels',
             'qcow', 'qcow2', 'qed', 'quorum', 'raw', 'tftp', 'vdi', 'vhdx',
             'vmdk', 'vpc', 'vvfat' ] }
-
-##
-# @BlockdevOptionsBase
-#
-# Options that are available for all block devices, independent of the block
-# driver.
-#
-# @driver:        block driver name
-# @id:            #optional id by which the new block device can be referred to.
-#                 This option is only allowed on the top level of blockdev-add.
-#                 A BlockBackend will be created by blockdev-add if and only if
-#                 this option is given.
-# @node-name:     #optional the name of a block driver state node (Since 2.0).
-#                 This option is required on the top level of blockdev-add if
-#                 the @id option is not given there.
-# @discard:       #optional discard-related options (default: ignore)
-# @cache:         #optional cache-related options
-# @aio:           #optional AIO backend (default: threads)
-# @rerror:        #optional how to handle read errors on the device
-#                 (default: report)
-# @werror:        #optional how to handle write errors on the device
-#                 (default: enospc)
-# @read-only:     #optional whether the block device should be read-only
-#                 (default: false)
-# @stats-account-invalid: #optional whether to include invalid
-#                         operations when computing last access statistics
-#                         (default: true) (Since 2.5)
-# @stats-account-failed: #optional whether to include failed
-#                         operations when computing latency and last
-#                         access statistics (default: true) (Since 2.5)
-# @stats-intervals: #optional list of intervals for collecting I/O
-#                   statistics, in seconds (default: none) (Since 2.5)
-# @detect-zeroes: #optional detect and optimize zero writes (Since 2.1)
-#                 (default: off)
-#
-# Since: 1.7
-##
-{ 'struct': 'BlockdevOptionsBase',
-  'data': { 'driver': 'BlockdevDriver',
-            '*id': 'str',
-            '*node-name': 'str',
-            '*discard': 'BlockdevDiscardOptions',
-            '*cache': 'BlockdevCacheOptions',
-            '*aio': 'BlockdevAioOptions',
-            '*rerror': 'BlockdevOnError',
-            '*werror': 'BlockdevOnError',
-            '*read-only': 'bool',
-            '*stats-account-invalid': 'bool',
-            '*stats-account-failed': 'bool',
-            '*stats-intervals': ['int'],
-            '*detect-zeroes': 'BlockdevDetectZeroesOptions' } }
 
 ##
 # @BlockdevOptionsFile
@@ -1755,6 +1703,22 @@
 ##
 { 'struct': 'BlockdevOptionsGenericFormat',
   'data': { 'file': 'BlockdevRef' } }
+
+##
+# @BlockdevOptionsLUKS
+#
+# Driver specific block device options for LUKS.
+#
+# @key-secret: #optional the ID of a QCryptoSecret object providing
+#              the decryption key (since 2.6). Mandatory except when
+#              doing a metadata-only probe of the image.
+#
+# Since: 2.6
+##
+{ 'struct': 'BlockdevOptionsLUKS',
+  'base': 'BlockdevOptionsGenericFormat',
+  'data': { '*key-secret': 'str' } }
+
 
 ##
 # @BlockdevOptionsGenericCOWFormat
@@ -2070,12 +2034,55 @@
 ##
 # @BlockdevOptions
 #
-# Options for creating a block device.
+# Options for creating a block device.  Many options are available for all
+# block devices, independent of the block driver:
+#
+# @driver:        block driver name
+# @id:            #optional id by which the new block device can be referred to.
+#                 This option is only allowed on the top level of blockdev-add.
+#                 A BlockBackend will be created by blockdev-add if and only if
+#                 this option is given.
+# @node-name:     #optional the name of a block driver state node (Since 2.0).
+#                 This option is required on the top level of blockdev-add if
+#                 the @id option is not given there.
+# @discard:       #optional discard-related options (default: ignore)
+# @cache:         #optional cache-related options
+# @aio:           #optional AIO backend (default: threads)
+# @rerror:        #optional how to handle read errors on the device
+#                 (default: report)
+# @werror:        #optional how to handle write errors on the device
+#                 (default: enospc)
+# @read-only:     #optional whether the block device should be read-only
+#                 (default: false)
+# @stats-account-invalid: #optional whether to include invalid
+#                         operations when computing last access statistics
+#                         (default: true) (Since 2.5)
+# @stats-account-failed: #optional whether to include failed
+#                         operations when computing latency and last
+#                         access statistics (default: true) (Since 2.5)
+# @stats-intervals: #optional list of intervals for collecting I/O
+#                   statistics, in seconds (default: none) (Since 2.5)
+# @detect-zeroes: #optional detect and optimize zero writes (Since 2.1)
+#                 (default: off)
+#
+# Remaining options are determined by the block driver.
 #
 # Since: 1.7
 ##
 { 'union': 'BlockdevOptions',
-  'base': 'BlockdevOptionsBase',
+  'base': { 'driver': 'BlockdevDriver',
+            '*id': 'str',
+            '*node-name': 'str',
+            '*discard': 'BlockdevDiscardOptions',
+            '*cache': 'BlockdevCacheOptions',
+            '*aio': 'BlockdevAioOptions',
+            '*rerror': 'BlockdevOnError',
+            '*werror': 'BlockdevOnError',
+            '*read-only': 'bool',
+            '*stats-account-invalid': 'bool',
+            '*stats-account-failed': 'bool',
+            '*stats-intervals': ['int'],
+            '*detect-zeroes': 'BlockdevDetectZeroesOptions' },
   'discriminator': 'driver',
   'data': {
       'archipelago':'BlockdevOptionsArchipelago',
@@ -2093,6 +2100,7 @@
       'http':       'BlockdevOptionsFile',
       'https':      'BlockdevOptionsFile',
 # TODO iscsi: Wait for structured options
+      'luks':       'BlockdevOptionsLUKS',
 # TODO nbd: Should take InetSocketAddress for 'host'?
 # TODO nfs: Wait for structured options
       'null-aio':   'BlockdevOptionsNull',
@@ -2548,3 +2556,35 @@
 ##
 { 'command': 'block-set-write-threshold',
   'data': { 'node-name': 'str', 'write-threshold': 'uint64' } }
+
+##
+# @x-blockdev-change
+#
+# Dynamically reconfigure the block driver state graph. It can be used
+# to add, remove, insert or replace a graph node. Currently only the
+# Quorum driver implements this feature to add or remove its child. This
+# is useful to fix a broken quorum child.
+#
+# If @node is specified, it will be inserted under @parent. @child
+# may not be specified in this case. If both @parent and @child are
+# specified but @node is not, @child will be detached from @parent.
+#
+# @parent: the id or name of the parent node.
+#
+# @child: #optional the name of a child under the given parent node.
+#
+# @node: #optional the name of the node that will be added.
+#
+# Note: this command is experimental, and its API is not stable. It
+# does not support all kinds of operations, all kinds of children, nor
+# all block drivers.
+#
+# Warning: The data in a new quorum child MUST be consistent with that of
+# the rest of the array.
+#
+# Since: 2.7
+##
+{ 'command': 'x-blockdev-change',
+  'data' : { 'parent': 'str',
+             '*child': 'str',
+             '*node': 'str' } }
