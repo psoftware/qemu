@@ -538,7 +538,7 @@ ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *cfg)
     struct nmreq req;
     int err;
 
-    if (!(ptn->acked_features & NET_PTN_FEATURES_BASE)) {
+    if (!(ptn->acked_features & PTNETMAP_F_BASE)) {
         error_report("ptnetmap features not acked");
         return EINVAL;
     }
@@ -577,7 +577,7 @@ ptnetmap_delete(PTNetmapState *ptn)
     int err;
     struct nmreq req;
 
-    if (!(ptn->acked_features & NET_PTN_FEATURES_BASE)) {
+    if (!(ptn->acked_features & PTNETMAP_F_BASE)) {
         error_report("ptnetmap features not acked");
         return EFAULT;
     }
@@ -635,12 +635,12 @@ int net_init_netmap(const NetClientOptions *opts,
 #ifdef CONFIG_NETMAP_PASSTHROUGH
     if (netmap_opts->passthrough) {
         s->ptnetmap.netmap = s;
-        s->ptnetmap.features = NET_PTN_FEATURES_BASE;
+        s->ptnetmap.features = PTNETMAP_F_BASE;
         s->ptnetmap.acked_features = 0;
         s->ptnetmap.running = false;
 
         if (netmap_has_vnet_hdr_len(nc, sizeof(struct virtio_net_hdr_v1))) {
-            s->ptnetmap.features |= NET_PTN_FEATURES_VNET_HDR;
+            s->ptnetmap.features |= PTNETMAP_F_VNET_HDR;
         }
     }
 #endif /* CONFIG_NETMAP_PASSTHROUGH */

@@ -30,7 +30,7 @@
 
 #include <net/if.h>
 #include "net/netmap.h"
-#include "dev/netmap/netmap_virt.h"
+#include "net/netmap_virt.h"
 #include "include/hw/net/ptnetmap.h"
 
 #define PTNET_DEBUG
@@ -86,7 +86,7 @@ typedef struct PtNetState_st {
 
     uint32_t ioregs[PTNET_IO_END >> 2];
 #ifndef PTNET_CSB_ALLOC
-    char csb[NET_PARAVIRT_CSB_SIZE];
+    char csb[NETMAP_VIRT_CSB_SIZE];
 #else /* PTNET_CSB_ALLOC */
     char *csb;
 #endif
@@ -211,7 +211,7 @@ ptnet_guest_notifier_fini(PtNetState *s, EventNotifier *e, unsigned int vector)
 static int
 ptnet_guest_notifiers_init(PtNetState *s)
 {
-    unsigned int vec = PTNETMAP_MSIX_VEC_TX;
+    unsigned int vec = 0;
     int i;
 
     msix_unuse_all_vectors(PCI_DEVICE(s));
@@ -226,7 +226,7 @@ ptnet_guest_notifiers_init(PtNetState *s)
 static int
 ptnet_guest_notifiers_fini(PtNetState *s)
 {
-    unsigned int vec = PTNETMAP_MSIX_VEC_TX;
+    unsigned int vec = 0;
     int i;
 
     for (i = 0; i < s->num_rings; i++, vec ++) {
@@ -319,21 +319,21 @@ ptnet_ptctl(PtNetState *s, uint64_t cmd)
     int ret = EINVAL;
 
     switch (cmd) {
-        case NET_PARAVIRT_PTCTL_CONFIG:
+        case PTNETMAP_PTCTL_CONFIG:
             printf("Ignoring deprecated CONFIG PTCTL\n");
             break;
 
-        case NET_PARAVIRT_PTCTL_REGIF:
+        case PTNETMAP_PTCTL_REGIF:
             /* Emulate a REGIF for the guest. */
             ret = ptnet_regif(s);
             break;
 
-        case NET_PARAVIRT_PTCTL_UNREGIF:
+        case PTNETMAP_PTCTL_UNREGIF:
             /* Emulate an UNREGIF for the guest. */
             ret = ptnet_unregif(s);
             break;
 
-        case NET_PARAVIRT_PTCTL_HOSTMEMID:
+        case PTNETMAP_PTCTL_HOSTMEMID:
             ret = ptnetmap_get_hostmemid(s->ptbe);
             break;
 
@@ -550,7 +550,7 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     /* Init memory mapped memory region, exposing CSB.
      * It is important that size(s->csb_ram) < size(s->mem),
      * otherwise KVM memory setup routines fail. */
-    memory_region_init(&s->mem, OBJECT(s), "ptnet-mem", NET_PARAVIRT_CSB_SIZE);
+    memory_region_init(&s->mem, OBJECT(s), "ptnet-mem", NETMAP_VIRT_CSB_SIZE);
     memory_region_init_ram_ptr(&s->csb_ram, OBJECT(s), "ptnet-csb-ram",
                                sizeof(struct ptnet_csb), s->csb);
     memory_region_add_subregion(&s->mem, 0, &s->csb_ram);

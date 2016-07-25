@@ -26,7 +26,7 @@
 #include "net/netmap.h"
 #include "net/net.h"
 #include "exec/memory.h"
-#include "dev/netmap/netmap_virt.h" /* from netmap sources */
+#include "net/netmap_virt.h" /* from netmap sources */
 
 typedef struct PTNetmapState {
     struct NetmapState *netmap;

@@ -68,7 +68,7 @@ typedef struct PTNetmapMemDevState {
 
 static QTAILQ_HEAD(, PTNetmapMemDevState) ptn_memdevs = QTAILQ_HEAD_INITIALIZER(ptn_memdevs);
 
-#define TYPE_PTNETMAP_MEMDEV	PTN_MEMDEV_NAME
+#define TYPE_PTNETMAP_MEMDEV	PTNETMAP_MEMDEV_NAME
 
 #define PTNETMAP_MEMDEV(obj) \
     OBJECT_CHECK(PTNetmapMemDevState, (obj), TYPE_PTNETMAP_MEMDEV)

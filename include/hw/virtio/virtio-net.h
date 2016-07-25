@@ -42,7 +42,7 @@ typedef struct virtio_net_conf
 
 #ifdef CONFIG_NETMAP_PASSTHROUGH
 #include "hw/net/ptnetmap.h"
-#include "dev/netmap/netmap_virt.h"
+#include "net/netmap_virt.h"
 typedef struct VirtIONetPTNetmap
 {
     struct paravirt_csb *csb;           /* Communication Status Block. */

@@ -275,30 +275,30 @@ static void virtio_net_ptnetmap_set_reg(VirtIODevice *vdev,
             ret = EINVAL;
 
             switch(*val) {
-                case NET_PARAVIRT_PTCTL_CONFIG:
+                case PTNETMAP_PTCTL_CONFIG:
                     /* Fill CSB fields: nifp_offset, num_*x_rings,
                      * and num_*x_slots. */
                     ret = virtio_net_ptnetmap_get_netmap_if(vdev);
                     break;
 
-                case NET_PARAVIRT_PTCTL_REGIF:
+                case PTNETMAP_PTCTL_REGIF:
                     /* Emulate a REGIF for the guest. */
                     ret = virtio_net_ptnetmap_up(vdev);
                     break;
 
-                case NET_PARAVIRT_PTCTL_UNREGIF:
+                case PTNETMAP_PTCTL_UNREGIF:
                     /* Emulate an UNREGIF for the guest. */
                     ret = virtio_net_ptnetmap_down(vdev);
                     break;
 
-                case NET_PARAVIRT_PTCTL_HOSTMEMID:
+                case PTNETMAP_PTCTL_HOSTMEMID:
                     ret = ptnetmap_get_hostmemid(n->ptn.state);
                     break;
 
-                case NET_PARAVIRT_PTCTL_IFNEW:
-                case NET_PARAVIRT_PTCTL_IFDELETE:
-                case NET_PARAVIRT_PTCTL_FINALIZE:
-                case NET_PARAVIRT_PTCTL_DEREF:
+                case PTNETMAP_PTCTL_IFNEW:
+                case PTNETMAP_PTCTL_IFDELETE:
+                case PTNETMAP_PTCTL_FINALIZE:
+                case PTNETMAP_PTCTL_DEREF:
                     /* Not implemented. */
                     ret = 0;
                     break;
