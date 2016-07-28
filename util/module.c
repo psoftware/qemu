@@ -13,7 +13,7 @@
  * GNU GPL, version 2 or (at your option) any later version.
  */
 
-#include <stdlib.h>
+#include "qemu/osdep.h"
 #include "qemu-common.h"
 #ifdef CONFIG_MODULES
 #include <gmodule.h>
@@ -55,13 +55,9 @@ static void init_lists(void)
 
 static ModuleTypeList *find_type(module_init_type type)
 {
-    ModuleTypeList *l;
-
     init_lists();
 
-    l = &init_type_list[type];
-
-    return l;
+    return &init_type_list[type];
 }
 
 void register_module_init(void (*fn)(void), module_init_type type)
@@ -202,18 +198,13 @@ static void module_load(module_init_type type)
         for (i = 0; i < ARRAY_SIZE(dirs); i++) {
             fname = g_strdup_printf("%s/%s%s", dirs[i], *mp, HOST_DSOSUF);
             ret = module_load_file(fname);
+            g_free(fname);
+            fname = NULL;
             /* Try loading until loaded a module file */
             if (!ret) {
                 break;
             }
-            g_free(fname);
-            fname = NULL;
         }
-        if (ret == -ENOENT) {
-            fprintf(stderr, "Can't find module: %s\n", *mp);
-        }
-
-        g_free(fname);
     }
 
     for (i = 0; i < ARRAY_SIZE(dirs); i++) {

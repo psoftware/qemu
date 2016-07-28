@@ -55,7 +55,8 @@ struct SerialState {
     int last_break_enable;
     int it_shift;
     int baudbase;
-    int tsr_retry;
+    uint32_t tsr_retry;
+    guint watch_tag;
     uint32_t wakeup;
 
     /* Time when the last byte was successfully sent out of the tsr */
@@ -92,6 +93,6 @@ SerialState *serial_mm_init(MemoryRegion *address_space,
 
 /* serial-isa.c */
 #define TYPE_ISA_SERIAL "isa-serial"
-bool serial_isa_init(ISABus *bus, int index, CharDriverState *chr);
+void serial_hds_isa_init(ISABus *bus, int n);
 
 #endif

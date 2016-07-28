@@ -7,7 +7,7 @@
  * See the COPYING file in the top-level directory.
  */
 
-#include <glib.h>
+#include "qemu/osdep.h"
 
 #include "libqtest.h"
 #include "libqos/i2c.h"
@@ -69,7 +69,7 @@ static int qmp_tmp105_get_temperature(const char *id)
     QDict *response;
     int ret;
 
-    response = qmp("{ 'execute': 'qom-get', 'arguments': { 'path': '%s', "
+    response = qmp("{ 'execute': 'qom-get', 'arguments': { 'path': %s, "
                    "'property': 'temperature' } }", id);
     g_assert(qdict_haskey(response, "return"));
     ret = qdict_get_int(response, "return");
@@ -81,7 +81,7 @@ static void qmp_tmp105_set_temperature(const char *id, int value)
 {
     QDict *response;
 
-    response = qmp("{ 'execute': 'qom-set', 'arguments': { 'path': '%s', "
+    response = qmp("{ 'execute': 'qom-set', 'arguments': { 'path': %s, "
                    "'property': 'temperature', 'value': %d } }", id, value);
     g_assert(qdict_haskey(response, "return"));
     QDECREF(response);

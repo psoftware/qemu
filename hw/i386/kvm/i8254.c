@@ -22,11 +22,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+#include "qemu/osdep.h"
+#include "qapi/error.h"
 #include "qemu/timer.h"
 #include "sysemu/sysemu.h"
 #include "hw/timer/i8254.h"
 #include "hw/timer/i8254_internal.h"
 #include "sysemu/kvm.h"
+#include "linux/kvm.h"
 
 #define KVM_PIT_REINJECT_BIT 0
 
@@ -138,7 +141,7 @@ static void kvm_pit_get(PITCommonState *pit)
 static void kvm_pit_put(PITCommonState *pit)
 {
     KVMPITState *s = KVM_PIT(pit);
-    struct kvm_pit_state2 kpit;
+    struct kvm_pit_state2 kpit = {};
     struct kvm_pit_channel_state *kchan;
     struct PITChannelState *sc;
     int i, ret;
@@ -239,6 +242,7 @@ static void kvm_pit_vm_state_change(void *opaque, int running,
 
     if (running) {
         kvm_pit_update_clock_offset(s);
+        kvm_pit_put(PIT_COMMON(s));
         s->vm_stopped = false;
     } else {
         kvm_pit_update_clock_offset(s);
@@ -314,8 +318,6 @@ static void kvm_pit_class_init(ObjectClass *klass, void *data)
     dc->realize = kvm_pit_realizefn;
     k->set_channel_gate = kvm_pit_set_gate;
     k->get_channel_info = kvm_pit_get_channel_info;
-    k->pre_save = kvm_pit_get;
-    k->post_load = kvm_pit_put;
     dc->reset = kvm_pit_reset;
     dc->props = kvm_pit_properties;
 }

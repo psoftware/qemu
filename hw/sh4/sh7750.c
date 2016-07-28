@@ -22,7 +22,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
-#include <stdio.h>
+#include "qemu/osdep.h"
 #include "hw/hw.h"
 #include "hw/sh4/sh.h"
 #include "sysemu/sysemu.h"
@@ -30,6 +30,7 @@
 #include "sh7750_regnames.h"
 #include "hw/sh4/sh_intc.h"
 #include "cpu.h"
+#include "exec/exec-all.h"
 #include "exec/address-spaces.h"
 
 #define NB_DEVICES 4
@@ -838,6 +839,5 @@ SH7750State *sh7750_init(SuperHCPU *cpu, MemoryRegion *sysmem)
 qemu_irq sh7750_irl(SH7750State *s)
 {
     sh_intc_toggle_source(sh_intc_source(&s->intc, IRL), 1, 0); /* enable */
-    return qemu_allocate_irqs(sh_intc_set_irl, sh_intc_source(&s->intc, IRL),
-                               1)[0];
+    return qemu_allocate_irq(sh_intc_set_irl, sh_intc_source(&s->intc, IRL), 0);
 }

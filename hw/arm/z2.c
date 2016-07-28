@@ -11,16 +11,17 @@
  * GNU GPL, version 2 or (at your option) any later version.
  */
 
+#include "qemu/osdep.h"
 #include "hw/hw.h"
 #include "hw/arm/pxa.h"
 #include "hw/arm/arm.h"
 #include "hw/devices.h"
 #include "hw/i2c/i2c.h"
-#include "hw/ssi.h"
+#include "hw/ssi/ssi.h"
 #include "hw/boards.h"
 #include "sysemu/sysemu.h"
 #include "hw/block/flash.h"
-#include "sysemu/blockdev.h"
+#include "sysemu/block-backend.h"
 #include "ui/console.h"
 #include "audio/audio.h"
 #include "exec/address-spaces.h"
@@ -336,9 +337,9 @@ static void z2_init(MachineState *machine)
 
     if (!pflash_cfi01_register(Z2_FLASH_BASE,
                                NULL, "z2.flash0", Z2_FLASH_SIZE,
-                               dinfo ? dinfo->bdrv : NULL, sector_len,
-                               Z2_FLASH_SIZE / sector_len, 4, 0, 0, 0, 0,
-                               be)) {
+                               dinfo ? blk_by_legacy_dinfo(dinfo) : NULL,
+                               sector_len, Z2_FLASH_SIZE / sector_len,
+                               4, 0, 0, 0, 0, be)) {
         fprintf(stderr, "qemu: Error registering flash memory.\n");
         exit(1);
     }
@@ -363,7 +364,7 @@ static void z2_init(MachineState *machine)
     wm8750_data_req_set(wm, mpu->i2s->data_req, mpu->i2s);
 
     qdev_connect_gpio_out(mpu->gpio, Z2_GPIO_LCD_CS,
-        qemu_allocate_irqs(z2_lcd_cs, z2_lcd, 1)[0]);
+                          qemu_allocate_irq(z2_lcd_cs, z2_lcd, 0));
 
     z2_binfo.kernel_filename = kernel_filename;
     z2_binfo.kernel_cmdline = kernel_cmdline;
@@ -372,15 +373,10 @@ static void z2_init(MachineState *machine)
     arm_load_kernel(mpu->cpu, &z2_binfo);
 }
 
-static QEMUMachine z2_machine = {
-    .name = "z2",
-    .desc = "Zipit Z2 (PXA27x)",
-    .init = z2_init,
-};
-
-static void z2_machine_init(void)
+static void z2_machine_init(MachineClass *mc)
 {
-    qemu_register_machine(&z2_machine);
+    mc->desc = "Zipit Z2 (PXA27x)";
+    mc->init = z2_init;
 }
 
-machine_init(z2_machine_init);
+DEFINE_MACHINE("z2", z2_machine_init)

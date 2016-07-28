@@ -27,6 +27,7 @@
    Ultrasparc PCI host is called the PCI Bus Module (PBM).  The APB is
    the secondary PCI bridge.  */
 
+#include "qemu/osdep.h"
 #include "hw/sysbus.h"
 #include "hw/pci/pci.h"
 #include "hw/pci/pci_host.h"
@@ -35,6 +36,7 @@
 #include "hw/pci-host/apb.h"
 #include "sysemu/sysemu.h"
 #include "exec/address-spaces.h"
+#include "qemu/log.h"
 
 /* debug APB */
 //#define DEBUG_APB
@@ -94,13 +96,14 @@ do { printf("IOMMU: " fmt , ## __VA_ARGS__); } while (0)
 #define IOMMU_CTRL_TSB_SHIFT    16
 
 #define IOMMU_BASE              0x8
+#define IOMMU_FLUSH             0x10
 
 #define IOMMU_TTE_DATA_V        (1ULL << 63)
 #define IOMMU_TTE_DATA_SIZE     (1ULL << 61)
 #define IOMMU_TTE_DATA_W        (1ULL << 1)
 
-#define IOMMU_TTE_PHYS_MASK_8K  0x1ffffffe000
-#define IOMMU_TTE_PHYS_MASK_64K 0x1ffffff8000
+#define IOMMU_TTE_PHYS_MASK_8K  0x1ffffffe000ULL
+#define IOMMU_TTE_PHYS_MASK_64K 0x1ffffff8000ULL
 
 #define IOMMU_TSB_8K_OFFSET_MASK_8M    0x00000000007fe000ULL
 #define IOMMU_TSB_8K_OFFSET_MASK_16M   0x0000000000ffe000ULL
@@ -141,6 +144,7 @@ typedef struct APBState {
     IOMMUState iommu;
     uint32_t pci_control[16];
     uint32_t pci_irq_map[8];
+    uint32_t pci_err_irq_map[4];
     uint32_t obio_irq_map[32];
     qemu_irq *pbm_irqs;
     qemu_irq *ivec_irqs;
@@ -203,7 +207,9 @@ static AddressSpace *pbm_pci_dma_iommu(PCIBus *bus, void *opaque, int devfn)
     return &is->iommu_as;
 }
 
-static IOMMUTLBEntry pbm_translate_iommu(MemoryRegion *iommu, hwaddr addr)
+/* Called from RCU critical section */
+static IOMMUTLBEntry pbm_translate_iommu(MemoryRegion *iommu, hwaddr addr,
+                                         bool is_write)
 {
     IOMMUState *is = container_of(iommu, IOMMUState, iommu);
     hwaddr baseaddr, offset;
@@ -285,7 +291,8 @@ static IOMMUTLBEntry pbm_translate_iommu(MemoryRegion *iommu, hwaddr addr)
         }
     }
 
-    tte = ldq_be_phys(&address_space_memory, baseaddr + offset);
+    tte = address_space_ldq_be(&address_space_memory, baseaddr + offset,
+                               MEMTXATTRS_UNSPECIFIED, NULL);
 
     if (!(tte & IOMMU_TTE_DATA_V)) {
         /* Invalid mapping */
@@ -333,7 +340,7 @@ static void iommu_config_write(void *opaque, hwaddr addr,
             is->regs[IOMMU_CTRL >> 3] &= 0xffffffffULL;
             is->regs[IOMMU_CTRL >> 3] |= val << 32;
         } else {
-            is->regs[IOMMU_CTRL] = val;
+            is->regs[IOMMU_CTRL >> 3] = val;
         }
         break;
     case IOMMU_CTRL + 0x4:
@@ -345,12 +352,15 @@ static void iommu_config_write(void *opaque, hwaddr addr,
             is->regs[IOMMU_BASE >> 3] &= 0xffffffffULL;
             is->regs[IOMMU_BASE >> 3] |= val << 32;
         } else {
-            is->regs[IOMMU_BASE] = val;
+            is->regs[IOMMU_BASE >> 3] = val;
         }
         break;
     case IOMMU_BASE + 0x4:
         is->regs[IOMMU_BASE >> 3] &= 0xffffffff00000000ULL;
         is->regs[IOMMU_BASE >> 3] |= val & 0xffffffffULL;
+        break;
+    case IOMMU_FLUSH:
+    case IOMMU_FLUSH + 0x4:
         break;
     default:
         qemu_log_mask(LOG_UNIMP,
@@ -387,6 +397,10 @@ static uint64_t iommu_config_read(void *opaque, hwaddr addr, unsigned size)
     case IOMMU_BASE + 0x4:
         val = is->regs[IOMMU_BASE >> 3] & 0xffffffffULL;
         break;
+    case IOMMU_FLUSH:
+    case IOMMU_FLUSH + 0x4:
+        val = 0;
+        break;
     default:
         qemu_log_mask(LOG_UNIMP,
                       "apb iommu: Unimplemented register read "
@@ -415,7 +429,7 @@ static void apb_config_writel (void *opaque, hwaddr addr,
         /* XXX: not implemented yet */
         break;
     case 0x200 ... 0x217: /* IOMMU */
-        iommu_config_write(is, (addr & 0xf), val, size);
+        iommu_config_write(is, (addr & 0x1f), val, size);
         break;
     case 0xc00 ... 0xc3f: /* PCI interrupt control */
         if (addr & 4) {
@@ -428,7 +442,7 @@ static void apb_config_writel (void *opaque, hwaddr addr,
             pbm_check_irqs(s);
         }
         break;
-    case 0x1000 ... 0x1080: /* OBIO interrupt control */
+    case 0x1000 ... 0x107f: /* OBIO interrupt control */
         if (addr & 4) {
             unsigned int ino = ((addr & 0xff) >> 3);
             s->obio_irq_map[ino] &= PBM_PCI_IMR_MASK;
@@ -497,7 +511,7 @@ static uint64_t apb_config_readl (void *opaque,
         /* XXX: not implemented yet */
         break;
     case 0x200 ... 0x217: /* IOMMU */
-        val = iommu_config_read(is, (addr & 0xf), size);
+        val = iommu_config_read(is, (addr & 0x1f), size);
         break;
     case 0xc00 ... 0xc3f: /* PCI interrupt control */
         if (addr & 4) {
@@ -506,9 +520,16 @@ static uint64_t apb_config_readl (void *opaque,
             val = 0;
         }
         break;
-    case 0x1000 ... 0x1080: /* OBIO interrupt control */
+    case 0x1000 ... 0x107f: /* OBIO interrupt control */
         if (addr & 4) {
             val = s->obio_irq_map[(addr & 0xff) >> 3];
+        } else {
+            val = 0;
+        }
+        break;
+    case 0x1080 ... 0x108f: /* PCI bus error */
+        if (addr & 4) {
+            val = s->pci_err_irq_map[(addr & 0xf) >> 3];
         } else {
             val = 0;
         }
@@ -615,12 +636,7 @@ static void pci_apb_set_irq(void *opaque, int irq_num, int level)
 
 static int apb_pci_bridge_initfn(PCIDevice *dev)
 {
-    int rc;
-
-    rc = pci_bridge_initfn(dev, TYPE_PCI_BUS);
-    if (rc < 0) {
-        return rc;
-    }
+    pci_bridge_initfn(dev, TYPE_PCI_BUS);
 
     /*
      * command register:
@@ -744,6 +760,9 @@ static int pci_pbm_init_device(SysBusDevice *dev)
     for (i = 0; i < 8; i++) {
         s->pci_irq_map[i] = (0x1f << 6) | (i << 2);
     }
+    for (i = 0; i < 2; i++) {
+        s->pci_err_irq_map[i] = (0x1f << 6) | 0x30;
+    }
     for (i = 0; i < 32; i++) {
         s->obio_irq_map[i] = ((0x1f << 6) | 0x20) + i;
     }
@@ -771,14 +790,13 @@ static int pci_pbm_init_device(SysBusDevice *dev)
     return 0;
 }
 
-static int pbm_pci_host_init(PCIDevice *d)
+static void pbm_pci_host_realize(PCIDevice *d, Error **errp)
 {
     pci_set_word(d->config + PCI_COMMAND,
                  PCI_COMMAND_MEMORY | PCI_COMMAND_MASTER);
     pci_set_word(d->config + PCI_STATUS,
                  PCI_STATUS_FAST_BACK | PCI_STATUS_66MHZ |
                  PCI_STATUS_DEVSEL_MEDIUM);
-    return 0;
 }
 
 static void pbm_pci_host_class_init(ObjectClass *klass, void *data)
@@ -786,7 +804,7 @@ static void pbm_pci_host_class_init(ObjectClass *klass, void *data)
     PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
     DeviceClass *dc = DEVICE_CLASS(klass);
 
-    k->init = pbm_pci_host_init;
+    k->realize = pbm_pci_host_realize;
     k->vendor_id = PCI_VENDOR_ID_SUN;
     k->device_id = PCI_DEVICE_ID_SUN_SABRE;
     k->class_id = PCI_CLASS_BRIDGE_HOST;

@@ -1,8 +1,27 @@
+/*
+ * QEMU 64-bit address ranges
+ *
+ * Copyright (c) 2015-2016 Red Hat, Inc.
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public
+ * License along with this library; if not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
 #ifndef QEMU_RANGE_H
 #define QEMU_RANGE_H
 
-#include <inttypes.h>
-#include <qemu/typedefs.h>
+#include "qemu/queue.h"
 
 /*
  * Operations on 64 bit address ranges.
@@ -59,5 +78,7 @@ static inline int ranges_overlap(uint64_t first1, uint64_t len1,
 
     return !(last2 < first1 || last1 < first2);
 }
+
+GList *range_list_insert(GList *list, Range *data);
 
 #endif

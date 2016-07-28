@@ -10,6 +10,7 @@
 # define PXA_H			"pxa.h"
 
 #include "exec/memory.h"
+#include "target-arm/cpu-qom.h"
 
 /* Interrupt numbers */
 # define PXA2XX_PIC_SSP3	0
@@ -87,7 +88,7 @@ void pxa2xx_lcdc_oritentation(void *opaque, int angle);
 typedef struct PXA2xxMMCIState PXA2xxMMCIState;
 PXA2xxMMCIState *pxa2xx_mmci_init(MemoryRegion *sysmem,
                 hwaddr base,
-                BlockDriverState *bd, qemu_irq irq,
+                BlockBackend *blk, qemu_irq irq,
                 qemu_irq rx_dma, qemu_irq tx_dma);
 void pxa2xx_mmci_handlers(PXA2xxMMCIState *s, qemu_irq readonly,
                 qemu_irq coverswitch);

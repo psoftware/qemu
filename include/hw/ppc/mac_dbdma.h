@@ -23,6 +23,8 @@
 #define HW_MAC_DBDMA_H 1
 
 #include "exec/memory.h"
+#include "qemu/iov.h"
+#include "sysemu/dma.h"
 
 typedef struct DBDMA_io DBDMA_io;
 
@@ -40,8 +42,13 @@ struct DBDMA_io {
     /* DMA is in progress, don't start another one */
     bool processing;
     /* unaligned last sector of a request */
-    uint8_t remainder[0x200];
-    int remainder_len;
+    uint8_t head_remainder[0x200];
+    uint8_t tail_remainder[0x200];
+    QEMUIOVector iov;
+    /* DMA request */
+    void *dma_mem;
+    dma_addr_t dma_len;
+    DMADirection dir;
 };
 
 /*

@@ -10,22 +10,23 @@
  * GNU GPL, version 2 or (at your option) any later version.
  */
 
+#include "qemu/osdep.h"
+#include "qapi/error.h"
 #include "hw/hw.h"
 #include "hw/arm/pxa.h"
 #include "hw/arm/arm.h"
 #include "sysemu/sysemu.h"
 #include "hw/pcmcia.h"
 #include "hw/i2c/i2c.h"
-#include "hw/ssi.h"
+#include "hw/ssi/ssi.h"
 #include "hw/block/flash.h"
 #include "qemu/timer.h"
 #include "hw/devices.h"
 #include "hw/arm/sharpsl.h"
 #include "ui/console.h"
-#include "block/block.h"
 #include "audio/audio.h"
 #include "hw/boards.h"
-#include "sysemu/blockdev.h"
+#include "sysemu/block-backend.h"
 #include "hw/sysbus.h"
 #include "exec/address-spaces.h"
 
@@ -163,19 +164,20 @@ static void sl_flash_register(PXA2xxState *cpu, int size)
     sysbus_mmio_map(SYS_BUS_DEVICE(dev), 0, FLASH_BASE);
 }
 
-static int sl_nand_init(SysBusDevice *dev)
+static void sl_nand_init(Object *obj)
 {
-    SLNANDState *s = SL_NAND(dev);
+    SLNANDState *s = SL_NAND(obj);
+    SysBusDevice *dev = SYS_BUS_DEVICE(obj);
     DriveInfo *nand;
 
     s->ctl = 0;
+    /* FIXME use a qdev drive property instead of drive_get() */
     nand = drive_get(IF_MTD, 0, 0);
-    s->nand = nand_init(nand ? nand->bdrv : NULL, s->manf_id, s->chip_id);
+    s->nand = nand_init(nand ? blk_by_legacy_dinfo(nand) : NULL,
+                        s->manf_id, s->chip_id);
 
-    memory_region_init_io(&s->iomem, OBJECT(s), &sl_ops, s, "sl", 0x40);
+    memory_region_init_io(&s->iomem, obj, &sl_ops, s, "sl", 0x40);
     sysbus_init_mmio(dev, &s->iomem);
-
-    return 0;
 }
 
 /* Spitz Keyboard */
@@ -285,9 +287,9 @@ static void spitz_keyboard_keydown(SpitzKeyboardState *s, int keycode)
     spitz_keyboard_sense_update(s);
 }
 
-#define MOD_SHIFT   (1 << 7)
-#define MOD_CTRL    (1 << 8)
-#define MOD_FN      (1 << 9)
+#define SPITZ_MOD_SHIFT   (1 << 7)
+#define SPITZ_MOD_CTRL    (1 << 8)
+#define SPITZ_MOD_FN      (1 << 9)
 
 #define QUEUE_KEY(c)	s->fifo[(s->fifopos + s->fifolen ++) & 0xf] = c
 
@@ -324,21 +326,26 @@ static void spitz_keyboard_handler(void *opaque, int keycode)
     }
 
     code = s->pre_map[mapcode = ((s->modifiers & 3) ?
-            (keycode | MOD_SHIFT) :
-            (keycode & ~MOD_SHIFT))];
+            (keycode | SPITZ_MOD_SHIFT) :
+            (keycode & ~SPITZ_MOD_SHIFT))];
 
     if (code != mapcode) {
 #if 0
-        if ((code & MOD_SHIFT) && !(s->modifiers & 1))
+        if ((code & SPITZ_MOD_SHIFT) && !(s->modifiers & 1)) {
             QUEUE_KEY(0x2a | (keycode & 0x80));
-        if ((code & MOD_CTRL ) && !(s->modifiers & 4))
+        }
+        if ((code & SPITZ_MOD_CTRL) && !(s->modifiers & 4)) {
             QUEUE_KEY(0x1d | (keycode & 0x80));
-        if ((code & MOD_FN   ) && !(s->modifiers & 8))
+        }
+        if ((code & SPITZ_MOD_FN) && !(s->modifiers & 8)) {
             QUEUE_KEY(0x38 | (keycode & 0x80));
-        if ((code & MOD_FN   ) && (s->modifiers & 1))
+        }
+        if ((code & SPITZ_MOD_FN) && (s->modifiers & 1)) {
             QUEUE_KEY(0x2a | (~keycode & 0x80));
-        if ((code & MOD_FN   ) && (s->modifiers & 2))
+        }
+        if ((code & SPITZ_MOD_FN) && (s->modifiers & 2)) {
             QUEUE_KEY(0x36 | (~keycode & 0x80));
+        }
 #else
         if (keycode & 0x80) {
             if ((s->imodifiers & 1   ) && !(s->modifiers & 1))
@@ -353,24 +360,27 @@ static void spitz_keyboard_handler(void *opaque, int keycode)
                 QUEUE_KEY(0x36);
             s->imodifiers = 0;
         } else {
-            if ((code & MOD_SHIFT) && !((s->modifiers | s->imodifiers) & 1)) {
+            if ((code & SPITZ_MOD_SHIFT) &&
+                !((s->modifiers | s->imodifiers) & 1)) {
                 QUEUE_KEY(0x2a);
                 s->imodifiers |= 1;
             }
-            if ((code & MOD_CTRL ) && !((s->modifiers | s->imodifiers) & 4)) {
+            if ((code & SPITZ_MOD_CTRL) &&
+                !((s->modifiers | s->imodifiers) & 4)) {
                 QUEUE_KEY(0x1d);
                 s->imodifiers |= 4;
             }
-            if ((code & MOD_FN   ) && !((s->modifiers | s->imodifiers) & 8)) {
+            if ((code & SPITZ_MOD_FN) &&
+                !((s->modifiers | s->imodifiers) & 8)) {
                 QUEUE_KEY(0x38);
                 s->imodifiers |= 8;
             }
-            if ((code & MOD_FN   ) && (s->modifiers & 1) &&
+            if ((code & SPITZ_MOD_FN) && (s->modifiers & 1) &&
                             !(s->imodifiers & 0x10)) {
                 QUEUE_KEY(0x2a | 0x80);
                 s->imodifiers |= 0x10;
             }
-            if ((code & MOD_FN   ) && (s->modifiers & 2) &&
+            if ((code & SPITZ_MOD_FN) && (s->modifiers & 2) &&
                             !(s->imodifiers & 0x20)) {
                 QUEUE_KEY(0x36 | 0x80);
                 s->imodifiers |= 0x20;
@@ -394,7 +404,7 @@ static void spitz_keyboard_tick(void *opaque)
     }
 
     timer_mod(s->kbdtimer, qemu_clock_get_ns(QEMU_CLOCK_VIRTUAL) +
-                   get_ticks_per_sec() / 32);
+                   NANOSECONDS_PER_SECOND / 32);
 }
 
 static void spitz_keyboard_pre_map(SpitzKeyboardState *s)
@@ -402,38 +412,38 @@ static void spitz_keyboard_pre_map(SpitzKeyboardState *s)
     int i;
     for (i = 0; i < 0x100; i ++)
         s->pre_map[i] = i;
-    s->pre_map[0x02 | MOD_SHIFT	] = 0x02 | MOD_SHIFT;	/* exclam */
-    s->pre_map[0x28 | MOD_SHIFT	] = 0x03 | MOD_SHIFT;	/* quotedbl */
-    s->pre_map[0x04 | MOD_SHIFT	] = 0x04 | MOD_SHIFT;	/* numbersign */
-    s->pre_map[0x05 | MOD_SHIFT	] = 0x05 | MOD_SHIFT;	/* dollar */
-    s->pre_map[0x06 | MOD_SHIFT	] = 0x06 | MOD_SHIFT;	/* percent */
-    s->pre_map[0x08 | MOD_SHIFT	] = 0x07 | MOD_SHIFT;	/* ampersand */
-    s->pre_map[0x28		] = 0x08 | MOD_SHIFT;	/* apostrophe */
-    s->pre_map[0x0a | MOD_SHIFT	] = 0x09 | MOD_SHIFT;	/* parenleft */
-    s->pre_map[0x0b | MOD_SHIFT	] = 0x0a | MOD_SHIFT;	/* parenright */
-    s->pre_map[0x29 | MOD_SHIFT	] = 0x0b | MOD_SHIFT;	/* asciitilde */
-    s->pre_map[0x03 | MOD_SHIFT	] = 0x0c | MOD_SHIFT;	/* at */
-    s->pre_map[0xd3		] = 0x0e | MOD_FN;	/* Delete */
-    s->pre_map[0x3a		] = 0x0f | MOD_FN;	/* Caps_Lock */
-    s->pre_map[0x07 | MOD_SHIFT	] = 0x11 | MOD_FN;	/* asciicircum */
-    s->pre_map[0x0d		] = 0x12 | MOD_FN;	/* equal */
-    s->pre_map[0x0d | MOD_SHIFT	] = 0x13 | MOD_FN;	/* plus */
-    s->pre_map[0x1a		] = 0x14 | MOD_FN;	/* bracketleft */
-    s->pre_map[0x1b		] = 0x15 | MOD_FN;	/* bracketright */
-    s->pre_map[0x1a | MOD_SHIFT	] = 0x16 | MOD_FN;	/* braceleft */
-    s->pre_map[0x1b | MOD_SHIFT	] = 0x17 | MOD_FN;	/* braceright */
-    s->pre_map[0x27		] = 0x22 | MOD_FN;	/* semicolon */
-    s->pre_map[0x27 | MOD_SHIFT	] = 0x23 | MOD_FN;	/* colon */
-    s->pre_map[0x09 | MOD_SHIFT	] = 0x24 | MOD_FN;	/* asterisk */
-    s->pre_map[0x2b		] = 0x25 | MOD_FN;	/* backslash */
-    s->pre_map[0x2b | MOD_SHIFT	] = 0x26 | MOD_FN;	/* bar */
-    s->pre_map[0x0c | MOD_SHIFT	] = 0x30 | MOD_FN;	/* underscore */
-    s->pre_map[0x33 | MOD_SHIFT	] = 0x33 | MOD_FN;	/* less */
-    s->pre_map[0x35		] = 0x33 | MOD_SHIFT;	/* slash */
-    s->pre_map[0x34 | MOD_SHIFT	] = 0x34 | MOD_FN;	/* greater */
-    s->pre_map[0x35 | MOD_SHIFT	] = 0x34 | MOD_SHIFT;	/* question */
-    s->pre_map[0x49		] = 0x48 | MOD_FN;	/* Page_Up */
-    s->pre_map[0x51		] = 0x50 | MOD_FN;	/* Page_Down */
+    s->pre_map[0x02 | SPITZ_MOD_SHIFT] = 0x02 | SPITZ_MOD_SHIFT; /* exclam */
+    s->pre_map[0x28 | SPITZ_MOD_SHIFT] = 0x03 | SPITZ_MOD_SHIFT; /* quotedbl */
+    s->pre_map[0x04 | SPITZ_MOD_SHIFT] = 0x04 | SPITZ_MOD_SHIFT; /* # */
+    s->pre_map[0x05 | SPITZ_MOD_SHIFT] = 0x05 | SPITZ_MOD_SHIFT; /* dollar */
+    s->pre_map[0x06 | SPITZ_MOD_SHIFT] = 0x06 | SPITZ_MOD_SHIFT; /* percent */
+    s->pre_map[0x08 | SPITZ_MOD_SHIFT] = 0x07 | SPITZ_MOD_SHIFT; /* ampersand */
+    s->pre_map[0x28]                   = 0x08 | SPITZ_MOD_SHIFT; /* ' */
+    s->pre_map[0x0a | SPITZ_MOD_SHIFT] = 0x09 | SPITZ_MOD_SHIFT; /* ( */
+    s->pre_map[0x0b | SPITZ_MOD_SHIFT] = 0x0a | SPITZ_MOD_SHIFT; /* ) */
+    s->pre_map[0x29 | SPITZ_MOD_SHIFT] = 0x0b | SPITZ_MOD_SHIFT; /* tilde */
+    s->pre_map[0x03 | SPITZ_MOD_SHIFT] = 0x0c | SPITZ_MOD_SHIFT; /* at */
+    s->pre_map[0xd3]                   = 0x0e | SPITZ_MOD_FN;    /* Delete */
+    s->pre_map[0x3a]                   = 0x0f | SPITZ_MOD_FN;    /* Caps_Lock */
+    s->pre_map[0x07 | SPITZ_MOD_SHIFT] = 0x11 | SPITZ_MOD_FN;    /* ^ */
+    s->pre_map[0x0d]                   = 0x12 | SPITZ_MOD_FN;    /* equal */
+    s->pre_map[0x0d | SPITZ_MOD_SHIFT] = 0x13 | SPITZ_MOD_FN;    /* plus */
+    s->pre_map[0x1a]                   = 0x14 | SPITZ_MOD_FN;    /* [ */
+    s->pre_map[0x1b]                   = 0x15 | SPITZ_MOD_FN;    /* ] */
+    s->pre_map[0x1a | SPITZ_MOD_SHIFT] = 0x16 | SPITZ_MOD_FN;    /* { */
+    s->pre_map[0x1b | SPITZ_MOD_SHIFT] = 0x17 | SPITZ_MOD_FN;    /* } */
+    s->pre_map[0x27]                   = 0x22 | SPITZ_MOD_FN;    /* semicolon */
+    s->pre_map[0x27 | SPITZ_MOD_SHIFT] = 0x23 | SPITZ_MOD_FN;    /* colon */
+    s->pre_map[0x09 | SPITZ_MOD_SHIFT] = 0x24 | SPITZ_MOD_FN;    /* asterisk */
+    s->pre_map[0x2b]                   = 0x25 | SPITZ_MOD_FN;    /* backslash */
+    s->pre_map[0x2b | SPITZ_MOD_SHIFT] = 0x26 | SPITZ_MOD_FN;    /* bar */
+    s->pre_map[0x0c | SPITZ_MOD_SHIFT] = 0x30 | SPITZ_MOD_FN;    /* _ */
+    s->pre_map[0x33 | SPITZ_MOD_SHIFT] = 0x33 | SPITZ_MOD_FN;    /* less */
+    s->pre_map[0x35]                   = 0x33 | SPITZ_MOD_SHIFT; /* slash */
+    s->pre_map[0x34 | SPITZ_MOD_SHIFT] = 0x34 | SPITZ_MOD_FN;    /* greater */
+    s->pre_map[0x35 | SPITZ_MOD_SHIFT] = 0x34 | SPITZ_MOD_SHIFT; /* question */
+    s->pre_map[0x49]                   = 0x48 | SPITZ_MOD_FN;    /* Page_Up */
+    s->pre_map[0x51]                   = 0x50 | SPITZ_MOD_FN;    /* Page_Down */
 
     s->modifiers = 0;
     s->imodifiers = 0;
@@ -441,9 +451,9 @@ static void spitz_keyboard_pre_map(SpitzKeyboardState *s)
     s->fifolen = 0;
 }
 
-#undef MOD_SHIFT
-#undef MOD_CTRL
-#undef MOD_FN
+#undef SPITZ_MOD_SHIFT
+#undef SPITZ_MOD_CTRL
+#undef SPITZ_MOD_FN
 
 static int spitz_keyboard_post_load(void *opaque, int version_id)
 {
@@ -490,10 +500,10 @@ static void spitz_keyboard_register(PXA2xxState *cpu)
     qemu_add_kbd_event_handler(spitz_keyboard_handler, s);
 }
 
-static int spitz_keyboard_init(SysBusDevice *sbd)
+static void spitz_keyboard_init(Object *obj)
 {
-    DeviceState *dev = DEVICE(sbd);
-    SpitzKeyboardState *s = SPITZ_KEYBOARD(dev);
+    DeviceState *dev = DEVICE(obj);
+    SpitzKeyboardState *s = SPITZ_KEYBOARD(obj);
     int i, j;
 
     for (i = 0; i < 0x80; i ++)
@@ -508,8 +518,6 @@ static int spitz_keyboard_init(SysBusDevice *sbd)
     s->kbdtimer = timer_new_ns(QEMU_CLOCK_VIRTUAL, spitz_keyboard_tick, s);
     qdev_init_gpio_in(dev, spitz_keyboard_strobe, SPITZ_KEY_STROBE_NUM);
     qdev_init_gpio_out(dev, s->sense, SPITZ_KEY_SENSE_NUM);
-
-    return 0;
 }
 
 /* LCD backlight controller */
@@ -744,7 +752,7 @@ static void spitz_i2c_setup(PXA2xxState *cpu)
 
     spitz_wm8750_addr(wm, 0, 0);
     qdev_connect_gpio_out(cpu->gpio, SPITZ_GPIO_WM,
-                    qemu_allocate_irqs(spitz_wm8750_addr, wm, 1)[0]);
+                          qemu_allocate_irq(spitz_wm8750_addr, wm, 0));
     /* .. and to the sound interface.  */
     cpu->i2s->opaque = wm;
     cpu->i2s->codec_out = wm8750_dac_dat;
@@ -850,7 +858,7 @@ static void spitz_gpio_setup(PXA2xxState *cpu, int slots)
      * wouldn't guarantee that a guest ever exits the loop.
      */
     spitz_hsync = 0;
-    lcd_hsync = qemu_allocate_irqs(spitz_lcd_hsync_handler, cpu, 1)[0];
+    lcd_hsync = qemu_allocate_irq(spitz_lcd_hsync_handler, cpu, 0);
     pxa2xx_gpio_read_notifier(cpu->gpio, lcd_hsync);
     pxa2xx_lcd_vsync_notifier(cpu->lcd, lcd_hsync);
 
@@ -904,7 +912,7 @@ static void spitz_common_init(MachineState *machine,
 
     sl_flash_register(mpu, (model == spitz) ? FLASH_128M : FLASH_1024M);
 
-    memory_region_init_ram(rom, NULL, "spitz.rom", SPITZ_ROM);
+    memory_region_init_ram(rom, NULL, "spitz.rom", SPITZ_ROM, &error_fatal);
     vmstate_register_ram_global(rom);
     memory_region_set_readonly(rom, true);
     memory_region_add_subregion(address_space_mem, 0, rom);
@@ -963,39 +971,71 @@ static void terrier_init(MachineState *machine)
     spitz_common_init(machine, terrier, 0x33f);
 }
 
-static QEMUMachine akitapda_machine = {
-    .name = "akita",
-    .desc = "Akita PDA (PXA270)",
-    .init = akita_init,
+static void akitapda_class_init(ObjectClass *oc, void *data)
+{
+    MachineClass *mc = MACHINE_CLASS(oc);
+
+    mc->desc = "Sharp SL-C1000 (Akita) PDA (PXA270)";
+    mc->init = akita_init;
+}
+
+static const TypeInfo akitapda_type = {
+    .name = MACHINE_TYPE_NAME("akita"),
+    .parent = TYPE_MACHINE,
+    .class_init = akitapda_class_init,
 };
 
-static QEMUMachine spitzpda_machine = {
-    .name = "spitz",
-    .desc = "Spitz PDA (PXA270)",
-    .init = spitz_init,
+static void spitzpda_class_init(ObjectClass *oc, void *data)
+{
+    MachineClass *mc = MACHINE_CLASS(oc);
+
+    mc->desc = "Sharp SL-C3000 (Spitz) PDA (PXA270)";
+    mc->init = spitz_init;
+}
+
+static const TypeInfo spitzpda_type = {
+    .name = MACHINE_TYPE_NAME("spitz"),
+    .parent = TYPE_MACHINE,
+    .class_init = spitzpda_class_init,
 };
 
-static QEMUMachine borzoipda_machine = {
-    .name = "borzoi",
-    .desc = "Borzoi PDA (PXA270)",
-    .init = borzoi_init,
+static void borzoipda_class_init(ObjectClass *oc, void *data)
+{
+    MachineClass *mc = MACHINE_CLASS(oc);
+
+    mc->desc = "Sharp SL-C3100 (Borzoi) PDA (PXA270)";
+    mc->init = borzoi_init;
+}
+
+static const TypeInfo borzoipda_type = {
+    .name = MACHINE_TYPE_NAME("borzoi"),
+    .parent = TYPE_MACHINE,
+    .class_init = borzoipda_class_init,
 };
 
-static QEMUMachine terrierpda_machine = {
-    .name = "terrier",
-    .desc = "Terrier PDA (PXA270)",
-    .init = terrier_init,
+static void terrierpda_class_init(ObjectClass *oc, void *data)
+{
+    MachineClass *mc = MACHINE_CLASS(oc);
+
+    mc->desc = "Sharp SL-C3200 (Terrier) PDA (PXA270)";
+    mc->init = terrier_init;
+}
+
+static const TypeInfo terrierpda_type = {
+    .name = MACHINE_TYPE_NAME("terrier"),
+    .parent = TYPE_MACHINE,
+    .class_init = terrierpda_class_init,
 };
 
 static void spitz_machine_init(void)
 {
-    qemu_register_machine(&akitapda_machine);
-    qemu_register_machine(&spitzpda_machine);
-    qemu_register_machine(&borzoipda_machine);
-    qemu_register_machine(&terrierpda_machine);
+    type_register_static(&akitapda_type);
+    type_register_static(&spitzpda_type);
+    type_register_static(&borzoipda_type);
+    type_register_static(&terrierpda_type);
 }
 
-machine_init(spitz_machine_init);
+type_init(spitz_machine_init)
 
 static bool is_version_0(void *opaque, int version_id)
 {
@@ -1022,17 +1062,18 @@ static Property sl_nand_properties[] = {
 static void sl_nand_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
-    SysBusDeviceClass *k = SYS_BUS_DEVICE_CLASS(klass);
 
-    k->init = sl_nand_init;
     dc->vmsd = &vmstate_sl_nand_info;
     dc->props = sl_nand_properties;
+    /* Reason: init() method uses drive_get() */
+    dc->cannot_instantiate_with_device_add_yet = true;
 }
 
 static const TypeInfo sl_nand_info = {
     .name          = TYPE_SL_NAND,
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(SLNANDState),
+    .instance_init = sl_nand_init,
     .class_init    = sl_nand_class_init,
 };
 
@@ -1049,24 +1090,18 @@ static VMStateDescription vmstate_spitz_kbd = {
     },
 };
 
-static Property spitz_keyboard_properties[] = {
-    DEFINE_PROP_END_OF_LIST(),
-};
-
 static void spitz_keyboard_class_init(ObjectClass *klass, void *data)
 {
     DeviceClass *dc = DEVICE_CLASS(klass);
-    SysBusDeviceClass *k = SYS_BUS_DEVICE_CLASS(klass);
 
-    k->init = spitz_keyboard_init;
     dc->vmsd = &vmstate_spitz_kbd;
-    dc->props = spitz_keyboard_properties;
 }
 
 static const TypeInfo spitz_keyboard_info = {
     .name          = TYPE_SPITZ_KEYBOARD,
     .parent        = TYPE_SYS_BUS_DEVICE,
     .instance_size = sizeof(SpitzKeyboardState),
+    .instance_init = spitz_keyboard_init,
     .class_init    = spitz_keyboard_class_init,
 };
 

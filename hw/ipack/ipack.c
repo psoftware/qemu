@@ -2,12 +2,14 @@
  * QEMU IndustryPack emulation
  *
  * Copyright (C) 2012 Igalia, S.L.
- * Author: Alberto Garcia <agarcia@igalia.com>
+ * Author: Alberto Garcia <berto@igalia.com>
  *
  * This code is licensed under the GNU GPL v2 or (at your option) any
  * later version.
  */
 
+#include "qemu/osdep.h"
+#include "qapi/error.h"
 #include "hw/ipack/ipack.h"
 
 IPackDevice *ipack_device_find(IPackBus *bus, int32_t slot)
@@ -66,7 +68,7 @@ static void ipack_device_unrealize(DeviceState *dev, Error **errp)
         return;
     }
 
-    qemu_free_irqs(idev->irq);
+    qemu_free_irqs(idev->irq, 2);
 }
 
 static Property ipack_device_props[] = {

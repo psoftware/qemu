@@ -17,13 +17,17 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "qemu/osdep.h"
 #include "cpu.h"
 #include "exec/gdbstub.h"
 #include "exec/helper-proto.h"
 #include "qemu/host-utils.h"
+#include "qemu/log.h"
 #include "sysemu/sysemu.h"
 #include "qemu/bitops.h"
 #include "internals.h"
+#include "qemu/crc32c.h"
+#include <zlib.h> /* For crc32 */
 
 /* C2.4.7 Multiply and divide */
 /* special cases for 0 and LLONG_MIN are mandated by the standard */
@@ -68,20 +72,7 @@ uint32_t HELPER(clz32)(uint32_t x)
 
 uint64_t HELPER(rbit64)(uint64_t x)
 {
-    /* assign the correct byte position */
-    x = bswap64(x);
-
-    /* assign the correct nibble position */
-    x = ((x & 0xf0f0f0f0f0f0f0f0ULL) >> 4)
-        | ((x & 0x0f0f0f0f0f0f0f0fULL) << 4);
-
-    /* assign the correct bit position */
-    x = ((x & 0x8888888888888888ULL) >> 3)
-        | ((x & 0x4444444444444444ULL) >> 1)
-        | ((x & 0x2222222222222222ULL) << 1)
-        | ((x & 0x1111111111111111ULL) << 3);
-
-    return x;
+    return revbit64(x);
 }
 
 /* Convert a softfloat float_relation_ (as returned by
@@ -133,6 +124,9 @@ float32 HELPER(vfp_mulxs)(float32 a, float32 b, void *fpstp)
 {
     float_status *fpst = fpstp;
 
+    a = float32_squash_input_denormal(a, fpst);
+    b = float32_squash_input_denormal(b, fpst);
+
     if ((float32_is_zero(a) && float32_is_infinity(b)) ||
         (float32_is_infinity(a) && float32_is_zero(b))) {
         /* 2.0 with the sign bit set to sign(A) XOR sign(B) */
@@ -145,6 +139,9 @@ float32 HELPER(vfp_mulxs)(float32 a, float32 b, void *fpstp)
 float64 HELPER(vfp_mulxd)(float64 a, float64 b, void *fpstp)
 {
     float_status *fpst = fpstp;
+
+    a = float64_squash_input_denormal(a, fpst);
+    b = float64_squash_input_denormal(b, fpst);
 
     if ((float64_is_zero(a) && float64_is_infinity(b)) ||
         (float64_is_infinity(a) && float64_is_zero(b))) {
@@ -186,36 +183,6 @@ uint64_t HELPER(simd_tbl)(CPUARMState *env, uint64_t result, uint64_t indices,
     return result;
 }
 
-/* Helper function for 64 bit polynomial multiply case:
- * perform PolynomialMult(op1, op2) and return either the top or
- * bottom half of the 128 bit result.
- */
-uint64_t HELPER(neon_pmull_64_lo)(uint64_t op1, uint64_t op2)
-{
-    int bitnum;
-    uint64_t res = 0;
-
-    for (bitnum = 0; bitnum < 64; bitnum++) {
-        if (op1 & (1ULL << bitnum)) {
-            res ^= op2 << bitnum;
-        }
-    }
-    return res;
-}
-uint64_t HELPER(neon_pmull_64_hi)(uint64_t op1, uint64_t op2)
-{
-    int bitnum;
-    uint64_t res = 0;
-
-    /* bit 0 of op1 can't influence the high 64 bits at all */
-    for (bitnum = 1; bitnum < 64; bitnum++) {
-        if (op1 & (1ULL << bitnum)) {
-            res ^= op2 >> (64 - bitnum);
-        }
-    }
-    return res;
-}
-
 /* 64bit/double versions of the neon float compare functions */
 uint64_t HELPER(neon_ceq_f64)(float64 a, float64 b, void *fpstp)
 {
@@ -251,6 +218,9 @@ float32 HELPER(recpsf_f32)(float32 a, float32 b, void *fpstp)
 {
     float_status *fpst = fpstp;
 
+    a = float32_squash_input_denormal(a, fpst);
+    b = float32_squash_input_denormal(b, fpst);
+
     a = float32_chs(a);
     if ((float32_is_infinity(a) && float32_is_zero(b)) ||
         (float32_is_infinity(b) && float32_is_zero(a))) {
@@ -262,6 +232,9 @@ float32 HELPER(recpsf_f32)(float32 a, float32 b, void *fpstp)
 float64 HELPER(recpsf_f64)(float64 a, float64 b, void *fpstp)
 {
     float_status *fpst = fpstp;
+
+    a = float64_squash_input_denormal(a, fpst);
+    b = float64_squash_input_denormal(b, fpst);
 
     a = float64_chs(a);
     if ((float64_is_infinity(a) && float64_is_zero(b)) ||
@@ -275,6 +248,9 @@ float32 HELPER(rsqrtsf_f32)(float32 a, float32 b, void *fpstp)
 {
     float_status *fpst = fpstp;
 
+    a = float32_squash_input_denormal(a, fpst);
+    b = float32_squash_input_denormal(b, fpst);
+
     a = float32_chs(a);
     if ((float32_is_infinity(a) && float32_is_zero(b)) ||
         (float32_is_infinity(b) && float32_is_zero(a))) {
@@ -286,6 +262,9 @@ float32 HELPER(rsqrtsf_f32)(float32 a, float32 b, void *fpstp)
 float64 HELPER(rsqrtsf_f64)(float64 a, float64 b, void *fpstp)
 {
     float_status *fpst = fpstp;
+
+    a = float64_squash_input_denormal(a, fpst);
+    b = float64_squash_input_denormal(b, fpst);
 
     a = float64_chs(a);
     if ((float64_is_infinity(a) && float64_is_zero(b)) ||
@@ -365,12 +344,12 @@ float32 HELPER(frecpx_f32)(float32 a, void *fpstp)
 
     if (float32_is_any_nan(a)) {
         float32 nan = a;
-        if (float32_is_signaling_nan(a)) {
+        if (float32_is_signaling_nan(a, fpst)) {
             float_raise(float_flag_invalid, fpst);
-            nan = float32_maybe_silence_nan(a);
+            nan = float32_maybe_silence_nan(a, fpst);
         }
         if (fpst->default_nan_mode) {
-            nan = float32_default_nan;
+            nan = float32_default_nan(fpst);
         }
         return nan;
     }
@@ -394,12 +373,12 @@ float64 HELPER(frecpx_f64)(float64 a, void *fpstp)
 
     if (float64_is_any_nan(a)) {
         float64 nan = a;
-        if (float64_is_signaling_nan(a)) {
+        if (float64_is_signaling_nan(a, fpst)) {
             float_raise(float_flag_invalid, fpst);
-            nan = float64_maybe_silence_nan(a);
+            nan = float64_maybe_silence_nan(a, fpst);
         }
         if (fpst->default_nan_mode) {
-            nan = float64_default_nan;
+            nan = float64_default_nan(fpst);
         }
         return nan;
     }
@@ -428,7 +407,7 @@ float32 HELPER(fcvtx_f64_to_f32)(float64 a, CPUARMState *env)
     set_float_rounding_mode(float_round_to_zero, &tstat);
     set_float_exception_flags(0, &tstat);
     r = float64_to_float32(a, &tstat);
-    r = float32_maybe_silence_nan(r);
+    r = float32_maybe_silence_nan(r, &tstat);
     exflags = get_float_exception_flags(&tstat);
     if (exflags & float_flag_inexact) {
         r = make_float32(float32_val(r) | 1);
@@ -438,77 +417,30 @@ float32 HELPER(fcvtx_f64_to_f32)(float64 a, CPUARMState *env)
     return r;
 }
 
-/* Handle a CPU exception.  */
-void aarch64_cpu_do_interrupt(CPUState *cs)
+/* 64-bit versions of the CRC helpers. Note that although the operation
+ * (and the prototypes of crc32c() and crc32() mean that only the bottom
+ * 32 bits of the accumulator and result are used, we pass and return
+ * uint64_t for convenience of the generated code. Unlike the 32-bit
+ * instruction set versions, val may genuinely have 64 bits of data in it.
+ * The upper bytes of val (above the number specified by 'bytes') must have
+ * been zeroed out by the caller.
+ */
+uint64_t HELPER(crc32_64)(uint64_t acc, uint64_t val, uint32_t bytes)
 {
-    ARMCPU *cpu = ARM_CPU(cs);
-    CPUARMState *env = &cpu->env;
-    target_ulong addr = env->cp15.vbar_el[1];
-    int i;
+    uint8_t buf[8];
 
-    if (arm_current_pl(env) == 0) {
-        if (env->aarch64) {
-            addr += 0x400;
-        } else {
-            addr += 0x600;
-        }
-    } else if (pstate_read(env) & PSTATE_SP) {
-        addr += 0x200;
-    }
+    stq_le_p(buf, val);
 
-    arm_log_exception(cs->exception_index);
-    qemu_log_mask(CPU_LOG_INT, "...from EL%d\n", arm_current_pl(env));
-    if (qemu_loglevel_mask(CPU_LOG_INT)
-        && !excp_is_internal(cs->exception_index)) {
-        qemu_log_mask(CPU_LOG_INT, "...with ESR 0x%" PRIx32 "\n",
-                      env->exception.syndrome);
-    }
+    /* zlib crc32 converts the accumulator and output to one's complement.  */
+    return crc32(acc ^ 0xffffffff, buf, bytes) ^ 0xffffffff;
+}
 
-    env->cp15.esr_el[1] = env->exception.syndrome;
-    env->cp15.far_el1 = env->exception.vaddress;
+uint64_t HELPER(crc32c_64)(uint64_t acc, uint64_t val, uint32_t bytes)
+{
+    uint8_t buf[8];
 
-    switch (cs->exception_index) {
-    case EXCP_PREFETCH_ABORT:
-    case EXCP_DATA_ABORT:
-        qemu_log_mask(CPU_LOG_INT, "...with FAR 0x%" PRIx64 "\n",
-                      env->cp15.far_el1);
-        break;
-    case EXCP_BKPT:
-    case EXCP_UDEF:
-    case EXCP_SWI:
-        break;
-    case EXCP_IRQ:
-        addr += 0x80;
-        break;
-    case EXCP_FIQ:
-        addr += 0x100;
-        break;
-    default:
-        cpu_abort(cs, "Unhandled exception 0x%x\n", cs->exception_index);
-    }
+    stq_le_p(buf, val);
 
-    if (is_a64(env)) {
-        env->banked_spsr[aarch64_banked_spsr_index(1)] = pstate_read(env);
-        env->sp_el[arm_current_pl(env)] = env->xregs[31];
-        env->xregs[31] = env->sp_el[1];
-        env->elr_el[1] = env->pc;
-    } else {
-        env->banked_spsr[0] = cpsr_read(env);
-        if (!env->thumb) {
-            env->cp15.esr_el[1] |= 1 << 25;
-        }
-        env->elr_el[1] = env->regs[15];
-
-        for (i = 0; i < 15; i++) {
-            env->xregs[i] = env->regs[i];
-        }
-
-        env->condexec_bits = 0;
-    }
-
-    pstate_write(env, PSTATE_DAIF | PSTATE_MODE_EL1h);
-    env->aarch64 = 1;
-
-    env->pc = addr;
-    cs->interrupt_request |= CPU_INTERRUPT_EXITTB;
+    /* Linux crc32c converts the output to one's complement.  */
+    return crc32c(acc, buf, bytes) ^ 0xffffffff;
 }
