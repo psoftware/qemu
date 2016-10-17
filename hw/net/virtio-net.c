@@ -26,10 +26,6 @@
 #include "qapi-event.h"
 #include "hw/virtio/virtio-access.h"
 
-#ifdef CONFIG_NETMAP_PASSTHROUGH
-#include "virtio-net-ptnetmap.h"
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
-
 #define VIRTIO_NET_VM_VERSION    11
 
 #define MAC_TABLE_ENTRIES    64
@@ -54,10 +50,6 @@ static VirtIOFeature feature_sizes[] = {
      .end = endof(struct virtio_net_config, status)},
     {.flags = 1 << VIRTIO_NET_F_MQ,
      .end = endof(struct virtio_net_config, max_virtqueue_pairs)},
-#ifdef CONFIG_NETMAP_PASSTHROUGH
-    {.flags = 1 << VIRTIO_NET_F_PTNETMAP,
-     .end = sizeof(struct virtio_net_config) + PTNETMAP_VIRTIO_IO_SIZE},
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
     {}
 };
 
@@ -87,13 +79,7 @@ static void virtio_net_get_config(VirtIODevice *vdev,
     virtio_stw_p(vdev, &netcfg.status, n->status);
     virtio_stw_p(vdev, &netcfg.max_virtqueue_pairs, n->max_queues);
     memcpy(netcfg.mac, n->mac, ETH_ALEN);
-#ifndef CONFIG_NETMAP_PASSTHROUGH
     memcpy(config, &netcfg, n->config_size);
-#else  /* CONFIG_NETMAP_PASSTHROUGH */
-    memcpy(config, &netcfg, n->config_size - PTNETMAP_VIRTIO_IO_SIZE);
-    memcpy(config + n->config_size - PTNETMAP_VIRTIO_IO_SIZE,
-           n->ptn.reg, PTNETMAP_VIRTIO_IO_SIZE);
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
 }
 
 static void virtio_net_set_config(VirtIODevice *vdev,
@@ -103,14 +89,7 @@ static void virtio_net_set_config(VirtIODevice *vdev,
     VirtIONet *n = VIRTIO_NET(vdev);
     struct virtio_net_config netcfg = {};
 
-#ifndef CONFIG_NETMAP_PASSTHROUGH
     memcpy(&netcfg, config, n->config_size);
-#else /* CONFIG_NETMAP_PASSTHROUGH */
-    memcpy(&netcfg, config, n->config_size - PTNETMAP_VIRTIO_IO_SIZE);
-    if (addr >= n->config_size - PTNETMAP_VIRTIO_IO_SIZE) {
-        virtio_net_ptnetmap_set_reg(vdev, config, addr);
-    }
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
 
     if (!virtio_vdev_has_feature(vdev, VIRTIO_NET_F_CTRL_MAC_ADDR) &&
         !virtio_vdev_has_feature(vdev, VIRTIO_F_VERSION_1) &&
@@ -568,17 +547,6 @@ static uint64_t virtio_net_get_features(VirtIODevice *vdev, uint64_t features,
         virtio_clear_feature(&features, VIRTIO_NET_F_GUEST_UFO);
         virtio_clear_feature(&features, VIRTIO_NET_F_HOST_UFO);
     }
-
-#ifdef CONFIG_NETMAP_PASSTHROUGH
-    if (n->ptn.state == NULL) {
-        /* Backend does not have ptnetmap. */
-	virtio_clear_feature(&features, VIRTIO_NET_F_PTNETMAP);
-    } else {
-        /* Backend supports ptnetmap, let's inject the feature. */
-	virtio_add_feature(&features, VIRTIO_NET_F_PTNETMAP);
-	virtio_clear_feature(&features, VIRTIO_RING_F_EVENT_IDX);
-    }
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
 
     if (!get_vhost_net(nc->peer)) {
         return features;
@@ -1734,15 +1702,8 @@ static bool virtio_net_guest_notifier_pending(VirtIODevice *vdev, int idx)
 {
     VirtIONet *n = VIRTIO_NET(vdev);
     NetClientState *nc = qemu_get_subqueue(n->nic, vq2q(idx));
-#ifndef CONFIG_NETMAP_PASSTHROUGH
     assert(n->vhost_started);
     return vhost_net_virtqueue_pending(get_vhost_net(nc->peer), idx);
-#else /* CONFIG_NETMAP_PASSTHROUGH */
-    if (!n->vhost_started) {
-        return false;
-    }
-    return vhost_net_virtqueue_pending(get_vhost_net(nc->peer), idx);
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
 }
 
 static void virtio_net_guest_notifier_mask(VirtIODevice *vdev, int idx,
@@ -1750,25 +1711,15 @@ static void virtio_net_guest_notifier_mask(VirtIODevice *vdev, int idx,
 {
     VirtIONet *n = VIRTIO_NET(vdev);
     NetClientState *nc = qemu_get_subqueue(n->nic, vq2q(idx));
-#ifndef CONFIG_NETMAP_PASSTHROUGH
     assert(n->vhost_started);
     vhost_net_virtqueue_mask(get_vhost_net(nc->peer),
                              vdev, idx, mask);
-#else /* CONFIG_NETMAP_PASSTHROUGH */
-    if (n->vhost_started) {
-        vhost_net_virtqueue_mask(get_vhost_net(nc->peer),
-                                 vdev, idx, mask);
-    }
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
 }
 
 static void virtio_net_set_config_size(VirtIONet *n, uint64_t host_features)
 {
     int i, config_size = 0;
     virtio_add_feature(&host_features, VIRTIO_NET_F_MAC);
-#ifdef CONFIG_NETMAP_PASSTHROUGH
-    virtio_add_feature(&host_features, VIRTIO_NET_F_PTNETMAP);
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
     for (i = 0; feature_sizes[i].flags != 0; i++) {
         if (host_features & feature_sizes[i].flags) {
             config_size = MAX(feature_sizes[i].end, config_size);
@@ -1867,10 +1818,6 @@ static void virtio_net_device_realize(DeviceState *dev, Error **errp)
     nc = qemu_get_queue(n->nic);
     nc->rxfilter_notify_enabled = 1;
 
-#ifdef CONFIG_NETMAP_PASSTHROUGH
-    virtio_net_ptnetmap_init(vdev);
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
-
     n->qdev = dev;
     register_savevm(dev, "virtio-net", -1, VIRTIO_NET_VM_VERSION,
                     virtio_net_save, virtio_net_load, n);
@@ -1916,9 +1863,6 @@ static void virtio_net_instance_init(Object *obj)
      * Can be overriden with virtio_net_set_config_size.
      */
     n->config_size = sizeof(struct virtio_net_config);
-#ifdef CONFIG_NETMAP_PASSTHROUGH
-    n->config_size += PTNETMAP_VIRTIO_IO_SIZE;
-#endif /*CONFIG_NETMAP_PASSTHROUGH */
     device_add_bootindex_property(obj, &n->nic_conf.bootindex,
                                   "bootindex", "/ethernet-phy@0",
                                   DEVICE(n), NULL);
