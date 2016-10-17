@@ -47,7 +47,6 @@ static const char *regnames[] = {
     "PTFEAT",
     "PTCTL",
     "PTSTS",
-    "DEPRECATED",
     "MAC_LO",
     "MAC_HI",
     "CSBBAH",
