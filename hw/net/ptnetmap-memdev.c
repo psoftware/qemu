@@ -77,11 +77,7 @@ static void
 ptnetmap_memdev_io_write(void *opaque, hwaddr addr, uint64_t val,
         unsigned size)
 {
-    switch (addr) {
-        default:
-            printf("%s: invalid I/O write [addr %lx]\n", __func__, addr);
-            break;
-    }
+    printf("%s: invalid I/O write [addr %lx]\n", __func__, addr);
 }
 
 static uint64_t
@@ -113,7 +109,7 @@ static const MemoryRegionOps ptnetmap_memdev_io_ops = {
     .write = ptnetmap_memdev_io_write,
     .endianness = DEVICE_LITTLE_ENDIAN,
     .impl = {
-        .min_access_size = 1,
+        .min_access_size = 1, /* TODO 4 ? */
         .max_access_size = 4,
     },
 };
@@ -166,7 +162,6 @@ ptnetmap_memdev_uninit(PCIDevice *dev)
     PTNetmapMemDevState *memd = PTNETMAP_MEMDEV(dev);
 
     QTAILQ_REMOVE(&ptn_memdevs, memd, next);
-
     DBG(printf("%s: new instance uninitialized\n", __func__));
 }
 
