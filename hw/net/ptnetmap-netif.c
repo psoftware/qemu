@@ -269,6 +269,7 @@ ptnet_get_netmap_if(PtNetState *s)
 static int
 ptnet_regif(PtNetState *s)
 {
+    struct ptnetmap_cfgentry_qemu *cfgentry;
     struct ptnetmap_cfg *cfg;
     int ret;
     int i;
@@ -285,15 +286,16 @@ ptnet_regif(PtNetState *s)
         return ret;
     }
 
-    cfg = g_malloc(sizeof(*cfg) + s->num_rings * sizeof(cfg->entries[0]));
-
-    cfg->features = PTNETMAP_CFG_FEAT_CSB | PTNETMAP_CFG_FEAT_EVENTFD;
+    cfg = g_malloc(sizeof(*cfg) + s->num_rings * sizeof(*cfgentry));
+    cfg->cfgtype = PTNETMAP_CFGTYPE_QEMU;
+    cfg->entry_size = sizeof(*cfgentry);
     cfg->num_rings = s->num_rings;
     cfg->ptrings = s->csb;
+    cfgentry = (struct ptnetmap_cfgentry_qemu *)(cfg + 1);
 
-    for (i = 0; i < s->num_rings; i++) {
-        cfg->entries[i].ioeventfd = event_notifier_get_fd(s->host_notifiers + i);
-        cfg->entries[i].irqfd = event_notifier_get_fd(s->guest_notifiers + i);
+    for (i = 0; i < s->num_rings; i++, cfgentry ++) {
+        cfgentry->ioeventfd = event_notifier_get_fd(s->host_notifiers + i);
+        cfgentry->irqfd = event_notifier_get_fd(s->guest_notifiers + i);
     }
 
     ret = ptnetmap_create(s->ptbe, cfg);
