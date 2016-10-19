@@ -87,11 +87,14 @@ ptnetmap_memdev_io_read(void *opaque, hwaddr addr, unsigned size)
     uint64_t ret = 0;
 
     switch (addr) {
-        case PTNETMAP_IO_PCI_MEMSIZE:
-            ret = memd->mem_size;
-            break;
-        case PTNETMAP_IO_PCI_HOSTID:
+        case PTNET_MDEV_IO_MEMID:
             ret = memd->mem_id;
+            break;
+        case PTNET_MDEV_IO_MEMSIZE_LO:
+            ret = memd->mem_size & 0xffffffff;
+            break;
+        case PTNET_MDEV_IO_MEMSIZE_HI:
+            ret = memd->mem_size >> 32;
             break;
         default:
             printf("%s: invalid I/O read [addr %lx]\n", __func__, addr);
@@ -125,7 +128,7 @@ ptnetmap_memdev_init(PCIDevice *dev)
     pci_conf[PCI_INTERRUPT_PIN] = 0; /* no interrupt pin */
 
     /* init register PCI_BAR */
-    size = upper_pow2(PTNETMAP_IO_SIZE);
+    size = upper_pow2(PTNET_MDEV_IO_END);
     memory_region_init_io(&memd->io_bar, OBJECT(memd),
             &ptnetmap_memdev_io_ops, memd, "ptnetmap-io-bar", size);
     pci_register_bar(dev, PTNETMAP_IO_PCI_BAR, PCI_BASE_ADDRESS_SPACE_IO,
