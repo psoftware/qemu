@@ -538,11 +538,6 @@ ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *cfg)
     struct nmreq req;
     int err;
 
-    if (!(ptn->acked_features & PTNETMAP_F_BASE)) {
-        error_report("ptnetmap features not acked");
-        return EINVAL;
-    }
-
     if (ptn->running) {
         return 0;
     }
@@ -576,11 +571,6 @@ ptnetmap_delete(PTNetmapState *ptn)
     NetmapState *s = ptn->netmap;
     int err;
     struct nmreq req;
-
-    if (!(ptn->acked_features & PTNETMAP_F_BASE)) {
-        error_report("ptnetmap features not acked");
-        return EFAULT;
-    }
 
     if (!ptn->running) {
         return 0;
@@ -635,7 +625,7 @@ int net_init_netmap(const NetClientOptions *opts,
 #ifdef CONFIG_NETMAP_PASSTHROUGH
     if (netmap_opts->passthrough) {
         s->ptnetmap.netmap = s;
-        s->ptnetmap.features = PTNETMAP_F_BASE;
+        s->ptnetmap.features = 0;
         s->ptnetmap.acked_features = 0;
         s->ptnetmap.running = false;
 
