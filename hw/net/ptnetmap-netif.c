@@ -95,20 +95,6 @@ typedef struct PtNetState_st {
 #define PTNET(obj) \
             OBJECT_CHECK(PtNetState, (obj), TYPE_PTNET_PCI)
 
-static void
-ptnet_set_link_status(NetClientState *nc)
-{
-    PtNetState *s = qemu_get_nic_opaque(nc);
-
-    DBG("%s(%p)", __func__, s);
-}
-
-static int
-ptnet_can_receive(NetClientState *nc)
-{
-    return false;
-}
-
 static ssize_t
 ptnet_receive(NetClientState *nc, const uint8_t *buf, size_t size)
 {
@@ -509,9 +495,7 @@ static const VMStateDescription vmstate_ptnet = {
 static NetClientInfo net_ptnet_info = {
     .type = NET_CLIENT_OPTIONS_KIND_NIC,
     .size = sizeof(NICState),
-    .can_receive = ptnet_can_receive,
     .receive = ptnet_receive,
-    .link_status_changed = ptnet_set_link_status,
 };
 
 static void ptnet_write_config(PCIDevice *pci_dev, uint32_t address,
@@ -608,7 +592,6 @@ pci_ptnet_uninit(PCIDevice *dev)
     g_free(s->virqs);
 
     msix_uninit_exclusive_bar(PCI_DEVICE(s));
-
     qemu_del_nic(s->nic);
 
     DBG("%s: %p", __func__, s);
