@@ -46,6 +46,7 @@
 typedef struct NetmapState {
     NetClientState      nc;
     struct nm_desc      *nmd;
+    uint16_t            memid;
     char                ifname[IFNAMSIZ];
     struct netmap_ring  *tx;
     struct netmap_ring  *rx;
@@ -97,9 +98,8 @@ netmap_find_memory(struct nm_desc *nmd)
     NetmapState *s;
 
     QTAILQ_FOREACH(s, &netmap_clients, next) {
-        if (nmd->req.nr_arg2 == s->nmd->req.nr_arg2) {
-            D("Found parent: ifname: %s mem_id: %d", s->ifname,
-              s->nmd->req.nr_arg2);
+        if (nmd->req.nr_arg2 == s->memid) {
+            D("Found parent: ifname: %s mem_id: %d", s->ifname, s->memid);
             return s->nmd;
         }
     }
@@ -478,14 +478,28 @@ PTNetmapState *
 get_ptnetmap(NetClientState *nc)
 {
     NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
+    struct netmap_pools_info pi;
+    struct nmreq req;
+    int err;
 
     if (nc->info->type != NET_CLIENT_OPTIONS_KIND_NETMAP
                             || !(s->nmd->req.nr_flags & NR_PTNETMAP_HOST)) {
         return NULL;
     }
 
-    ptnetmap_memdev_create(s->nmd->mem, s->nmd->memsize,
-                           s->nmd->req.nr_arg2);
+    memset(&req, 0, sizeof(req)); // TODO move these three lines in a macro
+    pstrcpy(req.nr_name, sizeof(req.nr_name), s->ifname);
+    req.nr_version = NETMAP_API;
+    req.nr_cmd = NETMAP_POOLS_INFO_GET;
+    nmreq_pointer_put(&req, &pi);
+    err = ioctl(s->nmd->fd, NIOCREGIF, &req);
+    if (err) {
+        error_report("Unable to execute NETMAP_POOLS_INFO_GET on %s: %s",
+                     s->ifname, strerror(errno));
+        return NULL;
+    }
+
+    ptnetmap_memdev_create(s->nmd->mem, s->nmd->memsize, s->memid);
 
     return &s->ptnetmap;
 }
@@ -528,7 +542,7 @@ ptnetmap_get_hostmemid(PTNetmapState *ptn)
         return EINVAL;
     }
 
-    return s->nmd->req.nr_arg2;
+    return s->memid;
 }
 
 int
@@ -617,6 +631,7 @@ int net_init_netmap(const NetClientOptions *opts,
     nc = qemu_new_net_client(&net_netmap_info, peer, "netmap", name);
     s = DO_UPCAST(NetmapState, nc, nc);
     s->nmd = nmd;
+    s->memid = nmd->req.nr_arg2;
     s->tx = NETMAP_TXRING(nmd->nifp, 0);
     s->rx = NETMAP_RXRING(nmd->nifp, 0);
     s->vnet_hdr_len = 0;
