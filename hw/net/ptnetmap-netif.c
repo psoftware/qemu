@@ -34,10 +34,9 @@
 #include "include/hw/net/ptnetmap.h"
 
 #define PTNET_DEBUG
-
 #ifdef PTNET_DEBUG
 #define DBG(fmt, ...) do { \
-        fprintf(stderr, "ptnet: " fmt "\n", ## __VA_ARGS__); \
+        fprintf(stderr, "ptnet-if: " fmt "\n", ## __VA_ARGS__); \
     } while (0)
 #else
 #define DBG(what, fmt, ...) do {} while (0)

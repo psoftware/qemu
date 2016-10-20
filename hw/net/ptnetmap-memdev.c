@@ -29,13 +29,13 @@
 #include "qemu/osdep.h"
 #include "hw/net/ptnetmap.h"
 
-#undef DEBUF
-#define DEBUG
-
-#ifdef DEBUG
-#define DBG(x) x
+#define PTNET_DEBUG
+#ifdef PTNET_DEBUG
+#define DBG(fmt, ...) do { \
+        fprintf(stderr, "ptnet-mdev: " fmt "\n", ## __VA_ARGS__); \
+    } while (0)
 #else
-#define DBG(x)
+#define DBG(what, fmt, ...) do {} while (0)
 #endif
 
 static uint64_t
@@ -76,7 +76,7 @@ static void
 ptnetmap_memdev_io_write(void *opaque, hwaddr addr, uint64_t val,
                          unsigned size)
 {
-    printf("%s: invalid I/O write [addr 0x%lx]\n", __func__, addr);
+    DBG("invalid I/O write [addr 0x%lx]", addr);
 }
 
 static uint64_t
@@ -123,12 +123,11 @@ ptnetmap_memdev_io_read(void *opaque, hwaddr addr, unsigned size)
             ret = memd->pi.buf_pool_objsize;
             break;
         default:
-            printf("%s: invalid I/O read [addr 0x%lx]\n", __func__, addr);
+            DBG("invalid I/O read [addr 0x%lx]", addr);
             return 0;
     }
 
-    DBG(printf("%s: addr 0x%lx, size %d, val 0x%lx\n", __func__,
-               addr, size, ret));
+    DBG("I/O read: addr 0x%lx, val 0x%lx", addr, ret);
 
     return ret;
 }
@@ -138,7 +137,7 @@ static const MemoryRegionOps ptnetmap_memdev_io_ops = {
     .write = ptnetmap_memdev_io_write,
     .endianness = DEVICE_LITTLE_ENDIAN,
     .impl = {
-        .min_access_size = 1, /* TODO 4 ? */
+        .min_access_size = 4,
         .max_access_size = 4,
     },
 };
@@ -163,8 +162,7 @@ ptnetmap_memdev_init(PCIDevice *dev)
     /* init PCI_BAR to map netmap memory into the guest */
     if (memd->mem_ptr) {
         size = upper_pow2(memd->pi.memsize);
-        DBG(printf("%s: map BAR size %lx (%lu MiB)\n", __func__,
-		   size, size >> 20));
+        DBG("map BAR size %lx (%lu MiB)", size, size >> 20);
 
         memory_region_init(&memd->mem_bar, OBJECT(memd),
                            "ptnetmap-mem-bar", size);
@@ -180,7 +178,7 @@ ptnetmap_memdev_init(PCIDevice *dev)
     }
 
     QTAILQ_INSERT_TAIL(&ptn_memdevs, memd, next);
-    DBG(printf("%s: new instance initialized\n", __func__));
+    DBG("new instance initialized");
 
     return 0;
 }
@@ -191,7 +189,7 @@ ptnetmap_memdev_uninit(PCIDevice *dev)
     PTNetmapMemDevState *memd = PTNETMAP_MEMDEV(dev);
 
     QTAILQ_REMOVE(&ptn_memdevs, memd, next);
-    DBG(printf("%s: new instance uninitialized\n", __func__));
+    DBG("new instance uninitialized");
 }
 
  /*
@@ -219,18 +217,17 @@ ptnetmap_memdev_create(void *mem_ptr, struct netmap_pools_info *pi)
     PCIDevice *dev;
     PCIBus *bus;
 
-    DBG(printf("%s: creating new instance\n", __func__));
+    DBG("creating new instance");
 
     if (ptnetmap_memdev_find(pi->memid)) {
-        printf("%s: memdev instance for mem-id %d already exists\n",
-               __func__, pi->memid);
+        DBG("memdev instance for mem-id %d already exists", pi->memid);
         return 0;
     }
 
     bus = pci_find_primary_bus();
 
     if (bus == NULL) {
-        printf("%s: unable to find PCI BUS\n", __func__);
+        DBG("unable to find PCI BUS");
         return -1;
     }
 
@@ -245,7 +242,7 @@ ptnetmap_memdev_create(void *mem_ptr, struct netmap_pools_info *pi)
     /* Initialize the new device. */
     qdev_init_nofail(&dev->qdev);
 
-    DBG(printf("%s: created new instance\n", __func__));
+    DBG("created new instance");
 
     return 0;
 }
