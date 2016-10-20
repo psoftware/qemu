@@ -378,6 +378,14 @@ static void netmap_cleanup(NetClientState *nc)
     QTAILQ_REMOVE(&netmap_clients, s, next);
 }
 
+static void
+nmreq_init(struct nmreq *req, char *ifname)
+{
+    memset(req, 0, sizeof(*req));
+    pstrcpy(req->nr_name, sizeof(req->nr_name), ifname);
+    req->nr_version = NETMAP_API;
+}
+
 /* Offloading manipulation support callbacks. */
 static int netmap_fd_set_vnet_hdr_len(NetmapState *s, int len)
 {
@@ -386,9 +394,7 @@ static int netmap_fd_set_vnet_hdr_len(NetmapState *s, int len)
     /* Issue a NETMAP_BDG_VNET_HDR command to change the virtio-net header
      * length for the netmap adapter associated to 's->ifname'.
      */
-    memset(&req, 0, sizeof(req));
-    pstrcpy(req.nr_name, sizeof(req.nr_name), s->ifname);
-    req.nr_version = NETMAP_API;
+    nmreq_init(&req, s->ifname);
     req.nr_cmd = NETMAP_BDG_VNET_HDR;
     req.nr_arg1 = len;
 
@@ -487,9 +493,7 @@ get_ptnetmap(NetClientState *nc)
         return NULL;
     }
 
-    memset(&req, 0, sizeof(req)); // TODO move these three lines in a macro
-    pstrcpy(req.nr_name, sizeof(req.nr_name), s->ifname);
-    req.nr_version = NETMAP_API;
+    nmreq_init(&req, s->ifname);
     req.nr_cmd = NETMAP_POOLS_INFO_GET;
     nmreq_pointer_put(&req, &pi);
     err = ioctl(s->nmd->fd, NIOCREGIF, &req);
@@ -561,9 +565,7 @@ ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *cfg)
     qemu_purge_queued_packets(&s->nc);
 
     /* Ask host netmap to create ptnetmap kthreads. */
-    memset(&req, 0, sizeof(req));
-    pstrcpy(req.nr_name, sizeof(req.nr_name), s->ifname);
-    req.nr_version = NETMAP_API;
+    nmreq_init(&req, s->ifname);
     ptnetmap_write_cfg(&req, cfg);
     req.nr_cmd = NETMAP_PT_HOST_CREATE;
     err = ioctl(s->nmd->fd, NIOCREGIF, &req);
@@ -591,9 +593,7 @@ ptnetmap_delete(PTNetmapState *ptn)
     }
 
     /* Ask host netmap to delete ptnetmap kthreads. */
-    memset(&req, 0, sizeof(req));
-    pstrcpy(req.nr_name, sizeof(req.nr_name), s->ifname);
-    req.nr_version = NETMAP_API;
+    nmreq_init(&req, s->ifname);
     req.nr_cmd = NETMAP_PT_HOST_DELETE;
     err = ioctl(s->nmd->fd, NIOCREGIF, &req);
     if (err) {
