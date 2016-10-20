@@ -76,7 +76,7 @@ static void
 ptnetmap_memdev_io_write(void *opaque, hwaddr addr, uint64_t val,
                          unsigned size)
 {
-    printf("%s: invalid I/O write [addr %lx]\n", __func__, addr);
+    printf("%s: invalid I/O write [addr 0x%lx]\n", __func__, addr);
 }
 
 static uint64_t
@@ -123,11 +123,11 @@ ptnetmap_memdev_io_read(void *opaque, hwaddr addr, unsigned size)
             ret = memd->pi.buf_pool_objsize;
             break;
         default:
-            printf("%s: invalid I/O read [addr %lx]\n", __func__, addr);
+            printf("%s: invalid I/O read [addr 0x%lx]\n", __func__, addr);
             return 0;
     }
 
-    DBG(printf("%s: addr %lx, size %d, val %lx\n", __func__,
+    DBG(printf("%s: addr 0x%lx, size %d, val 0x%lx\n", __func__,
                addr, size, ret));
 
     return ret;
