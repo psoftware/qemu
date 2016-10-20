@@ -74,7 +74,7 @@ static QTAILQ_HEAD(, PTNetmapMemDevState) ptn_memdevs = QTAILQ_HEAD_INITIALIZER(
 
 static void
 ptnetmap_memdev_io_write(void *opaque, hwaddr addr, uint64_t val,
-        unsigned size)
+                         unsigned size)
 {
     printf("%s: invalid I/O write [addr %lx]\n", __func__, addr);
 }
@@ -86,14 +86,41 @@ ptnetmap_memdev_io_read(void *opaque, hwaddr addr, unsigned size)
     uint64_t ret = 0;
 
     switch (addr) {
-        case PTNET_MDEV_IO_MEMID:
-            ret = memd->pi.memid;
-            break;
         case PTNET_MDEV_IO_MEMSIZE_LO:
             ret = memd->pi.memsize & 0xffffffff;
             break;
         case PTNET_MDEV_IO_MEMSIZE_HI:
             ret = memd->pi.memsize >> 32;
+            break;
+        case PTNET_MDEV_IO_MEMID:
+            ret = memd->pi.memid;
+            break;
+        case PTNET_MDEV_IO_IF_POOL_OFS:
+            ret = memd->pi.if_pool_offset;
+            break;
+        case PTNET_MDEV_IO_IF_POOL_OBJNUM:
+            ret = memd->pi.if_pool_objtotal;
+            break;
+        case PTNET_MDEV_IO_IF_POOL_OBJSZ:
+            ret = memd->pi.if_pool_objsize;
+            break;
+        case PTNET_MDEV_IO_RING_POOL_OFS:
+            ret = memd->pi.ring_pool_offset;
+            break;
+        case PTNET_MDEV_IO_RING_POOL_OBJNUM:
+            ret = memd->pi.ring_pool_objtotal;
+            break;
+        case PTNET_MDEV_IO_RING_POOL_OBJSZ:
+            ret = memd->pi.ring_pool_objsize;
+            break;
+        case PTNET_MDEV_IO_BUF_POOL_OFS:
+            ret = memd->pi.buf_pool_offset;
+            break;
+        case PTNET_MDEV_IO_BUF_POOL_OBJNUM:
+            ret = memd->pi.buf_pool_objtotal;
+            break;
+        case PTNET_MDEV_IO_BUF_POOL_OBJSZ:
+            ret = memd->pi.buf_pool_objsize;
             break;
         default:
             printf("%s: invalid I/O read [addr %lx]\n", __func__, addr);
