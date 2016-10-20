@@ -499,7 +499,7 @@ get_ptnetmap(NetClientState *nc)
         return NULL;
     }
 
-    ptnetmap_memdev_create(s->nmd->mem, s->nmd->memsize, s->memid);
+    ptnetmap_memdev_create(s->nmd->mem, &pi);
 
     return &s->ptnetmap;
 }

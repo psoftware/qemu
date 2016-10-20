@@ -59,6 +59,6 @@ int ptnetmap_create(PTNetmapState *nc, struct ptnetmap_cfg *conf);
 int ptnetmap_delete(PTNetmapState *nc);
 PTNetmapState *get_ptnetmap(NetClientState *nc);
 
-int ptnetmap_memdev_create(void *mem_ptr, uint32_t mem_size, uint16_t mem_id);
+int ptnetmap_memdev_create(void *mem_ptr, struct netmap_pools_info *pi);
 
 #endif /* PTNETMAP_H */

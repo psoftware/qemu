@@ -59,9 +59,8 @@ typedef struct PTNetmapMemDevState {
     MemoryRegion io_bar;        /* ptnetmap register BAR */
     MemoryRegion mem_bar;       /* ptnetmap shared memory BAR */
     MemoryRegion mem_ram;       /* ptnetmap shared memory subregion */
-    void *mem_ptr;
-    uint64_t mem_size;
-    uint16_t mem_id;
+    void *mem_ptr;              /* host virtual pointer to netmap memory */
+    struct netmap_pools_info pi;
 
     QTAILQ_ENTRY(PTNetmapMemDevState) next;
 } PTNetmapMemDevState;
@@ -88,13 +87,13 @@ ptnetmap_memdev_io_read(void *opaque, hwaddr addr, unsigned size)
 
     switch (addr) {
         case PTNET_MDEV_IO_MEMID:
-            ret = memd->mem_id;
+            ret = memd->pi.memid;
             break;
         case PTNET_MDEV_IO_MEMSIZE_LO:
-            ret = memd->mem_size & 0xffffffff;
+            ret = memd->pi.memsize & 0xffffffff;
             break;
         case PTNET_MDEV_IO_MEMSIZE_HI:
-            ret = memd->mem_size >> 32;
+            ret = memd->pi.memsize >> 32;
             break;
         default:
             printf("%s: invalid I/O read [addr %lx]\n", __func__, addr);
@@ -136,14 +135,14 @@ ptnetmap_memdev_init(PCIDevice *dev)
 
     /* init PCI_BAR to map netmap memory into the guest */
     if (memd->mem_ptr) {
-        size = upper_pow2(memd->mem_size);
+        size = upper_pow2(memd->pi.memsize);
         DBG(printf("%s: map BAR size %lx (%lu MiB)\n", __func__,
 		   size, size >> 20));
 
         memory_region_init(&memd->mem_bar, OBJECT(memd),
                            "ptnetmap-mem-bar", size);
         memory_region_init_ram_ptr(&memd->mem_ram, OBJECT(memd),
-                                   "ptnetmap-mem-ram", memd->mem_size,
+                                   "ptnetmap-mem-ram", memd->pi.memsize,
 				   memd->mem_ptr);
         memory_region_add_subregion(&memd->mem_bar, 0, &memd->mem_ram);
         vmstate_register_ram(&memd->mem_ram, DEVICE(memd));
@@ -169,15 +168,15 @@ ptnetmap_memdev_uninit(PCIDevice *dev)
 }
 
  /*
-  * find memd through mem_id
+  * find memd through memid
   */
 static struct PTNetmapMemDevState *
-ptnetmap_memdev_find(uint16_t mem_id)
+ptnetmap_memdev_find(uint16_t memid)
 {
     PTNetmapMemDevState *memd;
 
     QTAILQ_FOREACH(memd, &ptn_memdevs, next) {
-        if (mem_id == memd->mem_id) {
+        if (memid == memd->pi.memid) {
             return memd;
         }
     }
@@ -187,17 +186,17 @@ ptnetmap_memdev_find(uint16_t mem_id)
 
 /* Function exported to be used by the netmap backend. */
 int
-ptnetmap_memdev_create(void *mem_ptr, uint32_t mem_size, uint16_t mem_id)
+ptnetmap_memdev_create(void *mem_ptr, struct netmap_pools_info *pi)
 {
-    PCIBus *bus;
-    PCIDevice *dev;
     PTNetmapMemDevState *memd;
+    PCIDevice *dev;
+    PCIBus *bus;
 
     DBG(printf("%s: creating new instance\n", __func__));
 
-    if (ptnetmap_memdev_find(mem_id)) {
+    if (ptnetmap_memdev_find(pi->memid)) {
         printf("%s: memdev instance for mem-id %d already exists\n",
-               __func__, mem_id);
+               __func__, pi->memid);
         return 0;
     }
 
@@ -214,8 +213,7 @@ ptnetmap_memdev_create(void *mem_ptr, uint32_t mem_size, uint16_t mem_id)
     /* Set shared memory parameters for the new ptnetmap memdev instance. */
     memd = PTNETMAP_MEMDEV(dev);
     memd->mem_ptr = mem_ptr;
-    memd->mem_size = mem_size;
-    memd->mem_id = mem_id;
+    memd->pi = *pi;
 
     /* Initialize the new device. */
     qdev_init_nofail(&dev->qdev);
