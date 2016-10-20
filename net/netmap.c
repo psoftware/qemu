@@ -566,7 +566,7 @@ ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *cfg)
 
     /* Ask host netmap to create ptnetmap kthreads. */
     nmreq_init(&req, s->ifname);
-    ptnetmap_write_cfg(&req, cfg);
+    nmreq_pointer_put(&req, cfg);
     req.nr_cmd = NETMAP_PT_HOST_CREATE;
     err = ioctl(s->nmd->fd, NIOCREGIF, &req);
     if (err) {
