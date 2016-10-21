@@ -45,7 +45,6 @@
 static const char *regnames[] = {
     "PTFEAT",
     "PTCTL",
-    "PTSTS",
     "MAC_LO",
     "MAC_HI",
     "CSBBAH",
@@ -56,6 +55,7 @@ static const char *regnames[] = {
     "NUM_TX_SLOTS",
     "NUM_RX_SLOTS",
     "VNET_HDR_LEN",
+    "HOSTMEMID",
 };
 
 #define REGNAMES_LEN  (sizeof(regnames)/(sizeof(regnames[0])))
@@ -252,7 +252,7 @@ ptnet_get_netmap_if(PtNetState *s)
 }
 
 static int
-ptnet_regif(PtNetState *s)
+ptnet_ptctl_create(PtNetState *s)
 {
     struct ptnetmap_cfgentry_qemu *cfgentry;
     struct ptnetmap_cfg *cfg;
@@ -290,7 +290,7 @@ ptnet_regif(PtNetState *s)
 }
 
 static int
-ptnet_unregif(PtNetState *s)
+ptnet_ptctl_delete(PtNetState *s)
 {
     /* Guest is not going to use MSI-X until next regif, we
      * can tear donw the irqfd notification mechanism. */
@@ -305,25 +305,20 @@ ptnet_ptctl(PtNetState *s, uint64_t cmd)
     int ret = EINVAL;
 
     switch (cmd) {
-        case PTNETMAP_PTCTL_REGIF:
-            /* Emulate a REGIF for the guest. */
-            ret = ptnet_regif(s);
+        case PTNETMAP_PTCTL_CREATE:
+            /* React to guest REGIF operation. */
+            ret = ptnet_ptctl_create(s);
             break;
 
-        case PTNETMAP_PTCTL_UNREGIF:
-            /* Emulate an UNREGIF for the guest. */
-            ret = ptnet_unregif(s);
+        case PTNETMAP_PTCTL_DELETE:
+            /* React to guest UNREGIF operation. */
+            ret = ptnet_ptctl_delete(s);
             break;
-
-        case PTNETMAP_PTCTL_HOSTMEMID:
-            ret = ptnetmap_get_hostmemid(s->ptbe);
-            break;
-
         default:
             break;
     }
 
-    s->ioregs[PTNET_IO_PTSTS >> 2] = ret;
+    s->ioregs[PTNET_IO_PTCTL >> 2] = ret;
 }
 
 #ifdef PTNET_CSB_ALLOC
@@ -422,8 +417,6 @@ ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
     assert(index < REGNAMES_LEN);
     regname = regnames[index];
 
-    DBG("I/O read from %s, val=0x%08x", regname, s->ioregs[index]);
-
     switch (addr) {
         case PTNET_IO_NIFP_OFS:
         case PTNET_IO_NUM_TX_RINGS:
@@ -434,7 +427,12 @@ ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
              * num_*x_rings, and num_*x_slots. */
             ptnet_get_netmap_if(s);
             break;
+
+        case PTNET_IO_HOSTMEMID:
+            s->ioregs[index] = ptnetmap_get_hostmemid(s->ptbe);
     }
+
+    DBG("I/O read from %s, val=0x%08x", regname, s->ioregs[index]);
 
     return s->ioregs[index];
 }
@@ -472,7 +470,6 @@ static const VMStateDescription vmstate_ptnet = {
         VMSTATE_PCI_DEVICE(pci_device, PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_PTFEAT >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_PTCTL >> 2], PtNetState),
-        VMSTATE_UINT32(ioregs[PTNET_IO_PTSTS >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_MAC_LO >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_MAC_HI >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_CSBBAH >> 2], PtNetState),
@@ -482,6 +479,8 @@ static const VMStateDescription vmstate_ptnet = {
         VMSTATE_UINT32(ioregs[PTNET_IO_NUM_RX_RINGS >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_NUM_TX_SLOTS >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_NUM_RX_SLOTS >> 2], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_VNET_HDR_LEN >> 2], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_HOSTMEMID >> 2], PtNetState),
         VMSTATE_END_OF_LIST()
     }
 };
