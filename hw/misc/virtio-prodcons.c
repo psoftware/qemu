@@ -33,11 +33,10 @@ typedef struct virtio_pc_conf
 
 typedef struct VirtIOProdcons {
     VirtIODevice parent_obj;
-    uint16_t status;
     int32_t wc;
     VirtQueue *dvq;
     QEMUBH *bh;
-    int waiting;
+    int dvq_pending;
     virtio_pc_conf conf;
     DeviceState *qdev;
 } VirtIOProdcons;
@@ -65,54 +64,41 @@ static void virtio_pc_set_features(VirtIODevice *vdev, uint64_t features)
 {
 }
 
+#define MAX_BATCH   128
+
 static int32_t virtio_pc_dvq_flush(VirtIOProdcons *pc)
 {
     VirtIODevice *vdev = VIRTIO_DEVICE(pc);
-    VirtQueueElement *elem;
-    int32_t npkts = 0;
+    int32_t items = 0;
 
-    for (;;) {
-        unsigned int out_num;
-        struct iovec *out_sg;
+    do {
+        VirtQueueElement *elem;
 
         elem = virtqueue_pop(pc->dvq, sizeof(VirtQueueElement));
         if (!elem) {
             break;
         }
 
-        out_num = elem->out_num;
-        out_sg = elem->out_sg;
-        if (out_num < 1) {
-            virtio_error(vdev, "virtio-prodcons header not in first element");
-            virtqueue_detach_element(pc->dvq, elem, 0);
-            g_free(elem);
-            return -EINVAL;
-        }
-
-        /* do something with out_sg, out_num */
-        (void)out_sg; (void)out_num;
-        /*virtio_queue_set_notification(pc->dvq, 0);*/
+        printf("pc: in_num %u out_num %u\n", elem->in_num, elem->out_num);
+        /* do something with elem->out_sg, elem->out_num */
 
         virtqueue_push(pc->dvq, elem, 0);
-        virtio_notify(vdev, pc->dvq);
         g_free(elem);
+        virtio_notify(vdev, pc->dvq);
 
-        if (++npkts >= 10) {
-            break;
-        }
-    }
+    } while (++ items < MAX_BATCH);
 
-    return npkts;
+    return items;
 }
 
 static void virtio_pc_dvq_handler(VirtIODevice *vdev, VirtQueue *vq)
 {
     VirtIOProdcons *pc = VIRTIO_PRODCONS(vdev);
 
-    if (unlikely(pc->waiting)) {
+    if (unlikely(pc->dvq_pending)) {
         return;
     }
-    pc->waiting = 1;
+    pc->dvq_pending = 1;
 
     /* This happens when device was stopped but VCPU wasn't. */
     if (!vdev->vm_running) {
@@ -130,12 +116,12 @@ static void virtio_pc_dvq_bh(void *opaque)
 
     /* This happens when device was stopped but BH wasn't. */
     if (!vdev->vm_running) {
-        /* Make sure waiting is set, so we'll run when restarted. */
-        assert(pc->waiting);
+        /* Make sure dvq_pending is set, so we'll run when restarted. */
+        assert(pc->dvq_pending);
         return;
     }
 
-    pc->waiting = 0;
+    pc->dvq_pending = 0;
 
     /* Just in case the driver is not ready on more */
     if (unlikely(!(vdev->status & VIRTIO_CONFIG_S_DRIVER_OK))) {
@@ -149,9 +135,9 @@ static void virtio_pc_dvq_bh(void *opaque)
 
     /* If we flush a full burst of packets, assume there are
      * more coming and immediately reschedule */
-    if (ret >= 10) {
+    if (ret >= MAX_BATCH) {
         qemu_bh_schedule(pc->bh);
-        pc->waiting = 1;
+        pc->dvq_pending = 1;
         return;
     }
 
@@ -165,7 +151,7 @@ static void virtio_pc_dvq_bh(void *opaque)
     } else if (ret > 0) {
         virtio_queue_set_notification(pc->dvq, 0);
         qemu_bh_schedule(pc->bh);
-        pc->waiting = 1;
+        pc->dvq_pending = 1;
     }
 }
 
@@ -187,8 +173,7 @@ static void virtio_pc_device_realize(DeviceState *dev, Error **errp)
 
     pc->dvq = virtio_add_queue(vdev, 256, virtio_pc_dvq_handler);
     pc->bh = qemu_bh_new(virtio_pc_dvq_bh, pc);
-    pc->status = 0;
-    pc->waiting = 0;
+    pc->dvq_pending = 0;
     pc->wc = pc->conf.wc;
     pc->qdev = dev;
 }
