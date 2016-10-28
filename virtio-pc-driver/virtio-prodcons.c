@@ -26,12 +26,14 @@
 #include <linux/delay.h>
 #include <linux/fs.h>
 #include <linux/sched.h>
+#include <linux/mutex.h>
 
 #include "virtio-prodcons.h"
 
-/* to be protected by a lock */
+/* Protected by a global lock. */
 static int virtpc_devcnt = 0;
 static LIST_HEAD(virtpc_devs);
+DEFINE_MUTEX(lock);
 
 struct virtpc_info {
 	struct virtio_device	*vdev;
@@ -107,15 +109,11 @@ static int produce(void)
 static int
 virtpc_open(struct inode *inode, struct file *f)
 {
-	struct virtpc_priv *pc;
-
-	pc = kmalloc(sizeof(*pc), GFP_KERNEL);
+	struct virtpc_priv *pc = kmalloc(sizeof(*pc), GFP_KERNEL);
 	if (!pc) {
 		return -ENOMEM;
 	}
-
 	f->private_data = pc;
-
 	return 0;
 }
 
@@ -123,11 +121,9 @@ static int
 virtpc_release(struct inode *inode, struct file *f)
 {
 	struct virtpc_priv *pc = f->private_data;
-
 	if (pc) {
 		kfree(pc);
 	}
-
 	return 0;
 }
 
@@ -146,6 +142,7 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 		return -EFAULT;
 	}
 
+	mutex_lock(&lock);
 	list_for_each_entry(tmp, &virtpc_devs, node) {
 		if (tmp->devid == pcio.devid) {
 			vi = tmp;
@@ -154,10 +151,12 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 	}
 
 	if (vi == NULL) {
+		mutex_unlock(&lock);
 		return -ENXIO;
 	}
 
 	vi->busy = true;
+	mutex_unlock(&lock);
 
 	for (;;) {
 		msleep_interruptible(50);
@@ -167,7 +166,9 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 		}
 	}
 
+	mutex_lock(&lock);
 	vi->busy = false;
+	mutex_unlock(&lock);
 
 	return 0;
 }
@@ -272,6 +273,7 @@ static int
 virtpc_probe(struct virtio_device *vdev)
 {
 	struct virtpc_info *vi;
+	unsigned int devcnt;
 	int err;
 
 	if (!vdev->config->get) {
@@ -280,7 +282,11 @@ virtpc_probe(struct virtio_device *vdev)
 		return -EINVAL;
 	}
 
-	if (virtpc_devcnt == 0) {
+	mutex_lock(&lock);
+	devcnt = virtpc_devcnt ++;
+	mutex_unlock(&lock);
+
+	if (devcnt == 0) {
 		err = misc_register(&virtpc_misc);
 		if (err) {
 			printk("Failed to register miscdevice\n");
@@ -297,7 +303,7 @@ virtpc_probe(struct virtio_device *vdev)
 
 	vi->vdev = vdev;
 	vdev->priv = vi;
-	vi->devid = virtpc_devcnt ++;
+	vi->devid = devcnt;
 	sprintf(vi->name, "virtio-pc-%d", vi->devid);
 
 	err = virtpc_find_vqs(vi);
@@ -306,15 +312,20 @@ virtpc_probe(struct virtio_device *vdev)
 
 	virtio_device_ready(vdev);
 
+	mutex_lock(&lock);
 	list_add_tail(&vi->node, &virtpc_devs);
+	mutex_unlock(&lock);
 
-	pr_debug("virtpc: registered device %s\n", vi->name);
+	printk("virtpc: added device %s\n", vi->name);
 
 	return 0;
 free:
 	kfree(vi);
 free_misc:
-	if (--virtpc_devcnt <= 0) {
+	mutex_lock(&lock);
+	-- virtpc_devcnt;
+	mutex_unlock(&lock);
+	if (--devcnt == 0) {
 		misc_deregister(&virtpc_misc);
 	}
 	return err;
@@ -324,11 +335,19 @@ static void
 virtpc_remove(struct virtio_device *vdev)
 {
 	struct virtpc_info *vi = vdev->priv;
+	unsigned int devcnt;
 
+	mutex_lock(&lock);
+	printk("virtpc: removed device %s\n", vi->name);
 	list_del(&vi->node);
+	mutex_unlock(&lock);
 	remove_vq_common(vi);
 	kfree(vi);
-	if (--virtpc_devcnt <= 0) {
+
+	mutex_lock(&lock);
+	devcnt = -- virtpc_devcnt;
+	mutex_unlock(&lock);
+	if (devcnt <= 0) {
 		misc_deregister(&virtpc_misc);
 		printk("virtio-prodcons miscdevice deregistered\n");
 	}
