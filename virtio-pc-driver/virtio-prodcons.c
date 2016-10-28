@@ -27,6 +27,7 @@
 #include <linux/fs.h>
 #include <linux/sched.h>
 #include <linux/mutex.h>
+#include <linux/wait.h>
 
 #include "virtio-prodcons.h"
 
@@ -41,6 +42,7 @@ struct virtpc_info {
 	unsigned int		devid;
 	bool busy;
 
+	wait_queue_head_t	wqh;
 	struct virtqueue	*vq;
 	struct scatterlist	sg[10];
 	char			name[40];
@@ -51,64 +53,62 @@ struct virtpc_priv {
 };
 
 static void
-skb_xmit_done(struct virtqueue *vq)
+item_produced(struct virtqueue *vq)
 {
-	//struct virtpc_info *vi = vq->vdev->priv;
+	struct virtpc_info *vi = vq->vdev->priv;
 
-	/* Suppress further interrupts. */
+	/* Suppress further interrupts and wake up the producer. */
 	virtqueue_disable_cb(vq);
-
-	/* We were probably waiting for more output buffers. */
-	// TODO wake up something
+	wake_up_interruptible(&vi->wqh);
 }
 
-#if 0
 static void
-free_old_xmit_skbs(struct virtpc_info *vi)
+cleanup_items(struct virtpc_info *vi)
 {
-	struct void *cookie;
+	void *cookie;
 	unsigned int len;
 
 	while ((cookie = virtqueue_get_buf(vi->vq, &len)) != NULL) {
+		printk("virtpc: virtqueue_get_buf --> %p\n", cookie);
 	}
 }
 
 static int
-xmit_skb(struct send_queue *sq, struct sk_buff *skb)
+produce(struct virtpc_info *vi)
 {
-	sg_init_table(vi->sg, 1);
-	sg_set_buf(vi->sg, vi->buf, 16);
-	return virtqueue_add_outbuf(vi->vq, vi->sg, 1, vi->buf, GFP_ATOMIC);
-}
+	struct virtqueue *vq = vi->vq;
+	int err;
 
-static int
-produce(void)
-{
-	struct virtpc_info *vi = NULL;
+	cleanup_items(vi);
 
-	/* Free up any pending old buffers before queueing new ones. */
-	free_old_xmit_skbs(vi);
-
-	/* Try to transmit */
-	xmit_skb(sq, skb);
-
-	if (sq->vq->num_free < 2+1) {
-		// TODO stop caller
-		if (unlikely(!virtqueue_enable_cb_delayed(vi->vq))) {
+	if (vq->num_free < 2) {
+		set_current_state(TASK_INTERRUPTIBLE);
+		if (!virtqueue_enable_cb_delayed(vq)) {
 			/* More just got used, free them then recheck. */
-			free_old_xmit_skbs(sq);
-			if (vi->vq->num_free >= 2+1) {
-				// TODO restart caller
-				virtqueue_disable_cb(vi->vq);
-			}
+			cleanup_items(vi);
+		}
+		if (vq->num_free >= 2) {
+			virtqueue_disable_cb(vq);
+			set_current_state(TASK_RUNNING);
+		} else {
+			schedule();
 		}
 	}
 
-	virtqueue_kick(vi->vq);
+	sg_init_table(vi->sg, 1);
+	sg_set_buf(vi->sg, vi->buf, 16);
+	err = virtqueue_add_outbuf(vq, vi->sg, 1, vi->buf, GFP_ATOMIC);
+	if (unlikely(err)) {
+		printk("virtpc: add_outbuf() failed %d\n", err);
+	} else {
+		printk("virtpc: virtqueue_add_outbuf --> %p\n", vi->buf);
+	}
+
+	virtqueue_kick(vq);
+	msleep_interruptible(1000);
 
 	return 0;
 }
-#endif
 
 static int
 virtpc_open(struct inode *inode, struct file *f)
@@ -136,8 +136,10 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 {
 	struct virtpc_priv *pc = f->private_data;
 	void __user *argp = (void __user *)arg;
-	struct virtpc_ioctl pcio;
 	struct virtpc_info *vi = NULL, *tmp;
+	DECLARE_WAITQUEUE(wait, current);
+	struct virtpc_ioctl pcio;
+	int ret = 0;
 
 	(void)cmd;
 	(void)pc;
@@ -162,19 +164,23 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 	vi->busy = true;
 	mutex_unlock(&lock);
 
+	add_wait_queue(&vi->wqh, &wait);
 	for (;;) {
-		msleep_interruptible(50);
 		if (signal_pending(current)) {
+			ret = -EAGAIN;
 			printk("signal received, returning\n");
 			break;
 		}
+
+		produce(vi);
 	}
+	remove_wait_queue(&vi->wqh, &wait);
 
 	mutex_lock(&lock);
 	vi->busy = false;
 	mutex_unlock(&lock);
 
-	return 0;
+	return ret;
 }
 
 static void
@@ -225,7 +231,7 @@ virtpc_find_vqs(struct virtpc_info *vi)
 		goto err_names;
 
 	/* Allocate/initialize parameters for virtqueues. */
-	callbacks[0] = skb_xmit_done;
+	callbacks[0] = item_produced;
 	names[0] = vi->name;
 
 	ret = vi->vdev->config->find_vqs(vi->vdev, num_vqs, vqs, callbacks,
@@ -311,6 +317,7 @@ virtpc_probe(struct virtio_device *vdev)
 	vi->vdev = vdev;
 	vdev->priv = vi;
 	vi->devid = devcnt;
+	init_waitqueue_head(&vi->wqh);
 	sprintf(vi->name, "virtio-pc-%d", vi->devid);
 
 	err = virtpc_find_vqs(vi);
