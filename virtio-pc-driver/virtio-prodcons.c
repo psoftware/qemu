@@ -21,16 +21,33 @@
 #include <linux/virtio_config.h>
 #include <linux/scatterlist.h>
 #include <linux/slab.h>
+#include <linux/miscdevice.h>
+#include <asm/uaccess.h>
+#include <linux/delay.h>
+
+/* to be protected by a lock */
+static int virtpc_devcnt = 0;
+static LIST_HEAD(virtpc_devs);
 
 struct virtpc_info {
-	struct virtio_device *vdev;
+	struct virtio_device	*vdev;
+	struct list_head	node;
+	unsigned int		devid;
+	bool busy;
 
-	struct virtqueue *vq;
-	struct scatterlist sg[10];
-	char name[40];
-	char *buf[2048];
+	struct virtqueue	*vq;
+	struct scatterlist	sg[10];
+	char			name[40];
+	char			*buf[2048];
 };
 
+struct virtpc_ioctl {
+	unsigned int devid;
+	unsigned int wp;
+};
+
+struct virtpc_priv {
+};
 
 static void skb_xmit_done(struct virtqueue *vq)
 {
@@ -88,14 +105,84 @@ static int produce(void)
 }
 #endif
 
-static void virtpc_config_changed(struct virtio_device *vdev)
+static int
+virtpc_open(struct inode *inode, struct file *f)
+{
+	struct virtpc_priv *pc;
+
+	pc = kmalloc(sizeof(*pc), GFP_KERNEL);
+	if (!pc) {
+		return -ENOMEM;
+	}
+
+	f->private_data = pc;
+
+	return 0;
+}
+
+static int
+virtpc_release(struct inode *inode, struct file *f)
+{
+	struct virtpc_priv *pc = f->private_data;
+
+	if (pc) {
+		kfree(pc);
+	}
+
+	return 0;
+}
+
+static long
+virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
+{
+	struct virtpc_priv *pc = f->private_data;
+	void __user *argp = (void __user *)arg;
+	struct virtpc_ioctl pcio;
+	struct virtpc_info *vi = NULL, *tmp;
+
+	(void)cmd;
+	(void)pc;
+
+	if (copy_from_user(&pcio, argp, sizeof(pcio))) {
+		return -EFAULT;
+	}
+
+	list_for_each_entry(tmp, &virtpc_devs, node) {
+		if (tmp->devid == pcio.devid) {
+			vi = tmp;
+			break;
+		}
+	}
+
+	if (vi == NULL) {
+		return -ENXIO;
+	}
+
+	vi->busy = true;
+
+	for (;;) {
+		msleep_interruptible(50);
+		if (signal_pending(current)) {
+			printk("signal received, returning\n");
+			break;
+		}
+	}
+
+	vi->busy = false;
+
+	return 0;
+}
+
+static void
+virtpc_config_changed(struct virtio_device *vdev)
 {
 	struct virtpc_info *vi = vdev->priv;
 
 	(void)vi;
 }
 
-static void free_unused_bufs(struct virtpc_info *vi)
+static void
+free_unused_bufs(struct virtpc_info *vi)
 {
 	void *cookie;
 
@@ -133,7 +220,6 @@ static int virtpc_find_vqs(struct virtpc_info *vi)
 
 	/* Allocate/initialize parameters for virtqueues. */
 	callbacks[0] = skb_xmit_done;
-	sprintf(vi->name, "sharedq");
 	names[0] = vi->name;
 
 	ret = vi->vdev->config->find_vqs(vi->vdev, num_vqs, vqs, callbacks,
@@ -159,45 +245,6 @@ err_vq:
 	return ret;
 }
 
-static int init_vqs(struct virtpc_info *vi)
-{
-	return virtpc_find_vqs(vi);
-}
-
-static int virtpc_probe(struct virtio_device *vdev)
-{
-	struct virtpc_info *vi;
-	int err;
-
-	if (!vdev->config->get) {
-		dev_err(&vdev->dev, "%s failure: config access disabled\n",
-			__func__);
-		return -EINVAL;
-	}
-
-	vi = kmalloc(sizeof(*vi), GFP_KERNEL);
-	if (!vi) {
-		return -ENOMEM;
-	}
-
-	vi->vdev = vdev;
-	vdev->priv = vi;
-
-	err = init_vqs(vi);
-	if (err)
-		goto free;
-
-	virtio_device_ready(vdev);
-
-	pr_debug("virtpc: registered device %p\n", vi);
-
-	return 0;
-
-free:
-	kfree(vi);
-	return err;
-}
-
 static void remove_vq_common(struct virtpc_info *vi)
 {
 	vi->vdev->config->reset(vi->vdev);
@@ -208,12 +255,84 @@ static void remove_vq_common(struct virtpc_info *vi)
 	virtpc_del_vqs(vi);
 }
 
-static void virtpc_remove(struct virtio_device *vdev)
+static const struct file_operations virtpc_fops = {
+	.owner		= THIS_MODULE,
+	.release	= virtpc_release,
+	.open		= virtpc_open,
+	.unlocked_ioctl	= virtpc_ioctl,
+	.llseek		= noop_llseek,
+};
+
+static struct miscdevice virtpc_misc = {
+	.minor		= MISC_DYNAMIC_MINOR,
+	.name		= "virtio-pc",
+	.fops		= &virtpc_fops,
+};
+
+static int
+virtpc_probe(struct virtio_device *vdev)
+{
+	struct virtpc_info *vi;
+	int err;
+
+	if (!vdev->config->get) {
+		dev_err(&vdev->dev, "%s failure: config access disabled\n",
+			__func__);
+		return -EINVAL;
+	}
+
+	if (virtpc_devcnt == 0) {
+		err = misc_register(&virtpc_misc);
+		if (err) {
+			printk("Failed to register miscdevice\n");
+			return err;
+		}
+		printk("virtio-prodcons miscdevice registered\n");
+	}
+
+	vi = kzalloc(sizeof(*vi), GFP_KERNEL);
+	if (!vi) {
+		err = -ENOMEM;
+		goto free_misc;
+	}
+
+	vi->vdev = vdev;
+	vdev->priv = vi;
+	vi->devid = virtpc_devcnt ++;
+	sprintf(vi->name, "virtio-pc-%d", vi->devid);
+
+	err = virtpc_find_vqs(vi);
+	if (err)
+		goto free;
+
+	virtio_device_ready(vdev);
+
+	list_add_tail(&vi->node, &virtpc_devs);
+
+	pr_debug("virtpc: registered device %s\n", vi->name);
+
+	return 0;
+free:
+	kfree(vi);
+free_misc:
+	if (--virtpc_devcnt <= 0) {
+		misc_deregister(&virtpc_misc);
+	}
+	return err;
+}
+
+static void
+virtpc_remove(struct virtio_device *vdev)
 {
 	struct virtpc_info *vi = vdev->priv;
 
+	list_del(&vi->node);
 	remove_vq_common(vi);
 	kfree(vi);
+	if (--virtpc_devcnt <= 0) {
+		misc_deregister(&virtpc_misc);
+		printk("virtio-prodcons miscdevice deregistered\n");
+	}
 }
 
 #ifdef CONFIG_PM_SLEEP
@@ -231,7 +350,7 @@ static int virtpc_restore(struct virtio_device *vdev)
 	struct virtpc_info *vi = vdev->priv;
 	int err;
 
-	err = init_vqs(vi);
+	err = virtpc_find_vqs(vi);
 	if (err)
 		return err;
 
@@ -254,17 +373,17 @@ static unsigned int features[] = {
 };
 
 static struct virtio_driver virtio_pc_driver = {
-	.feature_table = features,
-	.feature_table_size = ARRAY_SIZE(features),
-	.driver.name =	KBUILD_MODNAME,
-	.driver.owner =	THIS_MODULE,
-	.id_table =	id_table,
-	.probe =	virtpc_probe,
-	.remove =	virtpc_remove,
-	.config_changed = virtpc_config_changed,
+	.feature_table		= features,
+	.feature_table_size	= ARRAY_SIZE(features),
+	.driver.name		= KBUILD_MODNAME,
+	.driver.owner		= THIS_MODULE,
+	.id_table		= id_table,
+	.probe			= virtpc_probe,
+	.remove			= virtpc_remove,
+	.config_changed		= virtpc_config_changed,
 #ifdef CONFIG_PM_SLEEP
-	.freeze =	virtpc_freeze,
-	.restore =	virtpc_restore,
+	.freeze			= virtpc_freeze,
+	.restore		= virtpc_restore,
 #endif
 };
 
