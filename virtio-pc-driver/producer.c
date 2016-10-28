@@ -53,7 +53,7 @@ main(int argc, char **argv)
 	vio.wp = 150; /* in nanoseconds */
 	vio.devid = 0;
 	ret = ioctl(fd, 0, &vio);
-	if (ret < 0) {
+	if (ret < 0 && errno != EAGAIN) {
 		printf("ioctl(virtio-pc) failed [%s]\n", strerror(errno));
 	}
 

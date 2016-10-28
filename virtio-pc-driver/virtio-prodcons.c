@@ -31,6 +31,9 @@
 
 #include "virtio-prodcons.h"
 
+#define DBG
+//#undef DBG
+
 /* Protected by a global lock. */
 static int virtpc_devcnt = 0;
 static LIST_HEAD(virtpc_devs);
@@ -69,7 +72,9 @@ cleanup_items(struct virtpc_info *vi)
 	unsigned int len;
 
 	while ((cookie = virtqueue_get_buf(vi->vq, &len)) != NULL) {
+#ifdef DBG
 		printk("virtpc: virtqueue_get_buf --> %p\n", cookie);
+#endif
 	}
 }
 
@@ -79,33 +84,46 @@ produce(struct virtpc_info *vi)
 	struct virtqueue *vq = vi->vq;
 	int err;
 
-	cleanup_items(vi);
-
-	if (vq->num_free < 2) {
-		set_current_state(TASK_INTERRUPTIBLE);
-		if (!virtqueue_enable_cb_delayed(vq)) {
-			/* More just got used, free them then recheck. */
-			cleanup_items(vi);
-		}
-		if (vq->num_free >= 2) {
-			virtqueue_disable_cb(vq);
-			set_current_state(TASK_RUNNING);
-		} else {
-			schedule();
-		}
-	}
-
+	/* The same buffer is reused. */
 	sg_init_table(vi->sg, 1);
 	sg_set_buf(vi->sg, vi->buf, 16);
-	err = virtqueue_add_outbuf(vq, vi->sg, 1, vi->buf, GFP_ATOMIC);
-	if (unlikely(err)) {
-		printk("virtpc: add_outbuf() failed %d\n", err);
-	} else {
-		printk("virtpc: virtqueue_add_outbuf --> %p\n", vi->buf);
-	}
 
-	virtqueue_kick(vq);
-	msleep_interruptible(1000);
+	for (;;) {
+		if (signal_pending(current)) {
+			printk("signal received, returning\n");
+			return -EAGAIN;
+		}
+
+		if (vq->num_free < 2) {
+			cleanup_items(vi);
+		}
+
+		if (vq->num_free < 2) {
+			set_current_state(TASK_INTERRUPTIBLE);
+			if (!virtqueue_enable_cb_delayed(vq)) {
+				/* More just got used, free them then recheck. */
+				cleanup_items(vi);
+			}
+			if (vq->num_free >= 2) {
+				virtqueue_disable_cb(vq);
+				set_current_state(TASK_RUNNING);
+			} else {
+				schedule();
+			}
+		}
+
+		err = virtqueue_add_outbuf(vq, vi->sg, 1, vi->buf, GFP_ATOMIC);
+		if (unlikely(err)) {
+			printk("virtpc: add_outbuf() failed %d\n", err);
+#ifdef DBG
+		} else {
+			printk("virtpc: virtqueue_add_outbuf --> %p\n", vi->buf);
+#endif
+		}
+
+		virtqueue_kick(vq);
+		msleep_interruptible(1000);
+	}
 
 	return 0;
 }
@@ -165,15 +183,7 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 	mutex_unlock(&lock);
 
 	add_wait_queue(&vi->wqh, &wait);
-	for (;;) {
-		if (signal_pending(current)) {
-			ret = -EAGAIN;
-			printk("signal received, returning\n");
-			break;
-		}
-
-		produce(vi);
-	}
+	ret = produce(vi);
 	remove_wait_queue(&vi->wqh, &wait);
 
 	mutex_lock(&lock);
@@ -187,12 +197,11 @@ static void
 virtpc_config_changed(struct virtio_device *vdev)
 {
 	struct virtpc_info *vi = vdev->priv;
-
 	(void)vi;
 }
 
 static void
-free_unused_bufs(struct virtpc_info *vi)
+detach_unused_bufs(struct virtpc_info *vi)
 {
 	void *cookie;
 
@@ -261,10 +270,7 @@ static void
 remove_vq_common(struct virtpc_info *vi)
 {
 	vi->vdev->config->reset(vi->vdev);
-
-	/* Free unused buffers, if any. */
-	free_unused_bufs(vi);
-
+	detach_unused_bufs(vi);
 	virtpc_del_vqs(vi);
 }
 
