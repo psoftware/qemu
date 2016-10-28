@@ -50,7 +50,8 @@ struct virtpc_info {
 struct virtpc_priv {
 };
 
-static void skb_xmit_done(struct virtqueue *vq)
+static void
+skb_xmit_done(struct virtqueue *vq)
 {
 	//struct virtpc_info *vi = vq->vdev->priv;
 
@@ -62,7 +63,8 @@ static void skb_xmit_done(struct virtqueue *vq)
 }
 
 #if 0
-static void free_old_xmit_skbs(struct virtpc_info *vi)
+static void
+free_old_xmit_skbs(struct virtpc_info *vi)
 {
 	struct void *cookie;
 	unsigned int len;
@@ -71,14 +73,16 @@ static void free_old_xmit_skbs(struct virtpc_info *vi)
 	}
 }
 
-static int xmit_skb(struct send_queue *sq, struct sk_buff *skb)
+static int
+xmit_skb(struct send_queue *sq, struct sk_buff *skb)
 {
 	sg_init_table(vi->sg, 1);
 	sg_set_buf(vi->sg, vi->buf, 16);
 	return virtqueue_add_outbuf(vi->vq, vi->sg, 1, vi->buf, GFP_ATOMIC);
 }
 
-static int produce(void)
+static int
+produce(void)
 {
 	struct virtpc_info *vi = NULL;
 
@@ -150,9 +154,9 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 		}
 	}
 
-	if (vi == NULL) {
+	if (vi == NULL || vi->busy) {
 		mutex_unlock(&lock);
-		return -ENXIO;
+		return vi ? -EBUSY : -ENXIO;
 	}
 
 	vi->busy = true;
@@ -190,14 +194,16 @@ free_unused_bufs(struct virtpc_info *vi)
 	}
 }
 
-static void virtpc_del_vqs(struct virtpc_info *vi)
+static void
+virtpc_del_vqs(struct virtpc_info *vi)
 {
 	struct virtio_device *vdev = vi->vdev;
 
 	vdev->config->del_vqs(vdev);
 }
 
-static int virtpc_find_vqs(struct virtpc_info *vi)
+static int
+virtpc_find_vqs(struct virtpc_info *vi)
 {
 	vq_callback_t **callbacks;
 	struct virtqueue **vqs;
@@ -245,7 +251,8 @@ err_vq:
 	return ret;
 }
 
-static void remove_vq_common(struct virtpc_info *vi)
+static void
+remove_vq_common(struct virtpc_info *vi)
 {
 	vi->vdev->config->reset(vi->vdev);
 
@@ -354,7 +361,8 @@ virtpc_remove(struct virtio_device *vdev)
 }
 
 #ifdef CONFIG_PM_SLEEP
-static int virtpc_freeze(struct virtio_device *vdev)
+static int
+virtpc_freeze(struct virtio_device *vdev)
 {
 	struct virtpc_info *vi = vdev->priv;
 
@@ -363,7 +371,8 @@ static int virtpc_freeze(struct virtio_device *vdev)
 	return 0;
 }
 
-static int virtpc_restore(struct virtio_device *vdev)
+static int
+virtpc_restore(struct virtio_device *vdev)
 {
 	struct virtpc_info *vi = vdev->priv;
 	int err;
