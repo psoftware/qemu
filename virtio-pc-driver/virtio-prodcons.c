@@ -24,6 +24,8 @@
 #include <linux/miscdevice.h>
 #include <asm/uaccess.h>
 #include <linux/delay.h>
+#include <linux/fs.h>
+#include <linux/sched.h>
 
 /* to be protected by a lock */
 static int virtpc_devcnt = 0;
