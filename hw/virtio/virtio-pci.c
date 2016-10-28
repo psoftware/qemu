@@ -25,6 +25,7 @@
 #include "hw/virtio/virtio-scsi.h"
 #include "hw/virtio/virtio-balloon.h"
 #include "hw/virtio/virtio-input.h"
+#include "hw/virtio/virtio-prodcons.h"
 #include "hw/pci/pci.h"
 #include "qapi/error.h"
 #include "qemu/error-report.h"
@@ -2330,6 +2331,55 @@ static const TypeInfo virtio_net_pci_info = {
     .class_init    = virtio_net_pci_class_init,
 };
 
+/* virtio-prodcons-pci */
+
+static Property virtio_pc_properties[] = {
+    DEFINE_PROP_BIT("ioeventfd", VirtIOPCIProxy, flags,
+                    VIRTIO_PCI_FLAG_USE_IOEVENTFD_BIT, false),
+    DEFINE_PROP_UINT32("vectors", VirtIOPCIProxy, nvectors, 1),
+    DEFINE_PROP_END_OF_LIST(),
+};
+
+static void virtio_pc_pci_realize(VirtIOPCIProxy *vpci_dev, Error **errp)
+{
+    VirtIOProdconsPCI *dev = VIRTIO_PRODCONS_PCI(vpci_dev);
+    DeviceState *vdev = DEVICE(&dev->vdev);
+
+    qdev_set_parent_bus(vdev, BUS(&vpci_dev->bus));
+    object_property_set_bool(OBJECT(vdev), true, "realized", errp);
+}
+
+static void virtio_pc_pci_class_init(ObjectClass *klass, void *data)
+{
+    DeviceClass *dc = DEVICE_CLASS(klass);
+    PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
+    VirtioPCIClass *vpciklass = VIRTIO_PCI_CLASS(klass);
+
+    k->vendor_id = PCI_VENDOR_ID_REDHAT_QUMRANET;
+    k->device_id = PCI_DEVICE_ID_VIRTIO_PRODCONS;
+    k->revision = VIRTIO_PCI_ABI_VERSION;
+    k->class_id = PCI_CLASS_NETWORK_OTHER;
+    set_bit(DEVICE_CATEGORY_MISC, dc->categories);
+    dc->props = virtio_pc_properties;
+    vpciklass->realize = virtio_pc_pci_realize;
+}
+
+static void virtio_pc_pci_instance_init(Object *obj)
+{
+    VirtIOProdconsPCI *dev = VIRTIO_PRODCONS_PCI(obj);
+
+    virtio_instance_init_common(obj, &dev->vdev, sizeof(dev->vdev),
+                                TYPE_VIRTIO_PRODCONS);
+}
+
+static const TypeInfo virtio_pc_pci_info = {
+    .name          = TYPE_VIRTIO_PRODCONS_PCI,
+    .parent        = TYPE_VIRTIO_PCI,
+    .instance_size = sizeof(VirtIOProdconsPCI),
+    .instance_init = virtio_pc_pci_instance_init,
+    .class_init    = virtio_pc_pci_class_init,
+};
+
 /* virtio-rng-pci */
 
 static void virtio_rng_pci_realize(VirtIOPCIProxy *vpci_dev, Error **errp)
@@ -2580,6 +2630,7 @@ static void virtio_pci_register_types(void)
 #ifdef CONFIG_VHOST_VSOCK
     type_register_static(&vhost_vsock_pci_info);
 #endif
+    type_register_static(&virtio_pc_pci_info);
 }
 
 type_init(virtio_pci_register_types)

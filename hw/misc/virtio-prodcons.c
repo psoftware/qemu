@@ -17,29 +17,12 @@
 #include "qemu/error-report.h"
 #include "qemu/timer.h"
 #include "hw/virtio/virtio-bus.h"
+#include "hw/virtio/virtio-prodcons.h"
 #include "qapi/qmp/qjson.h"
 #include "qapi-event.h"
 #include "hw/virtio/virtio-access.h"
 #include "standard-headers/linux/virtio_ids.h"
 
-#define TYPE_VIRTIO_PRODCONS "virtio-prodcons-device"
-#define VIRTIO_PRODCONS(obj) \
-        OBJECT_CHECK(VirtIOProdcons, (obj), TYPE_VIRTIO_PRODCONS)
-
-typedef struct virtio_pc_conf
-{
-    int32_t wc;
-} virtio_pc_conf;
-
-typedef struct VirtIOProdcons {
-    VirtIODevice parent_obj;
-    int32_t wc;
-    VirtQueue *dvq;
-    QEMUBH *bh;
-    int dvq_pending;
-    virtio_pc_conf conf;
-    DeviceState *qdev;
-} VirtIOProdcons;
 
 static void virtio_pc_set_status(struct VirtIODevice *vdev, uint8_t status)
 {
@@ -171,7 +154,7 @@ static void virtio_pc_device_realize(DeviceState *dev, Error **errp)
 
     virtio_init(vdev, "virtio-prodcons", VIRTIO_ID_PRODCONS, 0 /* config size */);
 
-    pc->dvq = virtio_add_queue(vdev, 256, virtio_pc_dvq_handler);
+    pc->dvq = virtio_add_queue(vdev, pc->conf.l, virtio_pc_dvq_handler);
     pc->bh = qemu_bh_new(virtio_pc_dvq_bh, pc);
     pc->dvq_pending = 0;
     pc->wc = pc->conf.wc;
@@ -207,6 +190,7 @@ static const VMStateDescription vmstate_virtio_pc = {
 
 static Property virtio_pc_properties[] = {
     DEFINE_PROP_INT32("wc", VirtIOProdcons, conf.wc, 100), /* ns */
+    DEFINE_PROP_UINT32("l", VirtIOProdcons, conf.l, 256), /* ns */
     DEFINE_PROP_END_OF_LIST(),
 };
 

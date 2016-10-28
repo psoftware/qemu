@@ -34,6 +34,7 @@
 #ifdef CONFIG_VHOST_VSOCK
 #include "hw/virtio/vhost-vsock.h"
 #endif
+#include "hw/virtio/virtio-prodcons.h"
 
 typedef struct VirtIOPCIProxy VirtIOPCIProxy;
 typedef struct VirtIOBlkPCI VirtIOBlkPCI;
@@ -48,6 +49,7 @@ typedef struct VirtIOInputHIDPCI VirtIOInputHIDPCI;
 typedef struct VirtIOInputHostPCI VirtIOInputHostPCI;
 typedef struct VirtIOGPUPCI VirtIOGPUPCI;
 typedef struct VHostVSockPCI VHostVSockPCI;
+typedef struct VirtIOProdconsPCI VirtIOProdconsPCI;
 
 /* virtio-pci-bus */
 
@@ -258,6 +260,18 @@ struct VirtIOSerialPCI {
 struct VirtIONetPCI {
     VirtIOPCIProxy parent_obj;
     VirtIONet vdev;
+};
+
+/*
+ * virtio-prodcons-pci: This extends VirtioPCIProxy.
+ */
+#define TYPE_VIRTIO_PRODCONS_PCI "virtio-prodcons-pci"
+#define VIRTIO_PRODCONS_PCI(obj) \
+        OBJECT_CHECK(VirtIOProdconsPCI, (obj), TYPE_VIRTIO_PRODCONS_PCI)
+
+struct VirtIOProdconsPCI {
+    VirtIOPCIProxy parent_obj;
+    VirtIOProdcons vdev;
 };
 
 /*
