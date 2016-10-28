@@ -27,6 +27,8 @@
 #include <linux/fs.h>
 #include <linux/sched.h>
 
+#include "virtio-prodcons.h"
+
 /* to be protected by a lock */
 static int virtpc_devcnt = 0;
 static LIST_HEAD(virtpc_devs);
@@ -41,11 +43,6 @@ struct virtpc_info {
 	struct scatterlist	sg[10];
 	char			name[40];
 	char			*buf[2048];
-};
-
-struct virtpc_ioctl {
-	unsigned int devid;
-	unsigned int wp;
 };
 
 struct virtpc_priv {
