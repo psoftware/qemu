@@ -25,6 +25,9 @@ main(int argc, char **argv)
 	int ch;
 	int x;
 
+	vio.wp = 150; /* in nanoseconds */
+	vio.devid = 0;
+
 	while ((ch = getopt(argc, argv, "hw:")) != -1) {
 		switch (ch) {
 		default:
@@ -50,8 +53,6 @@ main(int argc, char **argv)
 		return -1;
 	}
 
-	vio.wp = 150; /* in nanoseconds */
-	vio.devid = 0;
 	ret = ioctl(fd, 0, &vio);
 	if (ret < 0 && errno != EAGAIN) {
 		printf("ioctl(virtio-pc) failed [%s]\n", strerror(errno));

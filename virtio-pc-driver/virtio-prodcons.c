@@ -43,10 +43,11 @@ struct virtpc_info {
 	struct virtio_device	*vdev;
 	struct list_head	node;
 	unsigned int		devid;
-	bool busy;
+	bool			busy;
 
 	wait_queue_head_t	wqh;
 	struct virtqueue	*vq;
+	unsigned int		wp;
 	struct scatterlist	sg[10];
 	char			name[40];
 	char			*buf[2048];
@@ -82,7 +83,10 @@ static int
 produce(struct virtpc_info *vi)
 {
 	struct virtqueue *vq = vi->vq;
+	u64 next = ktime_get_ns();
 	int err;
+
+	printk("virtpc: producer start Wp=%u ns\n", vi->wp);
 
 	/* The same buffer is reused. */
 	sg_init_table(vi->sg, 1);
@@ -112,6 +116,8 @@ produce(struct virtpc_info *vi)
 			}
 		}
 
+		while (ktime_get_ns() < next) ;
+		next = ktime_get_ns() + vi->wp;
 		err = virtqueue_add_outbuf(vq, vi->sg, 1, vi->buf, GFP_ATOMIC);
 		if (unlikely(err)) {
 			printk("virtpc: add_outbuf() failed %d\n", err);
@@ -179,6 +185,7 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 	}
 
 	vi->busy = true;
+	vi->wp = pcio.wp;
 	mutex_unlock(&lock);
 
 	add_wait_queue(&vi->wqh, &wait);
