@@ -104,10 +104,10 @@ static void virtio_pc_set_features(VirtIODevice *vdev, uint64_t features)
 
 #define MAX_BATCH   128
 
-static int32_t virtio_pc_dvq_flush(VirtIOProdcons *pc)
+static unsigned int virtio_pc_dvq_flush(VirtIOProdcons *pc)
 {
     VirtIODevice *vdev = VIRTIO_DEVICE(pc);
-    int32_t items = 0;
+    unsigned int items = 0;
 
     do {
         VirtQueueElement *elem;
@@ -167,7 +167,7 @@ static void virtio_pc_dvq_bh(void *opaque)
 {
     VirtIOProdcons *pc = opaque;
     VirtIODevice *vdev = VIRTIO_DEVICE(pc);
-    int32_t ret;
+    unsigned int ret;
 
     /* This happens when device was stopped but BH wasn't. */
     if (!vdev->vm_running) {
@@ -184,9 +184,6 @@ static void virtio_pc_dvq_bh(void *opaque)
     }
 
     ret = virtio_pc_dvq_flush(pc);
-    if (ret == -EINVAL) {
-        return; /* device broken */
-    }
 
     /* If we flush a full burst of packets, assume there are
      * more coming and immediately reschedule */
@@ -201,9 +198,7 @@ static void virtio_pc_dvq_bh(void *opaque)
      * we find something, assume the guest is still active and reschedule */
     virtio_queue_set_notification(pc->dvq, 1);
     ret = virtio_pc_dvq_flush(pc);
-    if (ret == -EINVAL) {
-        return;
-    } else if (ret > 0) {
+    if (ret > 0) {
         virtio_queue_set_notification(pc->dvq, 0);
         qemu_bh_schedule(pc->bh);
         pc->dvq_pending = 1;
