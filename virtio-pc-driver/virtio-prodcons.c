@@ -63,6 +63,7 @@ items_consumed(struct virtqueue *vq)
 
 	/* Suppress further interrupts and wake up the producer. */
 	virtqueue_disable_cb(vq);
+	printk("wakeup\n");
 	wake_up_interruptible(&vi->wqh);
 }
 
@@ -78,6 +79,8 @@ cleanup_items(struct virtpc_info *vi)
 #endif
 	}
 }
+
+#define THR	8
 
 static int
 produce(struct virtpc_info *vi)
@@ -98,25 +101,7 @@ produce(struct virtpc_info *vi)
 			return -EAGAIN;
 		}
 
-		if (vq->num_free < 2) {
-			cleanup_items(vi);
-		}
-
-		if (vq->num_free < 2) {
-			DEFINE_WAIT(wait);
-			prepare_to_wait(&vi->wqh, &wait, TASK_INTERRUPTIBLE);
-			if (!virtqueue_enable_cb_delayed(vq)) {
-				/* More just got used, free them then recheck. */
-				cleanup_items(vi);
-			}
-			if (vq->num_free >= 2) {
-				virtqueue_disable_cb(vq);
-			} else {
-				schedule();
-				cleanup_items(vi);
-			}
-			finish_wait(&vi->wqh, &wait);
-		}
+		cleanup_items(vi);
 
 		while (ktime_get_ns() < next) ;
 		next = ktime_get_ns() + vi->wp;
@@ -130,6 +115,24 @@ produce(struct virtpc_info *vi)
 		}
 
 		virtqueue_kick(vq);
+
+		if (vq->num_free < THR) {
+			DEFINE_WAIT(wait);
+			prepare_to_wait(&vi->wqh, &wait, TASK_INTERRUPTIBLE);
+			if (!virtqueue_enable_cb_delayed(vq)) {
+				/* More just got used, free them then recheck. */
+				cleanup_items(vi);
+			}
+			if (vq->num_free >= THR) {
+				virtqueue_disable_cb(vq);
+			} else {
+				printk("sleep %u\n", vq->num_free);
+				schedule();
+				cleanup_items(vi);
+				printk("waken up %u\n", vq->num_free);
+			}
+			finish_wait(&vi->wqh, &wait);
+		}
 	}
 
 	return 0;
