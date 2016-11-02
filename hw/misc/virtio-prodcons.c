@@ -129,11 +129,16 @@ static int32_t virtio_pc_dvq_flush(VirtIOProdcons *pc)
     } while (++ items < MAX_BATCH);
 
     pc->stats.items += items;
-    if (unlikely(pc->stats.items > pc->stats.thresh)) {
-        printf("PC: %6.3f items, %6.3f kicks, %6.3f intrs\n",
-                (double)pc->stats.items, (double)pc->stats.kicks,
-                (double)pc->stats.interrupts);
+    if (unlikely(rdtsc() > pc->stats.next_dump)) {
+        uint64_t mdiff = TSC2NS(rdtsc() - pc->stats.last_dump)/1000000;
+
+        printf("PC: %6.3f Kitems, %6.3f Kkicks, %6.3f Kintrs\n",
+                ((double)pc->stats.items)/mdiff,
+                ((double)pc->stats.kicks)/mdiff,
+                ((double)pc->stats.interrupts)/mdiff);
         pc->stats.items = pc->stats.kicks = pc->stats.interrupts = 0;
+        pc->stats.last_dump = rdtsc();
+        pc->stats.next_dump = pc->stats.last_dump + NS2TSC(1000000000);
     }
 
     return items;
@@ -224,10 +229,10 @@ static void virtio_pc_device_realize(DeviceState *dev, Error **errp)
     pc->dvq = virtio_add_queue(vdev, pc->conf.l, virtio_pc_dvq_handler);
     pc->bh = qemu_bh_new(virtio_pc_dvq_bh, pc);
     pc->dvq_pending = 0;
-    pc->stats.thresh = 20;
     pc->wc = pc->conf.wc;
-    pc->qdev = dev;
     calibrate_tsc(); /* this could be done only once for all devices */
+    pc->stats.last_dump = pc->stats.next_dump = rdtsc();
+    pc->qdev = dev;
 }
 
 static void virtio_pc_device_unrealize(DeviceState *dev, Error **errp)
