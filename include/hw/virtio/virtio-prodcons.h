@@ -13,8 +13,16 @@ typedef struct virtio_pc_conf
     uint32_t    l;
 } virtio_pc_conf;
 
+typedef struct VirtIOProdconsStats {
+    uint32_t    items;
+    uint32_t    kicks;
+    uint32_t    interrupts;
+    uint32_t    thresh;
+} VirtIOProdconsStats;
+
 typedef struct VirtIOProdcons {
     VirtIODevice parent_obj;
+    VirtIOProdconsStats stats;
     int32_t wc;
     VirtQueue *dvq;
     QEMUBH *bh;

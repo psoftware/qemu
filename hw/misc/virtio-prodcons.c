@@ -69,9 +69,17 @@ static int32_t virtio_pc_dvq_flush(VirtIOProdcons *pc)
 
         virtqueue_push(pc->dvq, elem, 0);
         g_free(elem);
-        virtio_notify(vdev, pc->dvq);
+        pc->stats.interrupts += virtio_notify(vdev, pc->dvq);
 
     } while (++ items < MAX_BATCH);
+
+    pc->stats.items += items;
+    if (unlikely(pc->stats.items > pc->stats.thresh)) {
+        printf("PC: %6.3f items, %6.3f kicks, %6.3f intrs\n",
+                (double)pc->stats.items, (double)pc->stats.kicks,
+                (double)pc->stats.interrupts);
+        pc->stats.items = pc->stats.kicks = pc->stats.interrupts = 0;
+    }
 
     return items;
 }
@@ -79,6 +87,8 @@ static int32_t virtio_pc_dvq_flush(VirtIOProdcons *pc)
 static void virtio_pc_dvq_handler(VirtIODevice *vdev, VirtQueue *vq)
 {
     VirtIOProdcons *pc = VIRTIO_PRODCONS(vdev);
+
+    pc->stats.kicks ++;
 
     if (unlikely(pc->dvq_pending)) {
         return;
@@ -159,6 +169,7 @@ static void virtio_pc_device_realize(DeviceState *dev, Error **errp)
     pc->dvq = virtio_add_queue(vdev, pc->conf.l, virtio_pc_dvq_handler);
     pc->bh = qemu_bh_new(virtio_pc_dvq_bh, pc);
     pc->dvq_pending = 0;
+    pc->stats.thresh = 20;
     pc->wc = pc->conf.wc;
     pc->qdev = dev;
 }
