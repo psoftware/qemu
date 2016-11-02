@@ -57,7 +57,7 @@ struct virtpc_priv {
 };
 
 static void
-item_produced(struct virtqueue *vq)
+items_consumed(struct virtqueue *vq)
 {
 	struct virtpc_info *vi = vq->vdev->priv;
 
@@ -113,6 +113,7 @@ produce(struct virtpc_info *vi)
 				set_current_state(TASK_RUNNING);
 			} else {
 				schedule();
+				cleanup_items(vi);
 			}
 		}
 
@@ -246,7 +247,7 @@ virtpc_find_vqs(struct virtpc_info *vi)
 		goto err_names;
 
 	/* Allocate/initialize parameters for virtqueues. */
-	callbacks[0] = item_produced;
+	callbacks[0] = items_consumed;
 	names[0] = vi->name;
 
 	ret = vi->vdev->config->find_vqs(vi->vdev, num_vqs, vqs, callbacks,
