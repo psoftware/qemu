@@ -32,7 +32,7 @@
 #include "virtio-prodcons.h"
 
 #define DBG
-//#undef DBG
+#undef DBG
 
 /* Protected by a global lock. */
 static int virtpc_devcnt = 0;
@@ -122,7 +122,6 @@ produce(struct virtpc_info *vi)
 		}
 
 		virtqueue_kick(vq);
-		msleep_interruptible(1000);
 	}
 
 	return 0;
