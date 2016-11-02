@@ -108,9 +108,13 @@ static unsigned int virtio_pc_dvq_flush(VirtIOProdcons *pc)
 {
     VirtIODevice *vdev = VIRTIO_DEVICE(pc);
     unsigned int items = 0;
+    uint64_t next = rdtsc();
 
     do {
         VirtQueueElement *elem;
+
+        tsc_sleep_till(next);
+        next = rdtsc() + NS2TSC(pc->wc);
 
         elem = virtqueue_pop(pc->dvq, sizeof(VirtQueueElement));
         if (!elem) {
@@ -258,7 +262,7 @@ static const VMStateDescription vmstate_virtio_pc = {
 };
 
 static Property virtio_pc_properties[] = {
-    DEFINE_PROP_INT32("wc", VirtIOProdcons, conf.wc, 100), /* ns */
+    DEFINE_PROP_INT32("wc", VirtIOProdcons, conf.wc, 400), /* ns */
     DEFINE_PROP_UINT32("l", VirtIOProdcons, conf.l, 256), /* ns */
     DEFINE_PROP_END_OF_LIST(),
 };
