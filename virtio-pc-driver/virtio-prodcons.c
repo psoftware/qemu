@@ -103,18 +103,19 @@ produce(struct virtpc_info *vi)
 		}
 
 		if (vq->num_free < 2) {
-			set_current_state(TASK_INTERRUPTIBLE);
+			DEFINE_WAIT(wait);
+			prepare_to_wait(&vi->wqh, &wait, TASK_INTERRUPTIBLE);
 			if (!virtqueue_enable_cb_delayed(vq)) {
 				/* More just got used, free them then recheck. */
 				cleanup_items(vi);
 			}
 			if (vq->num_free >= 2) {
 				virtqueue_disable_cb(vq);
-				set_current_state(TASK_RUNNING);
 			} else {
 				schedule();
 				cleanup_items(vi);
 			}
+			finish_wait(&vi->wqh, &wait);
 		}
 
 		while (ktime_get_ns() < next) ;
@@ -161,7 +162,6 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 	struct virtpc_priv *pc = f->private_data;
 	void __user *argp = (void __user *)arg;
 	struct virtpc_info *vi = NULL, *tmp;
-	DECLARE_WAITQUEUE(wait, current);
 	struct virtpc_ioctl pcio;
 	int ret = 0;
 
@@ -189,9 +189,7 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 	vi->wp = pcio.wp;
 	mutex_unlock(&lock);
 
-	add_wait_queue(&vi->wqh, &wait);
 	ret = produce(vi);
-	remove_wait_queue(&vi->wqh, &wait);
 
 	mutex_lock(&lock);
 	vi->busy = false;
