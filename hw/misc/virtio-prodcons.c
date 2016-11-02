@@ -62,8 +62,10 @@ static int32_t virtio_pc_dvq_flush(VirtIOProdcons *pc)
             break;
         }
 
+        /* We could do something with elem->out_sg, elem->out_num. */
+#if 0
         printf("pc: in_num %u out_num %u\n", elem->in_num, elem->out_num);
-        /* do something with elem->out_sg, elem->out_num */
+#endif
 
         virtqueue_push(pc->dvq, elem, 0);
         g_free(elem);
