@@ -23,6 +23,61 @@
 #include "hw/virtio/virtio-access.h"
 #include "standard-headers/linux/virtio_ids.h"
 
+/******************************* TSC support ***************************/
+
+/* initialize to avoid a division by 0 */
+static uint64_t ticks_per_second = 1000000000; /* set by calibrate_tsc */
+
+static inline uint64_t
+rdtsc(void)
+{
+    uint32_t hi, lo;
+    __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+    return (uint64_t)lo | ((uint64_t)hi << 32);
+}
+
+/*
+ * do an idle loop to compute the clock speed. We expect
+ * a constant TSC rate and locked on all CPUs.
+ * Returns ticks per second
+ */
+static uint64_t
+calibrate_tsc(void)
+{
+    struct timeval a, b;
+    uint64_t ta_0, ta_1, tb_0, tb_1, dmax = ~0;
+    uint64_t da, db, cy = 0;
+    int i;
+    for (i=0; i < 3; i++) {
+	ta_0 = rdtsc();
+	gettimeofday(&a, NULL);
+	ta_1 = rdtsc();
+	usleep(20000);
+	tb_0 = rdtsc();
+	gettimeofday(&b, NULL);
+	tb_1 = rdtsc();
+	da = ta_1 - ta_0;
+	db = tb_1 - tb_0;
+	if (da + db < dmax) {
+	    cy = (b.tv_sec - a.tv_sec)*1000000 + b.tv_usec - a.tv_usec;
+	    cy = (double)(tb_0 - ta_1)*1000000/(double)cy;
+	    dmax = da + db;
+	}
+    }
+    ticks_per_second = cy;
+    return cy;
+}
+
+#define NS2TSC(x) ((x)*ticks_per_second/1000000000UL)
+#define TSC2NS(x) ((x)*1000000000UL/ticks_per_second)
+
+static inline void
+tsc_sleep_till(uint64_t when)
+{
+    while (rdtsc() < when)
+        barrier();
+}
+/***********************************************************************/
 
 static void virtio_pc_set_status(struct VirtIODevice *vdev, uint8_t status)
 {
@@ -172,6 +227,7 @@ static void virtio_pc_device_realize(DeviceState *dev, Error **errp)
     pc->stats.thresh = 20;
     pc->wc = pc->conf.wc;
     pc->qdev = dev;
+    calibrate_tsc(); /* this could be done only once for all devices */
 }
 
 static void virtio_pc_device_unrealize(DeviceState *dev, Error **errp)
