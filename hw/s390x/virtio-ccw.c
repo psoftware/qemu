@@ -932,7 +932,7 @@ static uint8_t virtio_set_ind_atomic(SubchDev *sch, uint64_t ind_loc,
     return ind_old;
 }
 
-static void virtio_ccw_notify(DeviceState *d, uint16_t vector)
+static int virtio_ccw_notify(DeviceState *d, uint16_t vector)
 {
     VirtioCcwDevice *dev = to_virtio_ccw_dev_fast(d);
     CcwDevice *ccw_dev = to_ccw_dev_fast(d);
@@ -941,12 +941,12 @@ static void virtio_ccw_notify(DeviceState *d, uint16_t vector)
 
     /* queue indicators + secondary indicators */
     if (vector >= VIRTIO_CCW_QUEUE_MAX + 64) {
-        return;
+        return 0;
     }
 
     if (vector < VIRTIO_CCW_QUEUE_MAX) {
         if (!dev->indicators) {
-            return;
+            return 0;
         }
         if (sch->thinint_active) {
             /*
@@ -976,7 +976,7 @@ static void virtio_ccw_notify(DeviceState *d, uint16_t vector)
         }
     } else {
         if (!dev->indicators2) {
-            return;
+            return 0;
         }
         vector = 0;
         indicators = address_space_ldq(&address_space_memory,
@@ -988,6 +988,7 @@ static void virtio_ccw_notify(DeviceState *d, uint16_t vector)
                           indicators, MEMTXATTRS_UNSPECIFIED, NULL);
         css_conditional_io_interrupt(sch);
     }
+    return 1;
 }
 
 static void virtio_ccw_reset(DeviceState *d)

@@ -1351,21 +1351,27 @@ void pci_default_write_config(PCIDevice *d, uint32_t addr, uint32_t val_in, int 
 /***********************************************************/
 /* generic PCI irq support */
 
-/* 0 <= irq_num <= 3. level must be 0 or 1 */
-static void pci_irq_handler(void *opaque, int irq_num, int level)
+static int pci_irq_handler2(void *opaque, int irq_num, int level)
 {
     PCIDevice *pci_dev = opaque;
     int change;
 
     change = level - pci_irq_state(pci_dev, irq_num);
     if (!change)
-        return;
+        return 0;
 
     pci_set_irq_state(pci_dev, irq_num, level);
     pci_update_irq_status(pci_dev);
     if (pci_irq_disabled(pci_dev))
-        return;
+        return 0;
     pci_change_irq_level(pci_dev, irq_num, change);
+    return 1;
+}
+
+/* 0 <= irq_num <= 3. level must be 0 or 1 */
+static void pci_irq_handler(void *opaque, int irq_num, int level)
+{
+    pci_irq_handler2(opaque, irq_num, level);
 }
 
 static inline int pci_intx(PCIDevice *pci_dev)
@@ -1380,10 +1386,10 @@ qemu_irq pci_allocate_irq(PCIDevice *pci_dev)
     return qemu_allocate_irq(pci_irq_handler, pci_dev, intx);
 }
 
-void pci_set_irq(PCIDevice *pci_dev, int level)
+int pci_set_irq(PCIDevice *pci_dev, int level)
 {
     int intx = pci_intx(pci_dev);
-    pci_irq_handler(pci_dev, intx, level);
+    return pci_irq_handler2(pci_dev, intx, level);
 }
 
 /* Special hooks used by device assignment */

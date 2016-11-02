@@ -688,7 +688,7 @@ PCIDevice *pci_create(PCIBus *bus, int devfn, const char *name);
 PCIDevice *pci_create_simple(PCIBus *bus, int devfn, const char *name);
 
 qemu_irq pci_allocate_irq(PCIDevice *pci_dev);
-void pci_set_irq(PCIDevice *pci_dev, int level);
+int pci_set_irq(PCIDevice *pci_dev, int level);
 
 static inline void pci_irq_assert(PCIDevice *pci_dev)
 {

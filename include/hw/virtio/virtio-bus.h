@@ -41,7 +41,7 @@ typedef struct VirtioBusState VirtioBusState;
 typedef struct VirtioBusClass {
     /* This is what a VirtioBus must implement */
     BusClass parent;
-    void (*notify)(DeviceState *d, uint16_t vector);
+    int (*notify)(DeviceState *d, uint16_t vector);
     void (*save_config)(DeviceState *d, QEMUFile *f);
     void (*save_queue)(DeviceState *d, int n, QEMUFile *f);
     void (*save_extra_state)(DeviceState *d, QEMUFile *f);

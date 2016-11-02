@@ -364,18 +364,19 @@ static const MemoryRegionOps virtio_mem_ops = {
     .endianness = DEVICE_NATIVE_ENDIAN,
 };
 
-static void virtio_mmio_update_irq(DeviceState *opaque, uint16_t vector)
+static int virtio_mmio_update_irq(DeviceState *opaque, uint16_t vector)
 {
     VirtIOMMIOProxy *proxy = VIRTIO_MMIO(opaque);
     VirtIODevice *vdev = virtio_bus_get_device(&proxy->bus);
     int level;
 
     if (!vdev) {
-        return;
+        return 0;
     }
     level = (vdev->isr != 0);
     DPRINTF("virtio_mmio setting IRQ %d\n", level);
     qemu_set_irq(proxy->irq, level);
+    return 1;
 }
 
 static int virtio_mmio_load_config(DeviceState *opaque, QEMUFile *f)

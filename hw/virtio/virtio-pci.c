@@ -66,16 +66,18 @@ static inline VirtIOPCIProxy *to_virtio_pci_proxy_fast(DeviceState *d)
     return container_of(d, VirtIOPCIProxy, pci_dev.qdev);
 }
 
-static void virtio_pci_notify(DeviceState *d, uint16_t vector)
+static int virtio_pci_notify(DeviceState *d, uint16_t vector)
 {
     VirtIOPCIProxy *proxy = to_virtio_pci_proxy_fast(d);
 
-    if (msix_enabled(&proxy->pci_dev))
-        msix_notify(&proxy->pci_dev, vector);
+    if (msix_enabled(&proxy->pci_dev)) {
+        return msix_notify2(&proxy->pci_dev, vector);
+    }
     else {
         VirtIODevice *vdev = virtio_bus_get_device(&proxy->bus);
-        pci_set_irq(&proxy->pci_dev, vdev->isr & 1);
+        return pci_set_irq(&proxy->pci_dev, vdev->isr & 1);
     }
+    return 0;
 }
 
 static void virtio_pci_save_config(DeviceState *d, QEMUFile *f)

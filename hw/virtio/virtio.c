@@ -850,18 +850,19 @@ void qemu_put_virtqueue_element(QEMUFile *f, VirtQueueElement *elem)
 }
 
 /* virtio device */
-static void virtio_notify_vector(VirtIODevice *vdev, uint16_t vector)
+static int virtio_notify_vector(VirtIODevice *vdev, uint16_t vector)
 {
     BusState *qbus = qdev_get_parent_bus(DEVICE(vdev));
     VirtioBusClass *k = VIRTIO_BUS_GET_CLASS(qbus);
 
     if (unlikely(vdev->broken)) {
-        return;
+        return 0;
     }
 
     if (k->notify) {
-        k->notify(qbus->parent, vector);
+        return k->notify(qbus->parent, vector);
     }
+    return 0;
 }
 
 void virtio_update_irq(VirtIODevice *vdev)
@@ -1376,8 +1377,7 @@ int virtio_notify(VirtIODevice *vdev, VirtQueue *vq)
 
     trace_virtio_notify(vdev, vq);
     vdev->isr |= 0x01;
-    virtio_notify_vector(vdev, vq->vector);
-    return 1;
+    return virtio_notify_vector(vdev, vq->vector);
 }
 
 void virtio_notify_config(VirtIODevice *vdev)

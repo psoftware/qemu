@@ -442,21 +442,27 @@ int msix_enabled(PCIDevice *dev)
          MSIX_ENABLE_MASK);
 }
 
-/* Send an MSI-X message */
-void msix_notify(PCIDevice *dev, unsigned vector)
+int msix_notify2(PCIDevice *dev, unsigned vector)
 {
     MSIMessage msg;
 
     if (vector >= dev->msix_entries_nr || !dev->msix_entry_used[vector])
-        return;
+        return 0;
     if (msix_is_masked(dev, vector)) {
         msix_set_pending(dev, vector);
-        return;
+        return 0;
     }
 
     msg = msix_get_message(dev, vector);
 
     msi_send_message(dev, msg);
+    return 1;
+}
+
+/* Send an MSI-X message */
+void msix_notify(PCIDevice *dev, unsigned vector)
+{
+    msix_notify2(dev, vector);
 }
 
 void msix_reset(PCIDevice *dev)
