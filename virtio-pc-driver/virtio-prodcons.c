@@ -63,7 +63,7 @@ items_consumed(struct virtqueue *vq)
 
 	/* Suppress further interrupts and wake up the producer. */
 	virtqueue_disable_cb(vq);
-	printk("wakeup\n");
+	//printk("wakeup\n");
 	wake_up_interruptible(&vi->wqh);
 }
 
@@ -126,10 +126,10 @@ produce(struct virtpc_info *vi)
 			if (vq->num_free >= THR) {
 				virtqueue_disable_cb(vq);
 			} else {
-				printk("sleep %u\n", vq->num_free);
+				//printk("sleep %u\n", vq->num_free);
 				schedule();
 				cleanup_items(vi);
-				printk("waken up %u\n", vq->num_free);
+				//printk("waken up %u\n", vq->num_free);
 			}
 			finish_wait(&vi->wqh, &wait);
 		}
