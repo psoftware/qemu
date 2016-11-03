@@ -48,6 +48,7 @@ struct virtpc_info {
 	wait_queue_head_t	wqh;
 	struct virtqueue	*vq;
 	unsigned int		wp;
+	unsigned int		duration;
 	struct scatterlist	sg[10];
 	char			name[40];
 	char			*buf[2048];
@@ -87,16 +88,21 @@ produce(struct virtpc_info *vi)
 {
 	struct virtqueue *vq = vi->vq;
 	u64 next = ktime_get_ns();
+	u64 finish = next + vi->duration * 1000000000;
 	int err;
 
-	printk("virtpc: producer start Wp=%u ns\n", vi->wp);
+	printk("virtpc: producer start Wp=%u ns D=%u s\n", vi->wp, vi->duration);
 
 	/* The same buffer is reused. */
 	sg_init_table(vi->sg, 1);
 	sg_set_buf(vi->sg, vi->buf, 16);
 
 	for (;;) {
-		if (signal_pending(current)) {
+		if (unlikely(signal_pending(current) || next > finish)) {
+			if (next > finish) {
+				printk("virtpc: producer stops\n");
+				return 0;
+			}
 			printk("signal received, returning\n");
 			return -EAGAIN;
 		}
@@ -190,6 +196,7 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 
 	vi->busy = true;
 	vi->wp = pcio.wp;
+	vi->duration = pcio.duration;
 	mutex_unlock(&lock);
 
 	add_wait_queue(&vi->wqh, &wait);

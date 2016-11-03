@@ -4,6 +4,7 @@
 struct virtpc_ioctl {
 	unsigned int devid;
 	unsigned int wp;
+	unsigned int duration;
 };
 
 #endif  /* __VIRTIO_PRODCONS_H__ */

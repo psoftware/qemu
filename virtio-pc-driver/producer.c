@@ -27,8 +27,9 @@ main(int argc, char **argv)
 
 	vio.wp = 150; /* in nanoseconds */
 	vio.devid = 0;
+	vio.duration = 10; /* in seconds */
 
-	while ((ch = getopt(argc, argv, "hw:")) != -1) {
+	while ((ch = getopt(argc, argv, "hw:d:")) != -1) {
 		switch (ch) {
 		default:
 		case 'h':
@@ -43,6 +44,16 @@ main(int argc, char **argv)
 				return 0;
 			}
 			vio.wp = (unsigned int)x;
+			break;
+
+		case 'd':
+			x = atoi(optarg);
+			if (x < 1) {
+				printf("Invalid -d option argument\n");
+				usage();
+				return 0;
+			}
+			vio.duration = (unsigned int)x;
 			break;
 		}
 	}
