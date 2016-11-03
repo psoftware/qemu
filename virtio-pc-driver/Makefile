@@ -1,6 +1,7 @@
 KER=`uname -r`
 
 obj-m += virtio-prodcons.o
+obj-m += vhost-pc.o
 
 all: ker producer
 
