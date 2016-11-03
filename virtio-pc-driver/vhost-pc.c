@@ -13,9 +13,7 @@
 
 #include "vhost.h"
 
-enum {
-	VHOST_PC_FEATURES = VHOST_FEATURES
-};
+#define VHOST_PC_FEATURES   VHOST_FEATURES
 
 struct vhost_pc {
 	struct vhost_dev dev;

@@ -82,8 +82,118 @@ tsc_sleep_till(uint64_t when)
 }
 /***********************************************************************/
 
+static int vhost_pc_start(VirtIOProdcons *pc)
+{
+    VirtIODevice *vdev = VIRTIO_DEVICE(pc);
+    BusState *qbus = BUS(qdev_get_parent_bus(DEVICE(vdev)));
+    VirtioBusState *vbus = VIRTIO_BUS(qbus);
+    VirtioBusClass *k = VIRTIO_BUS_GET_CLASS(vbus);
+    int r;
+
+    if (pc->vhost_running) {
+        return 0;
+    }
+
+    if (!k->set_guest_notifiers) {
+        error_report("binding does not support guest notifiers");
+        exit(EXIT_FAILURE);
+    }
+
+    r = k->set_guest_notifiers(qbus->parent, 1, true);
+    if (r < 0) {
+        error_report("Error binding guest notifier: %d", -r);
+        exit(EXIT_FAILURE);
+    }
+
+    r = vhost_dev_enable_notifiers(&pc->hdev, vdev);
+    if (r < 0) {
+        error_report("Error binding host notifier: %d", -r);
+        exit(EXIT_FAILURE);
+    }
+
+    r = vhost_dev_start(&pc->hdev, vdev);
+    if (r < 0) {
+        error_report("Error starting vhost device: %d", -r);
+        exit(EXIT_FAILURE);
+    }
+
+    //vhost_set_backend
+
+    pc->vhost_running = 1;
+
+    return 0;
+}
+
+static int vhost_pc_stop(VirtIOProdcons *pc)
+{
+    VirtIODevice *vdev = VIRTIO_DEVICE(pc);
+    BusState *qbus = BUS(qdev_get_parent_bus(DEVICE(vdev)));
+    VirtioBusState *vbus = VIRTIO_BUS(qbus);
+    VirtioBusClass *k = VIRTIO_BUS_GET_CLASS(vbus);
+    int r;
+
+    if (!pc->vhost_running) {
+        return 0;
+    }
+
+    //vhost_set_backend
+
+    vhost_dev_stop(&pc->hdev, vdev);
+    vhost_dev_disable_notifiers(&pc->hdev, vdev);
+
+    r = k->set_guest_notifiers(qbus->parent, 1, false);
+    if (r < 0) {
+        fprintf(stderr, "vhost guest notifier cleanup failed: %d\n", r);
+        exit(EXIT_FAILURE);
+    }
+
+    pc->vhost_running = 0;
+
+    return 0;
+}
+
+static int vhost_pc_init(VirtIOProdcons *pc)
+{
+    int vhostfd;
+    int r;
+
+    pc->hdev.max_queues = 1;
+    pc->hdev.nvqs = 1;
+    pc->hdev.vqs = &pc->hvq;
+    pc->hdev.vq_index = 0;
+    pc->hdev.protocol_features = 0;
+    pc->hdev.backend_features = 0;
+
+    vhostfd = open("/dev/vhost-pc", O_RDWR);
+    if (vhostfd < 0) {
+        error_report("Error opending vhost dev: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    r = vhost_dev_init(&pc->hdev, (void *)(uintptr_t)vhostfd,
+                       VHOST_BACKEND_TYPE_KERNEL, 0);
+    if (r < 0) {
+        error_report("Error initializing vhost dev: %d", -r);
+        exit(EXIT_FAILURE);
+    }
+
+    //vhost_ack_features();
+
+    return 0;
+}
+
 static void virtio_pc_set_status(struct VirtIODevice *vdev, uint8_t status)
 {
+    VirtIOProdcons *pc = VIRTIO_PRODCONS(vdev);
+
+    printf("SET STATUS %u\n", status);
+    if (pc->conf.vhost) {
+        if (status) {
+            vhost_pc_start(pc);
+        } else {
+            vhost_pc_stop(pc);
+        }
+    }
 }
 
 static void virtio_pc_reset(VirtIODevice *vdev)
@@ -221,89 +331,6 @@ static int virtio_pc_load_device(VirtIODevice *vdev, QEMUFile *f, int version_id
     return 0;
 }
 
-static int vhost_pc_start(VirtIOProdcons *pc)
-{
-    VirtIODevice *vdev = VIRTIO_DEVICE(pc);
-    BusState *qbus = BUS(qdev_get_parent_bus(DEVICE(vdev)));
-    VirtioBusState *vbus = VIRTIO_BUS(qbus);
-    VirtioBusClass *k = VIRTIO_BUS_GET_CLASS(vbus);
-    int vhostfd;
-    int r;
-
-    if (!k->set_guest_notifiers) {
-        error_report("binding does not support guest notifiers");
-        exit(EXIT_FAILURE);
-    }
-
-    pc->hdev.max_queues = 1;
-    pc->hdev.nvqs = 1;
-    pc->hdev.vqs = &pc->hvq;
-    pc->hdev.vq_index = 0;
-    pc->hdev.protocol_features = 0;
-    pc->hdev.backend_features = 0;
-
-    vhostfd = open("/dev/vhost-pc", O_RDWR);
-    if (vhostfd < 0) {
-        error_report("Error opending vhost dev: %s", strerror(errno));
-        exit(EXIT_FAILURE);
-    }
-
-    r = vhost_dev_init(&pc->hdev, (void *)(uintptr_t)vhostfd,
-                       VHOST_BACKEND_TYPE_KERNEL, 0);
-    if (r < 0) {
-        error_report("Error initializing vhost dev: %d", -r);
-        exit(EXIT_FAILURE);
-    }
-
-    //vhost_ack_features();
-
-    r = k->set_guest_notifiers(qbus->parent, 1, true);
-    if (r < 0) {
-        error_report("Error binding guest notifier: %d", -r);
-        exit(EXIT_FAILURE);
-    }
-
-    r = vhost_dev_enable_notifiers(&pc->hdev, vdev);
-    if (r < 0) {
-        error_report("Error binding host notifier: %d", -r);
-        exit(EXIT_FAILURE);
-    }
-
-    r = vhost_dev_start(&pc->hdev, vdev);
-    if (r < 0) {
-        error_report("Error starting vhost device: %d", -r);
-        exit(EXIT_FAILURE);
-    }
-
-    //vhost_set_backend
-
-    return 0;
-}
-
-static int vhost_pc_stop(VirtIOProdcons *pc)
-{
-    VirtIODevice *vdev = VIRTIO_DEVICE(pc);
-    BusState *qbus = BUS(qdev_get_parent_bus(DEVICE(vdev)));
-    VirtioBusState *vbus = VIRTIO_BUS(qbus);
-    VirtioBusClass *k = VIRTIO_BUS_GET_CLASS(vbus);
-    int r;
-
-    //vhost_set_backend
-
-    vhost_dev_stop(&pc->hdev, vdev);
-    vhost_dev_disable_notifiers(&pc->hdev, vdev);
-
-    r = k->set_guest_notifiers(qbus->parent, 1, false);
-    if (r < 0) {
-        fprintf(stderr, "vhost guest notifier cleanup failed: %d\n", r);
-        exit(EXIT_FAILURE);
-    }
-
-    vhost_dev_cleanup(&pc->hdev);
-
-    return 0;
-}
-
 static void virtio_pc_device_realize(DeviceState *dev, Error **errp)
 {
     VirtIODevice *vdev = VIRTIO_DEVICE(dev);
@@ -318,7 +345,7 @@ static void virtio_pc_device_realize(DeviceState *dev, Error **errp)
     calibrate_tsc(); /* this could be done only once for all devices */
     pc->stats.last_dump = pc->stats.next_dump = rdtsc();
     if (pc->conf.vhost) {
-        vhost_pc_start(pc);
+        vhost_pc_init(pc);
     } else {
         pc->bh = qemu_bh_new(virtio_pc_dvq_bh, pc);
     }
@@ -331,6 +358,7 @@ static void virtio_pc_device_unrealize(DeviceState *dev, Error **errp)
 
     if (pc->conf.vhost) {
         vhost_pc_stop(pc);
+        vhost_dev_cleanup(&pc->hdev);
     } else {
         qemu_bh_delete(pc->bh);
     }

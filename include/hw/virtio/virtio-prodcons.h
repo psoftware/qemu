@@ -19,6 +19,7 @@ typedef struct VirtIOProdcons {
     VirtIODevice parent_obj;
     struct vhost_dev hdev;
     struct vhost_virtqueue hvq;
+    bool vhost_running;
     struct {
         uint32_t    items;
         uint32_t    kicks;
