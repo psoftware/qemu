@@ -364,10 +364,9 @@ static void virtio_pc_device_realize(DeviceState *dev, Error **errp)
     pc->wc = pc->conf.wc;
     calibrate_tsc(); /* this could be done only once for all devices */
     pc->stats.last_dump = pc->stats.next_dump = rdtsc();
+    pc->bh = qemu_bh_new(virtio_pc_dvq_bh, pc);
     if (pc->conf.vhost) {
         vhost_pc_init(pc);
-    } else {
-        pc->bh = qemu_bh_new(virtio_pc_dvq_bh, pc);
     }
 }
 
@@ -379,9 +378,8 @@ static void virtio_pc_device_unrealize(DeviceState *dev, Error **errp)
     if (pc->conf.vhost) {
         vhost_pc_stop(pc);
         vhost_dev_cleanup(&pc->hdev);
-    } else {
-        qemu_bh_delete(pc->bh);
     }
+    qemu_bh_delete(pc->bh);
     virtio_del_queue(vdev, 0);
     virtio_cleanup(vdev);
 }
