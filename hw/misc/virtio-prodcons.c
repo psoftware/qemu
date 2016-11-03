@@ -93,6 +93,7 @@ static int vhost_pc_start(VirtIOProdcons *pc)
     if (pc->vhost_running) {
         return 0;
     }
+    pc->vhost_running = 1;
 
     if (!k->set_guest_notifiers) {
         error_report("binding does not support guest notifiers");
@@ -119,7 +120,7 @@ static int vhost_pc_start(VirtIOProdcons *pc)
 
     //vhost_set_backend
 
-    pc->vhost_running = 1;
+    printf("vhost-pc started ...\n");
 
     return 0;
 }
@@ -148,6 +149,7 @@ static int vhost_pc_stop(VirtIOProdcons *pc)
     }
 
     pc->vhost_running = 0;
+    printf("vhost-pc stopped\n");
 
     return 0;
 }
@@ -187,12 +189,15 @@ static void virtio_pc_set_status(struct VirtIODevice *vdev, uint8_t status)
     VirtIOProdcons *pc = VIRTIO_PRODCONS(vdev);
 
     printf("SET STATUS %u\n", status);
-    if (pc->conf.vhost) {
-        if (status) {
-            vhost_pc_start(pc);
-        } else {
-            vhost_pc_stop(pc);
-        }
+
+    if (!pc->conf.vhost) {
+        return;
+    }
+
+    if ((status & VIRTIO_CONFIG_S_DRIVER_OK) && vdev->vm_running) {
+        vhost_pc_start(pc);
+    } else {
+        vhost_pc_stop(pc);
     }
 }
 
