@@ -88,8 +88,12 @@ produce(struct virtpc_info *vi)
 {
 	struct virtqueue *vq = vi->vq;
 	u64 next = ktime_get_ns();
-	u64 finish = next + vi->duration * 1000000000;
+	u64 finish;
 	int err;
+
+	finish = vi->duration;
+	finish *= 1000000000;
+	finish += next;
 
 	printk("virtpc: producer start Wp=%u ns D=%u s\n", vi->wp, vi->duration);
 
