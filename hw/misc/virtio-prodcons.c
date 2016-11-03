@@ -331,6 +331,21 @@ static int virtio_pc_load_device(VirtIODevice *vdev, QEMUFile *f, int version_id
     return 0;
 }
 
+static bool virtio_pc_guest_notifier_pending(VirtIODevice *vdev, int idx)
+{
+    VirtIOProdcons *pc = VIRTIO_PRODCONS(vdev);
+    assert(pc->vhost_running);
+    return vhost_virtqueue_pending(&pc->hdev, idx);
+}
+
+static void virtio_pc_guest_notifier_mask(VirtIODevice *vdev, int idx,
+                                           bool mask)
+{
+    VirtIOProdcons *pc = VIRTIO_PRODCONS(vdev);
+    assert(pc->vhost_running);
+    vhost_virtqueue_mask(&pc->hdev, vdev, idx, mask);
+}
+
 static void virtio_pc_device_realize(DeviceState *dev, Error **errp)
 {
     VirtIODevice *vdev = VIRTIO_DEVICE(dev);
@@ -407,6 +422,8 @@ static void virtio_pc_class_init(ObjectClass *klass, void *data)
     vdc->set_status = virtio_pc_set_status;
     vdc->load = virtio_pc_load_device;
     vdc->save = virtio_pc_save_device;
+    vdc->guest_notifier_mask = virtio_pc_guest_notifier_mask;
+    vdc->guest_notifier_pending = virtio_pc_guest_notifier_pending;
 }
 
 static const TypeInfo virtio_pc_info = {
