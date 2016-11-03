@@ -22,6 +22,9 @@
 #include "qapi-event.h"
 #include "hw/virtio/virtio-access.h"
 #include "standard-headers/linux/virtio_ids.h"
+#include <linux/vhost.h>
+#include <linux/kvm.h>
+#include "hw/virtio/vhost.h"
 
 /******************************* TSC support ***************************/
 
@@ -218,6 +221,89 @@ static int virtio_pc_load_device(VirtIODevice *vdev, QEMUFile *f, int version_id
     return 0;
 }
 
+static int vhost_pc_start(VirtIOProdcons *pc)
+{
+    VirtIODevice *vdev = VIRTIO_DEVICE(pc);
+    BusState *qbus = BUS(qdev_get_parent_bus(DEVICE(vdev)));
+    VirtioBusState *vbus = VIRTIO_BUS(qbus);
+    VirtioBusClass *k = VIRTIO_BUS_GET_CLASS(vbus);
+    int vhostfd;
+    int r;
+
+    if (!k->set_guest_notifiers) {
+        error_report("binding does not support guest notifiers");
+        exit(EXIT_FAILURE);
+    }
+
+    pc->hdev.max_queues = 1;
+    pc->hdev.nvqs = 1;
+    pc->hdev.vqs = &pc->hvq;
+    pc->hdev.vq_index = 0;
+    pc->hdev.protocol_features = 0;
+    pc->hdev.backend_features = 0;
+
+    vhostfd = open("/dev/vhost-pc", O_RDWR);
+    if (vhostfd < 0) {
+        error_report("Error opending vhost dev: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    r = vhost_dev_init(&pc->hdev, (void *)(uintptr_t)vhostfd,
+                       VHOST_BACKEND_TYPE_KERNEL, 0);
+    if (r < 0) {
+        error_report("Error initializing vhost dev: %d", -r);
+        exit(EXIT_FAILURE);
+    }
+
+    //vhost_ack_features();
+
+    r = k->set_guest_notifiers(qbus->parent, 1, true);
+    if (r < 0) {
+        error_report("Error binding guest notifier: %d", -r);
+        exit(EXIT_FAILURE);
+    }
+
+    r = vhost_dev_enable_notifiers(&pc->hdev, vdev);
+    if (r < 0) {
+        error_report("Error binding host notifier: %d", -r);
+        exit(EXIT_FAILURE);
+    }
+
+    r = vhost_dev_start(&pc->hdev, vdev);
+    if (r < 0) {
+        error_report("Error starting vhost device: %d", -r);
+        exit(EXIT_FAILURE);
+    }
+
+    //vhost_set_backend
+
+    return 0;
+}
+
+static int vhost_pc_stop(VirtIOProdcons *pc)
+{
+    VirtIODevice *vdev = VIRTIO_DEVICE(pc);
+    BusState *qbus = BUS(qdev_get_parent_bus(DEVICE(vdev)));
+    VirtioBusState *vbus = VIRTIO_BUS(qbus);
+    VirtioBusClass *k = VIRTIO_BUS_GET_CLASS(vbus);
+    int r;
+
+    //vhost_set_backend
+
+    vhost_dev_stop(&pc->hdev, vdev);
+    vhost_dev_disable_notifiers(&pc->hdev, vdev);
+
+    r = k->set_guest_notifiers(qbus->parent, 1, false);
+    if (r < 0) {
+        fprintf(stderr, "vhost guest notifier cleanup failed: %d\n", r);
+        exit(EXIT_FAILURE);
+    }
+
+    vhost_dev_cleanup(&pc->hdev);
+
+    return 0;
+}
+
 static void virtio_pc_device_realize(DeviceState *dev, Error **errp)
 {
     VirtIODevice *vdev = VIRTIO_DEVICE(dev);
@@ -225,13 +311,17 @@ static void virtio_pc_device_realize(DeviceState *dev, Error **errp)
 
     virtio_init(vdev, "virtio-prodcons", VIRTIO_ID_PRODCONS, 0 /* config size */);
 
+    pc->qdev = dev;
     pc->dvq = virtio_add_queue(vdev, pc->conf.l, virtio_pc_dvq_handler);
-    pc->bh = qemu_bh_new(virtio_pc_dvq_bh, pc);
     pc->dvq_pending = 0;
     pc->wc = pc->conf.wc;
     calibrate_tsc(); /* this could be done only once for all devices */
     pc->stats.last_dump = pc->stats.next_dump = rdtsc();
-    pc->qdev = dev;
+    if (pc->conf.vhost) {
+        vhost_pc_start(pc);
+    } else {
+        pc->bh = qemu_bh_new(virtio_pc_dvq_bh, pc);
+    }
 }
 
 static void virtio_pc_device_unrealize(DeviceState *dev, Error **errp)
@@ -239,8 +329,12 @@ static void virtio_pc_device_unrealize(DeviceState *dev, Error **errp)
     VirtIODevice *vdev = VIRTIO_DEVICE(dev);
     VirtIOProdcons *pc = VIRTIO_PRODCONS(dev);
 
+    if (pc->conf.vhost) {
+        vhost_pc_stop(pc);
+    } else {
+        qemu_bh_delete(pc->bh);
+    }
     virtio_del_queue(vdev, 0);
-    qemu_bh_delete(pc->bh);
     virtio_cleanup(vdev);
 }
 
@@ -262,8 +356,9 @@ static const VMStateDescription vmstate_virtio_pc = {
 };
 
 static Property virtio_pc_properties[] = {
+    DEFINE_PROP_BOOL("vhost", VirtIOProdcons, conf.vhost, false), /* ns */
     DEFINE_PROP_INT32("wc", VirtIOProdcons, conf.wc, 400), /* ns */
-    DEFINE_PROP_UINT32("l", VirtIOProdcons, conf.l, 256), /* ns */
+    DEFINE_PROP_UINT32("l", VirtIOProdcons, conf.l, 256), /* slots */
     DEFINE_PROP_END_OF_LIST(),
 };
 
