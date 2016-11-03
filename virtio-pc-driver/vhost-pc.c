@@ -30,6 +30,8 @@ static void handle_tx(struct vhost_pc *pc)
 	int head;
 	size_t len, total_len = 0;
 
+        printk("virtpc: handle_tx\n");
+
 	mutex_lock(&vq->mutex);
 
 	vhost_disable_notify(&pc->dev, vq);
@@ -196,19 +198,23 @@ static long vhost_pc_ioctl(struct file *f, unsigned int ioctl,
 
 	switch (ioctl) {
 	case VHOST_GET_FEATURES:
+                printk("virtpc: GET_FEATURES\n");
 		features = VHOST_PC_FEATURES;
 		if (copy_to_user(featurep, &features, sizeof features))
 			return -EFAULT;
 		return 0;
 	case VHOST_SET_FEATURES:
+                printk("virtpc: SET_FEATURES\n");
 		if (copy_from_user(&features, featurep, sizeof features))
 			return -EFAULT;
 		if (features & ~VHOST_PC_FEATURES)
 			return -EOPNOTSUPP;
 		return vhost_pc_set_features(pc, features);
 	case VHOST_RESET_OWNER:
+                printk("virtpc: RESET OWNER\n");
 		return vhost_pc_reset_owner(pc);
 	case VHOST_SET_OWNER:
+                printk("virtpc: SET OWNER\n");
 		return vhost_pc_set_owner(pc);
 	default:
 		mutex_lock(&pc->dev.mutex);
