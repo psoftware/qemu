@@ -5,6 +5,8 @@ struct virtpc_ioctl_data {
     unsigned int devid;
     unsigned int wp;
     unsigned int wc;
+    unsigned int yp;
+    unsigned int yc;
     unsigned int duration;
 };
 

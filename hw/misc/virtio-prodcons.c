@@ -29,6 +29,7 @@
 
 struct virtio_pc_config {
     uint32_t    wc;
+    uint32_t    yc;
 };
 
 /******************************* TSC support ***************************/
@@ -88,12 +89,14 @@ tsc_sleep_till(uint64_t when)
 
 /******************************* VHOST support ***************************/
 
-static int virtio_pc_set_wc(VirtIOProdcons *pc, unsigned int wc)
+static int virtio_pc_set_params(VirtIOProdcons *pc, unsigned int wc,
+                                unsigned int yc)
 {
     struct vhost_vring_file file;
     int r;
 
     pc->wc = wc;
+    pc->yc = yc;
 
     if (!pc->vhost_running) {
         return 0;
@@ -101,8 +104,8 @@ static int virtio_pc_set_wc(VirtIOProdcons *pc, unsigned int wc)
 
     /* We override the VHOST_NET_SET_BACKEND ioctl to pass the
      * wc parameter to the vhost-pc kernel module. */
-    file.index = 0;
-    file.fd = (int)pc->wc;
+    file.index = pc->wc;
+    file.fd = (int)pc->yc;
     r = vhost_net_set_backend(&pc->hdev, &file);
     if (r < 0) {
         error_report("Error setting wc parameter: %d", -r);
@@ -168,7 +171,7 @@ static int vhost_pc_start(VirtIOProdcons *pc)
         exit(EXIT_FAILURE);
     }
 
-    virtio_pc_set_wc(pc, pc->wc);
+    virtio_pc_set_params(pc, pc->wc, pc->yc);
 
     printf("vhost-pc started ...\n");
 
@@ -253,7 +256,7 @@ static void virtio_pc_set_config(VirtIODevice *vdev, const uint8_t *config)
     struct virtio_pc_config cfg;
 
     memcpy(&cfg, config, sizeof(cfg));
-    virtio_pc_set_wc(pc, cfg.wc);
+    virtio_pc_set_params(pc, cfg.wc, cfg.yc);
 }
 
 /***********************************************************************/
@@ -433,6 +436,7 @@ static void virtio_pc_device_realize(DeviceState *dev, Error **errp)
     pc->dvq = virtio_add_queue(vdev, pc->conf.l, virtio_pc_dvq_handler);
     pc->dvq_pending = 0;
     pc->wc = pc->conf.wc;
+    pc->yc = pc->conf.yc;
     calibrate_tsc(); /* this could be done only once for all devices */
     pc->stats.last_dump = pc->stats.next_dump = rdtsc();
     pc->bh = qemu_bh_new(virtio_pc_dvq_bh, pc);
@@ -474,7 +478,8 @@ static const VMStateDescription vmstate_virtio_pc = {
 
 static Property virtio_pc_properties[] = {
     DEFINE_PROP_BOOL("vhost", VirtIOProdcons, conf.vhost, false), /* ns */
-    DEFINE_PROP_INT32("wc", VirtIOProdcons, conf.wc, 400), /* ns */
+    DEFINE_PROP_UINT32("wc", VirtIOProdcons, conf.wc, 400), /* ns */
+    DEFINE_PROP_UINT32("yc", VirtIOProdcons, conf.wc, 5000), /* ns */
     DEFINE_PROP_UINT32("l", VirtIOProdcons, conf.l, 256), /* slots */
     DEFINE_PROP_END_OF_LIST(),
 };

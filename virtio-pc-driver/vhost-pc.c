@@ -19,6 +19,7 @@ struct vhost_pc {
     struct vhost_dev        hdev;
     struct vhost_virtqueue  vq;
     unsigned int            wc; /* in nanoseconds */
+    unsigned int            yc; /* in nanoseconds */
     u64                     items;
     u64                     kicks;
     u64                     last_dump;
@@ -114,6 +115,7 @@ static int vhost_pc_open(struct inode *inode, struct file *f)
     }
 
     pc->wc = 2000; /* default to 2 microseconds */
+    pc->yc = 3000; /* default to 3 microseconds */
     pc->last_dump = pc->next_dump = ktime_get_ns();
     hdev = &pc->hdev;
     vqs[0] = &pc->vq;
@@ -216,11 +218,9 @@ static long vhost_pc_ioctl(struct file *f, unsigned int ioctl,
             if (copy_from_user(&file, argp, sizeof(file))) {
                 return -EFAULT;
             }
-            if (file.index != 0) {
-                printk("virtpc: wrong index %d\n", file.index);
-            }
-            pc->wc = (unsigned int)file.fd;
-            printk("virtpc: setting Wc = %u ns\n", pc->wc);
+            pc->wc = file.index;
+            pc->yc = (unsigned int)file.fd;
+            printk("virtpc: setting Wc=%uns Yc=%uns\n", pc->wc, pc->yc);
             return 0;
         case VHOST_GET_FEATURES:
             features = VHOST_PC_FEATURES;

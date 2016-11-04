@@ -11,7 +11,8 @@
 typedef struct virtio_pc_conf
 {
     bool        vhost;
-    int32_t     wc;
+    uint32_t    wc;
+    uint32_t    yc;
     uint32_t    l;
 } virtio_pc_conf;
 
@@ -27,7 +28,8 @@ typedef struct VirtIOProdcons {
         uint64_t    next_dump;
         uint64_t    last_dump;
     } stats;
-    int32_t wc;
+    unsigned int wc;
+    unsigned int yc;
     VirtQueue *dvq;
     QEMUBH *bh;
     int dvq_pending;

@@ -49,6 +49,8 @@ struct virtpc_info {
 	struct virtqueue	*vq;
 	unsigned int		wp;
 	unsigned int		wc;
+        unsigned int            yp;
+        unsigned int            yc;
 	unsigned int		duration;
 	struct scatterlist	sg[10];
 	char			name[40];
@@ -98,8 +100,8 @@ produce(struct virtpc_info *vi)
 	finish *= 1000000000;
 	finish += next;
 
-	printk("virtpc: producer start Wp=%uns Wc=%uns D=%us\n", vi->wp,
-		vi->wc, vi->duration);
+	printk("virtpc: producer start Wp=%uns Wc=%uns Yp=%uns Yc=%uns D=%us\n",
+                vi->wp, vi->wc, vi->yp, vi->yc, vi->duration);
 
 	/* The same buffer is reused. */
 	sg_init_table(vi->sg, 1);
@@ -205,8 +207,11 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 	vi->busy = true;
 	vi->wp = pcio.wp;
 	vi->wc = pcio.wc;
+	vi->yp = pcio.yp;
+	vi->yc = pcio.yc;
 	vi->duration = pcio.duration;
         virtio_cwrite32(vi->vdev, 0 /* offset */, (uint32_t)pcio.wc);
+        virtio_cwrite32(vi->vdev, 4 /* offset */, (uint32_t)pcio.yc);
 	mutex_unlock(&lock);
 
 	/* We keep ourself in the wait queue all the time; there is no

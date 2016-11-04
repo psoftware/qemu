@@ -13,7 +13,24 @@
 static void
 usage(void)
 {
-	printf("producer [-p WP_NANOSEC] [-c WC_NANOSEC] [-d DURATION_SEC]\n");
+	printf("producer [-p WP_NANOSEC] [-c WC_NANOSEC] "
+                        "[-P YP_NANOSEC] [-C YC_NANOSEC] "
+                        "[-d DURATION_SEC]\n");
+}
+
+static unsigned int
+parseuint(const char *s)
+{
+    int x;
+
+    x = atoi(optarg);
+    if (x < 1) {
+        printf("Invalid -p option argument\n");
+        usage();
+        exit(EXIT_FAILURE);
+    }
+
+    return (unsigned int)x;
 }
 
 int
@@ -23,14 +40,15 @@ main(int argc, char **argv)
 	int fd;
 	int ret;
 	int ch;
-	int x;
 
 	vio.wp = 150; /* in nanoseconds */
 	vio.wc = 300; /* in nanoseconds */
+	vio.yp = 5000; /* in nanoseconds */
+	vio.yc = 5000; /* in nanoseconds */
+	vio.duration = 15; /* in seconds */
 	vio.devid = 0;
-	vio.duration = 10; /* in seconds */
 
-	while ((ch = getopt(argc, argv, "hp:d:c:")) != -1) {
+	while ((ch = getopt(argc, argv, "hp:d:c:P:C:")) != -1) {
 		switch (ch) {
 		default:
 		case 'h':
@@ -38,33 +56,23 @@ main(int argc, char **argv)
 			return 0;
 
 		case 'p':
-			x = atoi(optarg);
-			if (x < 1) {
-				printf("Invalid -p option argument\n");
-				usage();
-				return 0;
-			}
-			vio.wp = (unsigned int)x;
+                        vio.wp = parseuint(optarg);
 			break;
 
 		case 'c':
-			x = atoi(optarg);
-			if (x < 1) {
-				printf("Invalid -c option argument\n");
-				usage();
-				return 0;
-			}
-			vio.wc = (unsigned int)x;
+			vio.wc = parseuint(optarg);
+			break;
+
+		case 'P':
+                        vio.yp = parseuint(optarg);
+			break;
+
+		case 'C':
+			vio.yc = parseuint(optarg);
 			break;
 
 		case 'd':
-			x = atoi(optarg);
-			if (x < 1) {
-				printf("Invalid -d option argument\n");
-				usage();
-				return 0;
-			}
-			vio.duration = (unsigned int)x;
+			vio.duration = parseuint(optarg);
 			break;
 		}
 	}
