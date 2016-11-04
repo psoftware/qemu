@@ -4,6 +4,7 @@
 #include <linux/virtio_net.h>
 #include <linux/miscdevice.h>
 #include <linux/module.h>
+#include <linux/delay.h>
 #include <linux/moduleparam.h>
 #include <linux/mutex.h>
 #include <linux/workqueue.h>
@@ -36,7 +37,7 @@ static void consume(struct vhost_work *work)
     struct vhost_virtqueue *vq = container_of(work, struct vhost_virtqueue,
                                               poll.work);
     struct vhost_pc *pc = container_of(vq->dev, struct vhost_pc, hdev);
-    u64 next = ktime_get_ns();
+    u64 next;
     unsigned out, in;
     int head;
 
@@ -46,22 +47,29 @@ static void consume(struct vhost_work *work)
 
     vhost_disable_notify(&pc->hdev, vq);
 
-    for (;;) {
-        while (ktime_get_ns() < next) ;
-        next = ktime_get_ns() + pc->wc;
+    next = ktime_get_ns() + pc->wc;
 
+    for (;;) {
+retry:
         head = vhost_get_vq_desc(vq, vq->iov, ARRAY_SIZE(vq->iov),
                 &out, &in, NULL, NULL);
         /* On error, stop handling until the next kick. */
         if (unlikely(head < 0))
             break;
-        /* Nothing new?  Wait for eventfd to tell us they refilled. */
+
+        /* Nothing new?  Wait for eventfd to tell us they refilled, or
+         * sleep for a short while. */
         if (head == vq->num) {
-            if (unlikely(vhost_enable_notify(&pc->hdev, vq))) {
-                vhost_disable_notify(&pc->hdev, vq);
-                continue;
+            if (sleeping) {
+                usleep_range(pc->yc, pc->yc);
+                goto retry;
+            } else {
+                if (unlikely(vhost_enable_notify(&pc->hdev, vq))) {
+                    vhost_disable_notify(&pc->hdev, vq);
+                    continue;
+                }
+                break;
             }
-            break;
         }
         if (in) {
             vq_err(vq, "Unexpected descriptor format for TX: "
@@ -73,8 +81,10 @@ static void consume(struct vhost_work *work)
 #endif
 
         vhost_add_used(vq, head, 0);
-        vhost_signal(&pc->hdev, vq);
         pc->items ++;
+        while (ktime_get_ns() < next) ;
+        vhost_signal(&pc->hdev, vq);
+        next = ktime_get_ns() + pc->wc;
 
         if (unlikely(next > pc->next_dump)) {
             u64 ndiff = ktime_get_ns() - pc->last_dump;
@@ -124,7 +134,10 @@ static int vhost_pc_open(struct inode *inode, struct file *f)
 
 static void vhost_pc_flush(struct vhost_pc *pc)
 {
+    int s = sleeping;
+    sleeping = 0;
     vhost_poll_flush(&pc->vq.poll);
+    sleeping = s;
 }
 
 static int vhost_pc_release(struct inode *inode, struct file *f)
