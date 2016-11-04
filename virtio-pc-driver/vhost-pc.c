@@ -4,7 +4,7 @@
 #include <linux/virtio_net.h>
 #include <linux/miscdevice.h>
 #include <linux/module.h>
-#include <linux/delay.h>
+#include <linux/hrtimer.h>
 #include <linux/moduleparam.h>
 #include <linux/mutex.h>
 #include <linux/workqueue.h>
@@ -61,7 +61,10 @@ retry:
          * sleep for a short while. */
         if (head == vq->num) {
             if (sleeping) {
-                usleep_range(pc->yc, pc->yc);
+                /* Taken from usleep_range */
+                ktime_t to = ktime_set(0, pc->yc);
+                __set_current_state(TASK_UNINTERRUPTIBLE);
+                schedule_hrtimeout_range(&to, 0, HRTIMER_MODE_REL);
                 goto retry;
             } else {
                 if (unlikely(vhost_enable_notify(&pc->hdev, vq))) {

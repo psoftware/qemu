@@ -23,7 +23,7 @@
 #include <linux/slab.h>
 #include <linux/miscdevice.h>
 #include <asm/uaccess.h>
-#include <linux/delay.h>
+#include <linux/hrtimer.h>
 #include <linux/fs.h>
 #include <linux/sched.h>
 #include <linux/mutex.h>
@@ -145,7 +145,10 @@ produce(struct virtpc_info *vi)
         if (vq->num_free < THR) {
             if (vi->sleeping) {
                 do {
-                    usleep_range(vi->yp, vi->yp);
+                    /* Taken from usleep_range */
+                    ktime_t to = ktime_set(0, vi->yp);
+                    __set_current_state(TASK_UNINTERRUPTIBLE);
+                    schedule_hrtimeout_range(&to, 0, HRTIMER_MODE_REL);
                     cleanup_items(vi, THR);
                 } while (vq->num_free < THR);
 
