@@ -26,16 +26,14 @@ struct vhost_pc {
     u64                     next_dump;
 };
 
-/* Expects to be always run from workqueue - which acts as
- * read-size critical section for our kind of RCU. */
-static void handle_tx(struct vhost_pc *pc)
+static void consume(struct vhost_work *work)
 {
-    struct vhost_virtqueue *vq = &pc->vq;
+    struct vhost_virtqueue *vq = container_of(work, struct vhost_virtqueue,
+                                              poll.work);
+    struct vhost_pc *pc = container_of(vq->dev, struct vhost_pc, hdev);
     u64 next = ktime_get_ns();
     unsigned out, in;
     int head;
-
-    //printk("virtpc: handle_tx\n");
 
     mutex_lock(&vq->mutex);
 
@@ -88,15 +86,6 @@ static void handle_tx(struct vhost_pc *pc)
     mutex_unlock(&vq->mutex);
 }
 
-static void handle_tx_kick(struct vhost_work *work)
-{
-    struct vhost_virtqueue *vq = container_of(work, struct vhost_virtqueue,
-            poll.work);
-    struct vhost_pc *pc = container_of(vq->dev, struct vhost_pc, hdev);
-
-    handle_tx(pc);
-}
-
 static int vhost_pc_open(struct inode *inode, struct file *f)
 {
     struct vhost_pc *pc;
@@ -119,7 +108,7 @@ static int vhost_pc_open(struct inode *inode, struct file *f)
     pc->last_dump = pc->next_dump = ktime_get_ns();
     hdev = &pc->hdev;
     vqs[0] = &pc->vq;
-    pc->vq.handle_kick = handle_tx_kick;
+    pc->vq.handle_kick = consume;
     vhost_dev_init(hdev, vqs, 1);
 
     f->private_data = pc;
