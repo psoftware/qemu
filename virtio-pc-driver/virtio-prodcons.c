@@ -93,6 +93,7 @@ produce(struct virtpc_info *vi)
     struct virtqueue *vq = vi->vq;
     u64 next = ktime_get_ns();
     u64 finish;
+    bool kick;
     int err;
 
     /* Compute finish time in stages, to avoid overflow of
@@ -121,8 +122,6 @@ produce(struct virtpc_info *vi)
 
         cleanup_items(vi, THR);
 
-        while (ktime_get_ns() < next) ;
-        next = ktime_get_ns() + vi->wp;
         err = virtqueue_add_outbuf(vq, vi->sg, 1, vi->buf, GFP_ATOMIC);
         if (unlikely(err)) {
             printk("virtpc: add_outbuf() failed %d\n", err);
@@ -132,7 +131,12 @@ produce(struct virtpc_info *vi)
 #endif
         }
 
-        virtqueue_kick(vq);
+        kick = virtqueue_kick_prepare(vq);
+        while (ktime_get_ns() < next) ;
+        if (kick) {
+            virtqueue_notify(vq);
+        }
+        next = ktime_get_ns() + vi->wp;
 
         if (vq->num_free < THR) {
             set_current_state(TASK_INTERRUPTIBLE);
