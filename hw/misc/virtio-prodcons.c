@@ -112,6 +112,26 @@ static int virtio_pc_set_wc(VirtIOProdcons *pc, unsigned int wc)
     return 0;
 }
 
+/* Features supported by host kernel. */
+static const int pc_kernel_feature_bits[] = {
+    VIRTIO_F_NOTIFY_ON_EMPTY,
+    VIRTIO_RING_F_INDIRECT_DESC,
+    VIRTIO_RING_F_EVENT_IDX,
+    VIRTIO_F_VERSION_1,
+    VHOST_INVALID_FEATURE_BIT
+};
+
+static uint64_t vhost_pc_get_features(VirtIOProdcons *pc, uint64_t features)
+{
+    return vhost_get_features(&pc->hdev, pc_kernel_feature_bits, features);
+}
+
+static void vhost_pc_ack_features(VirtIOProdcons *pc, uint64_t features)
+{
+    pc->hdev.acked_features = pc->hdev.backend_features; /* is this 0 = 0 ? */
+    vhost_ack_features(&pc->hdev, pc_kernel_feature_bits, features);
+}
+
 static int vhost_pc_start(VirtIOProdcons *pc)
 {
     VirtIODevice *vdev = VIRTIO_DEVICE(pc);
@@ -207,7 +227,7 @@ static int vhost_pc_init(VirtIOProdcons *pc)
         exit(EXIT_FAILURE);
     }
 
-    //vhost_ack_features();
+    vhost_pc_ack_features(pc, 0); /* probably useless */
 
     return 0;
 }
@@ -245,7 +265,13 @@ static void virtio_pc_reset(VirtIODevice *vdev)
 static uint64_t virtio_pc_get_features(VirtIODevice *vdev, uint64_t features,
                                              Error **errp)
 {
-    return 0;
+    VirtIOProdcons *pc = VIRTIO_PRODCONS(vdev);
+
+    if (!pc->conf.vhost) {
+        return features;
+    }
+
+    return vhost_pc_get_features(pc, features);
 }
 
 static uint64_t virtio_pc_bad_features(VirtIODevice *vdev)
@@ -255,6 +281,13 @@ static uint64_t virtio_pc_bad_features(VirtIODevice *vdev)
 
 static void virtio_pc_set_features(VirtIODevice *vdev, uint64_t features)
 {
+    VirtIOProdcons *pc = VIRTIO_PRODCONS(vdev);
+
+    if (!pc->conf.vhost) {
+        return;
+    }
+
+    vhost_pc_ack_features(pc, features);
 }
 
 #define MAX_BATCH   128
