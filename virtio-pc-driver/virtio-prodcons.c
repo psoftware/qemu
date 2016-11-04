@@ -48,6 +48,7 @@ struct virtpc_info {
 	wait_queue_head_t	wqh;
 	struct virtqueue	*vq;
 	unsigned int		wp;
+	unsigned int		wc;
 	unsigned int		duration;
 	struct scatterlist	sg[10];
 	char			name[40];
@@ -91,11 +92,14 @@ produce(struct virtpc_info *vi)
 	u64 finish;
 	int err;
 
+	/* Compute finish time in stages, to avoid overflow of
+	 * the vi->duration variable. */
 	finish = vi->duration;
 	finish *= 1000000000;
 	finish += next;
 
-	printk("virtpc: producer start Wp=%u ns D=%u s\n", vi->wp, vi->duration);
+	printk("virtpc: producer start Wp=%uns Wc=%uns D=%us\n", vi->wp,
+		vi->wc, vi->duration);
 
 	/* The same buffer is reused. */
 	sg_init_table(vi->sg, 1);
@@ -200,10 +204,16 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 
 	vi->busy = true;
 	vi->wp = pcio.wp;
+	vi->wc = pcio.wc;
 	vi->duration = pcio.duration;
         virtio_cwrite32(vi->vdev, 0 /* offset */, (uint32_t)pcio.wc);
 	mutex_unlock(&lock);
 
+	/* We keep ourself in the wait queue all the time; there is no
+	 * point in paying the cost of dynamically adding/removing us from
+	 * the waitqueue, since we already suppress interrupts using the
+	 * virtqueue (and the waitqueue wakeup is called in the interrupt
+	 * routine). */
 	add_wait_queue(&vi->wqh, &wait);
 	ret = produce(vi);
 	remove_wait_queue(&vi->wqh, &wait);

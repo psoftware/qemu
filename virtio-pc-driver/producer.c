@@ -13,7 +13,7 @@
 static void
 usage(void)
 {
-	printf("producer [-w NANOSECONDS]\n");
+	printf("producer [-p WP_NANOSEC] [-c WC_NANOSEC] [-d DURATION_SEC]\n");
 }
 
 int
@@ -26,24 +26,35 @@ main(int argc, char **argv)
 	int x;
 
 	vio.wp = 150; /* in nanoseconds */
+	vio.wc = 300; /* in nanoseconds */
 	vio.devid = 0;
 	vio.duration = 10; /* in seconds */
 
-	while ((ch = getopt(argc, argv, "hw:d:")) != -1) {
+	while ((ch = getopt(argc, argv, "hp:d:c:")) != -1) {
 		switch (ch) {
 		default:
 		case 'h':
 			usage();
 			return 0;
 
-		case 'w':
+		case 'p':
 			x = atoi(optarg);
 			if (x < 1) {
-				printf("Invalid -w option argument\n");
+				printf("Invalid -p option argument\n");
 				usage();
 				return 0;
 			}
 			vio.wp = (unsigned int)x;
+			break;
+
+		case 'c':
+			x = atoi(optarg);
+			if (x < 1) {
+				printf("Invalid -c option argument\n");
+				usage();
+				return 0;
+			}
+			vio.wc = (unsigned int)x;
 			break;
 
 		case 'd':
