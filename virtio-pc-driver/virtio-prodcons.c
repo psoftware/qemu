@@ -175,7 +175,7 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 	void __user *argp = (void __user *)arg;
 	struct virtpc_info *vi = NULL, *tmp;
 	DECLARE_WAITQUEUE(wait, current);
-	struct virtpc_ioctl pcio;
+	struct virtpc_ioctl_data pcio;
 	int ret = 0;
 
 	(void)cmd;
@@ -201,6 +201,7 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
 	vi->busy = true;
 	vi->wp = pcio.wp;
 	vi->duration = pcio.duration;
+        virtio_cwrite32(vi->vdev, 0 /* offset */, (uint32_t)pcio.wc);
 	mutex_unlock(&lock);
 
 	add_wait_queue(&vi->wqh, &wait);

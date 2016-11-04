@@ -19,7 +19,7 @@ usage(void)
 int
 main(int argc, char **argv)
 {
-	struct virtpc_ioctl vio;
+	struct virtpc_ioctl_data vio;
 	int fd;
 	int ret;
 	int ch;

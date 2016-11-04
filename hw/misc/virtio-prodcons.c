@@ -26,6 +26,11 @@
 #include <linux/kvm.h>
 #include "hw/virtio/vhost.h"
 
+
+struct virtio_pc_config {
+    uint32_t    wc;
+};
+
 /******************************* TSC support ***************************/
 
 /* initialize to avoid a division by 0 */
@@ -83,13 +88,36 @@ tsc_sleep_till(uint64_t when)
 
 /******************************* VHOST support ***************************/
 
+static int virtio_pc_set_wc(VirtIOProdcons *pc, unsigned int wc)
+{
+    struct vhost_vring_file file;
+    int r;
+
+    pc->wc = wc;
+
+    if (!pc->vhost_running) {
+        return 0;
+    }
+
+    /* We override the VHOST_NET_SET_BACKEND ioctl to pass the
+     * wc parameter to the vhost-pc kernel module. */
+    file.index = 0;
+    file.fd = (int)pc->wc;
+    r = vhost_net_set_backend(&pc->hdev, &file);
+    if (r < 0) {
+        error_report("Error setting wc parameter: %d", -r);
+        exit(EXIT_FAILURE);
+    }
+
+    return 0;
+}
+
 static int vhost_pc_start(VirtIOProdcons *pc)
 {
     VirtIODevice *vdev = VIRTIO_DEVICE(pc);
     BusState *qbus = BUS(qdev_get_parent_bus(DEVICE(vdev)));
     VirtioBusState *vbus = VIRTIO_BUS(qbus);
     VirtioBusClass *k = VIRTIO_BUS_GET_CLASS(vbus);
-    struct vhost_vring_file file;
     int r;
 
     if (pc->vhost_running) {
@@ -120,15 +148,7 @@ static int vhost_pc_start(VirtIOProdcons *pc)
         exit(EXIT_FAILURE);
     }
 
-    /* We override the VHOST_NET_SET_BACKEND ioctl to pass the
-     * wc parameter to the vhost-pc kernel module. */
-    file.index = 0;
-    file.fd = (int)pc->wc;
-    r = vhost_net_set_backend(&pc->hdev, &file);
-    if (r < 0) {
-        error_report("Error setting wc parameter: %d", -r);
-        exit(EXIT_FAILURE);
-    }
+    virtio_pc_set_wc(pc, pc->wc);
 
     printf("vhost-pc started ...\n");
 
@@ -205,6 +225,15 @@ static void virtio_pc_set_status(struct VirtIODevice *vdev, uint8_t status)
     } else {
         vhost_pc_stop(pc);
     }
+}
+
+static void virtio_pc_set_config(VirtIODevice *vdev, const uint8_t *config)
+{
+    VirtIOProdcons *pc = VIRTIO_PRODCONS(vdev);
+    struct virtio_pc_config cfg;
+
+    memcpy(&cfg, config, sizeof(cfg));
+    virtio_pc_set_wc(pc, cfg.wc);
 }
 
 /***********************************************************************/
@@ -364,7 +393,8 @@ static void virtio_pc_device_realize(DeviceState *dev, Error **errp)
     VirtIODevice *vdev = VIRTIO_DEVICE(dev);
     VirtIOProdcons *pc = VIRTIO_PRODCONS(dev);
 
-    virtio_init(vdev, "virtio-prodcons", VIRTIO_ID_PRODCONS, 0 /* config size */);
+    virtio_init(vdev, "virtio-prodcons", VIRTIO_ID_PRODCONS,
+                sizeof(struct virtio_pc_config));
 
     pc->qdev = dev;
     pc->dvq = virtio_add_queue(vdev, pc->conf.l, virtio_pc_dvq_handler);
@@ -426,6 +456,7 @@ static void virtio_pc_class_init(ObjectClass *klass, void *data)
     set_bit(DEVICE_CATEGORY_MISC, dc->categories);
     vdc->realize = virtio_pc_device_realize;
     vdc->unrealize = virtio_pc_device_unrealize;
+    vdc->set_config = virtio_pc_set_config;
     vdc->get_features = virtio_pc_get_features;
     vdc->set_features = virtio_pc_set_features;
     vdc->bad_features = virtio_pc_bad_features;
