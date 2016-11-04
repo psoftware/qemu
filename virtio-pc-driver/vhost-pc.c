@@ -23,7 +23,6 @@ struct vhost_pc {
     u64                     kicks;
     u64                     last_dump;
     u64                     next_dump;
-    struct vhost_poll       poll; /* it should be useless */
 };
 
 /* Expects to be always run from workqueue - which acts as
@@ -97,13 +96,6 @@ static void handle_tx_kick(struct vhost_work *work)
     handle_tx(pc);
 }
 
-static void handle_tx_poll(struct vhost_work *work)
-{
-    struct vhost_pc *pc = container_of(work, struct vhost_pc,
-            poll.work);
-    handle_tx(pc);
-}
-
 static int vhost_pc_open(struct inode *inode, struct file *f)
 {
     struct vhost_pc *pc;
@@ -128,8 +120,6 @@ static int vhost_pc_open(struct inode *inode, struct file *f)
     pc->vq.handle_kick = handle_tx_kick;
     vhost_dev_init(hdev, vqs, 1);
 
-    vhost_poll_init(&pc->poll, handle_tx_poll, POLLOUT, hdev);
-
     f->private_data = pc;
 
     return 0;
@@ -137,7 +127,6 @@ static int vhost_pc_open(struct inode *inode, struct file *f)
 
 static void vhost_pc_flush(struct vhost_pc *pc)
 {
-    vhost_poll_flush(&pc->poll);
     vhost_poll_flush(&pc->vq.poll);
 }
 
