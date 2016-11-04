@@ -15,7 +15,7 @@ usage(void)
 {
 	printf("producer [-p WP_NANOSEC] [-c WC_NANOSEC] "
                         "[-P YP_NANOSEC] [-C YC_NANOSEC] "
-                        "[-d DURATION_SEC]\n");
+                        "[-d DURATION_SEC] [-s]\n");
 }
 
 static unsigned int
@@ -46,14 +46,19 @@ main(int argc, char **argv)
 	vio.yp = 5000; /* in nanoseconds */
 	vio.yc = 5000; /* in nanoseconds */
 	vio.duration = 15; /* in seconds */
+        vio.sleeping = 0; /* producer don't use sleeping */
 	vio.devid = 0;
 
-	while ((ch = getopt(argc, argv, "hp:d:c:P:C:")) != -1) {
+	while ((ch = getopt(argc, argv, "hsp:d:c:P:C:")) != -1) {
 		switch (ch) {
 		default:
 		case 'h':
 			usage();
 			return 0;
+
+                case 's':
+                        vio.sleeping = 1;
+                        break;
 
 		case 'p':
                         vio.wp = parseuint(optarg);

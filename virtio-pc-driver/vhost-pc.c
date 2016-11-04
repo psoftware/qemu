@@ -13,6 +13,11 @@
 
 #include "vhost.h"
 
+static int sleeping = 0;
+module_param(sleeping, int, 0644);
+MODULE_PARM_DESC(sleeping, "Enable sleeping synchronization "
+                           "(0=disabled, 1=enabled)");
+
 #define VHOST_PC_FEATURES   VHOST_FEATURES
 
 struct vhost_pc {

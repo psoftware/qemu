@@ -40,19 +40,20 @@ static LIST_HEAD(virtpc_devs);
 DEFINE_MUTEX(lock);
 
 struct virtpc_info {
-    struct virtio_device	*vdev;
-    struct list_head	node;
+    struct virtio_device        *vdev;
+    struct list_head	        node;
     unsigned int		devid;
     bool			busy;
 
-    wait_queue_head_t	wqh;
-    struct virtqueue	*vq;
+    wait_queue_head_t	        wqh;
+    struct virtqueue	        *vq;
     unsigned int		wp;
     unsigned int		wc;
-    unsigned int            yp;
-    unsigned int            yc;
+    unsigned int                yp;
+    unsigned int                yc;
+    unsigned int                sleeping;
     unsigned int		duration;
-    struct scatterlist	sg[10];
+    struct scatterlist	        sg[10];
     char			name[40];
     char			*buf[2048];
 };
@@ -148,10 +149,8 @@ produce(struct virtpc_info *vi)
                 virtqueue_disable_cb(vq);
                 set_current_state(TASK_RUNNING);
             } else {
-                //printk("sleep %u\n", vq->num_free);
                 schedule();
                 cleanup_items(vi, THR);
-                //printk("waken up %u\n", vq->num_free);
             }
         }
     }
@@ -217,6 +216,7 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
     vi->wc = pcio.wc;
     vi->yp = pcio.yp;
     vi->yc = pcio.yc;
+    vi->sleeping = pcio.sleeping;
     vi->duration = pcio.duration;
     virtio_cwrite32(vi->vdev, 0 /* offset */, (uint32_t)pcio.wc);
     virtio_cwrite32(vi->vdev, 4 /* offset */, (uint32_t)pcio.yc);
