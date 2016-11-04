@@ -72,7 +72,8 @@ static void consume(struct vhost_work *work)
         printk("msglen %d\n", (int)iov_length(vq->iov, out));
 #endif
 
-        vhost_add_used_and_signal(&pc->hdev, vq, head, 0);
+        vhost_add_used(vq, head, 0);
+        vhost_signal(&pc->hdev, vq);
         pc->items ++;
 
         if (unlikely(next > pc->next_dump)) {
