@@ -68,7 +68,6 @@ items_consumed(struct virtqueue *vq)
 
     /* Suppress further interrupts and wake up the producer. */
     virtqueue_disable_cb(vq);
-    //printk("wakeup\n");
     wake_up_interruptible(&vi->wqh);
 }
 
@@ -109,7 +108,9 @@ produce(struct virtpc_info *vi)
     /* The same buffer is reused. */
     sg_init_table(vi->sg, 1);
     sg_set_buf(vi->sg, vi->buf, 16);
+
     cleanup_items(vi, ~0U);
+    virtqueue_enable_cb(vq);
 
     for (;;) {
         if (unlikely(signal_pending(current) || next > finish)) {
@@ -140,22 +141,26 @@ produce(struct virtpc_info *vi)
         next = ktime_get_ns() + vi->wp;
 
         if (vq->num_free < THR) {
-            set_current_state(TASK_INTERRUPTIBLE);
-            if (!virtqueue_enable_cb_delayed(vq)) {
-                /* More just got used, free them then recheck. */
-                cleanup_items(vi, THR);
-            }
-            if (vq->num_free >= THR) {
-                virtqueue_disable_cb(vq);
-                set_current_state(TASK_RUNNING);
+            if (vi->sleeping) {
+                usleep_range(vi->yp, vi->yp);
             } else {
-                schedule();
-                cleanup_items(vi, THR);
+                set_current_state(TASK_INTERRUPTIBLE);
+                if (!virtqueue_enable_cb_delayed(vq)) {
+                    /* More just got used, free them then recheck. */
+                    cleanup_items(vi, THR);
+                }
+                if (vq->num_free >= THR) {
+                    virtqueue_disable_cb(vq);
+                    set_current_state(TASK_RUNNING);
+                } else {
+                    schedule();
+                }
             }
         }
     }
 
     cleanup_items(vi, ~0U);
+    virtqueue_enable_cb(vq);
 
     return 0;
 }
