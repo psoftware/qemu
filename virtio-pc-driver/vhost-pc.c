@@ -16,9 +16,10 @@
 #define VHOST_PC_FEATURES   VHOST_FEATURES
 
 struct vhost_pc {
-	struct vhost_dev dev;
-	struct vhost_virtqueue vq;
-	struct vhost_poll poll; /* it should be useless */
+	struct vhost_dev        hdev;
+	struct vhost_virtqueue  vq;
+        unsigned int            wc;
+	struct vhost_poll       poll; /* it should be useless */
 };
 
 /* Expects to be always run from workqueue - which acts as
@@ -26,17 +27,20 @@ struct vhost_pc {
 static void handle_tx(struct vhost_pc *pc)
 {
 	struct vhost_virtqueue *vq = &pc->vq;
+	u64 next = ktime_get_ns();
 	unsigned out, in;
 	int head;
-	size_t len, total_len = 0;
 
-        printk("virtpc: handle_tx\n");
+        //printk("virtpc: handle_tx\n");
 
 	mutex_lock(&vq->mutex);
 
-	vhost_disable_notify(&pc->dev, vq);
+	vhost_disable_notify(&pc->hdev, vq);
 
 	for (;;) {
+		while (ktime_get_ns() < next) ;
+		next = ktime_get_ns() + pc->wc;
+
                 head = vhost_get_vq_desc(vq, vq->iov, ARRAY_SIZE(vq->iov),
                                          &out, &in, NULL, NULL);
 		/* On error, stop handling until the next kick. */
@@ -44,8 +48,8 @@ static void handle_tx(struct vhost_pc *pc)
 			break;
 		/* Nothing new?  Wait for eventfd to tell us they refilled. */
 		if (head == vq->num) {
-			if (unlikely(vhost_enable_notify(&pc->dev, vq))) {
-				vhost_disable_notify(&pc->dev, vq);
+			if (unlikely(vhost_enable_notify(&pc->hdev, vq))) {
+				vhost_disable_notify(&pc->hdev, vq);
 				continue;
 			}
 			break;
@@ -55,11 +59,11 @@ static void handle_tx(struct vhost_pc *pc)
 			       "out %d, int %d\n", out, in);
 			break;
 		}
-		len = iov_length(vq->iov, out);
-                printk("msglen %d\n", (int)len);
+#if 0
+                printk("msglen %d\n", (int)iov_length(vq->iov, out));
+#endif
 
-		vhost_add_used_and_signal(&pc->dev, vq, head, 0);
-		total_len += len;
+		vhost_add_used_and_signal(&pc->hdev, vq, head, 0);
 	}
 	mutex_unlock(&vq->mutex);
 }
@@ -68,7 +72,7 @@ static void handle_tx_kick(struct vhost_work *work)
 {
 	struct vhost_virtqueue *vq = container_of(work, struct vhost_virtqueue,
 						  poll.work);
-	struct vhost_pc *pc = container_of(vq->dev, struct vhost_pc, dev);
+	struct vhost_pc *pc = container_of(vq->dev, struct vhost_pc, hdev);
 
 	handle_tx(pc);
 }
@@ -83,7 +87,7 @@ static void handle_tx_poll(struct vhost_work *work)
 static int vhost_pc_open(struct inode *inode, struct file *f)
 {
 	struct vhost_pc *pc;
-	struct vhost_dev *dev;
+	struct vhost_dev *hdev;
 	struct vhost_virtqueue **vqs;
 
 	pc= kmalloc(sizeof *pc, GFP_KERNEL | __GFP_NOWARN | __GFP_REPEAT);
@@ -98,12 +102,13 @@ static int vhost_pc_open(struct inode *inode, struct file *f)
 		return -ENOMEM;
 	}
 
-	dev = &pc->dev;
+        pc->wc = 2000;
+	hdev = &pc->hdev;
 	vqs[0] = &pc->vq;
 	pc->vq.handle_kick = handle_tx_kick;
-	vhost_dev_init(dev, vqs, 1);
+	vhost_dev_init(hdev, vqs, 1);
 
-	vhost_poll_init(&pc->poll, handle_tx_poll, POLLOUT, dev);
+	vhost_poll_init(&pc->poll, handle_tx_poll, POLLOUT, hdev);
 
 	f->private_data = pc;
 
@@ -121,14 +126,14 @@ static int vhost_pc_release(struct inode *inode, struct file *f)
 	struct vhost_pc *pc = f->private_data;
 
 	vhost_pc_flush(pc);
-	vhost_dev_stop(&pc->dev);
-	vhost_dev_cleanup(&pc->dev, false);
+	vhost_dev_stop(&pc->hdev);
+	vhost_dev_cleanup(&pc->hdev, false);
 	/* Make sure no callbacks are outstanding */
 	synchronize_rcu_bh();
 	/* We do an extra flush before freeing memory,
 	 * since jobs can re-queue themselves. */
 	vhost_pc_flush(pc);
-	kfree(pc->dev.vqs);
+	kfree(pc->hdev.vqs);
 	kvfree(pc);
 	return 0;
 }
@@ -138,8 +143,8 @@ static long vhost_pc_reset_owner(struct vhost_pc *pc)
 	struct vhost_memory *memory;
 	long err;
 
-	mutex_lock(&pc->dev.mutex);
-	err = vhost_dev_check_owner(&pc->dev);
+	mutex_lock(&pc->hdev.mutex);
+	err = vhost_dev_check_owner(&pc->hdev);
 	if (err)
 		goto done;
 	memory = vhost_dev_reset_owner_prepare();
@@ -148,24 +153,24 @@ static long vhost_pc_reset_owner(struct vhost_pc *pc)
 		goto done;
 	}
 	vhost_pc_flush(pc);
-	vhost_dev_reset_owner(&pc->dev, memory);
+	vhost_dev_reset_owner(&pc->hdev, memory);
 done:
-	mutex_unlock(&pc->dev.mutex);
+	mutex_unlock(&pc->hdev.mutex);
 	return err;
 }
 
 static int vhost_pc_set_features(struct vhost_pc *pc, u64 features)
 {
-	mutex_lock(&pc->dev.mutex);
+	mutex_lock(&pc->hdev.mutex);
 	if ((features & (1 << VHOST_F_LOG_ALL)) &&
-	    !vhost_log_access_ok(&pc->dev)) {
-		mutex_unlock(&pc->dev.mutex);
+	    !vhost_log_access_ok(&pc->hdev)) {
+		mutex_unlock(&pc->hdev.mutex);
 		return -EFAULT;
 	}
         mutex_lock(&pc->vq.mutex);
         pc->vq.acked_features = features;
         mutex_unlock(&pc->vq.mutex);
-	mutex_unlock(&pc->dev.mutex);
+	mutex_unlock(&pc->hdev.mutex);
 	return 0;
 }
 
@@ -173,17 +178,17 @@ static long vhost_pc_set_owner(struct vhost_pc *pc)
 {
 	int r;
 
-	mutex_lock(&pc->dev.mutex);
-	if (vhost_dev_has_owner(&pc->dev)) {
+	mutex_lock(&pc->hdev.mutex);
+	if (vhost_dev_has_owner(&pc->hdev)) {
 		r = -EBUSY;
 		goto out;
 	}
-	r = vhost_dev_set_owner(&pc->dev);
+	r = vhost_dev_set_owner(&pc->hdev);
 	if (r)
                 goto out;
 	vhost_pc_flush(pc);
 out:
-	mutex_unlock(&pc->dev.mutex);
+	mutex_unlock(&pc->hdev.mutex);
 	return r;
 }
 
@@ -217,13 +222,13 @@ static long vhost_pc_ioctl(struct file *f, unsigned int ioctl,
                 printk("virtpc: SET OWNER\n");
 		return vhost_pc_set_owner(pc);
 	default:
-		mutex_lock(&pc->dev.mutex);
-		r = vhost_dev_ioctl(&pc->dev, ioctl, argp);
+		mutex_lock(&pc->hdev.mutex);
+		r = vhost_dev_ioctl(&pc->hdev, ioctl, argp);
 		if (r == -ENOIOCTLCMD)
-			r = vhost_vring_ioctl(&pc->dev, ioctl, argp);
+			r = vhost_vring_ioctl(&pc->hdev, ioctl, argp);
 		else
 			vhost_pc_flush(pc);
-		mutex_unlock(&pc->dev.mutex);
+		mutex_unlock(&pc->hdev.mutex);
 		return r;
 	}
 }
