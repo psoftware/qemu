@@ -85,9 +85,16 @@ retry:
 
         vhost_add_used(vq, head, 0);
         pc->items ++;
-        while (ktime_get_ns() < next) ;
         vhost_signal(&pc->hdev, vq);
-        next = ktime_get_ns() + pc->wc;
+        while (ktime_get_ns() < next) ;
+        next += pc->wc;
+        if (ktime_get_ns() > next) {
+            /* This typically happens if vhost_signal() above actually sent
+             * a costly notification. In this case we need to reset next to
+             * correctly emulate the consumption of the first item after
+             * the notification. */
+            next = ktime_get_ns() + pc->wc;
+        }
 
         if (unlikely(next > pc->next_dump)) {
             u64 ndiff = ktime_get_ns() - pc->last_dump;

@@ -137,10 +137,14 @@ produce(struct virtpc_info *vi)
 
         kick = virtqueue_kick_prepare(vq);
         while (ktime_get_ns() < next) ;
+        next += vi->wp;
         if (kick) {
             virtqueue_notify(vq);
+            /* When the costly notification routine returns, we need to
+             * reset next to correctly emulate the production of the
+             * next item. */
+            next = ktime_get_ns() + vi->wp;
         }
-        next = ktime_get_ns() + vi->wp;
 
         if (vq->num_free < THR) {
             if (vi->sleeping) {
