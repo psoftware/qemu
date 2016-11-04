@@ -119,7 +119,7 @@ produce(struct virtpc_info *vi)
             return -EAGAIN;
         }
 
-        cleanup_items(vi, 2);
+        cleanup_items(vi, THR);
 
         while (ktime_get_ns() < next) ;
         next = ktime_get_ns() + vi->wp;
@@ -138,7 +138,7 @@ produce(struct virtpc_info *vi)
             set_current_state(TASK_INTERRUPTIBLE);
             if (!virtqueue_enable_cb_delayed(vq)) {
                 /* More just got used, free them then recheck. */
-                cleanup_items(vi, 2);
+                cleanup_items(vi, THR);
             }
             if (vq->num_free >= THR) {
                 virtqueue_disable_cb(vq);
@@ -146,7 +146,7 @@ produce(struct virtpc_info *vi)
             } else {
                 //printk("sleep %u\n", vq->num_free);
                 schedule();
-                cleanup_items(vi, 2);
+                cleanup_items(vi, THR);
                 //printk("waken up %u\n", vq->num_free);
             }
         }
