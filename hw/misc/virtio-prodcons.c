@@ -80,7 +80,8 @@ tsc_sleep_till(uint64_t when)
     while (rdtsc() < when)
         barrier();
 }
-/***********************************************************************/
+
+/******************************* VHOST support ***************************/
 
 static int vhost_pc_start(VirtIOProdcons *pc)
 {
@@ -88,6 +89,7 @@ static int vhost_pc_start(VirtIOProdcons *pc)
     BusState *qbus = BUS(qdev_get_parent_bus(DEVICE(vdev)));
     VirtioBusState *vbus = VIRTIO_BUS(qbus);
     VirtioBusClass *k = VIRTIO_BUS_GET_CLASS(vbus);
+    struct vhost_vring_file file;
     int r;
 
     if (pc->vhost_running) {
@@ -118,7 +120,15 @@ static int vhost_pc_start(VirtIOProdcons *pc)
         exit(EXIT_FAILURE);
     }
 
-    //vhost_set_backend
+    /* We override the VHOST_NET_SET_BACKEND ioctl to pass the
+     * wc parameter to the vhost-pc kernel module. */
+    file.index = 0;
+    file.fd = (int)pc->wc;
+    r = vhost_net_set_backend(&pc->hdev, &file);
+    if (r < 0) {
+        error_report("Error setting wc parameter: %d", -r);
+        exit(EXIT_FAILURE);
+    }
 
     printf("vhost-pc started ...\n");
 
@@ -136,8 +146,6 @@ static int vhost_pc_stop(VirtIOProdcons *pc)
     if (!pc->vhost_running) {
         return 0;
     }
-
-    //vhost_set_backend
 
     vhost_dev_stop(&pc->hdev, vdev);
     vhost_dev_disable_notifiers(&pc->hdev, vdev);
@@ -188,8 +196,6 @@ static void virtio_pc_set_status(struct VirtIODevice *vdev, uint8_t status)
 {
     VirtIOProdcons *pc = VIRTIO_PRODCONS(vdev);
 
-    printf("SET STATUS %u\n", status);
-
     if (!pc->conf.vhost) {
         return;
     }
@@ -200,6 +206,8 @@ static void virtio_pc_set_status(struct VirtIODevice *vdev, uint8_t status)
         vhost_pc_stop(pc);
     }
 }
+
+/***********************************************************************/
 
 static void virtio_pc_reset(VirtIODevice *vdev)
 {

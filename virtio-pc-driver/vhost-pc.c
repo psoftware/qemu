@@ -18,7 +18,7 @@
 struct vhost_pc {
     struct vhost_dev        hdev;
     struct vhost_virtqueue  vq;
-    unsigned int            wc;
+    unsigned int            wc; /* in nanoseconds */
     u64                     items;
     u64                     kicks;
     u64                     last_dump;
@@ -121,7 +121,7 @@ static int vhost_pc_open(struct inode *inode, struct file *f)
         return -ENOMEM;
     }
 
-    pc->wc = 2000;
+    pc->wc = 2000; /* default to 2 microseconds */
     pc->last_dump = pc->next_dump = ktime_get_ns();
     hdev = &pc->hdev;
     vqs[0] = &pc->vq;
@@ -218,20 +218,31 @@ static long vhost_pc_ioctl(struct file *f, unsigned int ioctl,
     struct vhost_pc *pc = f->private_data;
     void __user *argp = (void __user *)arg;
     u64 __user *featurep = argp;
+    struct vhost_vring_file file;
     u64 features;
     int r;
 
     switch (ioctl) {
+        case VHOST_NET_SET_BACKEND:
+            if (copy_from_user(&file, argp, sizeof(file))) {
+                return -EFAULT;
+            }
+            if (file.index != 0) {
+                printk("virtpc: wrong index %d\n", file.index);
+            }
+            pc->wc = (unsigned int)file.fd;
+            printk("virtpc: setting Wc = %u ns\n", pc->wc);
+            return 0;
         case VHOST_GET_FEATURES:
-            printk("virtpc: GET_FEATURES\n");
             features = VHOST_PC_FEATURES;
             if (copy_to_user(featurep, &features, sizeof features))
                 return -EFAULT;
+            printk("virtpc: GET_FEATURES %lx\n", (long unsigned)features);
             return 0;
         case VHOST_SET_FEATURES:
-            printk("virtpc: SET_FEATURES\n");
             if (copy_from_user(&features, featurep, sizeof features))
                 return -EFAULT;
+            printk("virtpc: SET_FEATURES %lx\n", (long unsigned)features);
             if (features & ~VHOST_PC_FEATURES)
                 return -EOPNOTSUPP;
             return vhost_pc_set_features(pc, features);
