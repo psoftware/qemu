@@ -91,7 +91,7 @@ static int
 produce(struct virtpc_info *vi)
 {
     struct virtqueue *vq = vi->vq;
-    u64 next = ktime_get_ns();
+    u64 next;
     u64 finish;
     bool kick;
     int err;
@@ -100,7 +100,7 @@ produce(struct virtpc_info *vi)
      * the vi->duration variable. */
     finish = vi->duration;
     finish *= 1000000000;
-    finish += next;
+    finish += ktime_get_ns();
 
     printk("virtpc: producer start Wp=%uns Wc=%uns Yp=%uns Yc=%uns D=%us\n",
             vi->wp, vi->wc, vi->yp, vi->yc, vi->duration);
@@ -111,6 +111,8 @@ produce(struct virtpc_info *vi)
 
     cleanup_items(vi, ~0U);
     virtqueue_enable_cb(vq);
+
+    next = ktime_get_ns() + vi->wp;
 
     for (;;) {
         if (unlikely(signal_pending(current) || next > finish)) {
