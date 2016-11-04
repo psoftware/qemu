@@ -142,7 +142,11 @@ produce(struct virtpc_info *vi)
 
         if (vq->num_free < THR) {
             if (vi->sleeping) {
-                usleep_range(vi->yp, vi->yp);
+                do {
+                    usleep_range(vi->yp, vi->yp);
+                    cleanup_items(vi, THR);
+                } while (vq->num_free < THR);
+
             } else {
                 set_current_state(TASK_INTERRUPTIBLE);
                 if (!virtqueue_enable_cb_delayed(vq)) {
@@ -154,6 +158,9 @@ produce(struct virtpc_info *vi)
                     set_current_state(TASK_RUNNING);
                 } else {
                     schedule();
+                    /* We assume that after the wake up here at
+                     * last one item will be recovered by the call to
+                     * cleanup_items(). */
                 }
             }
         }
