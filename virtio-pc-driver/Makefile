@@ -1,15 +1,15 @@
 KER=`uname -r`
 
-obj-m += virtio-prodcons.o
-obj-m += vhost-pc.o
+obj-m += producer.o
+obj-m += consumer.o
 
-all: ker producer
+all: ker test
 
 ker:
 	make -C /lib/modules/$(KER)/build M=$(PWD) modules
 
-producer: producer.c
-	gcc -g -Wall -o producer producer.c
+test: test.c
+	gcc -g -Wall -o test test.c
 
 clean: cker cusr
 
@@ -17,4 +17,4 @@ cker:
 	make -C /lib/modules/$(KER)/build M=$(PWD) clean
 
 cusr:
-	-rm -f producer
+	-rm -f test
