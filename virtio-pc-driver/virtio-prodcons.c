@@ -72,12 +72,13 @@ items_consumed(struct virtqueue *vq)
 }
 
 static void
-cleanup_items(struct virtpc_info *vi)
+cleanup_items(struct virtpc_info *vi, int num)
 {
     void *cookie;
     unsigned int len;
 
-    while ((cookie = virtqueue_get_buf(vi->vq, &len)) != NULL) {
+    while (num && (cookie = virtqueue_get_buf(vi->vq, &len)) != NULL) {
+        --num;
 #ifdef DBG
         printk("virtpc: virtqueue_get_buf --> %p\n", cookie);
 #endif
@@ -106,6 +107,7 @@ produce(struct virtpc_info *vi)
     /* The same buffer is reused. */
     sg_init_table(vi->sg, 1);
     sg_set_buf(vi->sg, vi->buf, 16);
+    cleanup_items(vi, ~0U);
 
     for (;;) {
         if (unlikely(signal_pending(current) || next > finish)) {
@@ -117,7 +119,7 @@ produce(struct virtpc_info *vi)
             return -EAGAIN;
         }
 
-        cleanup_items(vi);
+        cleanup_items(vi, 2);
 
         while (ktime_get_ns() < next) ;
         next = ktime_get_ns() + vi->wp;
@@ -136,7 +138,7 @@ produce(struct virtpc_info *vi)
             set_current_state(TASK_INTERRUPTIBLE);
             if (!virtqueue_enable_cb_delayed(vq)) {
                 /* More just got used, free them then recheck. */
-                cleanup_items(vi);
+                cleanup_items(vi, 2);
             }
             if (vq->num_free >= THR) {
                 virtqueue_disable_cb(vq);
@@ -144,11 +146,13 @@ produce(struct virtpc_info *vi)
             } else {
                 //printk("sleep %u\n", vq->num_free);
                 schedule();
-                cleanup_items(vi);
+                cleanup_items(vi, 2);
                 //printk("waken up %u\n", vq->num_free);
             }
         }
     }
+
+    cleanup_items(vi, ~0U);
 
     return 0;
 }
