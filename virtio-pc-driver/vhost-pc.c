@@ -19,6 +19,10 @@ struct vhost_pc {
     struct vhost_dev        hdev;
     struct vhost_virtqueue  vq;
     unsigned int            wc;
+    u64                     items;
+    u64                     kicks;
+    u64                     last_dump;
+    u64                     next_dump;
     struct vhost_poll       poll; /* it should be useless */
 };
 
@@ -34,6 +38,8 @@ static void handle_tx(struct vhost_pc *pc)
     //printk("virtpc: handle_tx\n");
 
     mutex_lock(&vq->mutex);
+
+    pc->kicks++;
 
     vhost_disable_notify(&pc->hdev, vq);
 
@@ -64,6 +70,20 @@ static void handle_tx(struct vhost_pc *pc)
 #endif
 
         vhost_add_used_and_signal(&pc->hdev, vq, head, 0);
+        pc->items ++;
+
+        if (unlikely(next > pc->next_dump)) {
+            u64 ndiff = ktime_get_ns() - pc->last_dump;
+
+            printk("PC: %llu items/s %llu kicks/s\n",
+                    (pc->items * 1000000000)/ndiff,
+                    (pc->kicks * 1000000000)/ndiff);
+
+            pc->items = pc->kicks = 0;
+
+            pc->last_dump = ktime_get_ns();
+            pc->next_dump = pc->last_dump + 1000000000;
+        }
     }
     mutex_unlock(&vq->mutex);
 }
@@ -90,12 +110,11 @@ static int vhost_pc_open(struct inode *inode, struct file *f)
     struct vhost_dev *hdev;
     struct vhost_virtqueue **vqs;
 
-    pc= kmalloc(sizeof *pc, GFP_KERNEL | __GFP_NOWARN | __GFP_REPEAT);
+    pc = kmalloc(sizeof *pc, GFP_KERNEL | __GFP_NOWARN | __GFP_REPEAT);
     if (!pc) {
-        pc = vmalloc(sizeof *pc);
-        if (!pc)
-            return -ENOMEM;
+        return -ENOMEM;
     }
+    memset(pc, 0, sizeof(*pc));
     vqs = kmalloc(1 * sizeof(*vqs), GFP_KERNEL);
     if (!vqs) {
         kvfree(pc);
@@ -103,6 +122,7 @@ static int vhost_pc_open(struct inode *inode, struct file *f)
     }
 
     pc->wc = 2000;
+    pc->last_dump = pc->next_dump = ktime_get_ns();
     hdev = &pc->hdev;
     vqs[0] = &pc->vq;
     pc->vq.handle_kick = handle_tx_kick;
