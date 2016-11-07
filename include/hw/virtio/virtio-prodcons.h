@@ -16,6 +16,14 @@ typedef struct virtio_pc_conf
     uint32_t    l;
 } virtio_pc_conf;
 
+/* Layout of the virtio-prodcons config space */
+struct virtio_pc_config {
+    uint32_t    wc;
+    uint32_t    yc;
+    uint32_t    csleep;
+    uint32_t    incsc;
+};
+
 typedef struct VirtIOProdcons {
     VirtIODevice parent_obj;
     struct vhost_dev hdev;
@@ -28,8 +36,7 @@ typedef struct VirtIOProdcons {
         uint64_t    next_dump;
         uint64_t    last_dump;
     } stats;
-    unsigned int wc;
-    unsigned int yc;
+    struct virtio_pc_config cfg;
     VirtQueue *dvq;
     QEMUBH *bh;
     int dvq_pending;

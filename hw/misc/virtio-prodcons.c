@@ -25,12 +25,8 @@
 #include <linux/vhost.h>
 #include <linux/kvm.h>
 #include "hw/virtio/vhost.h"
+#include "virtio-pc-driver/producer.h"
 
-
-struct virtio_pc_config {
-    uint32_t    wc;
-    uint32_t    yc;
-};
 
 /******************************* TSC support ***************************/
 
@@ -89,27 +85,38 @@ tsc_sleep_till(uint64_t when)
 
 /******************************* VHOST support ***************************/
 
-static int virtio_pc_set_params(VirtIOProdcons *pc, unsigned int wc,
-                                unsigned int yc)
+static int virtio_pc_set_params(VirtIOProdcons *pc)
 {
     struct vhost_vring_file file;
+    unsigned int params[] = {
+                        VPC_WC,
+                        VPC_YC,
+                        VPC_CSLEEP,
+                        VPC_INCSC,
+                };
+    unsigned int values[] = {
+                        pc->cfg.wc,
+                        pc->cfg.yc,
+                        pc->cfg.csleep,
+                        pc->cfg.incsc,
+                };
+    unsigned int i;
     int r;
-
-    pc->wc = wc;
-    pc->yc = yc;
 
     if (!pc->vhost_running) {
         return 0;
     }
 
-    /* We override the VHOST_NET_SET_BACKEND ioctl to pass the
-     * wc parameter to the vhost-pc kernel module. */
-    file.index = pc->wc;
-    file.fd = (int)pc->yc;
-    r = vhost_net_set_backend(&pc->hdev, &file);
-    if (r < 0) {
-        error_report("Error setting wc parameter: %d", -r);
-        exit(EXIT_FAILURE);
+    for (i = 0; i < sizeof(params)/sizeof(params[0]); i++) {
+        /* We override the VHOST_NET_SET_BACKEND ioctl to pass the
+         * wc parameter to the vhost-pc kernel module. */
+        file.index = params[i];
+        file.fd = (int)values[i];
+        r = vhost_net_set_backend(&pc->hdev, &file);
+        if (r < 0) {
+            error_report("Error setting wc parameter: %d", -r);
+            exit(EXIT_FAILURE);
+        }
     }
 
     return 0;
@@ -171,7 +178,7 @@ static int vhost_pc_start(VirtIOProdcons *pc)
         exit(EXIT_FAILURE);
     }
 
-    virtio_pc_set_params(pc, pc->wc, pc->yc);
+    virtio_pc_set_params(pc);
 
     printf("vhost-pc started ...\n");
 
@@ -253,10 +260,9 @@ static void virtio_pc_set_status(struct VirtIODevice *vdev, uint8_t status)
 static void virtio_pc_set_config(VirtIODevice *vdev, const uint8_t *config)
 {
     VirtIOProdcons *pc = VIRTIO_PRODCONS(vdev);
-    struct virtio_pc_config cfg;
 
-    memcpy(&cfg, config, sizeof(cfg));
-    virtio_pc_set_params(pc, cfg.wc, cfg.yc);
+    memcpy(&pc->cfg, config, sizeof(pc->cfg));
+    virtio_pc_set_params(pc);
 }
 
 /***********************************************************************/
@@ -305,7 +311,7 @@ static unsigned int virtio_pc_dvq_flush(VirtIOProdcons *pc)
         VirtQueueElement *elem;
 
         tsc_sleep_till(next);
-        next = rdtsc() + NS2TSC(pc->wc);
+        next = rdtsc() + NS2TSC(pc->cfg.wc);
 
         elem = virtqueue_pop(pc->dvq, sizeof(VirtQueueElement));
         if (!elem) {
@@ -435,8 +441,8 @@ static void virtio_pc_device_realize(DeviceState *dev, Error **errp)
     pc->qdev = dev;
     pc->dvq = virtio_add_queue(vdev, pc->conf.l, virtio_pc_dvq_handler);
     pc->dvq_pending = 0;
-    pc->wc = pc->conf.wc;
-    pc->yc = pc->conf.yc;
+    pc->cfg.wc = pc->conf.wc;
+    pc->cfg.yc = pc->conf.yc;
     calibrate_tsc(); /* this could be done only once for all devices */
     pc->stats.last_dump = pc->stats.next_dump = rdtsc();
     pc->bh = qemu_bh_new(virtio_pc_dvq_bh, pc);

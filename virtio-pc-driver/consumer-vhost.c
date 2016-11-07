@@ -13,11 +13,8 @@
 #include <linux/vmalloc.h>
 
 #include "vhost.h"
+#include "producer.h"
 
-static int sleeping = 0;
-module_param(sleeping, int, 0644);
-MODULE_PARM_DESC(sleeping, "Enable sleeping synchronization "
-                           "(0=disabled, 1=enabled)");
 
 #define VHOST_PC_FEATURES   VHOST_FEATURES
 
@@ -26,6 +23,8 @@ struct vhost_pc {
     struct vhost_virtqueue  vq;
     unsigned int            wc; /* in nanoseconds */
     unsigned int            yc; /* in nanoseconds */
+    unsigned int            csleep; /* boolean */
+    unsigned int            incsc; /* in nanoseconds */
     u64                     items;
     u64                     kicks;
     u64                     last_dump;
@@ -61,7 +60,7 @@ retry:
         /* Nothing new?  Wait for eventfd to tell us they refilled, or
          * sleep for a short while. */
         if (head == vq->num) {
-            if (sleeping) {
+            if (pc->csleep) {
                 /* Taken from usleep_range */
                 ktime_t to = ktime_set(0, pc->yc);
                 __set_current_state(TASK_UNINTERRUPTIBLE);
@@ -145,10 +144,8 @@ static int vhost_pc_open(struct inode *inode, struct file *f)
 
 static void vhost_pc_flush(struct vhost_pc *pc)
 {
-    int s = sleeping;
-    sleeping = 0;
+    pc->csleep = 0;
     vhost_poll_flush(&pc->vq.poll);
-    sleeping = s;
 }
 
 static int vhost_pc_release(struct inode *inode, struct file *f)
@@ -237,9 +234,31 @@ static long vhost_pc_ioctl(struct file *f, unsigned int ioctl,
             if (copy_from_user(&file, argp, sizeof(file))) {
                 return -EFAULT;
             }
-            pc->wc = file.index;
-            pc->yc = (unsigned int)file.fd;
-            printk("virtpc: setting Wc=%uns Yc=%uns\n", pc->wc, pc->yc);
+            switch (file.index) {
+                case VPC_WC:
+                    pc->wc = (unsigned int)file.fd;
+                    printk("virtpc: set Wc=%uns\n", pc->wc);
+                    break;
+
+                case VPC_YC:
+                    pc->yc = (unsigned int)file.fd;
+                    printk("virtpc: set Yc=%uns\n", pc->yc);
+                    break;
+
+                case VPC_CSLEEP:
+                    pc->csleep = (unsigned int)file.fd;
+                    printk("virtpc: set csleep=%u\n", pc->csleep);
+                    break;
+
+                case VPC_INCSC:
+                    pc->incsc = (unsigned int)file.fd;
+                    printk("virtpc: set incSc=%u\n", pc->incsc);
+                    break;
+
+                default:
+                    printk("virtpc: unknown param %u\n", file.index);
+                    return -EINVAL;
+            }
             return 0;
         case VHOST_GET_FEATURES:
             features = VHOST_PC_FEATURES;

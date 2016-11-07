@@ -51,7 +51,10 @@ struct virtpc_info {
     unsigned int		wc;
     unsigned int                yp;
     unsigned int                yc;
-    unsigned int                sleeping;
+    unsigned int                psleep;
+    unsigned int                csleep;
+    unsigned int                incsp;
+    unsigned int                incsc;
     unsigned int		duration;
     struct scatterlist	        sg[10];
     char			name[40];
@@ -147,7 +150,7 @@ produce(struct virtpc_info *vi)
         }
 
         if (vq->num_free < THR) {
-            if (vi->sleeping) {
+            if (vi->psleep) {
                 do {
                     /* Taken from usleep_range */
                     ktime_t to = ktime_set(0, vi->yp);
@@ -237,10 +240,18 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
     vi->wc = pcio.wc;
     vi->yp = pcio.yp;
     vi->yc = pcio.yc;
-    vi->sleeping = pcio.sleeping;
+    vi->psleep= pcio.psleep;
+    vi->csleep = pcio.csleep;
+    vi->incsp = pcio.incsp;
+    vi->incsc = pcio.incsc;
     vi->duration = pcio.duration;
+
+    /* cf. with include/hw/virtio/virtio-prodcons.h */
     virtio_cwrite32(vi->vdev, 0 /* offset */, (uint32_t)pcio.wc);
     virtio_cwrite32(vi->vdev, 4 /* offset */, (uint32_t)pcio.yc);
+    virtio_cwrite32(vi->vdev, 8 /* offset */, (uint32_t)pcio.csleep);
+    virtio_cwrite32(vi->vdev, 12 /* offset */, (uint32_t)pcio.incsc);
+
     mutex_unlock(&lock);
 
     /* We keep ourself in the wait queue all the time; there is no
