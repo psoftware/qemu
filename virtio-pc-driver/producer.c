@@ -56,9 +56,10 @@ struct virtpc_info {
     unsigned int                incsp;
     unsigned int                incsc;
     unsigned int		duration;
-    struct scatterlist	        sg[10];
+    struct scatterlist	        sg[1];
+    u64                         *bufs;
+    unsigned int                nbufs;
     char			name[40];
-    char			*buf[2048];
 };
 
 struct virtpc_priv {
@@ -94,6 +95,7 @@ static int
 produce(struct virtpc_info *vi)
 {
     struct virtqueue *vq = vi->vq;
+    unsigned int idx = 0;
     u64 next;
     u64 finish;
     bool kick;
@@ -107,10 +109,6 @@ produce(struct virtpc_info *vi)
 
     printk("virtpc: producer start Wp=%uns Wc=%uns Yp=%uns Yc=%uns D=%us\n",
             vi->wp, vi->wc, vi->yp, vi->yc, vi->duration);
-
-    /* The same buffer is reused. */
-    sg_init_table(vi->sg, 1);
-    sg_set_buf(vi->sg, vi->buf, 16);
 
     cleanup_items(vi, ~0U);
     virtqueue_enable_cb(vq);
@@ -129,7 +127,15 @@ produce(struct virtpc_info *vi)
 
         cleanup_items(vi, THR);
 
-        err = virtqueue_add_outbuf(vq, vi->sg, 1, vi->buf, GFP_ATOMIC);
+        /* Prepare the buffer */
+        sg_init_table(vi->sg, 1);
+        sg_set_buf(vi->sg, vi->bufs + idx, sizeof(u64));
+        vi->bufs[idx] = rdtsc();
+        if (++idx >= vi->nbufs) {
+            idx = 0;
+        }
+
+        err = virtqueue_add_outbuf(vq, vi->sg, 1, vi, GFP_ATOMIC);
         if (unlikely(err)) {
             printk("virtpc: add_outbuf() failed %d\n", err);
 #ifdef DBG
@@ -415,6 +421,12 @@ virtpc_probe(struct virtio_device *vdev)
     if (err)
         goto free;
 
+    vi->nbufs = virtqueue_get_vring_size(vi->vq);
+    vi->bufs = kzalloc(sizeof(u64) * vi->nbufs, GFP_KERNEL);
+    if (!vi->bufs) {
+        goto delvq;
+    }
+
     virtio_device_ready(vdev);
 
     mutex_lock(&lock);
@@ -424,6 +436,8 @@ virtpc_probe(struct virtio_device *vdev)
     printk("virtpc: added device %s\n", vi->name);
 
     return 0;
+delvq:
+    virtpc_del_vqs(vi);
 free:
     kfree(vi);
 free_misc:
@@ -447,6 +461,7 @@ virtpc_remove(struct virtio_device *vdev)
     list_del(&vi->node);
     mutex_unlock(&lock);
     remove_vq_common(vi);
+    kfree(vi->bufs);
     kfree(vi);
 
     mutex_lock(&lock);

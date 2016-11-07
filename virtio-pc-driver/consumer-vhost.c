@@ -27,6 +27,7 @@ struct vhost_pc {
     unsigned int            incsc; /* in nanoseconds */
     u64                     items;
     u64                     kicks;
+    u64                     latency;
     u64                     last_dump;
     u64                     next_dump;
 };
@@ -84,6 +85,8 @@ retry:
                     "out %d, int %d\n", out, in);
             break;
         }
+
+        pc->latency += *((u64*)(vq->iov->iov_base)) - rdtsc();
 #if 0
         printk("msglen %d\n", (int)iov_length(vq->iov, out));
 #endif
@@ -104,12 +107,13 @@ retry:
         if (unlikely(next > pc->next_dump)) {
             u64 ndiff = ktime_get_ns() - pc->last_dump;
 
-            printk("PC: %llu items/s %llu kicks/s %llu avg_batch\n",
+            printk("PC: %llu items/s %llu kicks/s %llu avg_batch %llu latency\n",
                     (pc->items * 1000000000)/ndiff,
                     (pc->kicks * 1000000000)/ndiff,
-                    pc->kicks ? (pc->items/pc->kicks) : 0);
+                    pc->kicks ? (pc->items/pc->kicks) : 0,
+                    pc->items ? (pc->latency/pc->items) : 0);
 
-            pc->items = pc->kicks = 0;
+            pc->items = pc->kicks = pc->latency = 0;
 
             pc->last_dump = ktime_get_ns();
             pc->next_dump = pc->last_dump + 1000000000;
