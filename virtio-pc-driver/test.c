@@ -60,7 +60,7 @@ main(int argc, char **argv)
     vio.incsp = 0; /* in nanoseconds */
     vio.devid = 0; /* virtio-prodcons device to be selected */
 
-    while ((ch = getopt(argc, argv, "hdsS:p:c:P:C:")) != -1) {
+    while ((ch = getopt(argc, argv, "hd:sSp:c:P:C:")) != -1) {
         switch (ch) {
             default:
             case 'h':
