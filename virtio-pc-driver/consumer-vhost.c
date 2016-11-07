@@ -11,6 +11,7 @@
 #include <linux/file.h>
 #include <linux/slab.h>
 #include <linux/vmalloc.h>
+#include <linux/delay.h>
 
 #include "vhost.h"
 #include "producer.h"
@@ -34,6 +35,48 @@ struct vhost_pc {
     u64                     last_dump;
     u64                     next_dump;
 };
+
+/******************************* TSC support ***************************/
+
+/* initialize to avoid a division by 0 */
+static uint64_t ticks_per_second = 1000000000; /* set by calibrate_tsc */
+
+#define NS2TSC(x) ((x)*ticks_per_second/1000000000UL)
+#define TSC2NS(x) ((x)*1000000000UL/ticks_per_second)
+
+/*
+ * do an idle loop to compute the clock speed. We expect
+ * a constant TSC rate and locked on all CPUs.
+ * Returns ticks per second
+ */
+static uint64_t
+calibrate_tsc(void)
+{
+    uint64_t a, b;
+    uint64_t ta_0, ta_1, tb_0, tb_1, dmax = ~0;
+    uint64_t da, db, cy = 0;
+    int i;
+    for (i=0; i < 3; i++) {
+	ta_0 = rdtsc();
+        a = ktime_get_ns();
+	ta_1 = rdtsc();
+	usleep_range(20000, 20000);
+	tb_0 = rdtsc();
+        b = ktime_get_ns();
+	tb_1 = rdtsc();
+	da = ta_1 - ta_0;
+	db = tb_1 - tb_0;
+	if (da + db < dmax) {
+            cy = b - a;
+	    cy = ((tb_0 - ta_1)*1000000000)/cy;
+	    dmax = da + db;
+	}
+    }
+    ticks_per_second = cy;
+    return cy;
+}
+
+/***********************************************************************/
 
 static void consume(struct vhost_work *work)
 {
@@ -122,7 +165,7 @@ retry:
                     (pc->items * 1000000000)/ndiff,
                     (pc->kicks * 1000000000)/ndiff,
                     pc->kicks ? (pc->items/pc->kicks) : 0,
-                    pc->latency);
+                    TSC2NS(pc->latency));
 
             pc->items = pc->kicks = pc->latency = 0;
 
@@ -159,6 +202,8 @@ static int vhost_pc_open(struct inode *inode, struct file *f)
     vhost_dev_init(hdev, vqs, 1);
 
     f->private_data = pc;
+
+    calibrate_tsc();
 
     return 0;
 }
