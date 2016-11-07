@@ -104,6 +104,8 @@ retry:
         ts = rdtsc() - (ts - tscofs);
         if (ts > pc->latency) {
             pc->latency = ts;
+        } else {
+            pc->latency = ((pc->latency * 124) >> 7) + (ts >> 5);
         }
         if (intr) {
             vhost_do_signal(vq);
