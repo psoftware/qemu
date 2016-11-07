@@ -47,6 +47,11 @@ static void consume(struct vhost_work *work)
 
     vhost_disable_notify(&pc->hdev, vq);
 
+    if (pc->incsc) {
+        next = ktime_get_ns() + pc->incsc;
+        while (ktime_get_ns() < next) ;
+    }
+
     next = ktime_get_ns() + pc->wc;
 
     for (;;) {

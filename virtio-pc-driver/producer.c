@@ -159,6 +159,8 @@ produce(struct virtpc_info *vi)
                     cleanup_items(vi, THR);
                 } while (vq->num_free < THR);
 
+                next = ktime_get_ns() + vi->wp;
+
             } else {
                 set_current_state(TASK_INTERRUPTIBLE);
                 if (!virtqueue_enable_cb_delayed(vq)) {
@@ -173,6 +175,12 @@ produce(struct virtpc_info *vi)
                     /* We assume that after the wake up here at
                      * last one item will be recovered by the call to
                      * cleanup_items(). */
+                    if (vi->incsp) {
+                        next = ktime_get_ns() + vi->incsp;
+                        while (ktime_get_ns() < next) ;
+                    }
+
+                    next = ktime_get_ns() + vi->wp;
                 }
             }
         }
