@@ -104,9 +104,10 @@ retry:
         if (unlikely(next > pc->next_dump)) {
             u64 ndiff = ktime_get_ns() - pc->last_dump;
 
-            printk("PC: %llu items/s %llu kicks/s\n",
+            printk("PC: %llu items/s %llu kicks/s %llu avg_batch\n",
                     (pc->items * 1000000000)/ndiff,
-                    (pc->kicks * 1000000000)/ndiff);
+                    (pc->kicks * 1000000000)/ndiff,
+                    pc->kicks ? (pc->items/pc->kicks) : 0);
 
             pc->items = pc->kicks = 0;
 
