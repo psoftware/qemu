@@ -2,6 +2,7 @@ KER=`uname -r`
 
 obj-m += producer.o
 obj-m += consumer.o
+consumer-y = vhost.o consumer-vhost.o
 
 all: ker test
 

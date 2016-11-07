@@ -37,9 +37,10 @@ static void consume(struct vhost_work *work)
     struct vhost_virtqueue *vq = container_of(work, struct vhost_virtqueue,
                                               poll.work);
     struct vhost_pc *pc = container_of(vq->dev, struct vhost_pc, hdev);
-    u64 next;
     unsigned out, in;
+    bool intr;
     int head;
+    u64 next;
 
     mutex_lock(&vq->mutex);
 
@@ -84,15 +85,15 @@ retry:
 #endif
 
         vhost_add_used(vq, head, 0);
+        intr = vhost_notify(&pc->hdev, vq);
         pc->items ++;
-        vhost_signal(&pc->hdev, vq);
         while (ktime_get_ns() < next) ;
         next += pc->wc;
-        if (ktime_get_ns() > next) {
-            /* This typically happens if vhost_signal() above actually sent
-             * a costly notification. In this case we need to reset next to
-             * correctly emulate the consumption of the first item after
-             * the notification. */
+        if (intr) {
+            vhost_do_signal(vq);
+            /* When the costly notification routine returns, we need to
+             * reset next to correctly emulate the consumption of the
+             * next item. */
             next = ktime_get_ns() + pc->wc;
         }
 

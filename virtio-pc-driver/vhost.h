@@ -1,4 +1,8 @@
-/* from linux 4.6 */
+/*
+ * Taken from linux 4.6, with two additions, enabling two-step notification:
+ *   - vhost_notify
+ *   - vhost_do_signal
+ */
 #ifndef _VHOST_H
 #define _VHOST_H
 
@@ -163,6 +167,9 @@ void vhost_signal(struct vhost_dev *, struct vhost_virtqueue *);
 void vhost_disable_notify(struct vhost_dev *, struct vhost_virtqueue *);
 bool vhost_vq_avail_empty(struct vhost_dev *, struct vhost_virtqueue *);
 bool vhost_enable_notify(struct vhost_dev *, struct vhost_virtqueue *);
+
+bool vhost_notify(struct vhost_dev *dev, struct vhost_virtqueue *vq);
+void vhost_do_signal(struct vhost_virtqueue *vq);
 
 int vhost_log_write(struct vhost_virtqueue *vq, struct vhost_log *log,
 		    unsigned int log_num, u64 len);
