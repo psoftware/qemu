@@ -16,6 +16,9 @@
 #include "producer.h"
 
 
+static long tscofs = 0;
+module_param(tscofs, long, 0644);
+
 #define VHOST_PC_FEATURES   VHOST_FEATURES
 
 struct vhost_pc {
@@ -41,6 +44,7 @@ static void consume(struct vhost_work *work)
     bool intr;
     int head;
     u64 next;
+    u64 ts;
 
     mutex_lock(&vq->mutex);
 
@@ -86,7 +90,7 @@ retry:
             break;
         }
 
-        pc->latency += *((u64*)(vq->iov->iov_base)) - rdtsc();
+        ts = *((u64*)(vq->iov->iov_base));
 #if 0
         printk("msglen %d\n", (int)iov_length(vq->iov, out));
 #endif
@@ -95,6 +99,10 @@ retry:
         intr = vhost_notify(&pc->hdev, vq);
         pc->items ++;
         while (ktime_get_ns() < next) ;
+        ts = rdtsc() - (ts - tscofs);
+        if (ts > pc->latency) {
+            pc->latency = ts;
+        }
         next += pc->wc;
         if (intr) {
             vhost_do_signal(vq);
@@ -111,7 +119,7 @@ retry:
                     (pc->items * 1000000000)/ndiff,
                     (pc->kicks * 1000000000)/ndiff,
                     pc->kicks ? (pc->items/pc->kicks) : 0,
-                    pc->items ? (pc->latency/pc->items) : 0);
+                    pc->latency);
 
             pc->items = pc->kicks = pc->latency = 0;
 

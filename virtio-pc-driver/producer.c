@@ -116,6 +116,8 @@ produce(struct virtpc_info *vi)
     next = ktime_get_ns() + vi->wp;
 
     for (;;) {
+        vi->bufs[idx] = rdtsc();
+
         if (unlikely(signal_pending(current) || next > finish)) {
             if (next > finish) {
                 printk("virtpc: producer stops\n");
@@ -130,7 +132,6 @@ produce(struct virtpc_info *vi)
         /* Prepare the buffer */
         sg_init_table(vi->sg, 1);
         sg_set_buf(vi->sg, vi->bufs + idx, sizeof(u64));
-        vi->bufs[idx] = rdtsc();
         if (++idx >= vi->nbufs) {
             idx = 0;
         }
