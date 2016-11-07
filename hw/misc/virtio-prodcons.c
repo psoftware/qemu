@@ -219,7 +219,7 @@ static int vhost_pc_init(VirtIOProdcons *pc)
 
     vhostfd = open("/dev/vhost-pc", O_RDWR);
     if (vhostfd < 0) {
-        error_report("Error opending vhost dev: %s", strerror(errno));
+        error_report("Error opening vhost dev: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
