@@ -136,6 +136,9 @@ produce(struct virtpc_info *vi)
             idx = 0;
         }
 
+        while (ktime_get_ns() < next) ;
+        next += vi->wp;
+
         err = virtqueue_add_outbuf(vq, vi->sg, 1, vi, GFP_ATOMIC);
         if (unlikely(err)) {
             printk("virtpc: add_outbuf() failed %d\n", err);
@@ -146,8 +149,6 @@ produce(struct virtpc_info *vi)
         }
 
         kick = virtqueue_kick_prepare(vq);
-        while (ktime_get_ns() < next) ;
-        next += vi->wp;
         if (kick) {
             virtqueue_notify(vq);
             /* When the costly notification routine returns, we need to
