@@ -20,9 +20,10 @@ static void
 usage(void)
 {
     printf("test [-p WP_NANOSEC] [-c WC_NANOSEC] "
-            "[-P YP_NANOSEC] [-C YC_NANOSEC] "
+            "[-y YP_NANOSEC] [-Y YC_NANOSEC] "
             "[-d DURATION_SEC] [-s <producer sleeps>] "
-            "[-S <consumer sleeps>]\n");
+            "[-S <consumer sleeps>] "
+            "[-i INC_SP_NANOSEC] [-I INC_SC_NANOSEC]\n");
 }
 
 static unsigned int
@@ -61,7 +62,7 @@ main(int argc, char **argv)
     vio.incsp = 0; /* in nanoseconds */
     vio.devid = 0; /* virtio-prodcons device to be selected */
 
-    while ((ch = getopt(argc, argv, "hd:sSp:c:P:C:")) != -1) {
+    while ((ch = getopt(argc, argv, "hd:sSp:c:y:Y:i:I:")) != -1) {
         switch (ch) {
             default:
             case 'h':
@@ -84,12 +85,20 @@ main(int argc, char **argv)
                 vio.wc = parseuint(optarg);
                 break;
 
-            case 'P':
+            case 'y':
                 vio.yp = parseuint(optarg);
                 break;
 
-            case 'C':
+            case 'Y':
                 vio.yc = parseuint(optarg);
+                break;
+
+            case 'i':
+                vio.incsp = parseuint(optarg);
+                break;
+
+            case 'I':
+                vio.incsc = parseuint(optarg);
                 break;
 
             case 'd':
