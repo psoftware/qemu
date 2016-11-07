@@ -95,15 +95,16 @@ retry:
         printk("msglen %d\n", (int)iov_length(vq->iov, out));
 #endif
 
+        while (ktime_get_ns() < next) ;
+        next += pc->wc;
+
         vhost_add_used(vq, head, 0);
         intr = vhost_notify(&pc->hdev, vq);
         pc->items ++;
-        while (ktime_get_ns() < next) ;
         ts = rdtsc() - (ts - tscofs);
         if (ts > pc->latency) {
             pc->latency = ts;
         }
-        next += pc->wc;
         if (intr) {
             vhost_do_signal(vq);
             /* When the costly notification routine returns, we need to
