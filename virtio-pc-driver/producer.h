@@ -13,6 +13,14 @@ enum {
     VPC_LAST
 };
 
+/* Layout of the virtio-prodcons config space */
+struct virtio_pc_config {
+    uint32_t    wc;
+    uint32_t    yc;
+    uint32_t    csleep;
+    uint32_t    incsc;
+};
+
 struct virtpc_ioctl_data {
     unsigned int devid;
     unsigned int wp;       /* producer work in ns */
