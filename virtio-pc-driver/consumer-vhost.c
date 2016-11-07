@@ -148,7 +148,7 @@ retry:
         if (ts > pc->latency) {
             pc->latency = ts;
         } else {
-            pc->latency = ((pc->latency * 124) >> 7) + (ts >> 5);
+            pc->latency = ((pc->latency * 120) >> 7) + (ts >> 4);
         }
         if (intr) {
             vhost_do_signal(vq);
