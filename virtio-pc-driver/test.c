@@ -11,6 +11,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <stropts.h>
+#include <stdint.h>
 
 #include "producer.h"
 
