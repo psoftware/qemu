@@ -1,0 +1,5 @@
+#!/bin/bash
+
+OFS=$1
+
+echo $((OFS -18446744073709551616)) | sudo tee /sys/module/consumer/parameters/tscofs
