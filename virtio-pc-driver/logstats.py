@@ -51,6 +51,6 @@ for name in sorted(x):
     stddev = numpy.std(x[name])
     print("%10s   %10.1f %10.1f" % (name, mean, stddev))
 
-denom = numpy.mean(x['kicks']) if numpy.mean(x['kicks']) > 0 else numpy.mean(x['sleeps'])
+denom = max(numpy.mean(x['kicks']), numpy.mean(x['sleeps']), numpy.mean(x['intrs']))
 
 print("%10s   %10.1f" % ('batch', numpy.mean(x['items']) / denom))
