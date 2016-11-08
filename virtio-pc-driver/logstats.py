@@ -24,6 +24,8 @@ x = dict()
 
 x['items'] = []
 x['kicks'] = []
+x['sleeps'] = []
+x['intrs'] = []
 x['latency'] = []
 
 fin = open(args.data_file)
@@ -32,13 +34,15 @@ while 1:
     if line == '':
         break
 
-    m = re.search(r'(\d+) items/s (\d+) kicks/s (\d+) avg_batch (\d+) latency', line)
+    m = re.search(r'(\d+) items/s (\d+) kicks/s (\d+) sleeps/s (\d+) intrs/s (\d+) latency', line)
     if m == None:
         continue
 
     x['items'].append(int(m.group(1)))
     x['kicks'].append(int(m.group(2)))
-    x['latency'].append(int(m.group(4)))
+    x['sleeps'].append(int(m.group(3)))
+    x['intrs'].append(int(m.group(4)))
+    x['latency'].append(int(m.group(5)))
 
 fin.close()
 
@@ -47,4 +51,6 @@ for name in sorted(x):
     stddev = numpy.std(x[name])
     print("%10s   %10.1f %10.1f" % (name, mean, stddev))
 
-print("%10s   %10.1f" % ('batch', numpy.mean(x['items']) / numpy.mean(x['kicks'])))
+denom = numpy.mean(x['kicks']) if numpy.mean(x['kicks']) > 0 else numpy.mean(x['sleeps'])
+
+print("%10s   %10.1f" % ('batch', numpy.mean(x['items']) / denom))
