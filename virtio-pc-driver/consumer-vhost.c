@@ -33,9 +33,11 @@ struct vhost_pc {
     u64                     kicks;
     u64                     sleeps;
     u64                     intrs;
-    u64                     latency;
     u64                     last_dump;
     u64                     next_dump;
+    unsigned int            lat_idx;
+#define PC_LAT_ELEMS    8192
+    u32                     latency[PC_LAT_ELEMS];
 };
 
 /******************************* TSC support ***************************/
@@ -80,6 +82,43 @@ calibrate_tsc(void)
 
 /***********************************************************************/
 
+static u32 sel(u32 *a, unsigned int n, unsigned int k)
+{
+    unsigned int r, w, b, e;
+    u32 pivot, tmp;
+
+    b = 0;
+    e = n - 1;
+
+    while (b < e) {
+        pivot = a[(b + e) >> 1];
+        r = b;
+        w = e;
+        while (r < w) {
+            if (a[r] >= pivot) {
+                tmp = a[w];
+                a[w] = a[r];
+                a[r] = tmp;
+                w --;
+            } else {
+                r ++;
+            }
+        }
+
+        if (a[r] > pivot) {
+            r --;
+        }
+
+        if (k <= r) {
+            e = r;
+        } else {
+            b = r + 1;
+        }
+    }
+
+    return a[k];
+}
+
 static void consume(struct vhost_work *work)
 {
     struct vhost_virtqueue *vq = container_of(work, struct vhost_virtqueue,
@@ -121,6 +160,7 @@ retry:
                 __set_current_state(TASK_UNINTERRUPTIBLE);
                 schedule_hrtimeout_range(&to, 0, HRTIMER_MODE_REL);
                 pc->sleeps ++;
+                next = ktime_get_ns() + pc->wc;
                 goto retry;
             } else {
                 if (unlikely(vhost_enable_notify(&pc->hdev, vq))) {
@@ -147,11 +187,9 @@ retry:
         vhost_add_used(vq, head, 0);
         intr = vhost_notify(&pc->hdev, vq);
         pc->items ++;
-        ts = rdtsc() - (ts - tscofs);
-        if (ts > pc->latency) {
-            pc->latency = ts;
-        } else {
-            pc->latency = ((pc->latency * 120) >> 7) + (ts >> 4);
+        pc->latency[pc->lat_idx] = (u32)(rdtsc() - (ts - tscofs));
+        if (unlikely(++ pc->lat_idx >= PC_LAT_ELEMS)) {
+            pc->lat_idx = 0;
         }
         if (intr) {
             pc->intrs ++;
@@ -164,18 +202,22 @@ retry:
 
         if (unlikely(next > pc->next_dump)) {
             u64 ndiff = ktime_get_ns() - pc->last_dump;
+            u32 lat;
+
+            lat = sel(pc->latency, PC_LAT_ELEMS, (PC_LAT_ELEMS*95)/100);
 
             printk("PC: %llu items/s %llu kicks/s %llu sleeps/s %llu intrs/s %llu latency\n",
                     (pc->items * 1000000000)/ndiff,
                     (pc->kicks * 1000000000)/ndiff,
                     (pc->sleeps * 1000000000)/ndiff,
                     (pc->intrs * 1000000000)/ndiff,
-                    TSC2NS(pc->latency));
+                    TSC2NS(lat));
 
-            pc->items = pc->kicks = pc->sleeps = pc->intrs = pc->latency = 0;
+            pc->items = pc->kicks = pc->sleeps = pc->intrs = 0;
 
             pc->last_dump = ktime_get_ns();
             pc->next_dump = pc->last_dump + 1000000000;
+            next = ktime_get_ns() + pc->wc;
         }
     }
     mutex_unlock(&vq->mutex);
@@ -200,6 +242,7 @@ static int vhost_pc_open(struct inode *inode, struct file *f)
 
     pc->wc = 2000; /* default to 2 microseconds */
     pc->yc = 3000; /* default to 3 microseconds */
+    pc->lat_idx = 0;
     pc->last_dump = pc->next_dump = ktime_get_ns();
     hdev = &pc->hdev;
     vqs[0] = &pc->vq;

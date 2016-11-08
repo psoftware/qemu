@@ -2,38 +2,42 @@
 #include <stdlib.h>
 #include <time.h>
 
-unsigned int sel(unsigned int *a, unsigned int n, unsigned int k)
+typedef unsigned int AT;
+
+AT sel(AT *a, unsigned int n, unsigned int k)
 {
-    unsigned int i, j, b, e;
-    unsigned int pivot, tmp;
+    unsigned int r, w, b, e;
+    AT pivot, tmp;
     unsigned int h;
 
     b = 0;
     e = n - 1;
 
-    for (h = 0; h < n; h++) { printf("%u ", a[h]); } printf("\n");
-
     while (b < e) {
-        pivot = a[b];
-        i = b;
-        j = e;
+        pivot = a[(b + e) >> 1];
+        r = b;
+        w = e;
+        for (h = 0; h < n; h++) { printf("%u ", a[h]); } printf("\n");
         printf("b=%u e=%u pivot=%u\n", b, e, pivot);
-        while (i < j) {
-            while (i < j && a[i] < pivot) i ++;
-            while (i < j && a[j] > pivot) j --;
-            if (i < j) {
-                printf("i-->%u j-->%u, swap %u <--> %u\n", i, j, a[i], a[j]);
-                tmp = a[i];
-                a[i] = a[j];
-                a[j] = tmp;
-                for (h = 0; h < n; h++) { printf("%u ", a[h]); } printf("\n");
+        while (r < w) {
+            if (a[r] >= pivot) {
+                tmp = a[w];
+                a[w] = a[r];
+                a[r] = tmp;
+                w --;
+            } else {
+                r ++;
             }
         }
 
-        if (k < i) {
-            e = i - 1;
+        if (a[r] > pivot) {
+            r --;
+        }
+
+        if (k <= r) {
+            e = r;
         } else {
-            b = j + 1;
+            b = r + 1;
         }
     }
 
@@ -64,7 +68,7 @@ int main()
         a[y] = tmp;
     }
 
-    x = sel(a, N, 95);
+    x = sel(a, N, N*9/10);
 
     printf("Select %u\n", x);
 
