@@ -31,6 +31,8 @@ struct vhost_pc {
     unsigned int            incsc; /* in nanoseconds */
     u64                     items;
     u64                     kicks;
+    u64                     sleeps;
+    u64                     intrs;
     u64                     latency;
     u64                     last_dump;
     u64                     next_dump;
@@ -118,6 +120,7 @@ retry:
                 ktime_t to = ktime_set(0, pc->yc);
                 __set_current_state(TASK_UNINTERRUPTIBLE);
                 schedule_hrtimeout_range(&to, 0, HRTIMER_MODE_REL);
+                pc->sleeps ++;
                 goto retry;
             } else {
                 if (unlikely(vhost_enable_notify(&pc->hdev, vq))) {
@@ -151,6 +154,7 @@ retry:
             pc->latency = ((pc->latency * 120) >> 7) + (ts >> 4);
         }
         if (intr) {
+            pc->intrs ++;
             vhost_do_signal(vq);
             /* When the costly notification routine returns, we need to
              * reset next to correctly emulate the consumption of the
@@ -161,13 +165,14 @@ retry:
         if (unlikely(next > pc->next_dump)) {
             u64 ndiff = ktime_get_ns() - pc->last_dump;
 
-            printk("PC: %llu items/s %llu kicks/s %llu avg_batch %llu latency\n",
+            printk("PC: %llu items/s %llu kicks/s %llu sleeps/s %llu intrs/s %llu latency\n",
                     (pc->items * 1000000000)/ndiff,
                     (pc->kicks * 1000000000)/ndiff,
-                    pc->kicks ? (pc->items/pc->kicks) : 0,
+                    (pc->sleeps * 1000000000)/ndiff,
+                    (pc->intrs * 1000000000)/ndiff,
                     TSC2NS(pc->latency));
 
-            pc->items = pc->kicks = pc->latency = 0;
+            pc->items = pc->kicks = pc->sleeps = pc->intrs = pc->latency = 0;
 
             pc->last_dump = ktime_get_ns();
             pc->next_dump = pc->last_dump + 1000000000;
