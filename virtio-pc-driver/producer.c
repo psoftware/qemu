@@ -114,9 +114,9 @@ produce(struct virtpc_info *vi)
     virtqueue_enable_cb(vq);
 
     next = ktime_get_ns() + vi->wp;
+    vi->bufs[idx] = rdtsc();
 
     for (;;) {
-        vi->bufs[idx] = rdtsc();
 
         if (unlikely(signal_pending(current) || next > finish)) {
             if (next > finish) {
@@ -138,6 +138,7 @@ produce(struct virtpc_info *vi)
 
         while (ktime_get_ns() < next) ;
         next += vi->wp;
+        vi->bufs[idx] = rdtsc();
 
         err = virtqueue_add_outbuf(vq, vi->sg, 1, vi, GFP_ATOMIC);
         if (unlikely(err)) {
@@ -189,6 +190,7 @@ produce(struct virtpc_info *vi)
                     }
 
                     next = ktime_get_ns() + vi->wp;
+                    vi->bufs[idx] = rdtsc();
                 }
             }
         }
