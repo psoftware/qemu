@@ -308,10 +308,14 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
     vi->duration = pcio.duration;
 
     /* cf. with include/hw/virtio/virtio-prodcons.h */
-    virtio_cwrite32(vi->vdev, 0 /* offset */, (uint32_t)pcio.wc);
-    virtio_cwrite32(vi->vdev, 4 /* offset */, (uint32_t)pcio.yc);
-    virtio_cwrite32(vi->vdev, 8 /* offset */, (uint32_t)pcio.csleep);
-    virtio_cwrite32(vi->vdev, 12 /* offset */, (uint32_t)pcio.incsc);
+    virtio_cwrite32(vi->vdev, 0 /* offset */, (uint32_t)pcio.wp);
+    virtio_cwrite32(vi->vdev, 4 /* offset */, (uint32_t)pcio.wc);
+    virtio_cwrite32(vi->vdev, 8 /* offset */, (uint32_t)pcio.yp);
+    virtio_cwrite32(vi->vdev, 12 /* offset */, (uint32_t)pcio.yc);
+    virtio_cwrite32(vi->vdev, 16 /* offset */, (uint32_t)pcio.psleep);
+    virtio_cwrite32(vi->vdev, 20 /* offset */, (uint32_t)pcio.csleep);
+    virtio_cwrite32(vi->vdev, 24 /* offset */, (uint32_t)pcio.incsp);
+    virtio_cwrite32(vi->vdev, 28 /* offset */, (uint32_t)pcio.incsc);
 
     mutex_unlock(&lock);
 

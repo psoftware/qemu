@@ -15,9 +15,13 @@ enum {
 
 /* Layout of the virtio-prodcons config space */
 struct virtio_pc_config {
+    uint32_t    wp;
     uint32_t    wc;
+    uint32_t    yp;
     uint32_t    yc;
+    uint32_t    psleep;
     uint32_t    csleep;
+    uint32_t    incsp;
     uint32_t    incsc;
 };
 

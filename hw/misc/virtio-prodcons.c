@@ -85,20 +85,39 @@ tsc_sleep_till(uint64_t when)
 
 /******************************* VHOST support ***************************/
 
-static int virtio_pc_set_params(VirtIOProdcons *pc)
+static int virtio_pc_set_params(VirtIOProdcons *pc,
+                                const struct virtio_pc_config *oldcfg)
 {
     struct vhost_vring_file file;
     unsigned int params[] = {
                         VPC_WC,
+                        VPC_WP,
+                        VPC_YP,
                         VPC_YC,
+                        VPC_PSLEEP,
                         VPC_CSLEEP,
+                        VPC_INCSP,
                         VPC_INCSC,
                 };
     unsigned int values[] = {
+                        pc->cfg.wp,
                         pc->cfg.wc,
+                        pc->cfg.yp,
                         pc->cfg.yc,
+                        pc->cfg.psleep,
                         pc->cfg.csleep,
+                        pc->cfg.incsp,
                         pc->cfg.incsc,
+                };
+    unsigned int old_values[] = {
+                        oldcfg->wp,
+                        oldcfg->wc,
+                        oldcfg->yp,
+                        oldcfg->yc,
+                        oldcfg->psleep,
+                        oldcfg->csleep,
+                        oldcfg->incsp,
+                        oldcfg->incsc,
                 };
     unsigned int i;
     int r;
@@ -107,7 +126,13 @@ static int virtio_pc_set_params(VirtIOProdcons *pc)
         return 0;
     }
 
+    (void)old_values;
+
     for (i = 0; i < sizeof(params)/sizeof(params[0]); i++) {
+        if (0 && values[i] == old_values[i]) {
+            continue;
+        }
+
         /* We override the VHOST_NET_SET_BACKEND ioctl to pass the
          * wc parameter to the vhost-pc kernel module. */
         file.index = params[i];
@@ -177,8 +202,6 @@ static int vhost_pc_start(VirtIOProdcons *pc)
         error_report("Error starting vhost device: %d", -r);
         exit(EXIT_FAILURE);
     }
-
-    virtio_pc_set_params(pc);
 
     printf("vhost-pc started ...\n");
 
@@ -260,9 +283,11 @@ static void virtio_pc_set_status(struct VirtIODevice *vdev, uint8_t status)
 static void virtio_pc_set_config(VirtIODevice *vdev, const uint8_t *config)
 {
     VirtIOProdcons *pc = VIRTIO_PRODCONS(vdev);
+    struct virtio_pc_config oldcfg;
 
+    memcpy(&oldcfg, &pc->cfg, sizeof(pc->cfg));
     memcpy(&pc->cfg, config, sizeof(pc->cfg));
-    virtio_pc_set_params(pc);
+    virtio_pc_set_params(pc, &oldcfg);
 }
 
 /***********************************************************************/

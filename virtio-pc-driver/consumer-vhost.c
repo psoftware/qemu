@@ -25,10 +25,16 @@ module_param(tscofs, long, 0644);
 struct vhost_pc {
     struct vhost_dev        hdev;
     struct vhost_virtqueue  vq;
+
+    unsigned int            wp; /* in nanoseconds */
     unsigned int            wc; /* in nanoseconds */
+    unsigned int            yp; /* in nanoseconds */
     unsigned int            yc; /* in nanoseconds */
+    unsigned int            psleep; /* boolean */
     unsigned int            csleep; /* boolean */
+    unsigned int            incsp; /* in nanoseconds */
     unsigned int            incsc; /* in nanoseconds */
+
     u64                     items;
     u64                     kicks;
     u64                     sleeps;
@@ -349,9 +355,19 @@ static long vhost_pc_ioctl(struct file *f, unsigned int ioctl,
                 return -EFAULT;
             }
             switch (file.index) {
+                case VPC_WP:
+                    pc->wp = (unsigned int)file.fd;
+                    printk("virtpc: set Wp=%uns\n", pc->wp);
+                    break;
+
                 case VPC_WC:
                     pc->wc = (unsigned int)file.fd;
                     printk("virtpc: set Wc=%uns\n", pc->wc);
+                    break;
+
+                case VPC_YP:
+                    pc->yp = (unsigned int)file.fd;
+                    printk("virtpc: set Yp=%uns\n", pc->yp);
                     break;
 
                 case VPC_YC:
@@ -359,9 +375,19 @@ static long vhost_pc_ioctl(struct file *f, unsigned int ioctl,
                     printk("virtpc: set Yc=%uns\n", pc->yc);
                     break;
 
+                case VPC_PSLEEP:
+                    pc->psleep = (unsigned int)file.fd;
+                    printk("virtpc: set psleep=%u\n", pc->psleep);
+                    break;
+
                 case VPC_CSLEEP:
                     pc->csleep = (unsigned int)file.fd;
                     printk("virtpc: set csleep=%u\n", pc->csleep);
+                    break;
+
+                case VPC_INCSP:
+                    pc->incsp = (unsigned int)file.fd;
+                    printk("virtpc: set incSp=%u\n", pc->incsp);
                     break;
 
                 case VPC_INCSC:
