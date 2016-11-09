@@ -66,5 +66,10 @@ while 1:
 
 fin.close()
 
+print("%10s %10s %10s %10s %10s %10s" % ('var', 'items', 'kicks', 'csleeps', 'intrs', 'latency'))
 for w in sorted(x['items']):
-    print("%10.1f %10.1f" % (w, numpy.mean(x['items'][w])))
+    print("%10.1f %10.1f %10.1f %10.1f %10.1f %10.1f" % (w, numpy.mean(x['items'][w]),
+                                    numpy.mean(x['kicks'][w]),
+                                    numpy.mean(x['sleeps'][w]),
+                                    numpy.mean(x['intrs'][w]),
+                                    numpy.mean(x['latency'][w])))

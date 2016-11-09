@@ -126,10 +126,8 @@ static int virtio_pc_set_params(VirtIOProdcons *pc,
         return 0;
     }
 
-    (void)old_values;
-
     for (i = 0; i < sizeof(params)/sizeof(params[0]); i++) {
-        if (0 && values[i] == old_values[i]) {
+        if (values[i] == old_values[i]) {
             continue;
         }
 
