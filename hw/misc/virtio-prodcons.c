@@ -90,8 +90,8 @@ static int virtio_pc_set_params(VirtIOProdcons *pc,
 {
     struct vhost_vring_file file;
     unsigned int params[] = {
-                        VPC_WC,
                         VPC_WP,
+                        VPC_WC,
                         VPC_YP,
                         VPC_YC,
                         VPC_PSLEEP,
