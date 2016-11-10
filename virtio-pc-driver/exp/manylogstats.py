@@ -7,6 +7,15 @@ import numpy
 import math
 
 
+def T_model(Wp, Wc, Sc, Np):
+    if Wp == Wc:
+        return Wp
+    b = math.floor(Sc/(Wp-Wc)) + 1
+    return Wp + Np/b
+
+
+## N.B. This currently assumes a variable Wp and a fixed Wc
+
 description = "Python script to compute mean and standard deviation"
 epilog = "2016 Vincenzo Maffione"
 
@@ -59,9 +68,11 @@ while 1:
 
 fin.close()
 
-print("%10s %10s %10s %10s %10s %10s" % ('var', 'items', 'kicks', 'csleeps', 'intrs', 'latency'))
+print("%10s %10s %10s %10s %10s %10s %10s %10s" % ('var', 'items', 'Tavg', 'Tmodel', 'kicks', 'csleeps', 'intrs', 'latency'))
 for w in sorted(x['items']):
-    print("%10.1f %10.1f %10.1f %10.1f %10.1f %10.1f" % (w, numpy.mean(x['items'][w]),
+    print("%10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f" % (w, numpy.mean(x['items'][w]),
+                                    1000000000/numpy.mean(x['items'][w]),
+                                    T_model(w, 2000, 820, 1080),
                                     numpy.mean(x['kicks'][w]),
                                     numpy.mean(x['sleeps'][w]),
                                     numpy.mean(x['intrs'][w]),
