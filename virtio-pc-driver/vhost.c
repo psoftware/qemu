@@ -245,11 +245,22 @@ void vhost_poll_flush(struct vhost_poll *poll)
 	vhost_work_flush(poll->dev, &poll->work);
 }
 
+#define NOLIST
+#undef NOLIST
+
 void vhost_work_queue(struct vhost_dev *dev, struct vhost_work *work)
 {
 	unsigned long flags;
 
 	spin_lock_irqsave(&dev->work_lock, flags);
+#ifdef NOLIST
+	if (list_empty(&work->node)) {
+		list_add_tail(&work->node, &dev->work_list);
+        }
+        work->queue_seq++;
+        spin_unlock_irqrestore(&dev->work_lock, flags);
+        wake_up_process(dev->worker);
+#else
 	if (list_empty(&work->node)) {
 		list_add_tail(&work->node, &dev->work_list);
 		work->queue_seq++;
@@ -258,6 +269,7 @@ void vhost_work_queue(struct vhost_dev *dev, struct vhost_work *work)
 	} else {
 		spin_unlock_irqrestore(&dev->work_lock, flags);
 	}
+#endif
 }
 
 /* A lockless hint for busy polling code to exit the loop */
@@ -330,12 +342,18 @@ static int vhost_worker(void *data)
 		if (!list_empty(&dev->work_list)) {
 			work = list_first_entry(&dev->work_list,
 						struct vhost_work, node);
+#ifndef NOLIST
 			list_del_init(&work->node);
+#endif
 			seq = work->queue_seq;
 		} else
 			work = NULL;
 		spin_unlock_irq(&dev->work_lock);
 
+#ifdef NOLIST
+		work->fn(work);
+		schedule();
+#else
 		if (work) {
 			__set_current_state(TASK_RUNNING);
 			work->fn(work);
@@ -343,6 +361,7 @@ static int vhost_worker(void *data)
 				schedule();
 		} else
 			schedule();
+#endif
 
 	}
 	unuse_mm(dev->mm);
@@ -565,7 +584,9 @@ void vhost_dev_cleanup(struct vhost_dev *dev, bool locked)
 	/* No one will access memory at this point */
 	kvfree(dev->memory);
 	dev->memory = NULL;
+#ifndef NOLIST
 	WARN_ON(!list_empty(&dev->work_list));
+#endif
 	if (dev->worker) {
 		kthread_stop(dev->worker);
 		dev->worker = NULL;
