@@ -29,10 +29,6 @@ x['sleeps'] = dict()
 x['intrs'] = dict()
 x['latency'] = dict()
 
-w = [math.floor(150*pow(1.0555, z)) for z in range(0,99)]
-wi = -1
-
-parseh = False
 
 fin = open(args.data_file)
 while 1:
@@ -40,29 +36,26 @@ while 1:
     if line == '':
         break
 
-    m = re.search(r'virtpc: set', line)
+    m = re.search(r'virtpc: set Wp=(\d+)ns', line)
     if m != None:
-        if not parseh:
-            parseh = True
-            wi += 1
-            x['items'][w[wi]] = []
-            x['kicks'][w[wi]] = []
-            x['sleeps'][w[wi]] = []
-            x['intrs'][w[wi]] = []
-            x['latency'][w[wi]] = []
+        w = int(m.group(1))
+        x['items'][w] = []
+        x['kicks'][w] = []
+        x['sleeps'][w] = []
+        x['intrs'][w] = []
+        x['latency'][w] = []
+
         continue
 
     m = re.search(r'(\d+) items/s (\d+) kicks/s (\d+) sleeps/s (\d+) intrs/s (\d+) latency', line)
     if m == None:
         continue
 
-    parseh = False
-
-    x['items'][w[wi]].append(int(m.group(1)))
-    x['kicks'][w[wi]].append(int(m.group(2)))
-    x['sleeps'][w[wi]].append(int(m.group(3)))
-    x['intrs'][w[wi]].append(int(m.group(4)))
-    x['latency'][w[wi]].append(int(m.group(5)))
+    x['items'][w].append(int(m.group(1)))
+    x['kicks'][w].append(int(m.group(2)))
+    x['sleeps'][w].append(int(m.group(3)))
+    x['intrs'][w].append(int(m.group(4)))
+    x['latency'][w].append(int(m.group(5)))
 
 fin.close()
 
