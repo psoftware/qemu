@@ -222,11 +222,16 @@ static bool vhost_work_seq_done(struct vhost_dev *dev, struct vhost_work *work,
 	return left <= 0;
 }
 
+#define NORECHECK
+#undef NORECHECK
+
 void vhost_work_flush(struct vhost_dev *dev, struct vhost_work *work)
 {
 	unsigned seq;
 	int flushing;
-
+#ifdef NORECHECK
+        return;
+#endif
 	spin_lock_irq(&dev->work_lock);
 	seq = work->queue_seq;
 	work->flushing++;
@@ -245,11 +250,11 @@ void vhost_poll_flush(struct vhost_poll *poll)
 	vhost_work_flush(poll->dev, &poll->work);
 }
 
-#define NORECHECK
-#undef NORECHECK
-
 void vhost_work_queue(struct vhost_dev *dev, struct vhost_work *work)
 {
+#ifdef NORECHECK
+	wake_up_process(dev->worker);
+#else
 	unsigned long flags;
 
 	spin_lock_irqsave(&dev->work_lock, flags);
@@ -260,10 +265,8 @@ void vhost_work_queue(struct vhost_dev *dev, struct vhost_work *work)
 		wake_up_process(dev->worker);
 	} else {
 		spin_unlock_irqrestore(&dev->work_lock, flags);
-#ifdef NORECHECK
-                wake_up_process(dev->worker);
-#endif
 	}
+#endif
 }
 
 /* A lockless hint for busy polling code to exit the loop */
@@ -320,7 +323,15 @@ static int vhost_worker(void *data)
 	for (;;) {
 		/* mb paired w/ kthread_stop */
 		set_current_state(TASK_INTERRUPTIBLE);
-
+#ifdef NORECHECK
+                (void)work;
+                dev->vqs[0]->poll.work.fn(&dev->vqs[0]->poll.work);
+                schedule();
+		if (kthread_should_stop()) {
+			__set_current_state(TASK_RUNNING);
+			break;
+		}
+#else
 		spin_lock_irq(&dev->work_lock);
 		if (work) {
 			work->done_seq = seq;
@@ -333,14 +344,7 @@ static int vhost_worker(void *data)
 			__set_current_state(TASK_RUNNING);
 			break;
 		}
-#ifdef NORECHECK
-                if (work) {
-		    spin_unlock_irq(&dev->work_lock);
-                    work = NULL;
-                    schedule();
-		    spin_lock_irq(&dev->work_lock);
-                }
-#endif
+
 		if (!list_empty(&dev->work_list)) {
 			work = list_first_entry(&dev->work_list,
 						struct vhost_work, node);
@@ -353,13 +357,11 @@ static int vhost_worker(void *data)
 		if (work) {
 			__set_current_state(TASK_RUNNING);
 			work->fn(work);
-#ifndef NORECHECK
 			if (need_resched())
 				schedule();
-#endif
 		} else
 			schedule();
-
+#endif
 	}
 	unuse_mm(dev->mm);
 	set_fs(oldfs);
