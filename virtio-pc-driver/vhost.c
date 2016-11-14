@@ -321,17 +321,18 @@ static int vhost_worker(void *data)
 	use_mm(dev->mm);
 
 	for (;;) {
-		/* mb paired w/ kthread_stop */
-		set_current_state(TASK_INTERRUPTIBLE);
 #ifdef NORECHECK
                 (void)work;
                 dev->vqs[0]->poll.work.fn(&dev->vqs[0]->poll.work);
+		set_current_state(TASK_INTERRUPTIBLE);
+                dev->vqs[0]->poll.work.fn(&dev->vqs[0]->poll.work);
                 schedule();
 		if (kthread_should_stop()) {
-			__set_current_state(TASK_RUNNING);
 			break;
 		}
 #else
+		/* mb paired w/ kthread_stop */
+		set_current_state(TASK_INTERRUPTIBLE);
 		spin_lock_irq(&dev->work_lock);
 		if (work) {
 			work->done_seq = seq;
