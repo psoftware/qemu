@@ -17,6 +17,9 @@
 #include <linux/virtio_ring.h>
 #include <linux/atomic.h>
 
+#define NORECHECK
+#undef NORECHECK
+
 struct vhost_work;
 typedef void (*vhost_work_fn_t)(struct vhost_work *work);
 
@@ -183,7 +186,9 @@ int vhost_log_write(struct vhost_virtqueue *vq, struct vhost_log *log,
 enum {
 	VHOST_FEATURES = (1ULL << VIRTIO_F_NOTIFY_ON_EMPTY) |
 			 (1ULL << VIRTIO_RING_F_INDIRECT_DESC) |
+#ifndef NORECHECK
 			 (1ULL << VIRTIO_RING_F_EVENT_IDX) |
+#endif
 			 (1ULL << VHOST_F_LOG_ALL) |
 			 (1ULL << VIRTIO_F_ANY_LAYOUT) |
 			 (1ULL << VIRTIO_F_VERSION_1)

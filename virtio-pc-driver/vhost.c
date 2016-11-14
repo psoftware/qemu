@@ -222,9 +222,6 @@ static bool vhost_work_seq_done(struct vhost_dev *dev, struct vhost_work *work,
 	return left <= 0;
 }
 
-#define NORECHECK
-#undef NORECHECK
-
 void vhost_work_flush(struct vhost_dev *dev, struct vhost_work *work)
 {
 	unsigned seq;
@@ -325,7 +322,11 @@ static int vhost_worker(void *data)
                 (void)work;
                 dev->vqs[0]->poll.work.fn(&dev->vqs[0]->poll.work);
 		set_current_state(TASK_INTERRUPTIBLE);
-                dev->vqs[0]->poll.work.fn(&dev->vqs[0]->poll.work);
+                /* There is a race condition and we should invoke the
+                 * callback again. However, since EVENT_IDX is not
+                 * negotiated and we are doing tests where the producer
+                 * never stops, the race condition is not harmful. */
+                //dev->vqs[0]->poll.work.fn(&dev->vqs[0]->poll.work);
                 schedule();
 		if (kthread_should_stop()) {
 			break;
