@@ -68,12 +68,14 @@ while 1:
 
 fin.close()
 
+wmin = min([w for w in x['items']])
+
 print("%10s %10s %10s %10s %10s %10s %10s %10s %10s" % ('var', 'items', 'Tavg', 'Tmodel', 'kicks', 'csleeps', 'intrs', 'batch', 'latency'))
 for w in sorted(x['items']):
     denom = max(numpy.mean(x['kicks'][w]), numpy.mean(x['sleeps'][w]), numpy.mean(x['intrs'][w]))
     print("%10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f" % (w, numpy.mean(x['items'][w]),
                                     1000000000/numpy.mean(x['items'][w]),
-                                    T_model(w, 2000, 650, 1080),
+                                    T_model(w, wmin, 650, 1080),
                                     numpy.mean(x['kicks'][w]),
                                     numpy.mean(x['sleeps'][w]),
                                     numpy.mean(x['intrs'][w]),
