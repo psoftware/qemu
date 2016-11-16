@@ -7,10 +7,15 @@ import numpy
 import math
 
 
+def b_model(Wp, Wc, Sc):
+    if Wp == Wc:
+        return 0
+    return math.floor(Sc/(Wp-Wc)) + 1
+
 def T_model(Wp, Wc, Sc, Np):
     if Wp == Wc:
         return Wp
-    b = math.floor(Sc/(Wp-Wc)) + 1
+    b = b_model(Wp, Wc, Sc)
     return Wp + Np/b
 
 
@@ -30,6 +35,9 @@ argparser.add_argument('-t', '--num-trials',
 
 args = argparser.parse_args()
 
+Sc = 350
+Np = 1080
+
 x = dict()
 
 x['items'] = dict()
@@ -38,6 +46,7 @@ x['sleeps'] = dict()
 x['intrs'] = dict()
 x['latency'] = dict()
 
+first = False
 
 fin = open(args.data_file)
 while 1:
@@ -53,11 +62,16 @@ while 1:
         x['sleeps'][w] = []
         x['intrs'][w] = []
         x['latency'][w] = []
+        first = True
 
         continue
 
     m = re.search(r'(\d+) items/s (\d+) kicks/s (\d+) sleeps/s (\d+) intrs/s (\d+) latency', line)
     if m == None:
+        continue
+
+    if first:
+        first = False
         continue
 
     x['items'][w].append(int(m.group(1)))
@@ -70,14 +84,15 @@ fin.close()
 
 wmin = min([w for w in x['items']])
 
-print("%10s %10s %10s %10s %10s %10s %10s %10s %10s" % ('var', 'items', 'Tavg', 'Tmodel', 'kicks', 'csleeps', 'intrs', 'batch', 'latency'))
+print("%10s %10s %10s %10s %10s %10s %10s %10s %10s %10s" % ('var', 'items', 'Tavg', 'Tmodel', 'kicks', 'csleeps', 'intrs', 'batch', 'latency', 'Bmodel'))
 for w in sorted(x['items']):
     denom = max(numpy.mean(x['kicks'][w]), numpy.mean(x['sleeps'][w]), numpy.mean(x['intrs'][w]))
-    print("%10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f" % (w, numpy.mean(x['items'][w]),
+    print("%10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f" % (w, numpy.mean(x['items'][w]),
                                     1000000000/numpy.mean(x['items'][w]),
-                                    T_model(w, wmin, 650, 1080),
+                                    T_model(w, wmin, Sc, Np),
                                     numpy.mean(x['kicks'][w]),
                                     numpy.mean(x['sleeps'][w]),
                                     numpy.mean(x['intrs'][w]),
                                     numpy.mean(x['items'][w])/denom,
-                                    numpy.mean(x['latency'][w])))
+                                    numpy.mean(x['latency'][w]),
+                                    b_model(w, wmin, Sc)))
