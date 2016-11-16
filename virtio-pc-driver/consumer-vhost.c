@@ -222,7 +222,7 @@ retry:
             pc->items = pc->kicks = pc->sleeps = pc->intrs = 0;
 
             pc->last_dump = ktime_get_ns();
-            pc->next_dump = pc->last_dump + 2000000000;
+            pc->next_dump = pc->last_dump + 5000000000;
             next = ktime_get_ns() + pc->wc;
         }
     }
