@@ -29,14 +29,14 @@ argparser = argparse.ArgumentParser(description = description,
 argparser.add_argument('-d', '--data-file',
                        help = "Path to file containing data", type=str,
                        required = True)
-argparser.add_argument('-t', '--num-trials',
-                       help = "Number of samples for each point", type=int,
-                       default = 10)
+argparser.add_argument('--sc',
+                       help = "sc", type=int,
+                       default = 800)
+argparser.add_argument('--np',
+                       help = "np", type=int,
+                       default = 1080)
 
 args = argparser.parse_args()
-
-Sc = 350
-Np = 1080
 
 x = dict()
 
@@ -89,10 +89,10 @@ for w in sorted(x['items']):
     denom = max(numpy.mean(x['kicks'][w]), numpy.mean(x['sleeps'][w]), numpy.mean(x['intrs'][w]))
     print("%10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f" % (w, numpy.mean(x['items'][w]),
                                     1000000000/numpy.mean(x['items'][w]),
-                                    T_model(w, wmin, Sc, Np),
+                                    T_model(w, wmin, args.sc, args.np),
                                     numpy.mean(x['kicks'][w]),
                                     numpy.mean(x['sleeps'][w]),
                                     numpy.mean(x['intrs'][w]),
                                     numpy.mean(x['items'][w])/denom,
                                     numpy.mean(x['latency'][w]),
-                                    b_model(w, wmin, Sc)))
+                                    b_model(w, wmin, args.sc)))
