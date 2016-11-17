@@ -26,14 +26,14 @@ struct vhost_pc {
     struct vhost_dev        hdev;
     struct vhost_virtqueue  vq;
 
-    unsigned int            wp; /* in nanoseconds */
-    unsigned int            wc; /* in nanoseconds */
-    unsigned int            yp; /* in nanoseconds */
-    unsigned int            yc; /* in nanoseconds */
+    unsigned int            wp; /* in cycles */
+    unsigned int            wc; /* in cycles */
+    unsigned int            yp; /* in cycles */
+    unsigned int            yc; /* in cycles */
     unsigned int            psleep; /* boolean */
     unsigned int            csleep; /* boolean */
-    unsigned int            incsp; /* in nanoseconds */
-    unsigned int            incsc; /* in nanoseconds */
+    unsigned int            incsp; /* in cycles */
+    unsigned int            incsc; /* in cycles */
 
     u64                     items;
     u64                     kicks;

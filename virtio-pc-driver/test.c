@@ -51,15 +51,15 @@ main(int argc, char **argv)
 
     /* Prepare the configuration to be passed to the prodcons virtio device. */
 
-    vio.wp = 150; /* in nanoseconds */
-    vio.wc = 300; /* in nanoseconds */
-    vio.yp = 5000; /* in nanoseconds */
-    vio.yc = 5000; /* in nanoseconds */
+    vio.wp = 150; /* in cycles */
+    vio.wc = 300; /* in cycles */
+    vio.yp = 5000; /* in cycles */
+    vio.yc = 5000; /* in cycles */
     vio.duration = 20; /* in seconds */
     vio.psleep = 0; /* producer doesn't use sleeping */
     vio.csleep = 0; /* consumer doesn't use sleeping */
-    vio.incsc = 0; /* in nanoseconds */
-    vio.incsp = 0; /* in nanoseconds */
+    vio.incsc = 0; /* in cycles */
+    vio.incsp = 0; /* in cycles */
     vio.devid = 0; /* virtio-prodcons device to be selected */
 
     while ((ch = getopt(argc, argv, "hd:sSp:c:y:Y:i:I:")) != -1) {

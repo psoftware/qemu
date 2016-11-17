@@ -27,17 +27,17 @@ struct virtio_pc_config {
 
 struct virtpc_ioctl_data {
     unsigned int devid;
-    unsigned int wp;       /* producer work in ns */
-    unsigned int wc;       /* consumer work in ns */
-    unsigned int yp;       /* prodcuer sleep in ns */
-    unsigned int yc;       /* consumer sleep in ns */
+    unsigned int wp;       /* producer work in cycles */
+    unsigned int wc;       /* consumer work in cycles */
+    unsigned int yp;       /* prodcuer sleep in cycles */
+    unsigned int yc;       /* consumer sleep in cycles */
     unsigned int duration; /* in seconds */
     unsigned int psleep; /* 0 --> producer uses notifications
                           * 1 --> producer uses sleeping */
     unsigned int csleep; /* 0 --> consumer uses notifications
                           * 1 --> consumer uses sleeping */
-    unsigned int incsp; /* artificially increase sp, in ns */
-    unsigned int incsc; /* artificially increase sc, in ns */
+    unsigned int incsp; /* artificially increase sp, in cycles */
+    unsigned int incsc; /* artificially increase sc, in cycles */
 };
 
 #endif  /* __VIRTIO_PRODCONS_H__ */
