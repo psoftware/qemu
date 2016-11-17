@@ -143,11 +143,11 @@ static void consume(struct vhost_work *work)
     vhost_disable_notify(&pc->hdev, vq);
 
     if (pc->incsc) {
-        next = ktime_get_ns() + pc->incsc;
-        while (ktime_get_ns() < next) ;
+        next = rdtsc() + pc->incsc;
+        while (rdtsc() < next) barrier();
     }
 
-    next = ktime_get_ns() + pc->wc;
+    next = rdtsc() + pc->wc;
 
     for (;;) {
 retry:
@@ -166,7 +166,7 @@ retry:
                 __set_current_state(TASK_UNINTERRUPTIBLE);
                 schedule_hrtimeout_range(&to, 0, HRTIMER_MODE_REL);
                 pc->sleeps ++;
-                next = ktime_get_ns() + pc->wc;
+                next = rdtsc() + pc->wc;
                 goto retry;
             } else {
                 if (unlikely(vhost_enable_notify(&pc->hdev, vq))) {
@@ -187,7 +187,7 @@ retry:
         printk("msglen %d\n", (int)iov_length(vq->iov, out));
 #endif
 
-        while (ktime_get_ns() < next) ;
+        while (rdtsc() < next) barrier();
         next += pc->wc;
 
         vhost_add_used(vq, head, 0);
@@ -203,11 +203,11 @@ retry:
             /* When the costly notification routine returns, we need to
              * reset next to correctly emulate the consumption of the
              * next item. */
-            next = ktime_get_ns() + pc->wc;
+            next = rdtsc() + pc->wc;
         }
 
         if (unlikely(next > pc->next_dump)) {
-            u64 ndiff = ktime_get_ns() - pc->last_dump;
+            u64 ndiff = TSC2NS(rdtsc() - pc->last_dump);
             u32 lat;
 
             lat = sel(pc->latency, PC_LAT_ELEMS, (PC_LAT_ELEMS*95)/100);
@@ -221,9 +221,9 @@ retry:
 
             pc->items = pc->kicks = pc->sleeps = pc->intrs = 0;
 
-            pc->last_dump = ktime_get_ns();
-            pc->next_dump = pc->last_dump + 5000000000;
-            next = ktime_get_ns() + pc->wc;
+            pc->last_dump = rdtsc();
+            pc->next_dump = pc->last_dump + NS2TSC(5000000000);
+            next = rdtsc() + pc->wc;
         }
     }
     mutex_unlock(&vq->mutex);
@@ -249,7 +249,7 @@ static int vhost_pc_open(struct inode *inode, struct file *f)
     pc->wc = 2000; /* default to 2 microseconds */
     pc->yc = 3000; /* default to 3 microseconds */
     pc->lat_idx = 0;
-    pc->last_dump = pc->next_dump = ktime_get_ns();
+    pc->last_dump = pc->next_dump = rdtsc();
     hdev = &pc->hdev;
     vqs[0] = &pc->vq;
     pc->vq.handle_kick = consume;

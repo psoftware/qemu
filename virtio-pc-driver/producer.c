@@ -143,12 +143,14 @@ produce(struct virtpc_info *vi)
     u64 finish;
     bool kick;
     int err;
+    u64 ts;
 
     /* Compute finish time in stages, to avoid overflow of
      * the vi->duration variable. */
     finish = vi->duration;
     finish *= 1000000000;
-    finish += ktime_get_ns();
+    finish = NS2TSC(finish);
+    finish += rdtsc();
 
     printk("virtpc: producer start Wp=%uns Wc=%uns Yp=%uns Yc=%uns D=%us\n",
             vi->wp, vi->wc, vi->yp, vi->yc, vi->duration);
@@ -156,8 +158,9 @@ produce(struct virtpc_info *vi)
     cleanup_items(vi, ~0U);
     virtqueue_enable_cb(vq);
 
-    next = ktime_get_ns() + vi->wp;
-    vi->bufs[idx] = rdtsc();
+    ts = rdtsc();
+    next = ts + vi->wp;
+    vi->bufs[idx] = ts;
 
     for (;;) {
 
@@ -179,7 +182,7 @@ produce(struct virtpc_info *vi)
             idx = 0;
         }
 
-        while (ktime_get_ns() < next) ;
+        while (rdtsc() < next) barrier();
         next += vi->wp;
         vi->bufs[idx] = rdtsc();
 
@@ -198,7 +201,7 @@ produce(struct virtpc_info *vi)
             /* When the costly notification routine returns, we need to
              * reset next to correctly emulate the production of the
              * next item. */
-            next = ktime_get_ns() + vi->wp;
+            next = rdtsc() + vi->wp;
         }
 
         if (vq->num_free < THR) {
@@ -211,7 +214,7 @@ produce(struct virtpc_info *vi)
                     cleanup_items(vi, THR);
                 } while (vq->num_free < THR);
 
-                next = ktime_get_ns() + vi->wp;
+                next = rdtsc() + vi->wp;
 
             } else {
                 set_current_state(TASK_INTERRUPTIBLE);
@@ -228,12 +231,13 @@ produce(struct virtpc_info *vi)
                      * last one item will be recovered by the call to
                      * cleanup_items(). */
                     if (vi->incsp) {
-                        next = ktime_get_ns() + vi->incsp;
-                        while (ktime_get_ns() < next) ;
+                        next = rdtsc() + vi->incsp;
+                        while (rdtsc() < next) barrier();
                     }
 
-                    next = ktime_get_ns() + vi->wp;
-                    vi->bufs[idx] = rdtsc();
+                    ts = rdtsc();
+                    next = ts + vi->wp;
+                    vi->bufs[idx] = ts;
                 }
             }
         }
