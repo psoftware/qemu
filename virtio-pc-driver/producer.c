@@ -300,30 +300,30 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
         return vi ? -EBUSY : -ENXIO;
     }
 
+    calibrate_tsc();
+
     vi->busy = true;
-    vi->wp = pcio.wp;
-    vi->wc = pcio.wc;
-    vi->yp = pcio.yp;
-    vi->yc = pcio.yc;
-    vi->psleep= pcio.psleep;
+    vi->wp = NS2TSC(pcio.wp);
+    vi->wc = NS2TSC(pcio.wc);
+    vi->yp = NS2TSC(pcio.yp);
+    vi->yc = NS2TSC(pcio.yc);
+    vi->psleep = pcio.psleep;
     vi->csleep = pcio.csleep;
-    vi->incsp = pcio.incsp;
-    vi->incsc = pcio.incsc;
+    vi->incsp = NS2TSC(pcio.incsp);
+    vi->incsc = NS2TSC(pcio.incsc);
     vi->duration = pcio.duration;
 
     /* cf. with include/hw/virtio/virtio-prodcons.h */
-    virtio_cwrite32(vi->vdev, 0 /* offset */, (uint32_t)pcio.wp);
-    virtio_cwrite32(vi->vdev, 4 /* offset */, (uint32_t)pcio.wc);
-    virtio_cwrite32(vi->vdev, 8 /* offset */, (uint32_t)pcio.yp);
-    virtio_cwrite32(vi->vdev, 12 /* offset */, (uint32_t)pcio.yc);
-    virtio_cwrite32(vi->vdev, 16 /* offset */, (uint32_t)pcio.psleep);
-    virtio_cwrite32(vi->vdev, 20 /* offset */, (uint32_t)pcio.csleep);
-    virtio_cwrite32(vi->vdev, 24 /* offset */, (uint32_t)pcio.incsp);
-    virtio_cwrite32(vi->vdev, 28 /* offset */, (uint32_t)pcio.incsc);
+    virtio_cwrite32(vi->vdev, 0 /* offset */, (uint32_t)vi->wp);
+    virtio_cwrite32(vi->vdev, 4 /* offset */, (uint32_t)vi->wc);
+    virtio_cwrite32(vi->vdev, 8 /* offset */, (uint32_t)vi->yp);
+    virtio_cwrite32(vi->vdev, 12 /* offset */, (uint32_t)vi->yc);
+    virtio_cwrite32(vi->vdev, 16 /* offset */, (uint32_t)vi->psleep);
+    virtio_cwrite32(vi->vdev, 20 /* offset */, (uint32_t)vi->csleep);
+    virtio_cwrite32(vi->vdev, 24 /* offset */, (uint32_t)vi->incsp);
+    virtio_cwrite32(vi->vdev, 28 /* offset */, (uint32_t)vi->incsc);
 
     mutex_unlock(&lock);
-
-    calibrate_tsc();
 
     /* We keep ourself in the wait queue all the time; there is no
      * point in paying the cost of dynamically adding/removing us from

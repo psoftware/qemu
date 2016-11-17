@@ -357,22 +357,22 @@ static long vhost_pc_ioctl(struct file *f, unsigned int ioctl,
             switch (file.index) {
                 case VPC_WP:
                     pc->wp = (unsigned int)file.fd;
-                    printk("virtpc: set Wp=%uns\n", pc->wp);
+                    printk("virtpc: set Wp=%lluns\n", TSC2NS(pc->wp));
                     break;
 
                 case VPC_WC:
                     pc->wc = (unsigned int)file.fd;
-                    printk("virtpc: set Wc=%uns\n", pc->wc);
+                    printk("virtpc: set Wc=%lluns\n", TSC2NS(pc->wc));
                     break;
 
                 case VPC_YP:
                     pc->yp = (unsigned int)file.fd;
-                    printk("virtpc: set Yp=%uns\n", pc->yp);
+                    printk("virtpc: set Yp=%lluns\n", TSC2NS(pc->yp));
                     break;
 
                 case VPC_YC:
                     pc->yc = (unsigned int)file.fd;
-                    printk("virtpc: set Yc=%uns\n", pc->yc);
+                    printk("virtpc: set Yc=%lluns\n", TSC2NS(pc->yc));
                     break;
 
                 case VPC_PSLEEP:
@@ -387,12 +387,12 @@ static long vhost_pc_ioctl(struct file *f, unsigned int ioctl,
 
                 case VPC_INCSP:
                     pc->incsp = (unsigned int)file.fd;
-                    printk("virtpc: set incSp=%u\n", pc->incsp);
+                    printk("virtpc: set incSp=%llu\n", TSC2NS(pc->incsp));
                     break;
 
                 case VPC_INCSC:
                     pc->incsc = (unsigned int)file.fd;
-                    printk("virtpc: set incSc=%u\n", pc->incsc);
+                    printk("virtpc: set incSc=%llu\n", TSC2NS(pc->incsc));
                     break;
 
                 default:
