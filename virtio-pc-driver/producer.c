@@ -146,10 +146,10 @@ produce(struct virtpc_info *vi)
     u64 ts;
 
     /* Compute finish time in stages, to avoid overflow of
-     * the vi->duration variable. */
+     * the vi->duration and finish variable. */
     finish = vi->duration;
-    finish *= 1000000000;
     finish = NS2TSC(finish);
+    finish *= 1000000000;
     finish += rdtsc();
 
     printk("virtpc: producer start Wp=%uns Wc=%uns Yp=%uns Yc=%uns D=%us\n",
