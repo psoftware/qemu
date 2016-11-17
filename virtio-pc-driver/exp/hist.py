@@ -2,6 +2,7 @@
 
 from matplotlib import pyplot as plt
 import argparse
+import numpy
 import re
 
 
@@ -53,6 +54,8 @@ for data_file in args.data_file:
         x.append(val)
     fin.close()
     xs.append(x)
+
+print("Average: %.2f" % (numpy.mean(x),))
 
 #Plotting to our canvas
 for x in xs:
