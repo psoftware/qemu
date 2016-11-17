@@ -125,6 +125,14 @@ static u32 sel(u32 *a, unsigned int n, unsigned int k)
     return a[k];
 }
 
+static void
+vhost_pc_stats_reset(struct vhost_pc *pc)
+{
+    pc->items = pc->kicks = pc->sleeps = pc->intrs = 0;
+    pc->last_dump = rdtsc();
+    pc->next_dump = pc->last_dump + NS2TSC(5000000000);
+}
+
 static void consume(struct vhost_work *work)
 {
     struct vhost_virtqueue *vq = container_of(work, struct vhost_virtqueue,
@@ -219,10 +227,7 @@ retry:
                     (pc->intrs * 1000000000)/ndiff,
                     TSC2NS(lat));
 
-            pc->items = pc->kicks = pc->sleeps = pc->intrs = 0;
-
-            pc->last_dump = rdtsc();
-            pc->next_dump = pc->last_dump + NS2TSC(5000000000);
+            vhost_pc_stats_reset(pc);
             next = rdtsc() + pc->wc;
         }
     }
@@ -249,7 +254,7 @@ static int vhost_pc_open(struct inode *inode, struct file *f)
     pc->wc = 2000; /* default to 2 microseconds */
     pc->yc = 3000; /* default to 3 microseconds */
     pc->lat_idx = 0;
-    pc->last_dump = pc->next_dump = rdtsc();
+    vhost_pc_stats_reset(pc);
     hdev = &pc->hdev;
     vqs[0] = &pc->vq;
     pc->vq.handle_kick = consume;
@@ -399,6 +404,7 @@ static long vhost_pc_ioctl(struct file *f, unsigned int ioctl,
                     printk("virtpc: unknown param %u\n", file.index);
                     return -EINVAL;
             }
+            vhost_pc_stats_reset(pc);
             return 0;
         case VHOST_GET_FEATURES:
             features = VHOST_PC_FEATURES;
