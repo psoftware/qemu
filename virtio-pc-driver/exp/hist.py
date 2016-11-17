@@ -59,7 +59,7 @@ for x in xs:
     if args.cumulative:
         plt.hist(x, bins = 100, cumulative=True, histtype='step', normed=1)
     else:
-        plt.hist(x, bins = 50, normed=1)
+        plt.hist(x, bins = 100, normed=1)
 
 #plt.axis([0, 10, 0, 10]) # [xmin, xmax, ymin, ymax]
 plt.ylabel(args.ylabel)
