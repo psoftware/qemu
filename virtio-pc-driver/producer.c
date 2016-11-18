@@ -57,6 +57,9 @@ struct virtpc_info {
     unsigned int                incsp;
     unsigned int                incsc;
     unsigned int		duration;
+    u64                         np_acc;
+    u64                         np_cnt;
+    u64                         next_dump;
     struct scatterlist	        sg[1];
     u64                         *bufs;
     unsigned int                nbufs;
@@ -109,6 +112,13 @@ calibrate_tsc(void)
 /***********************************************************************/
 
 static void
+virtio_pc_stats_reset(struct virtpc_info *vi)
+{
+    vi->np_acc = vi->np_cnt = 0;
+    vi->next_dump = rdtsc() + NS2TSC(5000000000);
+}
+
+static void
 items_consumed(struct virtqueue *vq)
 {
     struct virtpc_info *vi = vq->vdev->priv;
@@ -139,11 +149,15 @@ produce(struct virtpc_info *vi)
 {
     struct virtqueue *vq = vi->vq;
     unsigned int idx = 0;
+    u64 guard_ofs;
     u64 next;
     u64 finish;
     bool kick;
+    u64 *buf;
     int err;
     u64 ts;
+
+    guard_ofs = NS2TSC(1000000);
 
     /* Compute finish time in stages, to avoid overflow of
      * the vi->duration and finish variable. */
@@ -152,15 +166,11 @@ produce(struct virtpc_info *vi)
     finish *= 1000000000;
     finish += rdtsc();
 
-    printk("virtpc: producer start Wp=%uns Wc=%uns Yp=%uns Yc=%uns D=%us\n",
-            vi->wp, vi->wc, vi->yp, vi->yc, vi->duration);
-
     cleanup_items(vi, ~0U);
     virtqueue_enable_cb(vq);
 
     ts = rdtsc();
     next = ts + vi->wp;
-    vi->bufs[idx] = ts;
 
     for (;;) {
 
@@ -176,6 +186,7 @@ produce(struct virtpc_info *vi)
         cleanup_items(vi, THR);
 
         /* Prepare the buffer */
+        buf = vi->bufs + idx;
         sg_init_table(vi->sg, 1);
         sg_set_buf(vi->sg, vi->bufs + idx, sizeof(u64));
         if (++idx >= vi->nbufs) {
@@ -184,8 +195,11 @@ produce(struct virtpc_info *vi)
 
         while (rdtsc() < next) barrier();
         next += vi->wp;
-        vi->bufs[idx] = rdtsc();
 
+        *buf = rdtsc() - guard_ofs; /* We subtract guard_ofs (1 ms) to
+                                     * give C a way to understand
+                                     * that it didn't see the correct
+                                     * timestamp set below */
         err = virtqueue_add_outbuf(vq, vi->sg, 1, vi, GFP_ATOMIC);
         if (unlikely(err)) {
             printk("virtpc: add_outbuf() failed %d\n", err);
@@ -197,11 +211,18 @@ produce(struct virtpc_info *vi)
 
         kick = virtqueue_kick_prepare(vq);
         if (kick) {
+            u64 pts = rdtsc();
+
             virtqueue_notify(vq);
+            ts = rdtsc();
+            *buf = ts; /* ignore C double-check, assume C was blocked,
+                        * and assume C starts after this point */
+            vi->np_acc += ts - pts;
+            vi->np_cnt ++;
             /* When the costly notification routine returns, we need to
              * reset next to correctly emulate the production of the
              * next item. */
-            next = rdtsc() + vi->wp;
+            next += ts - pts;
         }
 
         if (vq->num_free < THR) {
@@ -237,9 +258,18 @@ produce(struct virtpc_info *vi)
 
                     ts = rdtsc();
                     next = ts + vi->wp;
-                    vi->bufs[idx] = ts;
                 }
             }
+        }
+
+        if (unlikely(next > vi->next_dump)) {
+            u64 avg;
+
+            avg = vi->np_cnt ? vi->np_acc / vi->np_cnt : 0;
+            printk("PC: %llu np\n", TSC2NS(avg));
+
+            virtio_pc_stats_reset(vi);
+            next = rdtsc() + vi->wp;
         }
     }
 
@@ -322,6 +352,14 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
     virtio_cwrite32(vi->vdev, 20 /* offset */, (uint32_t)vi->csleep);
     virtio_cwrite32(vi->vdev, 24 /* offset */, (uint32_t)vi->incsp);
     virtio_cwrite32(vi->vdev, 28 /* offset */, (uint32_t)vi->incsc);
+
+    printk("virtpc: set Wp=%uns\n", pcio.wp);
+    printk("virtpc: set Wc=%uns\n", pcio.wc);
+    printk("virtpc: set Yp=%uns\n", pcio.yp);
+    printk("virtpc: set Yc=%uns\n", pcio.yc);
+    printk("virtpc: set D=%uns\n", pcio.duration);
+
+    virtio_pc_stats_reset(vi);
 
     mutex_unlock(&lock);
 
