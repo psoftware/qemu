@@ -87,12 +87,15 @@ wmin = min([w for w in x['items']])
 print("%10s %10s %10s %10s %10s %10s %10s %10s %10s %10s" % ('var', 'items', 'Tavg', 'Tmodel', 'kicks', 'csleeps', 'intrs', 'batch', 'latency', 'Bmodel'))
 for w in sorted(x['items']):
     denom = max(numpy.mean(x['kicks'][w]), numpy.mean(x['sleeps'][w]), numpy.mean(x['intrs'][w]))
+    sc = args.sc
+    if args.sc < 0:
+        sc = numpy.mean(x['latency'][w])
     print("%10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f" % (w, numpy.mean(x['items'][w]),
                                     1000000000/numpy.mean(x['items'][w]),
-                                    T_model(w, wmin, args.sc, args.np),
+                                    T_model(w, wmin, sc, args.np),
                                     numpy.mean(x['kicks'][w]),
                                     numpy.mean(x['sleeps'][w]),
                                     numpy.mean(x['intrs'][w]),
                                     numpy.mean(x['items'][w])/denom,
                                     numpy.mean(x['latency'][w]),
-                                    b_model(w, wmin, args.sc)))
+                                    b_model(w, wmin, sc)))
