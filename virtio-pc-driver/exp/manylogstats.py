@@ -7,15 +7,19 @@ import numpy
 import math
 
 
-def b_model(Wp, Wc, Sc):
+def b_model(Wp, Wc, Sp, Sc):
     if Wp == Wc:
         return 0
+    if Wp < Wc:
+        return math.floor(Sp/(Wc-Wp)) + 1
     return math.floor(Sc/(Wp-Wc)) + 1
 
-def T_model(Wp, Wc, Sc, Np):
+def T_model(Wp, Wc, Sp, Sc, Np, Nc):
     if Wp == Wc:
         return Wp
-    b = b_model(Wp, Wc, Sc)
+    b = b_model(Wp, Wc, Sp, Sc)
+    if Wp < Wc:
+        return Wc + Nc/b
     return Wp + Np/b
 
 
@@ -35,6 +39,12 @@ argparser.add_argument('--sc',
 argparser.add_argument('--np',
                        help = "np", type=int,
                        default = 1080)
+argparser.add_argument('--sp',
+                       help = "sc", type=int,
+                       default = 7600)
+argparser.add_argument('--nc',
+                       help = "np", type=int,
+                       default = 800)
 
 args = argparser.parse_args()
 
@@ -82,7 +92,8 @@ while 1:
 
 fin.close()
 
-wmin = min([w for w in x['items']])
+#wmin = min([w for w in x['items']])
+wmin = 2000
 
 print("%10s %10s %10s %10s %10s %10s %10s %10s %10s %10s" % ('var', 'items', 'Tavg', 'Tmodel', 'kicks', 'csleeps', 'intrs', 'batch', 'latency', 'Bmodel'))
 for w in sorted(x['items']):
@@ -92,10 +103,10 @@ for w in sorted(x['items']):
         sc = numpy.mean(x['latency'][w])
     print("%10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f" % (w, numpy.mean(x['items'][w]),
                                     1000000000/numpy.mean(x['items'][w]),
-                                    T_model(w, wmin, sc, args.np),
+                                    T_model(w, wmin, args.sp, sc, args.np, args.nc),
                                     numpy.mean(x['kicks'][w]),
                                     numpy.mean(x['sleeps'][w]),
                                     numpy.mean(x['intrs'][w]),
                                     numpy.mean(x['items'][w])/denom,
                                     numpy.mean(x['latency'][w]),
-                                    b_model(w, wmin, sc)))
+                                    b_model(w, wmin, args.sp, sc)))
