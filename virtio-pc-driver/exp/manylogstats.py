@@ -60,6 +60,7 @@ x = dict()
 
 x['items'] = dict()
 x['kicks'] = dict()
+x['spkicks'] = dict()
 x['sleeps'] = dict()
 x['intrs'] = dict()
 x['latency'] = dict()
@@ -77,6 +78,7 @@ while 1:
         w = int(m.group(1))
         x['items'][w] = []
         x['kicks'][w] = []
+        x['spkicks'][w] = []
         x['sleeps'][w] = []
         x['intrs'][w] = []
         x['latency'][w] = []
@@ -84,7 +86,7 @@ while 1:
 
         continue
 
-    m = re.search(r'(\d+) items/s (\d+) kicks/s (\d+) sleeps/s (\d+) intrs/s (\d+) latency', line)
+    m = re.search(r'(\d+) items/s (\d+) kicks/s (\d+) sleeps/s (\d+) intrs/s (\d+) latency(?: (\d+) spkicks/s)?', line)
     if m == None:
         continue
 
@@ -97,27 +99,36 @@ while 1:
     x['sleeps'][w].append(int(m.group(3)))
     x['intrs'][w].append(int(m.group(4)))
     x['latency'][w].append(int(m.group(5)))
+    if m.group(6):
+        x['spkicks'][w].append(int(m.group(6)))
+    else:
+        x['spkicks'][w].append(0)
 
 fin.close()
 
 #wmin = min([w for w in x['items']])
 wmin = 2000
 
-print("%10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s" % ('var', 'items', 'kicks', 'csleeps', 'intrs', 'latency', 'Tavg', 'Tmodel', 'Tbatch', 'batch', 'Bmodel'))
+print("%10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s" % ('var', 'Tavg', 'Tmodel', 'Tbatch', 'batch', 'Bmodel', 'items', 'kicks', 'spkicks', 'csleeps', 'intrs', 'latency'))
 for w in sorted(x['items']):
+    if len(x['items'][w]) == 0:
+        print("Warning: no samples for w=%d" % (w,))
+        continue
+
     denom = max(numpy.mean(x['kicks'][w]), numpy.mean(x['sleeps'][w]), numpy.mean(x['intrs'][w]))
     sc = args.sc
     if args.sc < 0:
         sc = numpy.mean(x['latency'][w])
     b_meas = numpy.mean(x['items'][w])/denom
-    print("%10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f" % (w,
-                                    numpy.mean(x['items'][w]),
-                                    numpy.mean(x['kicks'][w]),
-                                    numpy.mean(x['sleeps'][w]),
-                                    numpy.mean(x['intrs'][w]),
-                                    numpy.mean(x['latency'][w]),
+    print("%10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f" % (w,
                                     1000000000/numpy.mean(x['items'][w]),
                                     T_model(w, wmin, args.sp, sc, args.np, args.nc),
                                     T_batch(w, wmin, args.np, args.nc, b_meas),
                                     b_meas,
-                                    b_model(w, wmin, args.sp, sc)))
+                                    b_model(w, wmin, args.sp, sc),
+                                    numpy.mean(x['items'][w]),
+                                    numpy.mean(x['kicks'][w]),
+                                    numpy.mean(x['spkicks'][w]),
+                                    numpy.mean(x['sleeps'][w]),
+                                    numpy.mean(x['intrs'][w]),
+                                    numpy.mean(x['latency'][w])))
