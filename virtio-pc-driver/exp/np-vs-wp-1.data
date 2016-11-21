@@ -1,3 +1,4 @@
+#taken with regular vhost, virtio-pc-sc-np branch
 4,477,381779438,-;virtpc: set Wp=2000ns
 4,478,381779440,-;virtpc: set Wc=2000ns
 4,479,381779441,-;virtpc: set Yp=5000ns
