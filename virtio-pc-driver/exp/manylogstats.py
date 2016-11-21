@@ -151,7 +151,9 @@ for w in sorted(x['items']):
         continue
 
     denom = max(numpy.mean(x['kicks'][w]), numpy.mean(x['sleeps'][w]), numpy.mean(x['intrs'][w]))
-    b_meas = numpy.mean(x['items'][w])/denom
+    b_meas = numpy.mean(x['items'][w])/denom # not taking into account spurious kicks
+    denom = max(numpy.mean(x['kicks'][w]) + numpy.mean(x['spkicks'][w]), numpy.mean(x['sleeps'][w]), numpy.mean(x['intrs'][w]))
+    b_meas_spurious = numpy.mean(x['items'][w])/denom # taking into account spurious kicks
 
     sc = args.sc
     if args.sc < 0:
@@ -174,7 +176,7 @@ for w in sorted(x['items']):
     print("%10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f" % (w,
                                     1000000000/numpy.mean(x['items'][w]),
                                     T_model(w, wmin, args.sp, sc, np, args.nc),
-                                    T_batch(w, wmin, np, args.nc, b_meas),
+                                    T_batch(w, wmin, np, args.nc, b_meas_spurious),
                                     b_meas,
                                     b_model(w, wmin, args.sp, sc),
                                     numpy.mean(x['items'][w]),
