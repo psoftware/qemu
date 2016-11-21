@@ -39,6 +39,7 @@ struct vhost_pc {
     u64                     kicks;
     u64                     sleeps;
     u64                     intrs;
+    u64                     spurious_kicks;
     u64                     last_dump;
     u64                     next_dump;
     unsigned int            lat_idx;
@@ -128,7 +129,7 @@ static u32 sel(u32 *a, unsigned int n, unsigned int k)
 static void
 vhost_pc_stats_reset(struct vhost_pc *pc)
 {
-    pc->items = pc->kicks = pc->sleeps = pc->intrs = 0;
+    pc->items = pc->kicks = pc->sleeps = pc->intrs = pc->spurious_kicks = 0;
     pc->last_dump = rdtsc();
     pc->next_dump = pc->last_dump + NS2TSC(5000000000);
 }
@@ -139,14 +140,13 @@ static void consume(struct vhost_work *work)
                                               poll.work);
     struct vhost_pc *pc = container_of(vq->dev, struct vhost_pc, hdev);
     unsigned out, in;
+    unsigned int b = 0;
     bool intr;
     int head;
     u64 next;
     u64 ts;
 
     mutex_lock(&vq->mutex);
-
-    pc->kicks++;
 
     vhost_disable_notify(&pc->hdev, vq);
 
@@ -201,6 +201,7 @@ retry:
         vhost_add_used(vq, head, 0);
         intr = vhost_notify(&pc->hdev, vq);
         pc->items ++;
+        b ++;
         pc->latency[pc->lat_idx] = (u32)(rdtsc() - (ts - tscofs));
         if (unlikely(++ pc->lat_idx >= PC_LAT_ELEMS)) {
             pc->lat_idx = 0;
@@ -220,17 +221,26 @@ retry:
 
             lat = sel(pc->latency, PC_LAT_ELEMS, (PC_LAT_ELEMS*95)/100);
 
-            printk("PC: %llu items/s %llu kicks/s %llu sleeps/s %llu intrs/s %llu latency\n",
+            printk("PC: %llu items/s %llu kicks/s %llu sleeps/s %llu intrs/s "
+                   "%llu latency %llu spkicks/s\n",
                     (pc->items * 1000000000)/ndiff,
                     (pc->kicks * 1000000000)/ndiff,
                     (pc->sleeps * 1000000000)/ndiff,
                     (pc->intrs * 1000000000)/ndiff,
-                    TSC2NS(lat));
+                    TSC2NS(lat),
+                    (pc->spurious_kicks * 1000000000)/ndiff);
 
             vhost_pc_stats_reset(pc);
             next = rdtsc() + pc->wc;
         }
     }
+
+    if (b) {
+        pc->kicks ++;
+    } else {
+        pc->spurious_kicks ++;
+    }
+
     mutex_unlock(&vq->mutex);
 }
 
