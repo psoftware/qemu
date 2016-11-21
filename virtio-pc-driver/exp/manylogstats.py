@@ -31,6 +31,36 @@ def T_batch(Wp, Wc, Np, Nc, b):
     return Wp + Np/b
 
 
+def load_np_stats(args, x):
+    x['np'] = dict()
+    fin = open(args.np_from_file)
+    first = True
+
+    while 1:
+        line = fin.readline()
+        if line == '':
+            break
+
+        m = re.search(r'virtpc: set Wp=(\d+)ns', line)
+        if m != None:
+            w = int(m.group(1))
+            x['np'][w] = []
+            first = True
+
+            continue
+
+        m = re.search(r'(\d+) np', line)
+        if m == None:
+            continue
+
+        if first:
+            first = False
+            continue
+
+        x['np'][w].append(int(m.group(1)))
+    fin.close()
+
+
 ## N.B. This currently assumes a variable Wp and a fixed Wc
 
 description = "Python script to compute mean and standard deviation"
@@ -53,6 +83,8 @@ argparser.add_argument('--sp',
 argparser.add_argument('--nc',
                        help = "np", type=int,
                        default = 800)
+argparser.add_argument('--np-from-file',
+                       help = "log file to extract np", type=str)
 
 args = argparser.parse_args()
 
@@ -64,6 +96,9 @@ x['spkicks'] = dict()
 x['sleeps'] = dict()
 x['intrs'] = dict()
 x['latency'] = dict()
+
+if args.np_from_file:
+    load_np_stats(args, x)
 
 first = False
 
@@ -109,21 +144,37 @@ fin.close()
 #wmin = min([w for w in x['items']])
 wmin = 2000
 
-print("%10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s" % ('var', 'Tavg', 'Tmodel', 'Tbatch', 'batch', 'Bmodel', 'items', 'kicks', 'spkicks', 'csleeps', 'intrs', 'latency'))
+print("%10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s" % ('var', 'Tavg', 'Tmodel', 'Tbatch', 'batch', 'Bmodel', 'items', 'kicks', 'spkicks', 'csleeps', 'intrs', 'latency', 'Np'))
 for w in sorted(x['items']):
     if len(x['items'][w]) == 0:
         print("Warning: no samples for w=%d" % (w,))
         continue
 
     denom = max(numpy.mean(x['kicks'][w]), numpy.mean(x['sleeps'][w]), numpy.mean(x['intrs'][w]))
+    b_meas = numpy.mean(x['items'][w])/denom
+
     sc = args.sc
     if args.sc < 0:
         sc = numpy.mean(x['latency'][w])
-    b_meas = numpy.mean(x['items'][w])/denom
-    print("%10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f" % (w,
+
+    if args.np_from_file:
+        # handle quantization error
+        if w in x['np']:
+            np = numpy.mean(x['np'][w])
+        elif w+1 in x['np']:
+            np = numpy.mean(x['np'][w+1])
+        elif w-1 in x['np']:
+            np = numpy.mean(x['np'][w-1])
+        else:
+            print("Default to Np=%d for w=%d", args.np, w)
+            np = args.np
+    else:
+        np = args.np
+
+    print("%10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f" % (w,
                                     1000000000/numpy.mean(x['items'][w]),
-                                    T_model(w, wmin, args.sp, sc, args.np, args.nc),
-                                    T_batch(w, wmin, args.np, args.nc, b_meas),
+                                    T_model(w, wmin, args.sp, sc, np, args.nc),
+                                    T_batch(w, wmin, np, args.nc, b_meas),
                                     b_meas,
                                     b_model(w, wmin, args.sp, sc),
                                     numpy.mean(x['items'][w]),
@@ -131,4 +182,5 @@ for w in sorted(x['items']):
                                     numpy.mean(x['spkicks'][w]),
                                     numpy.mean(x['sleeps'][w]),
                                     numpy.mean(x['intrs'][w]),
-                                    numpy.mean(x['latency'][w])))
+                                    numpy.mean(x['latency'][w]),
+                                    np))
