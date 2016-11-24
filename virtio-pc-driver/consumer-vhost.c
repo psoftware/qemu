@@ -231,7 +231,7 @@ retry:
                     (pc->spurious_kicks * 1000000000)/ndiff);
 
             vhost_pc_stats_reset(pc);
-            next = rdtsc() + pc->wc;
+            next = pc->last_dump + pc->wc;
         }
     }
 
