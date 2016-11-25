@@ -1,3 +1,4 @@
+# taken with regular vhost, virtio-pc-sc-np branch, turbo + hyperthreading disabled
 4,1067,1811171851,-;virtpc: set Wp=1999ns
 4,1068,1811171855,-;virtpc: set Wc=0ns
 4,1069,1811171860,-;virtpc: set Wc=1999ns
