@@ -5,6 +5,66 @@ import sys
 import argparse
 import numpy
 import math
+from matplotlib import pyplot as plt
+
+
+def dump(prod_events, cons_events):
+    from matplotlib import pyplot as plt
+
+    xunit = 2000
+    xunits = 180
+
+    fig = plt.figure()
+    ax = plt.axes(xlim=(0, xunits * xunit), ylim=(0, 100))
+
+    y = 95
+    ofs = 0
+    size = 2
+    for ev in prod_events:
+        if ev[0] + ev[2] - ofs > xunits * xunit:
+            ofs += xunits * xunit
+            y -= 10
+            if y < 0:
+                break
+        ev = (ev[0] - ofs, ev[1], ev[2])
+        if ev[1] == 'z':
+            line = plt.Line2D((ev[0], ev[0] + ev[2]), (y + size/2, y + size/2), lw=4.5)
+            plt.gca().add_line(line)
+        elif ev[1] == 'n':
+            poly = plt.Polygon([[ev[0], y], [ev[0], y + size], [ev[0] + ev[2], y]], color = 'y')
+            plt.gca().add_patch(poly)
+        elif ev[1] == 's':
+            poly = plt.Polygon([[ev[0], y], [ev[0] + ev[2], y], [ev[0] + ev[2], y + size]], color = '#0080f0')
+            plt.gca().add_patch(poly)
+        else:
+            color = 'g'
+            rectangle = plt.Rectangle((ev[0], y), ev[2], size, fc=color)
+            plt.gca().add_patch(rectangle)
+
+    y = 92
+    ofs = 0
+    for ev in cons_events:
+        if ev[0] + ev[2] - ofs > xunits * xunit:
+            ofs += xunits * xunit
+            y -= 10
+            if y < 0:
+                break
+        ev = (ev[0] - ofs, ev[1], ev[2])
+        if ev[1] == 'z':
+            line = plt.Line2D((ev[0], ev[0] + ev[2]), (y + size/2, y + size/2), lw=4.5)
+            plt.gca().add_line(line)
+        elif ev[1] == 'n':
+            poly = plt.Polygon([[ev[0], y], [ev[0], y + size], [ev[0] + ev[2], y + size]], color = 'y')
+            plt.gca().add_patch(poly)
+        elif ev[1] == 's':
+            poly = plt.Polygon([[ev[0], y + size], [ev[0] + ev[2], y + size], [ev[0] + ev[2], y]], color = '#0080f0')
+            plt.gca().add_patch(poly)
+        else:
+            color = 'r'
+            rectangle = plt.Rectangle((ev[0], y), ev[2], size, fc=color)
+            plt.gca().add_patch(rectangle)
+
+    plt.show()
 
 
 def trace_load(name, d, ofs):
@@ -51,10 +111,15 @@ g_i = 0
 h_max = len(h['ts'])
 g_max = len(g['ts'])
 
-t_last = 0
-p_first = 0
+p_t = 0
+c_t = 0
+p_events = []
+c_events = []
+t_first = 0
+pkt_first = 0
 
 while h_i < h_max or g_i < g_max:
+
     if g_i >= g_max or (h_i < h_max and h['ts'][h_i] < g['ts'][g_i]):
         m['ts'].append(h['ts'][h_i])
         m['id'].append(h['id'][h_i])
@@ -66,19 +131,31 @@ while h_i < h_max or g_i < g_max:
         m['type'].append(g['type'][g_i])
         g_i += 1
 
-    if t_last == 0:
-        t_last = m['ts'][-1]
-        m['ts'][-1] = 0
+    if m['type'] in [1, 3]: # producer event
+        pass
     else:
-        nxt = m['ts'][-1]
-        m['ts'][-1] -= t_last
-        t_last = nxt
+        pass
 
-    if p_first == 0:
-        p_first = m['id'][-1]
+    if 1:
+        if t_first == 0:
+            t_first = m['ts'][-1]
+            m['ts'][-1] = 0
+        else:
+            m['ts'][-1] -= t_first
+    else: # TODO remove
+        if t_first == 0:
+            t_first = m['ts'][-1]
+            m['ts'][-1] = 0
+        else:
+            nxt = m['ts'][-1]
+            m['ts'][-1] -= t_first
+            t_first = nxt
+
+    if pkt_first == 0:
+        pkt_first = m['id'][-1]
         m['id'][-1] = 0
     else:
-        m['id'][-1] -= p_first
+        m['id'][-1] -= pkt_first
 
 descr = dict()
 descr[1] = 'P pub'
