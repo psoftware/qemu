@@ -69,6 +69,10 @@ struct virtpc_info {
 struct virtpc_priv {
 };
 
+static u32 pkt_idx = 0;
+static unsigned int event_idx = 0;
+static struct pcevent events[VIRTIOPC_EVENTS];
+
 /******************************* TSC support ***************************/
 
 /* initialize to avoid a division by 0 */
@@ -201,6 +205,10 @@ produce(struct virtpc_info *vi)
                                      * that it didn't see the correct
                                      * timestamp set below */
         err = virtqueue_add_outbuf(vq, vi->sg, 1, vi, GFP_ATOMIC);
+        events[event_idx].ts = rdtsc();
+        events[event_idx].id = pkt_idx;
+        events[event_idx].type = VIRTIOPC_PKTPUB;
+        VIRTIOPC_EVNEXT(event_idx);
         if (unlikely(err)) {
             printk("virtpc: add_outbuf() failed %d\n", err);
 #ifdef DBG
@@ -223,7 +231,13 @@ produce(struct virtpc_info *vi)
              * reset next to correctly emulate the production of the
              * next item. */
             next += ts - pts;
+            events[event_idx].ts = ts;
+            events[event_idx].id = pkt_idx;
+            events[event_idx].type = VIRTIOPC_P_NOTIFY_DONE;
+            VIRTIOPC_EVNEXT(event_idx);
         }
+
+        pkt_idx ++;
 
         if (vq->num_free < THR) {
             if (vi->psleep) {
@@ -352,6 +366,7 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
     virtio_cwrite32(vi->vdev, 20 /* offset */, (uint32_t)vi->csleep);
     virtio_cwrite32(vi->vdev, 24 /* offset */, (uint32_t)vi->incsp);
     virtio_cwrite32(vi->vdev, 28 /* offset */, (uint32_t)vi->incsc);
+    virtio_cwrite32(vi->vdev, 32 /* offset */, (uint32_t)0);
 
     printk("virtpc: set Wp=%uns\n", pcio.wp);
     printk("virtpc: set Wc=%uns\n", pcio.wc);
@@ -360,6 +375,7 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
     printk("virtpc: set D=%uns\n", pcio.duration);
 
     virtio_pc_stats_reset(vi);
+    pkt_idx = 0;
 
     mutex_unlock(&lock);
 
@@ -375,6 +391,17 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
     mutex_lock(&lock);
     vi->busy = false;
     mutex_unlock(&lock);
+
+    virtio_cwrite32(vi->vdev, 32 /* offset */, (uint32_t)1); /* stop */
+
+    {
+        unsigned int i;
+
+        for (i = 0; i < VIRTIOPC_EVENTS; i ++) {
+            trace_printk("%llu %u %u\n", events[i].ts,
+                         events[i].id, events[i].type);
+        }
+    }
 
     return ret;
 }

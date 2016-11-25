@@ -98,6 +98,7 @@ static int virtio_pc_set_params(VirtIOProdcons *pc,
                         VPC_CSLEEP,
                         VPC_INCSP,
                         VPC_INCSC,
+                        VPC_STOP,
                 };
     unsigned int values[] = {
                         pc->cfg.wp,
@@ -108,6 +109,7 @@ static int virtio_pc_set_params(VirtIOProdcons *pc,
                         pc->cfg.csleep,
                         pc->cfg.incsp,
                         pc->cfg.incsc,
+                        pc->cfg.stop,
                 };
     unsigned int old_values[] = {
                         oldcfg->wp,
@@ -118,6 +120,7 @@ static int virtio_pc_set_params(VirtIOProdcons *pc,
                         oldcfg->csleep,
                         oldcfg->incsp,
                         oldcfg->incsc,
+                        oldcfg->stop,
                 };
     unsigned int i;
     int r;
@@ -128,6 +131,10 @@ static int virtio_pc_set_params(VirtIOProdcons *pc,
 
     for (i = 0; i < sizeof(params)/sizeof(params[0]); i++) {
         if (values[i] == old_values[i]) {
+            continue;
+        }
+
+        if (values[i] == 0 && params[i] == VPC_STOP) {
             continue;
         }
 

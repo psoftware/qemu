@@ -10,6 +10,7 @@ enum {
     VPC_CSLEEP,
     VPC_INCSP,
     VPC_INCSC,
+    VPC_STOP,
     VPC_LAST
 };
 
@@ -23,6 +24,7 @@ struct virtio_pc_config {
     uint32_t    csleep;
     uint32_t    incsp;
     uint32_t    incsc;
+    uint32_t    stop;
 };
 
 struct virtpc_ioctl_data {
@@ -39,5 +41,19 @@ struct virtpc_ioctl_data {
     unsigned int incsp; /* artificially increase sp, in nanoseconds */
     unsigned int incsc; /* artificially increase sc, in nanoseconds */
 };
+
+struct pcevent {
+    uint64_t ts;
+    uint32_t id;
+#define VIRTIOPC_PKTPUB         1
+#define VIRTIOPC_PKTSEEN        2
+#define VIRTIOPC_P_NOTIFY_DONE  3
+#define VIRTIOPC_C_RUNS         4
+    uint32_t type;
+};
+
+#define VIRTIOPC_EVENTS         100000
+
+#define VIRTIOPC_EVNEXT(_cnt) if (++ _cnt >= VIRTIOPC_EVENTS) _cnt = 0
 
 #endif  /* __VIRTIO_PRODCONS_H__ */

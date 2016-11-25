@@ -46,6 +46,10 @@ struct vhost_pc {
     u64                     lat_acc;
 };
 
+static u32 pkt_idx = 0;
+static unsigned int event_idx = 0;
+static struct pcevent events[VIRTIOPC_EVENTS];
+
 /******************************* TSC support ***************************/
 
 /* initialize to avoid a division by 0 */
@@ -158,6 +162,10 @@ static void consume(struct vhost_work *work)
 
     hts = rdtsc();
     next = hts + pc->wc;
+    events[event_idx].ts = hts;
+    events[event_idx].id = pkt_idx;
+    events[event_idx].type = VIRTIOPC_C_RUNS;
+    VIRTIOPC_EVNEXT(event_idx);
 
     for (;;) {
 retry:
@@ -186,6 +194,13 @@ retry:
                 break;
             }
         }
+
+        events[event_idx].ts = rdtsc();
+        events[event_idx].id = pkt_idx;
+        events[event_idx].type = VIRTIOPC_PKTSEEN;
+        VIRTIOPC_EVNEXT(event_idx);
+        pkt_idx ++;
+
         if (in) {
             vq_err(vq, "Unexpected descriptor format for TX: "
                     "out %d, int %d\n", out, in);
@@ -417,11 +432,24 @@ static long vhost_pc_ioctl(struct file *f, unsigned int ioctl,
                     printk("virtpc: set incSc=%llu\n", TSC2NS(pc->incsc));
                     break;
 
+                case VPC_STOP:
+                    {
+                        unsigned int i;
+
+                        printk("virtpc: STOP\n");
+                        for (i = 0; i < VIRTIOPC_EVENTS; i ++) {
+                            trace_printk("%llu %u %u\n", events[i].ts,
+                                   events[i].id, events[i].type);
+                        }
+                    }
+                    break;
+
                 default:
                     printk("virtpc: unknown param %u\n", file.index);
                     return -EINVAL;
             }
             vhost_pc_stats_reset(pc);
+            pkt_idx = 0;
             return 0;
         case VHOST_GET_FEATURES:
             features = VHOST_PC_FEATURES;
