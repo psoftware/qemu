@@ -4,8 +4,10 @@
 #include <stdint.h>
 #include <pthread.h>
 #include <errno.h>
+#include <signal.h>
 
 static struct global {
+    unsigned int stop;
     unsigned int wp;
     unsigned int wc;
     unsigned int yp;
@@ -20,7 +22,9 @@ producer(void *opaque)
 {
     struct global *g = opaque;
 
-    (void)g;
+    while (!g->stop) {
+        usleep(10);
+    }
 
     return NULL;
 }
@@ -30,9 +34,18 @@ consumer(void *opaque)
 {
     struct global *g = opaque;
 
-    (void)g;
+    while (!g->stop) {
+        usleep(10);
+    }
 
     return NULL;
+}
+
+static void
+sigint_handler(int sig)
+{
+    struct global *g = &_g;
+    g->stop = 1;
 }
 
 int main(int argc, char **argv)
@@ -41,12 +54,23 @@ int main(int argc, char **argv)
     pthread_t thp, thc;
     int ret;
 
+    g->stop = 0;
     g->wp = 2100;
     g->wc = 2000;
     g->yp = 5000;
     g->yc = 5000;
     g->psleeps = 0;
     g->csleeps = 0;
+
+    if (signal(SIGINT, sigint_handler)) {
+        perror("signal()");
+        exit(EXIT_FAILURE);
+    }
+
+    if (signal(SIGTERM, sigint_handler)) {
+        perror("signal()");
+        exit(EXIT_FAILURE);
+    }
 
     ret = pthread_create(&thp, NULL, producer, g);
     if (ret) {

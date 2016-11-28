@@ -1,7 +1,7 @@
-all: threads
+all: pcthreads
 
-threads: threads.c
-	gcc -g -Wall -o threads threads.c -lpthread
+pcthreads: threads.c
+	gcc -g -Wall -o pcthreads threads.c -lpthread
 
 clean:
-	-rm -f threads
+	-rm -f pcthreads
