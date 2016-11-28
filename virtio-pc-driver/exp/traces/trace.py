@@ -127,7 +127,7 @@ g_i = 1
 g['ts'][0] -= t_first
 g['id'][0] -= pkt_first
 while g_i < g_max:
-    g['ts'][g_i] -= t_first
+    g['ts'][g_i] = (g['ts'][g_i] - t_first) * 10 / 35
 
     ts_start = g['ts'][g_i-1]
     t_len = g['ts'][g_i] - g['ts'][g_i-1]
@@ -146,7 +146,7 @@ h['ts'][0] -= t_first
 h['id'][0] -= pkt_first
 g_i = 0
 while h_i < h_max:
-    h['ts'][h_i] -= t_first
+    h['ts'][h_i] = (h['ts'][h_i] - t_first) * 10 / 35
 
     ts_start = h['ts'][h_i-1]
     t_len = h['ts'][h_i] - h['ts'][h_i-1]
@@ -194,7 +194,7 @@ if args.stdio:
     descr[5] = 'C stop'
 
     for i in range(len(m['ts'])):
-        print("%6d: #%6d %-6s" % (m['ts'][i], m['id'][i], descr[m['type'][i]]))
+        print("%6d: #%6d %-6s" % (m['ts'][i]*10/35, m['id'][i], descr[m['type'][i]]))
 
     quit()
 
