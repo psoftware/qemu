@@ -44,6 +44,8 @@ struct vhost_pc {
     u64                     next_dump;
     u64                     lat_cnt;
     u64                     lat_acc;
+    u64                     wc_cnt;
+    u64                     wc_acc;
 };
 
 static u32 pkt_idx = 0;
@@ -133,7 +135,7 @@ static void
 vhost_pc_stats_reset(struct vhost_pc *pc)
 {
     pc->items = pc->kicks = pc->sleeps = pc->intrs = pc->spurious_kicks = 0;
-    pc->lat_acc = pc->lat_cnt = 0;
+    pc->lat_acc = pc->lat_cnt = pc->wc_cnt = pc->wc_acc = 0;
     pc->last_dump = rdtsc();
     pc->next_dump = pc->last_dump + NS2TSC(5000000000);
 }
@@ -149,7 +151,7 @@ static void consume(struct vhost_work *work)
     bool intr;
     int head;
     u64 next;
-    u64 ts, hts;
+    u64 tsa, tsb = 0, tsc;
 
     mutex_lock(&vq->mutex);
 
@@ -160,10 +162,10 @@ static void consume(struct vhost_work *work)
         while (rdtsc() < next) barrier();
     }
 
-    hts = rdtsc();
-    next = hts + pc->wc;
+    tsa = rdtsc();
+    next = tsa + pc->wc;
 #if 0
-    events[event_idx].ts = hts;
+    events[event_idx].ts = tsb;
     events[event_idx].id = pkt_idx;
     events[event_idx].type = VIRTIOPC_C_RUNS;
     VIRTIOPC_EVNEXT(event_idx);
@@ -173,7 +175,7 @@ static void consume(struct vhost_work *work)
 retry:
         head = vhost_get_vq_desc(vq, vq->iov, ARRAY_SIZE(vq->iov),
                 &out, &in, NULL, NULL);
-        hts = rdtsc();
+        tsc = rdtsc();
 
         /* On error, stop handling until the next kick. */
         if (unlikely(head < 0))
@@ -199,7 +201,7 @@ retry:
             }
         }
 
-        events[event_idx].ts = hts;
+        events[event_idx].ts = tsc;
         events[event_idx].id = pkt_idx;
         events[event_idx].type = VIRTIOPC_PKTSEEN;
         VIRTIOPC_EVNEXT(event_idx);
@@ -211,15 +213,19 @@ retry:
             break;
         }
 
-        ts = *((u64*)(vq->iov->iov_base));
+        tsa = *((u64*)(vq->iov->iov_base));
         if (first) {
-            u64 diff = (u32)(hts - (ts - tscofs));
+            u64 diff = (u32)(tsc - (tsa - tscofs));
             first = false;
             if (diff < 100000) {
                 pc->lat_acc += diff;
                 pc->lat_cnt ++;
             }
+        } else {
+            pc->wc_acc += tsc - tsb;
+            pc->wc_cnt ++;
         }
+        tsb = tsc;
 
 #if 0
         printk("msglen %d\n", (int)iov_length(vq->iov, out));
@@ -243,31 +249,33 @@ retry:
 
         if (unlikely(next > pc->next_dump)) {
             u64 ndiff = TSC2NS(rdtsc() - pc->last_dump);
-            u32 lat;
 
             (void)sel;
-            lat = pc->lat_cnt ? pc->lat_acc / pc->lat_cnt : 0;
 
             printk("PC: %llu items/s %llu kicks/s %llu sleeps/s %llu intrs/s "
-                   "%llu latency %llu spkicks/s\n",
+                   "%llu latency %llu spkicks/s %llu wc\n",
                     (pc->items * 1000000000)/ndiff,
                     (pc->kicks * 1000000000)/ndiff,
                     (pc->sleeps * 1000000000)/ndiff,
                     (pc->intrs * 1000000000)/ndiff,
-                    TSC2NS(lat),
-                    (pc->spurious_kicks * 1000000000)/ndiff);
+                    TSC2NS(pc->lat_cnt ? pc->lat_acc / pc->lat_cnt : 0),
+                    (pc->spurious_kicks * 1000000000)/ndiff,
+                    TSC2NS(pc->wc_cnt ? pc->wc_acc / pc->wc_cnt : 0));
 
             vhost_pc_stats_reset(pc);
             next = pc->last_dump + pc->wc;
         }
     }
 
-    events[event_idx].ts = rdtsc();
+    events[event_idx].ts = tsc;
     events[event_idx].id = pkt_idx;
     events[event_idx].type = VIRTIOPC_C_STOPS;
     VIRTIOPC_EVNEXT(event_idx);
 
     if (b) {
+        pc->wc_acc += tsc - tsb;
+        pc->wc_cnt ++;
+
         pc->kicks ++;
     } else {
         pc->spurious_kicks ++;
