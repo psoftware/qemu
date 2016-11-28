@@ -162,10 +162,12 @@ static void consume(struct vhost_work *work)
 
     hts = rdtsc();
     next = hts + pc->wc;
+#if 0
     events[event_idx].ts = hts;
     events[event_idx].id = pkt_idx;
     events[event_idx].type = VIRTIOPC_C_RUNS;
     VIRTIOPC_EVNEXT(event_idx);
+#endif
 
     for (;;) {
 retry:
@@ -257,6 +259,11 @@ retry:
             next = pc->last_dump + pc->wc;
         }
     }
+
+    events[event_idx].ts = rdtsc();
+    events[event_idx].id = pkt_idx;
+    events[event_idx].type = VIRTIOPC_C_STOPS;
+    VIRTIOPC_EVNEXT(event_idx);
 
     if (b) {
         pc->kicks ++;
