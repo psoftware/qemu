@@ -106,8 +106,6 @@ m = {'ts': [], 'id': [], 'type': []}
 trace_load('h', h, 0)
 trace_load('g', g, tsc_offset)
 
-h_i = 0
-g_i = 0
 h_max = len(h['ts'])
 g_max = len(g['ts'])
 
@@ -115,9 +113,52 @@ p_t = 0
 c_t = 0
 p_events = []
 c_events = []
-t_first = 0
-pkt_first = 0
 
+# Compute normalization offsets
+t_first = min(g['ts'][0], h['ts'][0])
+pkt_first = min(g['id'][0], h['id'][0])
+
+print("First ts: %d, first pkt: %d" % (t_first, pkt_first))
+
+# Build producer events
+g_i = 1
+g['ts'][0] -= t_first
+g['id'][0] -= pkt_first
+while g_i < g_max:
+    g['ts'][g_i] -= t_first
+
+    ts_start = g['ts'][g_i-1]
+    t_len = g['ts'][g_i] - g['ts'][g_i-1]
+
+    g['id'][g_i] -= pkt_first
+    if g['type'][g_i] == 1:
+        p_events.append((ts_start, g['id'][g_i], t_len))
+    elif g['type'][g_i] == 3:
+        p_events.append((ts_start, 'n', t_len))
+
+    g_i += 1
+
+# Build consumer events
+h_i = 1
+h['ts'][0] -= t_first
+h['id'][0] -= pkt_first
+while h_i < h_max:
+    h['ts'][h_i] -= t_first
+
+    ts_start = h['ts'][h_i-1]
+    t_len = h['ts'][h_i] - h['ts'][h_i-1]
+
+    h['id'][h_i] -= pkt_first
+    if h['type'][h_i] == 2:
+        c_events.append((ts_start, h['id'][h_i], t_len))
+    elif g['type'][h_i] == 4:
+        c_events.append((ts_start, 'n', t_len))
+
+    h_i += 1
+
+# Merge
+h_i = 0
+g_i = 0
 while h_i < h_max or g_i < g_max:
 
     if g_i >= g_max or (h_i < h_max and h['ts'][h_i] < g['ts'][g_i]):
@@ -131,37 +172,12 @@ while h_i < h_max or g_i < g_max:
         m['type'].append(g['type'][g_i])
         g_i += 1
 
-    if m['type'] in [1, 3]: # producer event
-        pass
-    else:
-        pass
-
-    if 1:
-        if t_first == 0:
-            t_first = m['ts'][-1]
-            m['ts'][-1] = 0
-        else:
-            m['ts'][-1] -= t_first
-    else: # TODO remove
-        if t_first == 0:
-            t_first = m['ts'][-1]
-            m['ts'][-1] = 0
-        else:
-            nxt = m['ts'][-1]
-            m['ts'][-1] -= t_first
-            t_first = nxt
-
-    if pkt_first == 0:
-        pkt_first = m['id'][-1]
-        m['id'][-1] = 0
-    else:
-        m['id'][-1] -= pkt_first
-
 descr = dict()
 descr[1] = 'P pub'
 descr[2] = 'C see'
 descr[3] = 'P restart'
 descr[4] = 'C restart'
+descr[5] = 'C stop'
 
 for i in range(len(m['ts'])):
     print("%6d: #%6d %-6s" % (m['ts'][i]*10/35, m['id'][i], descr[m['type'][i]]))
