@@ -93,6 +93,8 @@ argparser = argparse.ArgumentParser(description = description,
 argparser.add_argument('-d', '--directory',
                        help = "Directory to traces", type=str,
                        required = True)
+argparser.add_argument('--stdio', action='store_true',
+                       help = "Dump merged trace to stdio")
 
 args = argparser.parse_args()
 
@@ -131,9 +133,9 @@ while g_i < g_max:
     t_len = g['ts'][g_i] - g['ts'][g_i-1]
 
     g['id'][g_i] -= pkt_first
-    if g['type'][g_i] == 1:
+    if g['type'][g_i] == 1: # PKPUB
         p_events.append((ts_start, g['id'][g_i], t_len))
-    elif g['type'][g_i] == 3:
+    elif g['type'][g_i] == 3: # NOTIFY DONE
         p_events.append((ts_start, 'n', t_len))
 
     g_i += 1
@@ -142,6 +144,7 @@ while g_i < g_max:
 h_i = 1
 h['ts'][0] -= t_first
 h['id'][0] -= pkt_first
+g_i = 0
 while h_i < h_max:
     h['ts'][h_i] -= t_first
 
@@ -149,36 +152,51 @@ while h_i < h_max:
     t_len = h['ts'][h_i] - h['ts'][h_i-1]
 
     h['id'][h_i] -= pkt_first
-    if h['type'][h_i] == 2:
-        c_events.append((ts_start, h['id'][h_i], t_len))
-    elif g['type'][h_i] == 4:
-        c_events.append((ts_start, 'n', t_len))
+    if h['type'][h_i] == 5: # CSTOPS
+        c_events.append((ts_start, h['id'][h_i-1], t_len))
+    elif h['type'][h_i] == 2: # PKTSEEN
+        if h['type'][h_i-1] == 2:
+            c_events.append((ts_start, h['id'][h_i-1], t_len))
+        else: # match with a NOTIFY DONE event
+            ts_start = -1
+            while g_i < g_max and g['ts'][g_i] < h['ts'][h_i]:
+                if g['type'][g_i] == 3:
+                    ts_start = g['ts'][g_i]
+                g_i += 1
+            if ts_start >= 0:
+                c_events.append((ts_start, 's',
+                                 h['ts'][h_i] - ts_start))
 
     h_i += 1
 
-# Merge
-h_i = 0
-g_i = 0
-while h_i < h_max or g_i < g_max:
+if args.stdio:
+    # Merge
+    h_i = 0
+    g_i = 0
+    while h_i < h_max or g_i < g_max:
 
-    if g_i >= g_max or (h_i < h_max and h['ts'][h_i] < g['ts'][g_i]):
-        m['ts'].append(h['ts'][h_i])
-        m['id'].append(h['id'][h_i])
-        m['type'].append(h['type'][h_i])
-        h_i += 1
-    else:
-        m['ts'].append(g['ts'][g_i])
-        m['id'].append(g['id'][g_i])
-        m['type'].append(g['type'][g_i])
-        g_i += 1
+        if g_i >= g_max or (h_i < h_max and h['ts'][h_i] < g['ts'][g_i]):
+            m['ts'].append(h['ts'][h_i])
+            m['id'].append(h['id'][h_i])
+            m['type'].append(h['type'][h_i])
+            h_i += 1
+        else:
+            m['ts'].append(g['ts'][g_i])
+            m['id'].append(g['id'][g_i])
+            m['type'].append(g['type'][g_i])
+            g_i += 1
 
-descr = dict()
-descr[1] = 'P pub'
-descr[2] = 'C see'
-descr[3] = 'P restart'
-descr[4] = 'C restart'
-descr[5] = 'C stop'
+    descr = dict()
+    descr[1] = 'P pub'
+    descr[2] = 'C see'
+    descr[3] = 'P restart'
+    descr[4] = 'C restart'
+    descr[5] = 'C stop'
 
-for i in range(len(m['ts'])):
-    print("%6d: #%6d %-6s" % (m['ts'][i]*10/35, m['id'][i], descr[m['type'][i]]))
+    for i in range(len(m['ts'])):
+        print("%6d: #%6d %-6s" % (m['ts'][i], m['id'][i], descr[m['type'][i]]))
+
+    quit()
+
+dump(p_events, c_events)
 
