@@ -121,7 +121,7 @@ p_events = []
 c_events = []
 
 # Compute normalization offsets
-t_first = min(g['ts'][0], h['ts'][0])
+t_first = max(g['ts'][0], h['ts'][0])
 pkt_first = min(g['id'][0], h['id'][0])
 
 print("First ts: %d, first pkt: %d" % (t_first, pkt_first))
@@ -137,10 +137,11 @@ while g_i < g_max:
     t_len = g['ts'][g_i] - g['ts'][g_i-1]
 
     g['id'][g_i] -= pkt_first
-    if g['type'][g_i] == 1: # PKPUB
-        p_events.append((ts_start, g['id'][g_i], t_len))
-    elif g['type'][g_i] == 3: # NOTIFY DONE
-        p_events.append((ts_start, 'n', t_len))
+    if ts_start > 0:
+        if g['type'][g_i] == 1: # PKPUB
+            p_events.append((ts_start, g['id'][g_i], t_len))
+        elif g['type'][g_i] == 3: # NOTIFY DONE
+            p_events.append((ts_start, 'n', t_len))
 
     g_i += 1
 
@@ -156,20 +157,21 @@ while h_i < h_max:
     t_len = h['ts'][h_i] - h['ts'][h_i-1]
 
     h['id'][h_i] -= pkt_first
-    if h['type'][h_i] == 5: # CSTOPS
-        c_events.append((ts_start, h['id'][h_i-1], t_len))
-    elif h['type'][h_i] == 2: # PKTSEEN
-        if h['type'][h_i-1] == 2:
+    if ts_start > 0:
+        if h['type'][h_i] == 5: # CSTOPS
             c_events.append((ts_start, h['id'][h_i-1], t_len))
-        else: # match with a NOTIFY DONE event
-            ts_start = -1
-            while g_i < g_max and g['ts'][g_i] < h['ts'][h_i]:
-                if g['type'][g_i] == 3:
-                    ts_start = g['ts'][g_i]
-                g_i += 1
-            if ts_start >= 0:
-                c_events.append((ts_start, 's',
-                                 h['ts'][h_i] - ts_start))
+        elif h['type'][h_i] == 2: # PKTSEEN
+            if h['type'][h_i-1] == 2:
+                c_events.append((ts_start, h['id'][h_i-1], t_len))
+            else: # match with a NOTIFY DONE event
+                ts_start = -1
+                while g_i < g_max and g['ts'][g_i] < h['ts'][h_i]:
+                    if g['type'][g_i] == 3:
+                        ts_start = g['ts'][g_i]
+                    g_i += 1
+                if ts_start >= 0:
+                    c_events.append((ts_start, 's',
+                                     h['ts'][h_i] - ts_start))
 
     h_i += 1
 
