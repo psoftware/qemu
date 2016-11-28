@@ -189,12 +189,12 @@ while h_i < h_max:
 
 if args.stdio_producer:
     for e in p_events:
-        print("%10s %10f" % (e[1], e[2]))
+        print("%10s %10.0f" % (e[1], e[2]))
     quit()
 
 if args.stdio_consumer:
     for e in c_events:
-        print("%10s %10f" % (e[1], e[2]))
+        print("%10s %10.0f" % (e[1], e[2]))
     quit()
 
 if args.stdio:
