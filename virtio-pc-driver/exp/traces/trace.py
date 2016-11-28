@@ -60,7 +60,7 @@ def dump(prod_events, cons_events):
             poly = plt.Polygon([[ev[0], y + size], [ev[0] + ev[2], y + size], [ev[0] + ev[2], y]], color = '#0080f0')
             plt.gca().add_patch(poly)
         else:
-            color = 'r'
+            color = 'k' if ev[1] == 'd' else 'r'
             rectangle = plt.Rectangle((ev[0], y), ev[2], size, fc=color)
             plt.gca().add_patch(rectangle)
 
@@ -101,6 +101,14 @@ argparser.add_argument('--stdio-consumer', action='store_true',
                        help = "Dump consumer trace to stdio")
 
 args = argparser.parse_args()
+
+
+descr = dict()
+descr[1] = 'P pub'
+descr[2] = 'C see'
+descr[3] = 'P restart'
+descr[4] = 'C restart'
+descr[5] = 'C stop'
 
 tsc_offset = int(open(args.directory + '/o').read().strip())
 print("tsc offset is %d" % (tsc_offset,))
@@ -159,7 +167,11 @@ while h_i < h_max:
     h['id'][h_i] -= pkt_first
     if ts_start > 0:
         if h['type'][h_i] == 5: # CSTOPS
-            c_events.append((ts_start, h['id'][h_i-1], t_len))
+            if h['type'][h_i-1] == 2:
+                c_events.append((ts_start, h['id'][h_i-1], t_len))
+            else: # double CSTOPS --> dry run
+                c_events.append((ts_start, 'd', t_len))
+
         elif h['type'][h_i] == 2: # PKTSEEN
             if h['type'][h_i-1] == 2:
                 c_events.append((ts_start, h['id'][h_i-1], t_len))
@@ -174,13 +186,6 @@ while h_i < h_max:
                                      h['ts'][h_i] - ts_start))
 
     h_i += 1
-
-descr = dict()
-descr[1] = 'P pub'
-descr[2] = 'C see'
-descr[3] = 'P restart'
-descr[4] = 'C restart'
-descr[5] = 'C stop'
 
 if args.stdio_producer:
     for e in p_events:
