@@ -153,6 +153,8 @@ while g_i < g_max:
 
     g_i += 1
 
+deltas = []
+
 # Build consumer events
 h_i = 1
 h['ts'][0] -= t_first
@@ -177,15 +179,22 @@ while h_i < h_max:
                 c_events.append((ts_start, h['id'][h_i-1], t_len))
             else: # match with a NOTIFY DONE event
                 ts_start = -1
+                n_start = -1
                 while g_i < g_max and g['ts'][g_i] < h['ts'][h_i]:
-                    if g['type'][g_i] == 3:
+                    if g_i > 0 and g['type'][g_i] == 3:
+                        n_start = g['ts'][g_i-1]
                         ts_start = g['ts'][g_i]
                     g_i += 1
                 if ts_start >= 0:
                     c_events.append((ts_start, 's',
                                      h['ts'][h_i] - ts_start))
+                    deltas.append((n_start - (c_events[-2][0] + c_events[-2][2]), c_events[-1][2]))
 
     h_i += 1
+
+#for d in deltas:
+#    print("%6.0f %6.0f" % d)
+#quit()
 
 if args.stdio_producer:
     for e in p_events:
