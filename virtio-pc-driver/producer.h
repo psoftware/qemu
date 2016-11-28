@@ -50,6 +50,7 @@ struct pcevent {
 #define VIRTIOPC_P_NOTIFY_DONE  3
 #define VIRTIOPC_C_RUNS         4
 #define VIRTIOPC_C_STOPS        5
+#define VIRTIOPC_P_STOPS        6
     uint32_t type;
 };
 

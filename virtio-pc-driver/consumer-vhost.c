@@ -173,6 +173,8 @@ static void consume(struct vhost_work *work)
 retry:
         head = vhost_get_vq_desc(vq, vq->iov, ARRAY_SIZE(vq->iov),
                 &out, &in, NULL, NULL);
+        ts = rdtsc();
+
         /* On error, stop handling until the next kick. */
         if (unlikely(head < 0))
             break;
@@ -197,7 +199,7 @@ retry:
             }
         }
 
-        events[event_idx].ts = rdtsc();
+        events[event_idx].ts = ts;
         events[event_idx].id = pkt_idx;
         events[event_idx].type = VIRTIOPC_PKTSEEN;
         VIRTIOPC_EVNEXT(event_idx);

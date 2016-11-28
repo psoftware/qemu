@@ -230,7 +230,8 @@ produce(struct virtpc_info *vi)
             /* When the costly notification routine returns, we need to
              * reset next to correctly emulate the production of the
              * next item. */
-            next += ts - pts;
+            //next += ts - pts; /* better in theory but not in practice */
+            next = ts + vi->wp;
             events[event_idx].ts = ts;
             events[event_idx].id = pkt_idx;
             events[event_idx].type = VIRTIOPC_P_NOTIFY_DONE;
