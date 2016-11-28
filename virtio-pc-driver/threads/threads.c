@@ -6,6 +6,8 @@
 #include <errno.h>
 #include <signal.h>
 
+#define QLEN 128
+
 static struct global {
     unsigned int stop;
     unsigned int wp;
@@ -14,6 +16,8 @@ static struct global {
     unsigned int yc;
     unsigned int psleeps;
     unsigned int csleeps;
+
+    uint64_t q[QLEN];
 } _g;
 
 
