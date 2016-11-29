@@ -34,6 +34,7 @@ struct vhost_pc {
     unsigned int            csleep; /* boolean */
     unsigned int            incsp; /* in cycles */
     unsigned int            incsc; /* in cycles */
+    unsigned int            fc; /* fast consumer */
 
     u64                     items;
     u64                     kicks;
@@ -231,13 +232,21 @@ retry:
         printk("msglen %d\n", (int)iov_length(vq->iov, out));
 #endif
 
-        while (rdtsc() < next) barrier();
-        next += pc->wc;
+        if (!pc->fc) {
+            while (rdtsc() < next) barrier();
+            next += pc->wc;
+        }
 
         vhost_add_used(vq, head, 0);
         intr = vhost_notify(&pc->hdev, vq);
         pc->items ++;
         b ++;
+
+        if (pc->fc) {
+            while (rdtsc() < next) barrier();
+            next += pc->wc;
+        }
+
         if (intr) {
             pc->intrs ++;
             vhost_do_signal(vq);
@@ -466,6 +475,7 @@ static long vhost_pc_ioctl(struct file *f, unsigned int ioctl,
                     return -EINVAL;
             }
             vhost_pc_stats_reset(pc);
+            pc->fc = (pc->wc < pc->wp);
             pkt_idx = 0;
             return 0;
         case VHOST_GET_FEATURES:
