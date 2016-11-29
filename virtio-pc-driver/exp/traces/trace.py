@@ -93,8 +93,6 @@ argparser = argparse.ArgumentParser(description = description,
 argparser.add_argument('-d', '--directory',
                        help = "Directory to traces", type=str,
                        required = True)
-argparser.add_argument('--stdio', action='store_true',
-                       help = "Dump merged trace to stdio")
 argparser.add_argument('--stdio-producer', action='store_true',
                        help = "Dump producer trace to stdio")
 argparser.add_argument('--stdio-consumer', action='store_true',
@@ -206,28 +204,6 @@ if args.stdio_producer:
 if args.stdio_consumer:
     for e in c_events:
         print("%10s %10.0f" % (e[1], e[2]))
-    quit()
-
-if args.stdio:
-    # Merge
-    h_i = 0
-    g_i = 0
-    while h_i < h_max or g_i < g_max:
-
-        if g_i >= g_max or (h_i < h_max and h['ts'][h_i] < g['ts'][g_i]):
-            m['ts'].append(h['ts'][h_i])
-            m['id'].append(h['id'][h_i])
-            m['type'].append(h['type'][h_i])
-            h_i += 1
-        else:
-            m['ts'].append(g['ts'][g_i])
-            m['id'].append(g['id'][g_i])
-            m['type'].append(g['type'][g_i])
-            g_i += 1
-
-    for i in range(len(m['ts'])):
-        print("%6d: #%6d %-6s" % (m['ts'][i]*10/35, m['id'][i], descr[m['type'][i]]))
-
     quit()
 
 dump(p_events, c_events)
