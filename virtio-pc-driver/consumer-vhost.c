@@ -210,9 +210,9 @@ retry:
 
         tsa = *((u64*)(vq->iov->iov_base));
         if (first) {
-            u64 diff = (u32)(tsc - (tsa - tscofs));
+            u64 diff = tsc - (tsa - tscofs);
             first = false;
-            if (diff < 100000) {
+            if (diff < 100000UL) {
                 pc->lat_acc += diff;
                 pc->lat_cnt ++;
             }
