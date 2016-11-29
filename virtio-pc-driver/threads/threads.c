@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/eventfd.h>
 #include <sys/time.h>
+#include <stropts.h>
 
 
 #define barrier() __sync_synchronize()
@@ -72,26 +73,31 @@ tsc_sleep_till(uint64_t when)
 #define QLEN 1024
 
 static struct global {
-    unsigned int stop;
+    /* Variables read by both P and C */
+    unsigned int duration;
     unsigned int wp;
     unsigned int wc;
     unsigned int yp;
     unsigned int yc;
-    unsigned int psleeps;
-    unsigned int csleeps;
+    unsigned int psleep;
+    unsigned int csleep;
+    unsigned int stop;
     int pnotify;
     int cnotify;
 
+    /* Variables written by P */
     uint64_t q[QLEN];
     volatile unsigned int p;
     volatile unsigned int ce;
     uint64_t pnotifs;
 
+    /* Variables written by C */
     volatile unsigned int c;
     volatile unsigned int pe;
     uint64_t items;
     uint64_t cnotifs;
 
+    /* Miscellaneous, cache awareness not important. */
     uint64_t test_start;
     uint64_t test_end;
 } _g;
@@ -212,11 +218,36 @@ sigint_handler(int sig)
     write(g->cnotify, &x, sizeof(x));
 }
 
+static void
+usage(void)
+{
+    printf("test [-p WP_NANOSEC] [-c WC_NANOSEC] "
+            "[-y YP_NANOSEC] [-Y YC_NANOSEC] "
+            "[-d DURATION_SEC] [-s <producer sleeps>] "
+            "[-S <consumer sleeps>] \n");
+}
+
+static unsigned int
+parseuint(const char *s)
+{
+    int x;
+
+    x = atoi(optarg);
+    if (x < 1) {
+        printf("Invalid -p option argument\n");
+        usage();
+        exit(EXIT_FAILURE);
+    }
+
+    return (unsigned int)x;
+}
+
 int main(int argc, char **argv)
 {
     struct global *g = &_g;
     pthread_t thp, thc;
     int ret;
+    int ch;
 
     memset(g, 0, sizeof(*g));
 
@@ -233,8 +264,45 @@ int main(int argc, char **argv)
     g->wc = 2000;
     g->yp = 5000;
     g->yc = 5000;
-    g->psleeps = 0;
-    g->csleeps = 0;
+    g->psleep = 0;
+    g->csleep = 0;
+
+    while ((ch = getopt(argc, argv, "hc:p:sSy:Y:d:")) != -1) {
+        switch (ch) {
+            default:
+            case 'h':
+                usage();
+                return 0;
+
+            case 's':
+                g->psleep = 1;
+                break;
+
+            case 'S':
+                g->csleep = 1;
+                break;
+
+            case 'p':
+                g->wp = parseuint(optarg);
+                break;
+
+            case 'c':
+                g->wc = parseuint(optarg);
+                break;
+
+            case 'y':
+                g->yp = parseuint(optarg);
+                break;
+
+            case 'Y':
+                g->yc = parseuint(optarg);
+                break;
+
+            case 'd':
+                g->duration = parseuint(optarg);
+                break;
+        }
+    }
 
     if (signal(SIGINT, sigint_handler)) {
         perror("signal()");
