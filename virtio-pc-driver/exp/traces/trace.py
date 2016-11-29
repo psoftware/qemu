@@ -208,8 +208,25 @@ while h_i < h_max:
 #    print("%6.0f %6.0f" % d)
 #quit()
 
-if args.skip > 0:
-    pass
+if args.skip > 0 and args.skip < 95:
+    numc = nump = int(min(len(c_events), len(p_events)) * args.skip / 100)
+    while nump > 0 and numc > 0:
+        if c_events[0][0] < p_events[0][0]:
+            c_events.pop(0)
+            numc -= 1
+        else:
+            p_events.pop(0)
+            nump -= 1
+    t_first = max(p_events[0][0], c_events[0][0])
+    c_events_new = []
+    for e in c_events:
+        c_events_new.append((e[0] - t_first, e[1], e[2]))
+    c_events = c_events_new
+    p_events_new = []
+    for e in p_events:
+        p_events_new.append((e[0] - t_first, e[1], e[2]))
+    p_events = p_events_new
+
 
 print("averages: Wc %5.1f Sc %5.1f Wp %5.1f Np %5.1f" % (numpy.mean(wcs),
                 numpy.mean(scs), numpy.mean(wps), numpy.mean(nps)))
