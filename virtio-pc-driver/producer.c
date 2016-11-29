@@ -161,7 +161,7 @@ produce(struct virtpc_info *vi)
     bool kick;
     u64 *buf;
     int err;
-    u64 tsa, tsb, tsc, tsd;
+    u64 tsa, tsb, tsc, tsd, tse;
 
     guard_ofs = NS2TSC(1000000);
 
@@ -199,13 +199,13 @@ produce(struct virtpc_info *vi)
             idx = 0;
         }
 
-        while ((tsa = rdtsc()) < next) barrier();
+        while ((tse = rdtsc()) < next) barrier();
         next += vi->wp;
 
-        *buf = tsa - guard_ofs; /* We subtract guard_ofs (1 ms) to
-                                * give C a way to understand
-                                * that it didn't see the correct
-                                * timestamp set below */
+        *buf = tse - guard_ofs; /* We subtract guard_ofs (1 ms) to
+                                 * give C a way to understand
+                                 * that it didn't see the correct
+                                 * timestamp set below */
         err = virtqueue_add_outbuf(vq, vi->sg, 1, vi, GFP_ATOMIC);
         tsc = rdtsc();
 
@@ -241,8 +241,8 @@ produce(struct virtpc_info *vi)
             /* When the costly notification routine returns, we need to
              * reset next to correctly emulate the production of the
              * next item. */
-            next += tsd - tsa; /* better in theory but not in practice */
-            //next = tsd + vi->wp;
+            next += tsd - tse;
+            //next = tsd + vi->wp; /* alternative */
             events[event_idx].ts = tsd;
             events[event_idx].id = pkt_idx;
             events[event_idx].type = VIRTIOPC_P_NOTIFY_DONE;
