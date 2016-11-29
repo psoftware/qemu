@@ -7,6 +7,66 @@
 #include <signal.h>
 #include <string.h>
 #include <sys/eventfd.h>
+#include <sys/time.h>
+
+
+#define barrier() __sync_synchronize()
+
+/******************************* TSC support ***************************/
+
+/* initialize to avoid a division by 0 */
+static uint64_t ticks_per_second = 1000000000; /* set by calibrate_tsc */
+
+static inline uint64_t
+rdtsc(void)
+{
+    uint32_t hi, lo;
+    __asm__ __volatile__ ("rdtsc" : "=a"(lo), "=d"(hi));
+    return (uint64_t)lo | ((uint64_t)hi << 32);
+}
+
+/*
+ * do an idle loop to compute the clock speed. We expect
+ * a constant TSC rate and locked on all CPUs.
+ * Returns ticks per second
+ */
+static uint64_t
+calibrate_tsc(void)
+{
+    struct timeval a, b;
+    uint64_t ta_0, ta_1, tb_0, tb_1, dmax = ~0;
+    uint64_t da, db, cy = 0;
+    int i;
+    for (i=0; i < 3; i++) {
+	ta_0 = rdtsc();
+	gettimeofday(&a, NULL);
+	ta_1 = rdtsc();
+	usleep(20000);
+	tb_0 = rdtsc();
+	gettimeofday(&b, NULL);
+	tb_1 = rdtsc();
+	da = ta_1 - ta_0;
+	db = tb_1 - tb_0;
+	if (da + db < dmax) {
+	    cy = (b.tv_sec - a.tv_sec)*1000000 + b.tv_usec - a.tv_usec;
+	    cy = (double)(tb_0 - ta_1)*1000000/(double)cy;
+	    dmax = da + db;
+	}
+    }
+    ticks_per_second = cy;
+    return cy;
+}
+
+#define NS2TSC(x) ((x)*ticks_per_second/1000000000UL)
+#define TSC2NS(x) ((x)*1000000000UL/ticks_per_second)
+
+static inline void
+tsc_sleep_till(uint64_t when)
+{
+    while (rdtsc() < when)
+        barrier();
+}
+/*************************************************************************/
 
 
 /* QLEN must be a power of two */
@@ -30,8 +90,11 @@ static struct global {
 
     volatile unsigned int c;
     volatile unsigned int pe;
-    uint64_t pkts;
+    uint64_t items;
     uint64_t cnotifs;
+
+    uint64_t test_start;
+    uint64_t test_end;
 } _g;
 
 static inline int
@@ -59,11 +122,13 @@ producer(void *opaque)
     int need_notify;
     uint64_t x;
 
+    g->test_start = rdtsc();
+
     while (!g->stop) {
         if (queue_full(g)) {
             g->ce = g->c;
             /* barrier and double-check */
-            __sync_synchronize();
+            barrier();
             if (queue_full(g)) {
                 read(g->cnotify, &x, sizeof(x));
             }
@@ -92,7 +157,7 @@ consumer(void *opaque)
         if (queue_empty(g)) {
             g->pe = g->p;
             /* barrier and double-check */
-            __sync_synchronize();
+            barrier();
             if (queue_empty(g)) {
                 read(g->pnotify, &x, sizeof(x));
             }
@@ -105,8 +170,10 @@ consumer(void *opaque)
             write(g->cnotify, &x, sizeof(x));
             g->cnotifs ++;
         }
-        g->pkts ++;
+        g->items ++;
     }
+
+    g->test_end = rdtsc();
 
     return NULL;
 }
@@ -152,6 +219,8 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
+    calibrate_tsc();
+
     ret = pthread_create(&thp, NULL, producer, g);
     if (ret) {
         perror("pthread_create(P)");
@@ -174,6 +243,18 @@ int main(int argc, char **argv)
     if (ret) {
         perror("pthread_join(C)");
         exit(EXIT_FAILURE);
+    }
+
+    /* statistics */
+    {
+        uint64_t test_len = g->test_end - g->test_start;
+
+        printf("#items: %lu\n", g->items);
+        printf("%10.0f items/s %9.0f pnotifs/s %9.0f cnotifs/s\n",
+                TSC2NS(g->items * 1000000000.0 / test_len),
+                TSC2NS(g->pnotifs * 1000000000.0 / test_len),
+                TSC2NS(g->cnotifs * 1000000000.0 / test_len)
+                );
     }
 
     return 0;
