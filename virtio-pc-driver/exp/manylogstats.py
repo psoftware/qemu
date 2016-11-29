@@ -46,6 +46,7 @@ def load_producer_stats(args, x):
         if m != None:
             w = int(m.group(1))
             x['np'][w] = []
+            x['wp'][w] = []
             first = True
 
             continue
@@ -149,7 +150,7 @@ while 1:
 
 fin.close()
 
-print("%10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s %10s" % ('var', 'Tavg', 'Tmodel', 'Tbatch', 'batch', 'Bmodel', 'items', 'kicks', 'spkicks', 'csleeps', 'intrs', 'latency', 'Np'))
+print("%9s %9s %9s %9s %9s %9s %7s %7s %9s %9s %9s %9s %9s %9s %9s" % ('Wpn', 'Wp', 'Wc', 'Tavg', 'Tmodel', 'Tbatch', 'batch', 'Bmodel', 'items', 'kicks', 'spkicks', 'csleeps', 'intrs', 'latency', 'Np'))
 for w in sorted(x['items']):
     if len(x['items'][w]) == 0:
         print("Warning: no samples for w=%d" % (w,))
@@ -185,7 +186,8 @@ for w in sorted(x['items']):
     else:
         np = args.np
 
-    print("%10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f %10.1f" % (wx,
+    print("%9.0f %9.0f %9.0f %9.0f %9.0f %9.0f %7.1f %7.1f %9.0f %9.0f %9.0f %9.0f %9.0f %9.0f %9.0f" % (w, wx,
+                                    numpy.mean(x['wc'][w]),
                                     1000000000/numpy.mean(x['items'][w]),
                                     T_model(wx, wmin, args.sp, sc, np, args.nc),
                                     T_batch(wx, wmin, np, args.nc, b_meas_spurious),
