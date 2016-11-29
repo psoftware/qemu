@@ -68,9 +68,8 @@ tsc_sleep_till(uint64_t when)
 }
 /*************************************************************************/
 
-
 /* QLEN must be a power of two */
-#define QLEN 128
+#define QLEN 1024
 
 static struct global {
     unsigned int stop;
@@ -120,9 +119,11 @@ producer(void *opaque)
 {
     struct global *g = opaque;
     int need_notify;
+    uint64_t next;
     uint64_t x;
 
     g->test_start = rdtsc();
+    next = g->test_start + g->wp;
 
     while (!g->stop) {
         if (queue_full(g)) {
@@ -131,15 +132,19 @@ producer(void *opaque)
             barrier();
             if (queue_full(g)) {
                 read(g->cnotify, &x, sizeof(x));
+                next = rdtsc() + g->wp;
             }
         }
-        usleep(g->wp);
+        tsc_sleep_till(next);
+        next += g->wp;
         need_notify = (g->p == g->pe);
+        barrier();
         g->p = queue_next(g->p);
         if (need_notify) {
             x = 1;
             write(g->pnotify, &x, sizeof(x));
             g->pnotifs ++;
+            next = rdtsc() + g->wp;
         }
     }
 
@@ -151,7 +156,10 @@ consumer(void *opaque)
 {
     struct global *g = opaque;
     int need_notify;
+    uint64_t next;
     uint64_t x;
+
+    next = rdtsc() + g->wc; /* just in case */
 
     while (!g->stop) {
         if (queue_empty(g)) {
@@ -160,15 +168,19 @@ consumer(void *opaque)
             barrier();
             if (queue_empty(g)) {
                 read(g->pnotify, &x, sizeof(x));
+                next = rdtsc() + g->wc;
             }
         }
-        usleep(g->wc);
+        tsc_sleep_till(next);
+        next += g->wc;
         need_notify = (g->c == g->ce);
+        barrier();
         g->c = queue_next(g->c);
         if (need_notify) {
             x = 1;
             write(g->cnotify, &x, sizeof(x));
             g->cnotifs ++;
+            next = rdtsc() + g->wc;
         }
         g->items ++;
     }
@@ -182,6 +194,8 @@ static void
 sigint_handler(int sig)
 {
     struct global *g = &_g;
+    printf("p=%u pe=%u c=%u ce=%u\n",
+            g->p, g->pe, g->c, g->ce);
     g->stop = 1;
 }
 
@@ -202,8 +216,8 @@ int main(int argc, char **argv)
 
     g->stop = 0;
 
-    g->wp = 2;
-    g->wc = 1;
+    g->wp = 2100;
+    g->wc = 2000;
     g->yp = 5000;
     g->yc = 5000;
     g->psleeps = 0;
@@ -220,6 +234,10 @@ int main(int argc, char **argv)
     }
 
     calibrate_tsc();
+    g->wp = NS2TSC(g->wp);
+    g->wc = NS2TSC(g->wc);
+    g->yp = NS2TSC(g->yp);
+    g->yc = NS2TSC(g->yc);
 
     ret = pthread_create(&thp, NULL, producer, g);
     if (ret) {
