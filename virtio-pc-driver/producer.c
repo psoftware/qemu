@@ -161,7 +161,7 @@ produce(struct virtpc_info *vi)
     bool kick;
     u64 *buf;
     int err;
-    u64 tsa, tsb, tsc, tsd, tse;
+    u64 tsa, tsb, tsc, tsd;
 
     guard_ofs = NS2TSC(1000000);
 
@@ -199,10 +199,10 @@ produce(struct virtpc_info *vi)
             idx = 0;
         }
 
-        while ((tse = rdtsc()) < next) barrier();
+        while ((tsa = rdtsc()) < next) barrier();
         next += vi->wp;
 
-        *buf = tse - guard_ofs; /* We subtract guard_ofs (1 ms) to
+        *buf = tsa - guard_ofs; /* We subtract guard_ofs (1 ms) to
                                  * give C a way to understand
                                  * that it didn't see the correct
                                  * timestamp set below */
@@ -211,7 +211,6 @@ produce(struct virtpc_info *vi)
 
         kick = virtqueue_kick_prepare(vq);
         if (kick) {
-            tsa = rdtsc();
             virtqueue_notify(vq);
             tsd = rdtsc();
             *buf = tsd; /* ignore C double-check, assume C was blocked,
@@ -236,12 +235,12 @@ produce(struct virtpc_info *vi)
         vi->wp_cnt ++;
 
         if (kick) {
-            vi->np_acc += tsd - tsa;
+            vi->np_acc += tsd - tsc;
             vi->np_cnt ++;
             /* When the costly notification routine returns, we need to
              * reset next to correctly emulate the production of the
              * next item. */
-            next += tsd - tse;
+            next += tsd - tsc;
             //next = tsd + vi->wp; /* alternative */
             events[event_idx].ts = tsd;
             events[event_idx].id = pkt_idx;
