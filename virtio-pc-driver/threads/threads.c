@@ -63,7 +63,10 @@ producer(void *opaque)
         if (queue_full(g)) {
             g->ce = g->c;
             /* barrier and double-check */
-            read(g->cnotify, &x, sizeof(x));
+            __sync_synchronize();
+            if (queue_full(g)) {
+                read(g->cnotify, &x, sizeof(x));
+            }
         }
         usleep(g->wp);
         need_notify = (g->p == g->pe);
@@ -89,7 +92,10 @@ consumer(void *opaque)
         if (queue_empty(g)) {
             g->pe = g->p;
             /* barrier and double-check */
-            read(g->pnotify, &x, sizeof(x));
+            __sync_synchronize();
+            if (queue_empty(g)) {
+                read(g->pnotify, &x, sizeof(x));
+            }
         }
         usleep(g->wc);
         need_notify = (g->c == g->ce);
