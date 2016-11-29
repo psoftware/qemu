@@ -76,7 +76,7 @@ argparser.add_argument('-d', '--data-file',
                        required = True)
 argparser.add_argument('--sc',
                        help = "sc", type=int,
-                       default = 800)
+                       default = -1)
 argparser.add_argument('--np',
                        help = "np", type=int,
                        default = 1080)
@@ -86,8 +86,8 @@ argparser.add_argument('--sp',
 argparser.add_argument('--nc',
                        help = "np", type=int,
                        default = 800)
-argparser.add_argument('--np-from-file',
-                       help = "log file to extract np", type=str)
+argparser.add_argument('--p-from-file',
+                       help = "log file to extract np and wp", type=str)
 
 args = argparser.parse_args()
 
