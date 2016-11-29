@@ -126,6 +126,11 @@ c_t = 0
 p_events = []
 c_events = []
 
+nps = []
+wps = []
+scs = []
+wcs = []
+
 # Compute normalization offsets
 t_first = max(g['ts'][0], h['ts'][0])
 pkt_first = min(g['id'][0], h['id'][0])
@@ -143,11 +148,13 @@ while g_i < g_max:
     t_len = g['ts'][g_i] - g['ts'][g_i-1]
 
     g['id'][g_i] -= pkt_first
-    if ts_start > 0:
+    if ts_start > 0 and t_len > 0:
         if g['type'][g_i] == 1: # PKPUB
             p_events.append((ts_start, g['id'][g_i], t_len))
+            wps.append(t_len)
         elif g['type'][g_i] == 3: # NOTIFY DONE
             p_events.append((ts_start, 'n', t_len))
+            nps.append(t_len)
 
     g_i += 1
 
@@ -165,16 +172,18 @@ while h_i < h_max:
     t_len = h['ts'][h_i] - h['ts'][h_i-1]
 
     h['id'][h_i] -= pkt_first
-    if ts_start > 0:
+    if ts_start > 0 and t_len > 0:
         if h['type'][h_i] == 5: # CSTOPS
             if h['type'][h_i-1] == 2:
                 c_events.append((ts_start, h['id'][h_i-1], t_len))
+                wcs.append(t_len)
             else: # double CSTOPS --> dry run
                 c_events.append((ts_start, 'd', t_len))
 
         elif h['type'][h_i] == 2: # PKTSEEN
             if h['type'][h_i-1] == 2:
                 c_events.append((ts_start, h['id'][h_i-1], t_len))
+                wcs.append(t_len)
             else: # match with a NOTIFY DONE event
                 ts_start = -1
                 n_start = -1
@@ -183,9 +192,10 @@ while h_i < h_max:
                         n_start = g['ts'][g_i-1]
                         ts_start = g['ts'][g_i]
                     g_i += 1
-                if ts_start >= 0:
-                    c_events.append((ts_start, 's',
-                                     h['ts'][h_i] - ts_start))
+                t_len = h['ts'][h_i] - ts_start
+                if ts_start >= 0 and t_len > 0:
+                    c_events.append((ts_start, 's', t_len))
+                    scs.append(t_len)
                     if len(c_events) >= 2:
                         deltas.append((n_start - (c_events[-2][0] + c_events[-2][2]),
                                        c_events[-1][2]))
@@ -195,6 +205,9 @@ while h_i < h_max:
 #for d in deltas:
 #    print("%6.0f %6.0f" % d)
 #quit()
+
+print("averages: Wc %5.1f Sc %5.1f Wp %5.1f Np %5.1f" % (numpy.mean(wcs),
+                numpy.mean(scs), numpy.mean(wps), numpy.mean(nps)))
 
 if args.stdio_producer:
     for e in p_events:
