@@ -188,7 +188,9 @@ while h_i < h_max:
                 if ts_start >= 0:
                     c_events.append((ts_start, 's',
                                      h['ts'][h_i] - ts_start))
-                    deltas.append((n_start - (c_events[-2][0] + c_events[-2][2]), c_events[-1][2]))
+                    if len(c_events) >= 2:
+                        deltas.append((n_start - (c_events[-2][0] + c_events[-2][2]),
+                                       c_events[-1][2]))
 
     h_i += 1
 
