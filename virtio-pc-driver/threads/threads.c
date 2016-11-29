@@ -9,6 +9,7 @@
 #include <sys/eventfd.h>
 #include <sys/time.h>
 #include <stropts.h>
+#include <assert.h>
 
 
 #define barrier() __sync_synchronize()
@@ -127,17 +128,20 @@ producer(void *opaque)
     int need_notify;
     uint64_t next;
     uint64_t x;
+    int ret;
 
     g->test_start = rdtsc();
     next = g->test_start + g->wp;
 
     while (!g->stop) {
         if (queue_full(g)) {
+            // g->ce = (g->c + QLEN * 3 / 4) & (QLEN-1);
             g->ce = g->c;
             /* barrier and double-check */
             barrier();
             if (queue_full(g)) {
-                read(g->cnotify, &x, sizeof(x));
+                ret = read(g->cnotify, &x, sizeof(x));
+                assert(ret == 8);
                 next = rdtsc() + g->wp;
             }
         }
@@ -148,7 +152,8 @@ producer(void *opaque)
         g->p = queue_next(g->p);
         if (need_notify) {
             x = 1;
-            write(g->pnotify, &x, sizeof(x));
+            ret = write(g->pnotify, &x, sizeof(x));
+            assert(ret == 8);
             g->pnotifs ++;
             next = rdtsc() + g->wp;
         }
@@ -164,6 +169,7 @@ consumer(void *opaque)
     int need_notify;
     uint64_t next;
     uint64_t x;
+    int ret;
 
     next = rdtsc() + g->wc; /* just in case */
 
@@ -173,7 +179,8 @@ consumer(void *opaque)
             /* barrier and double-check */
             barrier();
             if (queue_empty(g)) {
-                read(g->pnotify, &x, sizeof(x));
+                ret = read(g->pnotify, &x, sizeof(x));
+                assert(ret == 8);
                 next = rdtsc() + g->wc;
             }
         }
@@ -184,7 +191,8 @@ consumer(void *opaque)
         g->c = queue_next(g->c);
         if (need_notify) {
             x = 1;
-            write(g->cnotify, &x, sizeof(x));
+            ret = write(g->cnotify, &x, sizeof(x));
+            assert(ret == 8);
             g->cnotifs ++;
             next = rdtsc() + g->wc;
         }
@@ -210,7 +218,7 @@ sigint_handler(int sig)
     struct global *g = &_g;
     uint64_t x;
 
-    (void)csb_dump;
+    csb_dump(g);
 
     /* Stop and wake up. */
     g->stop = 1;
