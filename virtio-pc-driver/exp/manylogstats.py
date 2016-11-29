@@ -34,7 +34,7 @@ def T_batch(Wp, Wc, Np, Nc, b):
 def load_producer_stats(args, x):
     x['np'] = dict()
     x['wp'] = dict()
-    fin = open(args.np_from_file)
+    fin = open(args.p)
     first = True
 
     while 1:
@@ -86,7 +86,7 @@ argparser.add_argument('--sp',
 argparser.add_argument('--nc',
                        help = "np", type=int,
                        default = 800)
-argparser.add_argument('--p-from-file',
+argparser.add_argument('-p',
                        help = "log file to extract np and wp", type=str)
 
 args = argparser.parse_args()
@@ -101,7 +101,7 @@ x['intrs'] = dict()
 x['latency'] = dict()
 x['wc'] = dict()
 
-if args.np_from_file:
+if args.p:
     load_producer_stats(args, x)
 
 first = False
@@ -169,7 +169,7 @@ for w in sorted(x['items']):
 
     wx = w
 
-    if args.np_from_file:
+    if args.p:
         # handle quantization error
         if w in x['np']:
             np = numpy.mean(x['np'][w])
