@@ -97,6 +97,8 @@ argparser.add_argument('--stdio-producer', action='store_true',
                        help = "Dump producer trace to stdio")
 argparser.add_argument('--stdio-consumer', action='store_true',
                        help = "Dump consumer trace to stdio")
+argparser.add_argument('--skip',
+                       help = "Skip percentage of events", type=int, default = 0)
 
 args = argparser.parse_args()
 
@@ -205,6 +207,9 @@ while h_i < h_max:
 #for d in deltas:
 #    print("%6.0f %6.0f" % d)
 #quit()
+
+if args.skip > 0:
+    pass
 
 print("averages: Wc %5.1f Sc %5.1f Wp %5.1f Np %5.1f" % (numpy.mean(wcs),
                 numpy.mean(scs), numpy.mean(wps), numpy.mean(nps)))
