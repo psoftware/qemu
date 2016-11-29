@@ -158,15 +158,8 @@ static void consume(struct vhost_work *work)
 
     vhost_disable_notify(&pc->hdev, vq);
 
-    if (pc->incsc) {
-        next = rdtsc() + pc->incsc;
-        while (rdtsc() < next) barrier();
-    }
-
-    tsa = rdtsc();
-    next = tsa + pc->wc;
 #if 0
-    events[event_idx].ts = tsb;
+    events[event_idx].ts = rdtsc();
     events[event_idx].id = pkt_idx;
     events[event_idx].type = VIRTIOPC_C_RUNS;
     VIRTIOPC_EVNEXT(event_idx);
@@ -174,6 +167,7 @@ static void consume(struct vhost_work *work)
 
     for (;;) {
 retry:
+        tsa = rdtsc();
         head = vhost_get_vq_desc(vq, vq->iov, ARRAY_SIZE(vq->iov),
                 &out, &in, NULL, NULL);
         tsc = rdtsc();
@@ -222,6 +216,7 @@ retry:
                 pc->lat_acc += diff;
                 pc->lat_cnt ++;
             }
+            next = tsc + pc->wc; /* init next */
         } else {
             pc->wc_acc += tsc - tsb;
             pc->wc_cnt ++;
@@ -276,13 +271,13 @@ retry:
         }
     }
 
-    events[event_idx].ts = tsc;
+    events[event_idx].ts = tsa;
     events[event_idx].id = pkt_idx;
     events[event_idx].type = VIRTIOPC_C_STOPS;
     VIRTIOPC_EVNEXT(event_idx);
 
     if (b) {
-        pc->wc_acc += tsc - tsb;
+        pc->wc_acc += tsa - tsb;
         pc->wc_cnt ++;
 
         pc->kicks ++;
