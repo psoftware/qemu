@@ -191,12 +191,25 @@ consumer(void *opaque)
 }
 
 static void
+csb_dump(struct global *g)
+{
+    /* CSB dump */
+    printf("p=%u pe=%u c=%u ce=%u\n",
+            g->p, g->pe, g->c, g->ce);
+}
+
+static void
 sigint_handler(int sig)
 {
     struct global *g = &_g;
-    printf("p=%u pe=%u c=%u ce=%u\n",
-            g->p, g->pe, g->c, g->ce);
+    uint64_t x;
+
+    (void)csb_dump;
+
+    /* Stop and wake up. */
     g->stop = 1;
+    write(g->pnotify, &x, sizeof(x));
+    write(g->cnotify, &x, sizeof(x));
 }
 
 int main(int argc, char **argv)
@@ -238,6 +251,7 @@ int main(int argc, char **argv)
     g->wc = NS2TSC(g->wc);
     g->yp = NS2TSC(g->yp);
     g->yc = NS2TSC(g->yc);
+    // printf("wp %u wc %u\n", g->wp, g->wc);
 
     ret = pthread_create(&thp, NULL, producer, g);
     if (ret) {
@@ -265,14 +279,13 @@ int main(int argc, char **argv)
 
     /* statistics */
     {
-        uint64_t test_len = g->test_end - g->test_start;
+        double test_len = TSC2NS(g->test_end - g->test_start) / 1000000000.0;
 
-        printf("#items: %lu\n", g->items);
+        printf("#items: %lu, testlen: %3.4f\n", g->items, test_len);
         printf("%10.0f items/s %9.0f pnotifs/s %9.0f cnotifs/s\n",
-                TSC2NS(g->items * 1000000000.0 / test_len),
-                TSC2NS(g->pnotifs * 1000000000.0 / test_len),
-                TSC2NS(g->cnotifs * 1000000000.0 / test_len)
-                );
+                g->items / test_len,
+                g->pnotifs / test_len,
+                g->cnotifs / test_len);
     }
 
     return 0;
