@@ -247,7 +247,7 @@ produce(struct virtpc_info *vi)
             events[event_idx].id = pkt_idx;
             events[event_idx].type = VIRTIOPC_P_NOTIFY_DONE;
             VIRTIOPC_EVNEXT(event_idx);
-            tsb += tsd - tsa;
+            tsb = tsd;
         }
 
         pkt_idx ++;
