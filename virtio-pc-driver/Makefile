@@ -4,6 +4,9 @@ obj-m += producer.o
 obj-m += consumer.o
 consumer-y = vhost.o consumer-vhost.o
 
+ccflags-y += -g
+CC += -g
+
 all: ker test sel
 
 ker:
