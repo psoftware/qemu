@@ -15,6 +15,7 @@
 
 #define barrier() __sync_synchronize()
 #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
+#define CACHELINE_ALIGN __attribute__((aligned(64)))
 
 /******************************* TSC support ***************************/
 
@@ -77,6 +78,7 @@ tsc_sleep_till(uint64_t when)
 
 static struct global {
     /* Variables read by both P and C */
+    CACHELINE_ALIGN
     unsigned int duration;
     unsigned int stop;
     unsigned int wp;
@@ -91,18 +93,21 @@ static struct global {
     int cstop;
 
     /* Variables written by P */
-    uint64_t q[QLEN];
+    CACHELINE_ALIGN
     unsigned int p;
     unsigned int ce;
     uint64_t pnotifs;
+    uint64_t q[QLEN];
 
     /* Variables written by C */
+    CACHELINE_ALIGN
     unsigned int c;
     unsigned int pe;
     uint64_t items;
     uint64_t cnotifs;
 
     /* Miscellaneous, cache awareness not important. */
+    CACHELINE_ALIGN
     uint64_t test_start;
     uint64_t test_end;
 } _g;
