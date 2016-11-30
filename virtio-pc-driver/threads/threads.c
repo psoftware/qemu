@@ -137,9 +137,6 @@ producer(void *opaque)
     g->test_start = rdtsc();
     next = g->test_start + g->wp;
 
-    fds[0].fd = g->cnotify;
-    fds[1].fd = g->pstop;
-
     for (;;) {
         while (queue_full(g)) {
             // g->ce = (g->c + QLEN * 3 / 4) & (QLEN-1);
@@ -147,11 +144,13 @@ producer(void *opaque)
             /* barrier and double-check */
             barrier();
             if (queue_full(g)) {
+                fds[0].fd = g->cnotify;
+                fds[1].fd = g->pstop;
                 fds[0].events = POLLIN;
                 fds[1].events = POLLIN;
                 ret = poll(fds, 2, -1);
                 if (ret <= 0 || fds[1].revents) {
-                    if (ret < 0 || !(fds[1].revents & POLLIN)) {
+                    if (ret <= 0 || !(fds[1].revents & POLLIN)) {
                         perror("poll()");
                     }
                     return NULL;
@@ -189,9 +188,6 @@ consumer(void *opaque)
     uint64_t x;
     int ret;
 
-    fds[0].fd = g->pnotify;
-    fds[1].fd = g->cstop;
-
     next = rdtsc() + g->wc; /* just in case */
 
     for (;;) {
@@ -200,11 +196,13 @@ consumer(void *opaque)
             /* barrier and double-check */
             barrier();
             if (queue_empty(g)) {
+                fds[0].fd = g->pnotify;
+                fds[1].fd = g->cstop;
                 fds[0].events = POLLIN;
                 fds[1].events = POLLIN;
                 ret = poll(fds, 2, -1);
                 if (ret <= 0 || fds[1].revents) {
-                    if (ret < 0 || !(fds[1].revents & POLLIN)) {
+                    if (ret <= 0 || !(fds[1].revents & POLLIN)) {
                         perror("poll()");
                     }
                     return NULL;
