@@ -231,6 +231,20 @@ if args.skip > 0 and args.skip < 95:
 print("averages: Wc %5.1f Sc %5.1f Wp %5.1f Np %5.1f" % (numpy.mean(wcs),
                 numpy.mean(scs), numpy.mean(wps), numpy.mean(nps)))
 
+# compute consumer batches
+if False:
+    bs = []
+    bcur = 0
+    for e in c_events:
+        if e[1] == 's' or e[1] == 'd':
+            if bcur:
+                bs.append(bcur)
+                print(bcur)
+                bcur = 0
+        else:
+            bcur += 1
+    quit()
+
 if args.stdio_producer:
     for e in p_events:
         print("%10s %10.0f" % (e[1], e[2]))
