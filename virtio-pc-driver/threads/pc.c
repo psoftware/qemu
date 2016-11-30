@@ -241,6 +241,16 @@ out:
 }
 
 static void
+pc_stop(struct global *g)
+{
+    uint64_t x;
+
+    g->stop = 1;
+    write(g->pstop, &x, sizeof(x));
+    write(g->cstop, &x, sizeof(x));
+}
+
+static void
 csb_dump(struct global *g)
 {
     /* CSB dump */
@@ -254,14 +264,10 @@ static void
 sigint_handler(int sig)
 {
     struct global *g = &_g;
-    uint64_t x;
 
     csb_dump(g);
-
     /* Stop. */
-    g->stop = 1;
-    write(g->pstop, &x, sizeof(x));
-    write(g->cstop, &x, sizeof(x));
+    pc_stop(g);
     if (++ sigint_cnt > 2) {
         printf("aborting...\n");
         exit(EXIT_FAILURE);
@@ -316,6 +322,7 @@ int main(int argc, char **argv)
     g->yc = 5000;
     g->psleep = 0;
     g->csleep = 0;
+    g->duration = 5;
 
     while ((ch = getopt(argc, argv, "hc:p:sSy:Y:d:")) != -1) {
         switch (ch) {
@@ -382,6 +389,9 @@ int main(int argc, char **argv)
         perror("pthread_create(C)");
         exit(EXIT_FAILURE);
     }
+
+    sleep(g->duration);
+    pc_stop(g);
 
     ret = pthread_join(thp, NULL);
     if (ret) {
