@@ -155,7 +155,7 @@ producer(void *opaque)
                     if (ret <= 0 || !(fds[1].revents & POLLIN)) {
                         perror("poll()");
                     }
-                    return NULL;
+                    goto out;
                 }
                 ret = read(g->cnotify, &x, sizeof(x));
                 assert(ret == 8);
@@ -176,7 +176,7 @@ producer(void *opaque)
         }
         //printf("P %u ntfy %u\n", g->p, need_notify);
     }
-
+out:
     return NULL;
 }
 
@@ -209,7 +209,7 @@ consumer(void *opaque)
                     if (ret <= 0 || !(fds[1].revents & POLLIN)) {
                         perror("poll()");
                     }
-                    return NULL;
+                    goto out;
                 }
                 ret = read(g->pnotify, &x, sizeof(x));
                 assert(ret == 8);
@@ -231,7 +231,7 @@ consumer(void *opaque)
         //printf("C %u ntfy %u\n", g->c, need_notify);
         g->items ++;
     }
-
+out:
     g->test_end = rdtsc();
 
     return NULL;
