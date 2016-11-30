@@ -13,6 +13,7 @@
 
 
 #define barrier() __sync_synchronize()
+#define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
 
 /******************************* TSC support ***************************/
 
@@ -88,13 +89,13 @@ static struct global {
 
     /* Variables written by P */
     uint64_t q[QLEN];
-    volatile unsigned int p;
-    volatile unsigned int ce;
+    unsigned int p;
+    unsigned int ce;
     uint64_t pnotifs;
 
     /* Variables written by C */
-    volatile unsigned int c;
-    volatile unsigned int pe;
+    unsigned int c;
+    unsigned int pe;
     uint64_t items;
     uint64_t cnotifs;
 
@@ -106,7 +107,7 @@ static struct global {
 static inline int
 queue_empty(struct global *g)
 {
-    return g->p == g->c;
+    return ACCESS_ONCE(g->p) == g->c;
 }
 
 static inline unsigned int
@@ -118,7 +119,7 @@ queue_next(unsigned int idx)
 static inline int
 queue_full(struct global *g)
 {
-    return queue_next(g->p) == g->c;
+    return queue_next(g->p) == ACCESS_ONCE(g->c);
 }
 
 static void *
@@ -136,7 +137,7 @@ producer(void *opaque)
     while (!g->stop) {
         if (queue_full(g)) {
             // g->ce = (g->c + QLEN * 3 / 4) & (QLEN-1);
-            g->ce = g->c;
+            ACCESS_ONCE(g->ce) = ACCESS_ONCE(g->c);
             /* barrier and double-check */
             barrier();
             if (queue_full(g)) {
@@ -147,9 +148,9 @@ producer(void *opaque)
         }
         tsc_sleep_till(next);
         next += g->wp;
-        need_notify = (g->p == g->pe);
+        need_notify = (g->p == ACCESS_ONCE(g->pe));
         barrier();
-        g->p = queue_next(g->p);
+        ACCESS_ONCE(g->p) = queue_next(g->p);
         if (need_notify) {
             x = 1;
             ret = write(g->pnotify, &x, sizeof(x));
@@ -175,7 +176,7 @@ consumer(void *opaque)
 
     while (!g->stop) {
         if (queue_empty(g)) {
-            g->pe = g->p;
+            ACCESS_ONCE(g->pe) = ACCESS_ONCE(g->p);
             /* barrier and double-check */
             barrier();
             if (queue_empty(g)) {
@@ -186,9 +187,9 @@ consumer(void *opaque)
         }
         tsc_sleep_till(next);
         next += g->wc;
-        need_notify = (g->c == g->ce);
+        need_notify = (g->c == ACCESS_ONCE(g->ce));
         barrier();
-        g->c = queue_next(g->c);
+        ACCESS_ONCE(g->c) = queue_next(g->c);
         if (need_notify) {
             x = 1;
             ret = write(g->cnotify, &x, sizeof(x));
