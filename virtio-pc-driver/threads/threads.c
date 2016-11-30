@@ -134,6 +134,8 @@ producer(void *opaque)
     uint64_t x;
     int ret;
 
+    ACCESS_ONCE(g->ce) = ~0U; /* start with notification disabled */
+
     g->test_start = rdtsc();
     next = g->test_start + g->wp;
 
@@ -187,6 +189,8 @@ consumer(void *opaque)
     uint64_t next;
     uint64_t x;
     int ret;
+
+    ACCESS_ONCE(g->pe) = 0; /* wake me up on the first packet */
 
     next = rdtsc() + g->wc; /* just in case */
 
