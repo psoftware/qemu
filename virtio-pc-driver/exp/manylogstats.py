@@ -181,7 +181,7 @@ for w in sorted(x['items']):
             np = numpy.mean(x['np'][w-1])
             wx = numpy.mean(x['wp'][w-1])
         else:
-            print("Default to Np=%d for w=%d", args.np, w)
+            print("Default to Np=%d for w=%d" %(args.np, w))
             np = args.np
     else:
         np = args.np
