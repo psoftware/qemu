@@ -1,7 +1,7 @@
-all: pcthreads
+all: pc
 
-pcthreads: threads.c
-	gcc -g -Wall -o pcthreads threads.c -lpthread
+pc: pc.c
+	gcc -g -Wall -o pc pc.c -lpthread
 
 clean:
-	-rm -f pcthreads
+	-rm -f pc
