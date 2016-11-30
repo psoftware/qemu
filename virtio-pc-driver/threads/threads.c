@@ -135,13 +135,16 @@ producer(void *opaque)
     next = g->test_start + g->wp;
 
     while (!g->stop) {
-        if (queue_full(g)) {
+        while (queue_full(g)) {
             // g->ce = (g->c + QLEN * 3 / 4) & (QLEN-1);
             ACCESS_ONCE(g->ce) = ACCESS_ONCE(g->c);
             /* barrier and double-check */
             barrier();
             if (queue_full(g)) {
                 ret = read(g->cnotify, &x, sizeof(x));
+                if (g->stop) {
+                    break;
+                }
                 assert(ret == 8);
                 next = rdtsc() + g->wp;
             }
@@ -175,12 +178,15 @@ consumer(void *opaque)
     next = rdtsc() + g->wc; /* just in case */
 
     while (!g->stop) {
-        if (queue_empty(g)) {
+        while (queue_empty(g)) {
             ACCESS_ONCE(g->pe) = ACCESS_ONCE(g->p);
             /* barrier and double-check */
             barrier();
             if (queue_empty(g)) {
                 ret = read(g->pnotify, &x, sizeof(x));
+                if (g->stop) {
+                    break;
+                }
                 assert(ret == 8);
                 next = rdtsc() + g->wc;
             }
