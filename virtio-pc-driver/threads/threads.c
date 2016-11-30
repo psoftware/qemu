@@ -106,22 +106,22 @@ static struct global {
     uint64_t test_end;
 } _g;
 
+static inline unsigned int
+qidx(unsigned int idx)
+{
+    return idx & (QLEN - 1);
+}
+
 static inline int
 queue_empty(struct global *g)
 {
-    return ACCESS_ONCE(g->p) == g->c;
-}
-
-static inline unsigned int
-queue_next(unsigned int idx)
-{
-    return (idx + 1) & (QLEN-1);
+    return qidx(ACCESS_ONCE(g->p)) == qidx(g->c);
 }
 
 static inline int
 queue_full(struct global *g)
 {
-    return queue_next(g->p) == ACCESS_ONCE(g->c);
+    return qidx(g->p + 1) == qidx(ACCESS_ONCE(g->c));
 }
 
 static void *
@@ -153,8 +153,6 @@ producer(void *opaque)
                 if (ret <= 0 || fds[1].revents) {
                     if (ret < 0 || !(fds[1].revents & POLLIN)) {
                         perror("poll()");
-                    } else {
-                        printf("Stopped\n");
                     }
                     return NULL;
                 }
@@ -167,7 +165,7 @@ producer(void *opaque)
         next += g->wp;
         need_notify = (g->p == ACCESS_ONCE(g->pe));
         barrier();
-        ACCESS_ONCE(g->p) = queue_next(g->p);
+        ACCESS_ONCE(g->p) = g->p + 1;
         if (need_notify) {
             x = 1;
             ret = write(g->pnotify, &x, sizeof(x));
@@ -175,6 +173,7 @@ producer(void *opaque)
             g->pnotifs ++;
             next = rdtsc() + g->wp;
         }
+        //printf("P %u ntfy %u\n", g->p, need_notify);
     }
 
     return NULL;
@@ -207,8 +206,6 @@ consumer(void *opaque)
                 if (ret <= 0 || fds[1].revents) {
                     if (ret < 0 || !(fds[1].revents & POLLIN)) {
                         perror("poll()");
-                    } else {
-                        printf("Stopped\n");
                     }
                     return NULL;
                 }
@@ -221,7 +218,7 @@ consumer(void *opaque)
         next += g->wc;
         need_notify = (g->c == ACCESS_ONCE(g->ce));
         barrier();
-        ACCESS_ONCE(g->c) = queue_next(g->c);
+        ACCESS_ONCE(g->c) = g->c + 1;
         if (need_notify) {
             x = 1;
             ret = write(g->cnotify, &x, sizeof(x));
@@ -229,6 +226,7 @@ consumer(void *opaque)
             g->cnotifs ++;
             next = rdtsc() + g->wc;
         }
+        //printf("C %u ntfy %u\n", g->c, need_notify);
         g->items ++;
     }
 
