@@ -78,6 +78,7 @@ tsc_sleep_till(uint64_t when)
 static struct global {
     /* Variables read by both P and C */
     unsigned int duration;
+    unsigned int stop;
     unsigned int wp;
     unsigned int wc;
     unsigned int yp;
@@ -142,9 +143,9 @@ producer(void *opaque)
     g->test_start = rdtsc();
     next = g->test_start + g->wp;
 
-    for (;;) {
+    while (!g->stop) {
         while (queue_full(g)) {
-            // g->ce = (g->c + QLEN * 3 / 4) & (QLEN-1);
+            // g->ce = g->c + QLEN * 3 / 4;
             ACCESS_ONCE(g->ce) = ACCESS_ONCE(g->c);
             /* barrier and double-check */
             barrier();
@@ -198,7 +199,7 @@ consumer(void *opaque)
 
     next = rdtsc() + g->wc; /* just in case */
 
-    for (;;) {
+    while (!g->stop) {
         while (queue_empty(g)) {
             ACCESS_ONCE(g->pe) = ACCESS_ONCE(g->p);
             /* barrier and double-check */
@@ -257,7 +258,8 @@ sigint_handler(int sig)
 
     csb_dump(g);
 
-    /* Stop and wake up. */
+    /* Stop. */
+    g->stop = 1;
     write(g->pstop, &x, sizeof(x));
     write(g->cstop, &x, sizeof(x));
     if (++ sigint_cnt > 2) {
