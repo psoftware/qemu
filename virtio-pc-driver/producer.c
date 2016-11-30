@@ -200,6 +200,20 @@ produce(struct virtpc_info *vi)
         }
 
         while ((tsa = rdtsc()) < next) barrier();
+        /* It may happen that we are preempted while we are
+         * busy waiting. We detect this case by looking at the
+         * clock when the busy waiting finishes. */
+        if (unlikely(tsa - next > 3000)) {
+            /* We were preempted while busy waiting. We need to
+             * reset next, otherwise P would produce a burst which
+             * may cause large bursts on the consumer, specially
+             * when Wp is close to Wc (but fast consumer). We also
+             * need to adjust tsb to fix Wp estimation. Note that
+             * this "gap" causes a little offset between Tavg and
+             * Tbatch. */
+            tsb += tsa - next; /* fix tsb */
+            next = tsa;
+        }
         next += vi->wp;
 
         *buf = tsa - guard_ofs; /* We subtract guard_ofs (1 ms) to
