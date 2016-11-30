@@ -243,6 +243,8 @@ csb_dump(struct global *g)
             g->p, g->pe, g->c, g->ce);
 }
 
+static int sigint_cnt = 0;
+
 static void
 sigint_handler(int sig)
 {
@@ -254,6 +256,10 @@ sigint_handler(int sig)
     /* Stop and wake up. */
     write(g->pstop, &x, sizeof(x));
     write(g->cstop, &x, sizeof(x));
+    if (++ sigint_cnt > 2) {
+        printf("aborting...\n");
+        exit(EXIT_FAILURE);
+    }
 }
 
 static void
