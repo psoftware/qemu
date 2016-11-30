@@ -134,6 +134,9 @@ producer(void *opaque)
     uint64_t x;
     int ret;
 
+    fds[0].fd = g->cnotify;
+    fds[1].fd = g->pstop;
+
     ACCESS_ONCE(g->ce) = ~0U; /* start with notification disabled */
 
     g->test_start = rdtsc();
@@ -146,8 +149,6 @@ producer(void *opaque)
             /* barrier and double-check */
             barrier();
             if (queue_full(g)) {
-                fds[0].fd = g->cnotify;
-                fds[1].fd = g->pstop;
                 fds[0].events = POLLIN;
                 fds[1].events = POLLIN;
                 ret = poll(fds, 2, -1);
@@ -190,6 +191,9 @@ consumer(void *opaque)
     uint64_t x;
     int ret;
 
+    fds[0].fd = g->pnotify;
+    fds[1].fd = g->cstop;
+
     ACCESS_ONCE(g->pe) = 0; /* wake me up on the first packet */
 
     next = rdtsc() + g->wc; /* just in case */
@@ -200,8 +204,6 @@ consumer(void *opaque)
             /* barrier and double-check */
             barrier();
             if (queue_empty(g)) {
-                fds[0].fd = g->pnotify;
-                fds[1].fd = g->cstop;
                 fds[0].events = POLLIN;
                 fds[1].events = POLLIN;
                 ret = poll(fds, 2, -1);
