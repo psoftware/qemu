@@ -165,9 +165,10 @@ static void consume(struct vhost_work *work)
     VIRTIOPC_EVNEXT(event_idx);
 #endif
 
+    tsa = rdtsc();
+
     for (;;) {
 retry:
-        tsa = rdtsc();
         head = vhost_get_vq_desc(vq, vq->iov, ARRAY_SIZE(vq->iov),
                 &out, &in, NULL, NULL);
         tsc = rdtsc();
@@ -228,7 +229,7 @@ retry:
 #endif
 
         if (!pc->fc) {
-            while (rdtsc() < next) barrier();
+            while ((tsa = rdtsc()) < next) barrier();
             next += pc->wc;
         }
 
@@ -238,7 +239,7 @@ retry:
         b ++;
 
         if (pc->fc) {
-            while (rdtsc() < next) barrier();
+            while ((tsa = rdtsc()) < next) barrier();
             next += pc->wc;
         }
 
