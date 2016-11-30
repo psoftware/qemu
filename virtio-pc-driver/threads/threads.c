@@ -162,9 +162,9 @@ producer(void *opaque)
         }
         tsc_sleep_till(next);
         next += g->wp;
-        need_notify = (g->p == ACCESS_ONCE(g->pe));
-        barrier();
         ACCESS_ONCE(g->p) = g->p + 1;
+        barrier();
+        need_notify = (g->p - 1 == ACCESS_ONCE(g->pe));
         if (need_notify) {
             x = 1;
             ret = write(g->pnotify, &x, sizeof(x));
@@ -214,9 +214,9 @@ consumer(void *opaque)
         }
         tsc_sleep_till(next);
         next += g->wc;
-        need_notify = (g->c == ACCESS_ONCE(g->ce));
-        barrier();
         ACCESS_ONCE(g->c) = g->c + 1;
+        barrier();
+        need_notify = (g->c - 1 == ACCESS_ONCE(g->ce));
         if (need_notify) {
             x = 1;
             ret = write(g->cnotify, &x, sizeof(x));
