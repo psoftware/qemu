@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/eventfd.h>
 #include <sys/time.h>
+#include <sys/poll.h>
 #include <stropts.h>
 #include <assert.h>
 
@@ -83,9 +84,10 @@ static struct global {
     unsigned int yc;
     unsigned int psleep;
     unsigned int csleep;
-    unsigned int stop;
     int pnotify;
     int cnotify;
+    int pstop;
+    int cstop;
 
     /* Variables written by P */
     uint64_t q[QLEN];
@@ -126,6 +128,7 @@ static void *
 producer(void *opaque)
 {
     struct global *g = opaque;
+    struct pollfd fds[2];
     int need_notify;
     uint64_t next;
     uint64_t x;
@@ -134,17 +137,28 @@ producer(void *opaque)
     g->test_start = rdtsc();
     next = g->test_start + g->wp;
 
-    while (!g->stop) {
+    fds[0].fd = g->cnotify;
+    fds[1].fd = g->pstop;
+
+    for (;;) {
         while (queue_full(g)) {
             // g->ce = (g->c + QLEN * 3 / 4) & (QLEN-1);
             ACCESS_ONCE(g->ce) = ACCESS_ONCE(g->c);
             /* barrier and double-check */
             barrier();
             if (queue_full(g)) {
-                ret = read(g->cnotify, &x, sizeof(x));
-                if (g->stop) {
-                    break;
+                fds[0].events = POLLIN;
+                fds[1].events = POLLIN;
+                ret = poll(fds, 2, -1);
+                if (ret <= 0 || fds[1].revents) {
+                    if (ret < 0 || !(fds[1].revents & POLLIN)) {
+                        perror("poll()");
+                    } else {
+                        printf("Stopped\n");
+                    }
+                    return NULL;
                 }
+                ret = read(g->cnotify, &x, sizeof(x));
                 assert(ret == 8);
                 next = rdtsc() + g->wp;
             }
@@ -170,23 +184,35 @@ static void *
 consumer(void *opaque)
 {
     struct global *g = opaque;
+    struct pollfd fds[2];
     int need_notify;
     uint64_t next;
     uint64_t x;
     int ret;
 
+    fds[0].fd = g->pnotify;
+    fds[1].fd = g->cstop;
+
     next = rdtsc() + g->wc; /* just in case */
 
-    while (!g->stop) {
+    for (;;) {
         while (queue_empty(g)) {
             ACCESS_ONCE(g->pe) = ACCESS_ONCE(g->p);
             /* barrier and double-check */
             barrier();
             if (queue_empty(g)) {
-                ret = read(g->pnotify, &x, sizeof(x));
-                if (g->stop) {
-                    break;
+                fds[0].events = POLLIN;
+                fds[1].events = POLLIN;
+                ret = poll(fds, 2, -1);
+                if (ret <= 0 || fds[1].revents) {
+                    if (ret < 0 || !(fds[1].revents & POLLIN)) {
+                        perror("poll()");
+                    } else {
+                        printf("Stopped\n");
+                    }
+                    return NULL;
                 }
+                ret = read(g->pnotify, &x, sizeof(x));
                 assert(ret == 8);
                 next = rdtsc() + g->wc;
             }
@@ -228,9 +254,8 @@ sigint_handler(int sig)
     csb_dump(g);
 
     /* Stop and wake up. */
-    g->stop = 1;
-    write(g->pnotify, &x, sizeof(x));
-    write(g->cnotify, &x, sizeof(x));
+    write(g->pstop, &x, sizeof(x));
+    write(g->cstop, &x, sizeof(x));
 }
 
 static void
@@ -266,14 +291,14 @@ int main(int argc, char **argv)
 
     memset(g, 0, sizeof(*g));
 
-    g->pnotify = eventfd(0, 0);
-    g->cnotify = eventfd(0, 0);
-    if (g->pnotify < 0 || g->cnotify < 0) {
+    g->pnotify = eventfd(0, EFD_NONBLOCK);
+    g->cnotify = eventfd(0, EFD_NONBLOCK);
+    g->pstop = eventfd(0, EFD_NONBLOCK);
+    g->cstop = eventfd(0, EFD_NONBLOCK);
+    if (g->pnotify < 0 || g->cnotify < 0 || g->pstop < 0 || g->cstop < 0) {
         perror("eventfd()");
         return -1;
     }
-
-    g->stop = 0;
 
     g->wp = 2100;
     g->wc = 2000;
