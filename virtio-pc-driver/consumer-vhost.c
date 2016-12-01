@@ -441,12 +441,12 @@ static long vhost_pc_ioctl(struct file *f, unsigned int ioctl,
 
                 case VPC_YP:
                     pc->yp = (unsigned int)file.fd;
-                    printk("virtpc: set Yp=%lluns\n", TSC2NS(pc->yp));
+                    printk("virtpc: set Yp=%uns\n", pc->yp);
                     break;
 
                 case VPC_YC:
                     pc->yc = (unsigned int)file.fd;
-                    printk("virtpc: set Yc=%lluns\n", TSC2NS(pc->yc));
+                    printk("virtpc: set Yc=%uns\n", pc->yc);
                     break;
 
                 case VPC_PSLEEP:

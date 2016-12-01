@@ -396,8 +396,8 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
     vi->busy = true;
     vi->wp = NS2TSC(pcio.wp);
     vi->wc = NS2TSC(pcio.wc);
-    vi->yp = NS2TSC(pcio.yp);
-    vi->yc = NS2TSC(pcio.yc);
+    vi->yp = pcio.yp;
+    vi->yc = pcio.yc;
     vi->psleep = pcio.psleep;
     vi->csleep = pcio.csleep;
     vi->incsp = NS2TSC(pcio.incsp);
