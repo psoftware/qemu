@@ -47,6 +47,8 @@ struct vhost_pc {
     u64                     lat_acc;
     u64                     wc_cnt;
     u64                     wc_acc;
+    u64                     nc_cnt;
+    u64                     nc_acc;
 };
 
 static u32 pkt_idx = 0;
@@ -135,8 +137,9 @@ static u32 sel(u32 *a, unsigned int n, unsigned int k)
 static void
 vhost_pc_stats_reset(struct vhost_pc *pc)
 {
-    pc->items = pc->kicks = pc->sleeps = pc->intrs = pc->spurious_kicks = 0;
-    pc->lat_acc = pc->lat_cnt = pc->wc_cnt = pc->wc_acc = 0;
+    pc->items = pc->kicks = pc->sleeps = pc->intrs =
+        pc->spurious_kicks = pc->lat_acc = pc->lat_cnt =
+            pc->wc_cnt = pc->wc_acc = pc->nc_acc = pc->nc_cnt = 0;
     pc->last_dump = rdtsc();
     pc->next_dump = pc->last_dump + NS2TSC(5000000000);
 }
@@ -244,12 +247,17 @@ retry:
         }
 
         if (intr) {
+            tsc = rdtsc();
+            *((u64*)(vq->iov->iov_base)) = tsc + tscofs;
             pc->intrs ++;
             vhost_do_signal(vq);
+            tsa = rdtsc();
+            pc->nc_acc += tsa - tsc;
+            pc->nc_cnt ++;
             /* When the costly notification routine returns, we need to
              * reset next to correctly emulate the consumption of the
              * next item. */
-            next = rdtsc() + pc->wc;
+            next = tsa + pc->wc;
         }
 
         if (unlikely(next > pc->next_dump)) {
@@ -258,14 +266,15 @@ retry:
             (void)sel;
 
             printk("PC: %llu items/s %llu kicks/s %llu sleeps/s %llu intrs/s "
-                   "%llu latency %llu spkicks/s %llu wc\n",
+                   "%llu latency %llu spkicks/s %llu wc %llu nc\n",
                     (pc->items * 1000000000)/ndiff,
                     (pc->kicks * 1000000000)/ndiff,
                     (pc->sleeps * 1000000000)/ndiff,
                     (pc->intrs * 1000000000)/ndiff,
                     TSC2NS(pc->lat_cnt ? pc->lat_acc / pc->lat_cnt : 0),
                     (pc->spurious_kicks * 1000000000)/ndiff,
-                    TSC2NS(pc->wc_cnt ? pc->wc_acc / pc->wc_cnt : 0));
+                    TSC2NS(pc->wc_cnt ? pc->wc_acc / pc->wc_cnt : 0),
+                    TSC2NS(pc->nc_cnt ? pc->nc_acc / pc->nc_cnt : 0));
 
             vhost_pc_stats_reset(pc);
             next = pc->last_dump + pc->wc;

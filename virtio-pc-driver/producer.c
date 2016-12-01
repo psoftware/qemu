@@ -61,10 +61,13 @@ struct virtpc_info {
     u64                         np_cnt;
     u64                         wp_acc;
     u64                         wp_cnt;
+    u64                         sp_acc;
+    u64                         sp_cnt;
     u64                         next_dump;
     struct scatterlist	        sg[1];
     u64                         *bufs;
     unsigned int                nbufs;
+    bool                        first;
     char			name[40];
 };
 
@@ -120,7 +123,8 @@ calibrate_tsc(void)
 static void
 virtio_pc_stats_reset(struct virtpc_info *vi)
 {
-    vi->np_acc = vi->np_cnt = vi->wp_acc = vi->wp_cnt =0;
+    vi->np_acc = vi->np_cnt = vi->wp_acc = vi->wp_cnt =
+                                vi->sp_acc = vi->sp_cnt = 0;
     vi->next_dump = rdtsc() + NS2TSC(5000000000);
 }
 
@@ -137,10 +141,18 @@ items_consumed(struct virtqueue *vq)
 static void
 cleanup_items(struct virtpc_info *vi, int num)
 {
-    void *cookie;
+    u64 *buf;
     unsigned int len;
 
-    while (num && (cookie = virtqueue_get_buf(vi->vq, &len)) != NULL) {
+    while (num && (buf = virtqueue_get_buf(vi->vq, &len)) != NULL) {
+        if (vi->first) {
+            u64 diff = rdtsc() - *buf;
+            vi->first = false;
+            if (diff < 200000UL) {
+                vi->sp_acc += diff;
+                vi->sp_cnt ++;
+            }
+        }
         --num;
 #ifdef DBG
         printk("virtpc: virtqueue_get_buf --> %p\n", cookie);
@@ -211,7 +223,7 @@ produce(struct virtpc_info *vi)
              * need to adjust tsb to fix Wp estimation. Note that
              * this "gap" causes a little offset between Tavg and
              * Tbatch. */
-            tsb += tsa - next; /* fix tsb */
+            tsb += tsa - next;
             next = tsa;
         }
         next += vi->wp;
@@ -220,7 +232,7 @@ produce(struct virtpc_info *vi)
                                  * give C a way to understand
                                  * that it didn't see the correct
                                  * timestamp set below */
-        err = virtqueue_add_outbuf(vq, vi->sg, 1, vi, GFP_ATOMIC);
+        err = virtqueue_add_outbuf(vq, vi->sg, 1, buf, GFP_ATOMIC);
         tsc = rdtsc();
 
         kick = virtqueue_kick_prepare(vq);
@@ -297,6 +309,8 @@ produce(struct virtpc_info *vi)
                         while (rdtsc() < next) barrier();
                     }
 
+                    vi->first = true; /* Trigger Sp sampling */
+
                     tsb = rdtsc();
                     next = tsb + vi->wp;
                 }
@@ -304,9 +318,10 @@ produce(struct virtpc_info *vi)
         }
 
         if (unlikely(next > vi->next_dump)) {
-            printk("PC: %llu np %llu wp\n",
+            printk("PC: %llu np %llu wp %llu sp\n",
                     TSC2NS(vi->np_cnt ? vi->np_acc / vi->np_cnt : 0),
-                    TSC2NS(vi->wp_cnt ? vi->wp_acc / vi->wp_cnt : 0));
+                    TSC2NS(vi->wp_cnt ? vi->wp_acc / vi->wp_cnt : 0),
+                    TSC2NS(vi->sp_cnt ? vi->sp_acc / vi->sp_cnt : 0));
 
             virtio_pc_stats_reset(vi);
             tsb = rdtsc();
