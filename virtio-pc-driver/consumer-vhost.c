@@ -161,13 +161,6 @@ static void consume(struct vhost_work *work)
 
     vhost_disable_notify(&pc->hdev, vq);
 
-#if 0
-    events[event_idx].ts = rdtsc();
-    events[event_idx].id = pkt_idx;
-    events[event_idx].type = VIRTIOPC_C_RUNS;
-    VIRTIOPC_EVNEXT(event_idx);
-#endif
-
     tsa = rdtsc();
 
     for (;;) {

@@ -275,9 +275,12 @@ produce(struct virtpc_info *vi)
             tsb = tsd;
         }
 
-        pkt_idx ++;
-
         if (vq->num_free < THR) {
+            events[event_idx].ts = rdtsc();
+            events[event_idx].id = pkt_idx;
+            events[event_idx].type = VIRTIOPC_P_STOPS;
+            VIRTIOPC_EVNEXT(event_idx);
+
             if (vi->psleep) {
                 do {
                     /* Taken from usleep_range */
@@ -316,6 +319,8 @@ produce(struct virtpc_info *vi)
                 }
             }
         }
+
+        pkt_idx ++;
 
         if (unlikely(next > vi->next_dump)) {
             printk("PC: %llu np %llu wp %llu sp\n",
