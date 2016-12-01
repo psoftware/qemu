@@ -208,13 +208,15 @@ retry:
 
         tsa = *((u64*)(vq->iov->iov_base));
         if (first) {
+            /* Compute Sc: this is only useful with notifications */
             u64 diff = tsc - (tsa - tscofs);
             first = false;
             if (diff < 100000UL) {
                 pc->lat_acc += diff;
                 pc->lat_cnt ++;
             }
-            next = tsc + pc->wc; /* init next */
+            /* init next */
+            next = tsc + pc->wc;
         } else {
             pc->wc_acc += tsc - tsb;
             pc->wc_cnt ++;
@@ -227,6 +229,12 @@ retry:
 
         if (!pc->fc) {
             while ((tsa = rdtsc()) < next) barrier();
+            /* Check if there was a preemption gap, see explanation in
+             * producer.c */
+            if (unlikely(tsa - next > 3000)) {
+                tsb += tsa - next;
+                next = tsa;
+            }
             next += pc->wc;
         }
 
@@ -237,6 +245,8 @@ retry:
 
         if (pc->fc) {
             while ((tsa = rdtsc()) < next) barrier();
+            /* We ignore the preemption gap, while in fast consumer the
+             * scheduler has many chances to run on this CPU. */
             next += pc->wc;
         }
 
