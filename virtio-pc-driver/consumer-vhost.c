@@ -182,7 +182,8 @@ retry:
                 __set_current_state(TASK_UNINTERRUPTIBLE);
                 schedule_hrtimeout_range(&to, 0, HRTIMER_MODE_REL);
                 pc->sleeps ++;
-                next = rdtsc() + pc->wc;
+                tsa = rdtsc();
+                first = true; /* trigger init code */
                 goto retry;
             } else {
                 if (unlikely(vhost_enable_notify(&pc->hdev, vq))) {
@@ -241,6 +242,8 @@ retry:
 
         if (intr) {
             tsc = rdtsc();
+            /* TODO this writeback is ignored, we should use a request/response
+             * 2 descriptors scatter-gather. */
             *((u64*)(vq->iov->iov_base)) = tsc + tscofs;
             pc->intrs ++;
             vhost_do_signal(vq);
