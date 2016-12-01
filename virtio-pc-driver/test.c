@@ -45,6 +45,8 @@ int
 main(int argc, char **argv)
 {
     struct virtpc_ioctl_data vio;
+    int yp_spec = 0;
+    int yc_spec = 0;
     int fd;
     int ret;
     int ch;
@@ -87,10 +89,12 @@ main(int argc, char **argv)
 
             case 'y':
                 vio.yp = parseuint(optarg);
+                yp_spec = 1;
                 break;
 
             case 'Y':
                 vio.yc = parseuint(optarg);
+                yc_spec = 1;
                 break;
 
             case 'i':
@@ -105,6 +109,12 @@ main(int argc, char **argv)
                 vio.duration = parseuint(optarg);
                 break;
         }
+    }
+
+    if (yp_spec && !yc_spec) {
+        vio.yc = vio.yp;
+    } else if (yc_spec && !yp_spec) {
+        vio.yp = vio.yc;
     }
 
     /* Open the device file to be used to run the producer. */
