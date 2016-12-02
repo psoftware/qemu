@@ -12,6 +12,7 @@
 #include <stropts.h>
 #include <assert.h>
 #include <fcntl.h>
+#include <time.h>
 
 
 #define barrier() __sync_synchronize()
@@ -75,7 +76,7 @@ tsc_sleep_till(uint64_t when)
 /*************************************************************************/
 
 /* QLEN must be a power of two */
-#define QLEN 256
+#define QLEN 512
 
 static struct global {
     /* Variables read by both P and C */
@@ -157,26 +158,36 @@ producer(void *opaque)
 
     while (!g->stop) {
         while (queue_full(g)) {
-            //ACCESS_ONCE(g->ce) = ACCESS_ONCE(g->c);
-            ACCESS_ONCE(g->ce) = g->c + QLEN * 3 / 4;
-            /* barrier and double-check */
-            barrier();
-            if (queue_full(g)) {
-                fds[0].events = POLLIN;
-                fds[1].events = POLLIN;
-                ret = poll(fds, 2, 1000);
-                if (ret <= 0 || fds[1].revents) {
-                    if (ret < 0 || !(fds[1].revents & POLLIN)) {
-                        perror("poll()");
-                    } else if (ret == 0) {
-                        printf("Warning: timeout\n");
-                    }
+            if (g->psleep) {
+                /* Sleeping strategy */
+                g->psleeps ++;
+                usleep(g->yp);
+                if (g->stop) {
                     goto out;
                 }
-                ret = read(g->cnotify, &x, sizeof(x));
-                assert(ret == 8);
-                g->pstarts ++;
-                next = rdtsc() + g->wp;
+
+            } else {
+                /* Notification strategy */
+                ACCESS_ONCE(g->ce) = g->c + QLEN * 3 / 4;
+                /* barrier and double-check */
+                barrier();
+                if (queue_full(g)) {
+                    fds[0].events = POLLIN;
+                    fds[1].events = POLLIN;
+                    ret = poll(fds, 2, 1000);
+                    if (ret <= 0 || fds[1].revents) {
+                        if (ret < 0 || !(fds[1].revents & POLLIN)) {
+                            perror("poll()");
+                        } else if (ret == 0) {
+                            printf("Warning: timeout\n");
+                        }
+                        goto out;
+                    }
+                    ret = read(g->cnotify, &x, sizeof(x));
+                    assert(ret == 8);
+                    g->pstarts ++;
+                    next = rdtsc() + g->wp;
+                }
             }
         }
         tsc_sleep_till(next);
@@ -210,31 +221,46 @@ consumer(void *opaque)
     fds[0].fd = g->pnotify;
     fds[1].fd = g->cstop;
 
-    ACCESS_ONCE(g->pe) = 0; /* wake me up on the first packet */
+    if (g->csleep) {
+        ACCESS_ONCE(g->pe) = ~0U; /* notifications disabled */
+    } else {
+        ACCESS_ONCE(g->pe) = 0; /* wake me up on the first packet */
+    }
 
     next = rdtsc() + g->wc; /* just in case */
 
     while (!g->stop) {
         while (queue_empty(g)) {
-            ACCESS_ONCE(g->pe) = ACCESS_ONCE(g->p);
-            /* barrier and double-check */
-            barrier();
-            if (queue_empty(g)) {
-                fds[0].events = POLLIN;
-                fds[1].events = POLLIN;
-                ret = poll(fds, 2, 1000);
-                if (ret <= 0 || fds[1].revents) {
-                    if (ret < 0 || !(fds[1].revents & POLLIN)) {
-                        perror("poll()");
-                    } else if (ret == 0) {
-                        printf("Warning: timeout\n");
-                    }
+            if (g->csleep) {
+                /* Sleeping strategy */
+                g->csleeps ++;
+                usleep(g->yc);
+                if (g->stop) {
                     goto out;
                 }
-                ret = read(g->pnotify, &x, sizeof(x));
-                assert(ret == 8);
-                g->cstarts ++;
-                next = rdtsc() + g->wc;
+
+            } else {
+                /* Notification strategy */
+                ACCESS_ONCE(g->pe) = ACCESS_ONCE(g->p);
+                /* barrier and double-check */
+                barrier();
+                if (queue_empty(g)) {
+                    fds[0].events = POLLIN;
+                    fds[1].events = POLLIN;
+                    ret = poll(fds, 2, 1000);
+                    if (ret <= 0 || fds[1].revents) {
+                        if (ret < 0 || !(fds[1].revents & POLLIN)) {
+                            perror("poll()");
+                        } else if (ret == 0) {
+                            printf("Warning: timeout\n");
+                        }
+                        goto out;
+                    }
+                    ret = read(g->pnotify, &x, sizeof(x));
+                    assert(ret == 8);
+                    g->cstarts ++;
+                    next = rdtsc() + g->wc;
+                }
             }
         }
         tsc_sleep_till(next);
@@ -418,8 +444,8 @@ int main(int argc, char **argv)
     calibrate_tsc();
     g->wp = NS2TSC(g->wp);
     g->wc = NS2TSC(g->wc);
-    g->yp = g->yp;
-    g->yc = g->yc;
+    g->yp = g->yp/1000;
+    g->yc = g->yc/1000;
 
     {
         int pfd = open("/proc/self/timerslack_ns", O_RDWR);
@@ -479,7 +505,7 @@ int main(int argc, char **argv)
         }
         printf("%7lu %7lu %7u %7u %7u %10.0f %9.0f %9.0f %9.0f %9.0f "
                 "%9.0f %9.0f\n",
-                TSC2NS(g->wp), TSC2NS(g->wc), g->yp, g->yc, g->l,
+                TSC2NS(g->wp), TSC2NS(g->wc), g->yp * 1000, g->yc * 1000, g->l,
                 g->items / test_len,
                 g->pnotifs / test_len,
                 g->cnotifs / test_len,
