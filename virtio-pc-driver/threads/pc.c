@@ -282,13 +282,22 @@ sigint_handler(int sig)
 }
 
 static void
+print_header(void)
+{
+    printf("%7s %7s %7s %7s %7s %10s %9s %9s\n", "Wp", "Wc", "Yp", "Yc",
+            "L", "items/s", "pnotifs/s", "cnotifs/s");
+}
+
+static void
 usage(void)
 {
-    printf("test [-p WP_NANOSEC] [-c WC_NANOSEC] "
-            "[-y YP_NANOSEC] [-Y YC_NANOSEC] "
-            "[-d DURATION_SEC] [-s <producer sleeps>] "
-            "[-S <consumer sleeps>] [-q <be quiet>] "
-            "[-l QUEUE_LEN]\n");
+    printf("test [-p WP_NANOSEC] [-c WC_NANOSEC]\n"
+            "[-y YP_NANOSEC] [-Y YC_NANOSEC]\n"
+            "[-s <producer sleeps>] [-S <consumer sleeps>]\n"
+            "[-q <be quiet>]\n"
+            "[-d DURATION_SEC]\n"
+            "[-l QUEUE_LEN]\n"
+            "[-H <print header only>]");
 }
 
 static unsigned int
@@ -333,11 +342,15 @@ int main(int argc, char **argv)
     g->l = QLEN;
     g->duration = 5;
 
-    while ((ch = getopt(argc, argv, "hc:p:sSy:Y:d:ql:")) != -1) {
+    while ((ch = getopt(argc, argv, "Hhc:p:sSy:Y:d:ql:")) != -1) {
         switch (ch) {
             default:
             case 'h':
                 usage();
+                return 0;
+
+            case 'H':
+                print_header();
                 return 0;
 
             case 's':
@@ -394,7 +407,6 @@ int main(int argc, char **argv)
     g->wc = NS2TSC(g->wc);
     g->yp = g->yp;
     g->yc = g->yc;
-    // printf("wp %u wc %u\n", g->wp, g->wc);
 
     ret = pthread_create(&thp, NULL, producer, g);
     if (ret) {
@@ -429,8 +441,7 @@ int main(int argc, char **argv)
 
         if (!g->quiet) {
             printf("#items: %lu, testlen: %3.4f\n", g->items, test_len);
-            printf("%7s %7s %7s %7s %7s %10s %9s %9s\n", "Wp", "Wc", "Yp", "Yc",
-                   "L", "items/s", "pnotifs/s", "cnotifs/s");
+            print_header();
         }
         printf("%7lu %7lu %7u %7u %7u %10.0f %9.0f %9.0f\n",
                 TSC2NS(g->wp), TSC2NS(g->wc), g->yp, g->yc, g->l,
