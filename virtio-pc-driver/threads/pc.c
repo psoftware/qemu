@@ -74,7 +74,7 @@ tsc_sleep_till(uint64_t when)
 /*************************************************************************/
 
 /* QLEN must be a power of two */
-#define QLEN 1024
+#define QLEN 256
 
 static struct global {
     /* Variables read by both P and C */
