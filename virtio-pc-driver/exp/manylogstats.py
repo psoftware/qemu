@@ -62,9 +62,9 @@ def load_producer_stats(args, x):
 
         m = re.search(r'virtpc: set ' + args.varname + '=(\d+)ns', line)
         if m != None:
-            w = int(m.group(1))
-            x['np'][w] = []
-            x['wp'][w] = []
+            v = int(m.group(1))
+            x['np'][v] = []
+            x['wp'][v] = []
             first = True
 
             continue
@@ -77,8 +77,8 @@ def load_producer_stats(args, x):
             first = False
             continue
 
-        x['np'][w].append(int(m.group(1)))
-        x['wp'][w].append(int(m.group(2)))
+        x['np'][v].append(int(m.group(1)))
+        x['wp'][v].append(int(m.group(2)))
     fin.close()
 
 
@@ -137,14 +137,14 @@ while 1:
 
     m = re.search(r'virtpc: set ' + args.varname + '=(\d+)ns', line)
     if m != None:
-        w = int(m.group(1))
-        x['items'][w] = []
-        x['kicks'][w] = []
-        x['spkicks'][w] = []
-        x['sleeps'][w] = []
-        x['intrs'][w] = []
-        x['latency'][w] = []
-        x['wc'][w] = []
+        v = int(m.group(1))
+        x['items'][v] = []
+        x['kicks'][v] = []
+        x['spkicks'][v] = []
+        x['sleeps'][v] = []
+        x['intrs'][v] = []
+        x['latency'][v] = []
+        x['wc'][v] = []
         first = True
 
         continue
@@ -157,63 +157,63 @@ while 1:
         first = False
         continue
 
-    x['items'][w].append(int(m.group(1)))
-    x['kicks'][w].append(int(m.group(2)))
-    x['sleeps'][w].append(int(m.group(3)))
-    x['intrs'][w].append(int(m.group(4)))
-    x['latency'][w].append(int(m.group(5)))
+    x['items'][v].append(int(m.group(1)))
+    x['kicks'][v].append(int(m.group(2)))
+    x['sleeps'][v].append(int(m.group(3)))
+    x['intrs'][v].append(int(m.group(4)))
+    x['latency'][v].append(int(m.group(5)))
     if m.group(6):
-        x['spkicks'][w].append(int(m.group(6)))
+        x['spkicks'][v].append(int(m.group(6)))
     else:
-        x['spkicks'][w].append(0)
+        x['spkicks'][v].append(0)
     if m.group(7):
-        x['wc'][w].append(int(m.group(7)))
+        x['wc'][v].append(int(m.group(7)))
     else:
-        x['wc'][w].append(0)
+        x['wc'][v].append(0)
 
 fin.close()
 
 print("%9s %9s %9s %9s %9s %9s %7s %7s %9s %9s %9s %9s %9s %9s %9s" % (args.varname + 'n', 'Wp', 'Wc', 'Tavg', 'Tmodel', 'Tbatch', 'batch', 'Bmodel', 'items', 'kicks', 'spkicks', 'csleeps', 'intrs', 'latency', 'Np'))
-for w in sorted(x['items']):
-    if len(x['items'][w]) == 0:
-        print("Warning: no samples for w=%d" % (w,))
+for v in sorted(x['items']):
+    if len(x['items'][v]) == 0:
+        print("Warning: no samples for v=%d" % (v,))
         continue
 
-    woth = numpy.mean(x['wc'][w])
+    woth = numpy.mean(x['wc'][v])
 
     sc = args.sc
     if args.sc < 0:
-        sc = numpy.mean(x['latency'][w])
+        sc = numpy.mean(x['latency'][v])
 
-    wx = w
+    wx = v
 
     if args.p:
         # handle quantization error
-        if w in x['np']:
-            np = numpy.mean(x['np'][w])
-            wx = numpy.mean(x['wp'][w])
-        elif w+1 in x['np']:
-            np = numpy.mean(x['np'][w+1])
-            wx = numpy.mean(x['wp'][w+1])
-        elif w-1 in x['np']:
-            np = numpy.mean(x['np'][w-1])
-            wx = numpy.mean(x['wp'][w-1])
+        if v in x['np']:
+            np = numpy.mean(x['np'][v])
+            wx = numpy.mean(x['wp'][v])
+        elif v+1 in x['np']:
+            np = numpy.mean(x['np'][v+1])
+            wx = numpy.mean(x['wp'][v+1])
+        elif v-1 in x['np']:
+            np = numpy.mean(x['np'][v-1])
+            wx = numpy.mean(x['wp'][v-1])
         else:
-            print("Default to Np=%d for w=%d" %(args.np, w))
+            print("Default to Np=%d for v=%d" %(args.np, v))
             np = args.np
     else:
         np = args.np
 
     if args.varname in ['Wp', 'Wc']:
         # notification tests
-        denom = max(numpy.mean(x['kicks'][w]), numpy.mean(x['intrs'][w]))
-        denom_s = max(numpy.mean(x['kicks'][w]) + numpy.mean(x['spkicks'][w]), numpy.mean(x['intrs'][w]))
+        denom = max(numpy.mean(x['kicks'][v]), numpy.mean(x['intrs'][v]))
+        denom_s = max(numpy.mean(x['kicks'][v]) + numpy.mean(x['spkicks'][v]), numpy.mean(x['intrs'][v]))
     else:
         # sleeping tests
-        denom = denom_s = numpy.mean(x['sleeps'][w])
+        denom = denom_s = numpy.mean(x['sleeps'][v])
 
-    b_meas = numpy.mean(x['items'][w])/denom # not taking into account spurious kicks
-    b_meas_spurious = numpy.mean(x['items'][w])/denom_s # taking into account spurious kicks
+    b_meas = numpy.mean(x['items'][v])/denom # not taking into account spurious kicks
+    b_meas_spurious = numpy.mean(x['items'][v])/denom_s # taking into account spurious kicks
 
     if args.varname in ['Wp', 'Wc']:
         # notification tests
@@ -222,20 +222,20 @@ for w in sorted(x['items']):
         b_model = b_model_notif(wx, woth, args.sp, sc)
     else:
         # sleeping tests
-        t_model = t_batch = T_model_sleep(w, w, wx, woth, args.queue_length)
-        b_model = b_model_sleep(w, w, wx, woth, args.queue_length)
+        t_model = t_batch = T_model_sleep(v, v, wx, woth, args.queue_length)
+        b_model = b_model_sleep(v, v, wx, woth, args.queue_length)
 
-    print("%9.0f %9.0f %9.0f %9.0f %9.0f %9.0f %7.1f %7.1f %9.0f %9.0f %9.0f %9.0f %9.0f %9.0f %9.0f" % (w, wx,
-                                    numpy.mean(x['wc'][w]),
-                                    1000000000/numpy.mean(x['items'][w]),
+    print("%9.0f %9.0f %9.0f %9.0f %9.0f %9.0f %7.1f %7.1f %9.0f %9.0f %9.0f %9.0f %9.0f %9.0f %9.0f" % (v, wx,
+                                    numpy.mean(x['wc'][v]),
+                                    1000000000/numpy.mean(x['items'][v]),
                                     t_model,
                                     t_batch,
                                     b_meas,
                                     b_model,
-                                    numpy.mean(x['items'][w]),
-                                    numpy.mean(x['kicks'][w]),
-                                    numpy.mean(x['spkicks'][w]),
-                                    numpy.mean(x['sleeps'][w]),
-                                    numpy.mean(x['intrs'][w]),
-                                    numpy.mean(x['latency'][w]),
+                                    numpy.mean(x['items'][v]),
+                                    numpy.mean(x['kicks'][v]),
+                                    numpy.mean(x['spkicks'][v]),
+                                    numpy.mean(x['sleeps'][v]),
+                                    numpy.mean(x['intrs'][v]),
+                                    numpy.mean(x['latency'][v]),
                                     np))
