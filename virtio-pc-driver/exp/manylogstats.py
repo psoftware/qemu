@@ -42,7 +42,7 @@ def load_producer_stats(args, x):
         if line == '':
             break
 
-        m = re.search(r'virtpc: set Wp=(\d+)ns', line)
+        m = re.search(r'virtpc: set ' + args.varname + '=(\d+)ns', line)
         if m != None:
             w = int(m.group(1))
             x['np'][w] = []
@@ -152,7 +152,7 @@ while 1:
 
 fin.close()
 
-print("%9s %9s %9s %9s %9s %9s %7s %7s %9s %9s %9s %9s %9s %9s %9s" % ('Wpn', 'Wp', 'Wc', 'Tavg', 'Tmodel', 'Tbatch', 'batch', 'Bmodel', 'items', 'kicks', 'spkicks', 'csleeps', 'intrs', 'latency', 'Np'))
+print("%9s %9s %9s %9s %9s %9s %7s %7s %9s %9s %9s %9s %9s %9s %9s" % (args.varname + 'n', 'Wp', 'Wc', 'Tavg', 'Tmodel', 'Tbatch', 'batch', 'Bmodel', 'items', 'kicks', 'spkicks', 'csleeps', 'intrs', 'latency', 'Np'))
 for w in sorted(x['items']):
     if len(x['items'][w]) == 0:
         print("Warning: no samples for w=%d" % (w,))
@@ -183,8 +183,7 @@ for w in sorted(x['items']):
             np = numpy.mean(x['np'][w-1])
             wx = numpy.mean(x['wp'][w-1])
         else:
-            if args.varname in ['Wp', 'Wc']:
-                print("Default to Np=%d for w=%d" %(args.np, w))
+            print("Default to Np=%d for w=%d" %(args.np, w))
             np = args.np
     else:
         np = args.np
