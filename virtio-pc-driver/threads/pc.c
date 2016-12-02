@@ -330,6 +330,7 @@ int main(int argc, char **argv)
     g->yc = 5000;
     g->psleep = 0;
     g->csleep = 0;
+    g->l = QLEN;
     g->duration = 5;
 
     while ((ch = getopt(argc, argv, "hc:p:sSy:Y:d:ql:")) != -1) {
@@ -368,7 +369,8 @@ int main(int argc, char **argv)
                 break;
 
             case 'l':
-                g->l = 1;
+                /* Ignored for now */
+                g->l = QLEN;
                 break;
 
             case 'q':
