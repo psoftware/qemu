@@ -309,7 +309,7 @@ out:
 static void
 pc_stop(struct global *g)
 {
-    uint64_t x;
+    uint64_t x = 1;
 
     g->stop = 1;
     write(g->pstop, &x, sizeof(x));
