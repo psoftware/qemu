@@ -23,7 +23,7 @@
 /******************************* TSC support ***************************/
 
 /* initialize to avoid a division by 0 */
-static uint64_t ticks_per_second = 1000000000; /* set by calibrate_tsc */
+static double ticks_per_second = 1000000000.0; /* set by calibrate_tsc */
 
 static inline uint64_t
 rdtsc(void)
@@ -38,7 +38,7 @@ rdtsc(void)
  * a constant TSC rate and locked on all CPUs.
  * Returns ticks per second
  */
-static uint64_t
+static void
 calibrate_tsc(void)
 {
     struct timeval a, b;
@@ -61,12 +61,11 @@ calibrate_tsc(void)
 	    dmax = da + db;
 	}
     }
-    ticks_per_second = cy;
-    return cy;
+    ticks_per_second = (double)cy;
 }
 
-#define NS2TSC(x) ((x)*ticks_per_second/1000000000UL)
-#define TSC2NS(x) ((x)*1000000000UL/ticks_per_second)
+#define NS2TSC(x) ((x)*ticks_per_second/1000000000.0)
+#define TSC2NS(x) ((x)*1000000000.0/ticks_per_second)
 
 static inline void
 tsc_sleep_till(uint64_t when)
@@ -525,7 +524,7 @@ int main(int argc, char **argv)
             printf("#items: %lu, testlen: %3.4f\n", g->items, test_len);
             print_header();
         }
-        printf("%7lu %7lu %7u %7u %7u %10.0f %9.0f %9.0f %9.0f %9.0f "
+        printf("%7.1f %7.1f %7u %7u %7u %10.0f %9.0f %9.0f %9.0f %9.0f "
                 "%9.0f %9.0f\n",
                 TSC2NS(g->wp), TSC2NS(g->wc), g->yp * 1000, g->yc * 1000, g->l,
                 g->items / test_len,
