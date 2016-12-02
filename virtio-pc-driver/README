@@ -1,0 +1,18 @@
+=== Contents of this directory ===
+
+threads/ --> contains PC emulator using userspace threads
+exp/     --> contains experiments results and related tools
+
+
+=== How to transform host/guest kernel logs to tabular results ===
+
+For notification tests:
+    $ ./manylogstats.py -H notif-h-data.1 -G notif-g-data.1
+
+For sleeping tests:
+    $ ./manylogstats.py --varname Yc -H sleep-h-data.1 -G sleep-g-data.1
+
+
+=== How to run the vhost-prodcons VM
+
+# taskset -c 0 qrun --num-cpus 1 -i ~/git/vm/netmap.qcow2 -m 10 --device virtio-prodcons-pci,ioeventfd=on,l=1024,vhost=on

@@ -52,7 +52,7 @@ def T_model_sleep(Yc, Yp, Wp, Wc, L):
 def load_producer_stats(args, x):
     x['np'] = dict()
     x['wp'] = dict()
-    fin = open(args.p)
+    fin = open(args.guest_log)
     first = True
 
     while 1:
@@ -89,8 +89,8 @@ epilog = "2016 Vincenzo Maffione"
 
 argparser = argparse.ArgumentParser(description = description,
                                     epilog = epilog)
-argparser.add_argument('-d', '--data-file',
-                       help = "Path to file containing data", type=str,
+argparser.add_argument('-H', '--host-log',
+                       help = "host log file", type=str,
                        required = True)
 argparser.add_argument('--sc',
                        help = "sc", type=int,
@@ -107,8 +107,8 @@ argparser.add_argument('--nc',
 argparser.add_argument('-l', '--queue-length',
                        help = "Queue length, used just for sleep tests", type=int,
                        default = 256)
-argparser.add_argument('-p',
-                       help = "log file to extract np and wp", type=str)
+argparser.add_argument('-G', '--guest-log',
+                       help = "guest log file to extract np and wp", type=str)
 argparser.add_argument('--varname', type=str, default='Wp',
                        help='Name of the variable parameter')
 
@@ -124,12 +124,12 @@ x['intrs'] = dict()
 x['latency'] = dict()
 x['wc'] = dict()
 
-if args.p:
+if args.guest_log:
     load_producer_stats(args, x)
 
 first = False
 
-fin = open(args.data_file)
+fin = open(args.host_log)
 while 1:
     line = fin.readline()
     if line == '':
@@ -187,7 +187,7 @@ for v in sorted(x['items']):
 
     wx = v
 
-    if args.p:
+    if args.guest_log:
         # handle quantization error
         if v in x['np']:
             np = numpy.mean(x['np'][v])
