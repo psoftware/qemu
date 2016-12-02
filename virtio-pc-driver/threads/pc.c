@@ -81,6 +81,7 @@ static struct global {
     CACHELINE_ALIGN
     unsigned int duration;
     unsigned int stop;
+    unsigned int l;
     unsigned int wp;
     unsigned int wc;
     unsigned int yp;
@@ -110,6 +111,7 @@ static struct global {
     CACHELINE_ALIGN
     uint64_t test_start;
     uint64_t test_end;
+    int quiet;
 } _g;
 
 static inline unsigned int
@@ -285,7 +287,8 @@ usage(void)
     printf("test [-p WP_NANOSEC] [-c WC_NANOSEC] "
             "[-y YP_NANOSEC] [-Y YC_NANOSEC] "
             "[-d DURATION_SEC] [-s <producer sleeps>] "
-            "[-S <consumer sleeps>] \n");
+            "[-S <consumer sleeps>] [-q <be quiet>] "
+            "[-l QUEUE_LEN]\n");
 }
 
 static unsigned int
@@ -329,7 +332,7 @@ int main(int argc, char **argv)
     g->csleep = 0;
     g->duration = 5;
 
-    while ((ch = getopt(argc, argv, "hc:p:sSy:Y:d:")) != -1) {
+    while ((ch = getopt(argc, argv, "hc:p:sSy:Y:d:ql:")) != -1) {
         switch (ch) {
             default:
             case 'h':
@@ -363,6 +366,14 @@ int main(int argc, char **argv)
             case 'd':
                 g->duration = parseuint(optarg);
                 break;
+
+            case 'l':
+                g->l = 1;
+                break;
+
+            case 'q':
+                g->quiet = 1;
+                break;
         }
     }
 
@@ -379,8 +390,8 @@ int main(int argc, char **argv)
     calibrate_tsc();
     g->wp = NS2TSC(g->wp);
     g->wc = NS2TSC(g->wc);
-    g->yp = NS2TSC(g->yp);
-    g->yc = NS2TSC(g->yc);
+    g->yp = g->yp;
+    g->yc = g->yc;
     // printf("wp %u wc %u\n", g->wp, g->wc);
 
     ret = pthread_create(&thp, NULL, producer, g);
@@ -414,8 +425,13 @@ int main(int argc, char **argv)
     {
         double test_len = TSC2NS(g->test_end - g->test_start) / 1000000000.0;
 
-        printf("#items: %lu, testlen: %3.4f\n", g->items, test_len);
-        printf("%10.0f items/s %9.0f pnotifs/s %9.0f cnotifs/s\n",
+        if (!g->quiet) {
+            printf("#items: %lu, testlen: %3.4f\n", g->items, test_len);
+            printf("%7s %7s %7s %7s %7s %10s %9s %9s\n", "Wp", "Wc", "Yp", "Yc",
+                   "L", "items/s", "pnotifs/s", "cnotifs/s");
+        }
+        printf("%7lu %7lu %7u %7u %7u %10.0f %9.0f %9.0f\n",
+                TSC2NS(g->wp), TSC2NS(g->wc), g->yp, g->yc, g->l,
                 g->items / test_len,
                 g->pnotifs / test_len,
                 g->cnotifs / test_len);
