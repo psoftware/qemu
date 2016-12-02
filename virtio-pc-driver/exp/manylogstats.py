@@ -88,6 +88,8 @@ argparser.add_argument('--nc',
                        default = 800)
 argparser.add_argument('-p',
                        help = "log file to extract np and wp", type=str)
+argparser.add_argument('--varname', type=str, default='Wp',
+                       help='Name of the variable parameter')
 
 args = argparser.parse_args()
 
@@ -112,7 +114,7 @@ while 1:
     if line == '':
         break
 
-    m = re.search(r'virtpc: set Wp=(\d+)ns', line)
+    m = re.search(r'virtpc: set ' + args.varname + '=(\d+)ns', line)
     if m != None:
         w = int(m.group(1))
         x['items'][w] = []
@@ -181,7 +183,8 @@ for w in sorted(x['items']):
             np = numpy.mean(x['np'][w-1])
             wx = numpy.mean(x['wp'][w-1])
         else:
-            print("Default to Np=%d for w=%d" %(args.np, w))
+            if args.varname in ['Wp', 'Wc']:
+                print("Default to Np=%d for w=%d" %(args.np, w))
             np = args.np
     else:
         np = args.np
