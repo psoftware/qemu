@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -73,6 +74,22 @@ tsc_sleep_till(uint64_t when)
     while (rdtsc() < when)
         barrier();
 }
+
+static void
+run_on_cpu(unsigned int cpuid)
+{
+    cpu_set_t cpuset;
+    int ret;
+
+    CPU_ZERO(&cpuset);
+    CPU_SET(cpuid, &cpuset);
+
+    ret = pthread_setaffinity_np(pthread_self(), sizeof(cpuset), &cpuset);
+    if (ret) {
+        errno = ret;
+        perror("pthread_setaffinity_np()");
+    }
+}
 /*************************************************************************/
 
 /* QLEN must be a power of two */
@@ -117,6 +134,7 @@ static struct global {
     CACHELINE_ALIGN
     uint64_t test_start;
     uint64_t test_end;
+    unsigned int cpufirst;
     int quiet;
 } _g;
 
@@ -147,6 +165,8 @@ producer(void *opaque)
     uint64_t next;
     uint64_t x;
     int ret;
+
+    run_on_cpu(g->cpufirst);
 
     fds[0].fd = g->cnotify;
     fds[1].fd = g->pstop;
@@ -217,6 +237,8 @@ consumer(void *opaque)
     uint64_t next;
     uint64_t x;
     int ret;
+
+    run_on_cpu(g->cpufirst + 1);
 
     fds[0].fd = g->pnotify;
     fds[1].fd = g->cstop;
