@@ -98,6 +98,8 @@ static struct global {
     unsigned int p;
     unsigned int ce;
     uint64_t pnotifs;
+    uint64_t pstarts;
+    uint64_t psleeps;
     uint64_t q[QLEN];
 
     /* Variables written by C */
@@ -106,6 +108,8 @@ static struct global {
     unsigned int pe;
     uint64_t items;
     uint64_t cnotifs;
+    uint64_t cstarts;
+    uint64_t csleeps;
 
     /* Miscellaneous, cache awareness not important. */
     CACHELINE_ALIGN
@@ -168,6 +172,7 @@ producer(void *opaque)
                 }
                 ret = read(g->cnotify, &x, sizeof(x));
                 assert(ret == 8);
+                g->pstarts ++;
                 next = rdtsc() + g->wp;
             }
         }
@@ -223,6 +228,7 @@ consumer(void *opaque)
                 }
                 ret = read(g->pnotify, &x, sizeof(x));
                 assert(ret == 8);
+                g->cstarts ++;
                 next = rdtsc() + g->wc;
             }
         }
@@ -284,8 +290,10 @@ sigint_handler(int sig)
 static void
 print_header(void)
 {
-    printf("%7s %7s %7s %7s %7s %10s %9s %9s\n", "Wp", "Wc", "Yp", "Yc",
-            "L", "items/s", "pnotifs/s", "cnotifs/s");
+    printf("%7s %7s %7s %7s %7s %10s %9s %9s %9s %9s %9s %9s\n",
+            "Wp", "Wc", "Yp", "Yc", "L", "items/s", "pnotifs/s",
+            "cnotifs/s", "pstarts/s", "cstarts/s", "psleeps/s",
+            "csleeps/s");
 }
 
 static void
@@ -443,11 +451,16 @@ int main(int argc, char **argv)
             printf("#items: %lu, testlen: %3.4f\n", g->items, test_len);
             print_header();
         }
-        printf("%7lu %7lu %7u %7u %7u %10.0f %9.0f %9.0f\n",
+        printf("%7lu %7lu %7u %7u %7u %10.0f %9.0f %9.0f %9.0f %9.0f "
+                "%9.0f %9.0f\n",
                 TSC2NS(g->wp), TSC2NS(g->wc), g->yp, g->yc, g->l,
                 g->items / test_len,
                 g->pnotifs / test_len,
-                g->cnotifs / test_len);
+                g->cnotifs / test_len,
+                g->pstarts / test_len,
+                g->cstarts / test_len,
+                g->psleeps / test_len,
+                g->csleeps / test_len);
     }
 
     return 0;
