@@ -196,7 +196,7 @@ producer(void *opaque)
                     fds[1].events = POLLIN;
                     ret = poll(fds, 2, 1000);
                     if (ret <= 0 || fds[1].revents) {
-                        if (ret < 0 || !(fds[1].revents & POLLIN)) {
+                        if (ret < 0 || (fds[1].revents & ~POLLIN)) {
                             perror("poll()");
                         } else if (ret == 0) {
                             printf("Warning: timeout\n");
@@ -271,7 +271,7 @@ consumer(void *opaque)
                     fds[1].events = POLLIN;
                     ret = poll(fds, 2, 1000);
                     if (ret <= 0 || fds[1].revents) {
-                        if (ret < 0 || !(fds[1].revents & POLLIN)) {
+                        if (ret < 0 || (fds[1].revents & ~POLLIN)) {
                             perror("poll()");
                         } else if (ret == 0) {
                             printf("Warning: timeout\n");
