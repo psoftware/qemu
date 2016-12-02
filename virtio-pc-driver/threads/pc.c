@@ -11,6 +11,7 @@
 #include <sys/poll.h>
 #include <stropts.h>
 #include <assert.h>
+#include <fcntl.h>
 
 
 #define barrier() __sync_synchronize()
@@ -419,6 +420,27 @@ int main(int argc, char **argv)
     g->wc = NS2TSC(g->wc);
     g->yp = g->yp;
     g->yc = g->yc;
+
+    {
+        int pfd = open("/proc/self/timerslack_ns", O_RDWR);
+        if (pfd < 0) {
+            perror("open(timerslack)");
+        } else {
+            const char buf[] = {'1', '\0'};
+            char buf2[20];
+
+            if (write(pfd, buf, sizeof(buf)) != sizeof(buf)) {
+                perror("write(0)");
+            }
+
+            if (read(pfd, buf2, sizeof(buf2)) < 0) {
+                perror("read(timerslack_ns)");
+            } else if (!g->quiet) {
+                printf("timerslack: %s\n", buf);
+            }
+        }
+        close(pfd);
+    }
 
     ret = pthread_create(&thp, NULL, producer, g);
     if (ret) {
