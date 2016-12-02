@@ -7,28 +7,46 @@ import numpy
 import math
 
 
-def b_model(Wp, Wc, Sp, Sc):
+def b_model_notif(Wp, Wc, Sp, Sc):
     if Wp == Wc:
         return 0
     if Wp < Wc:
         return math.floor(Sp/(Wc-Wp)) + 1
     return math.floor(Sc/(Wp-Wc)) + 1
 
-def T_model(Wp, Wc, Sp, Sc, Np, Nc):
+
+def T_model_notif(Wp, Wc, Sp, Sc, Np, Nc):
     if Wp == Wc:
         return Wp
-    b = b_model(Wp, Wc, Sp, Sc)
+    b = b_model_notif(Wp, Wc, Sp, Sc)
     if Wp < Wc:
         return Wc + Nc/b
     return Wp + Np/b
 
-def T_batch(Wp, Wc, Np, Nc, b):
+
+def T_batch_notif(Wp, Wc, Np, Nc, b):
     if b <= 0:
         return max(Wp, Wc)
 
     if Wp < Wc:
         return Wc + Nc/b
     return Wp + Np/b
+
+
+def b_model_sleep(Yc, Yp, Wp, Wc, L):
+    if Wp == Wc:
+        return 0
+    if Wc < Wp:
+        # we don't have a model for long sleep, we just
+        # pretend Yc saturates at the Yc_MAX
+        Yc = min(Yc, (L-1)*Wp - Wc)
+        return Yc/(Wp-Wc)
+    Yp = min(Yp, (L-1)*Wc - Wp)
+    return Yp/(Wc-Wp)
+
+
+def T_model_sleep(Yc, Yp, Wp, Wc, L):
+    return max(Wp, Wc)
 
 
 def load_producer_stats(args, x):
@@ -86,6 +104,9 @@ argparser.add_argument('--sp',
 argparser.add_argument('--nc',
                        help = "np", type=int,
                        default = 800)
+argparser.add_argument('-l', '--queue-length',
+                       help = "Queue length, used just for sleep tests", type=int,
+                       default = 256)
 argparser.add_argument('-p',
                        help = "log file to extract np and wp", type=str)
 argparser.add_argument('--varname', type=str, default='Wp',
@@ -158,12 +179,7 @@ for w in sorted(x['items']):
         print("Warning: no samples for w=%d" % (w,))
         continue
 
-    wmin = numpy.mean(x['wc'][w])
-
-    denom = max(numpy.mean(x['kicks'][w]), numpy.mean(x['sleeps'][w]), numpy.mean(x['intrs'][w]))
-    b_meas = numpy.mean(x['items'][w])/denom # not taking into account spurious kicks
-    denom = max(numpy.mean(x['kicks'][w]) + numpy.mean(x['spkicks'][w]), numpy.mean(x['sleeps'][w]), numpy.mean(x['intrs'][w]))
-    b_meas_spurious = numpy.mean(x['items'][w])/denom # taking into account spurious kicks
+    woth = numpy.mean(x['wc'][w])
 
     sc = args.sc
     if args.sc < 0:
@@ -188,13 +204,34 @@ for w in sorted(x['items']):
     else:
         np = args.np
 
+    if args.varname in ['Wp', 'Wc']:
+        # notification tests
+        denom = max(numpy.mean(x['kicks'][w]), numpy.mean(x['intrs'][w]))
+        denom_s = max(numpy.mean(x['kicks'][w]) + numpy.mean(x['spkicks'][w]), numpy.mean(x['intrs'][w]))
+    else:
+        # sleeping tests
+        denom = denom_s = numpy.mean(x['sleeps'][w])
+
+    b_meas = numpy.mean(x['items'][w])/denom # not taking into account spurious kicks
+    b_meas_spurious = numpy.mean(x['items'][w])/denom_s # taking into account spurious kicks
+
+    if args.varname in ['Wp', 'Wc']:
+        # notification tests
+        t_model = T_model_notif(wx, woth, args.sp, sc, np, args.nc)
+        t_batch = T_batch_notif(wx, woth, np, args.nc, b_meas_spurious)
+        b_model = b_model_notif(wx, woth, args.sp, sc)
+    else:
+        # sleeping tests
+        t_model = t_batch = T_model_sleep(w, w, wx, woth, args.queue_length)
+        b_model = b_model_sleep(w, w, wx, woth, args.queue_length)
+
     print("%9.0f %9.0f %9.0f %9.0f %9.0f %9.0f %7.1f %7.1f %9.0f %9.0f %9.0f %9.0f %9.0f %9.0f %9.0f" % (w, wx,
                                     numpy.mean(x['wc'][w]),
                                     1000000000/numpy.mean(x['items'][w]),
-                                    T_model(wx, wmin, args.sp, sc, np, args.nc),
-                                    T_batch(wx, wmin, np, args.nc, b_meas_spurious),
+                                    t_model,
+                                    t_batch,
                                     b_meas,
-                                    b_model(wx, wmin, args.sp, sc),
+                                    b_model,
                                     numpy.mean(x['items'][w]),
                                     numpy.mean(x['kicks'][w]),
                                     numpy.mean(x['spkicks'][w]),
