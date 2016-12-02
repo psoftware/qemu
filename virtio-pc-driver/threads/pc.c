@@ -156,8 +156,8 @@ producer(void *opaque)
 
     while (!g->stop) {
         while (queue_full(g)) {
-            // g->ce = g->c + QLEN * 3 / 4;
-            ACCESS_ONCE(g->ce) = ACCESS_ONCE(g->c);
+            //ACCESS_ONCE(g->ce) = ACCESS_ONCE(g->c);
+            ACCESS_ONCE(g->ce) = g->c + QLEN * 3 / 4;
             /* barrier and double-check */
             barrier();
             if (queue_full(g)) {
