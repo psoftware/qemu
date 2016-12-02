@@ -34,6 +34,7 @@ struct vhost_pc {
     unsigned int            csleep; /* boolean */
     unsigned int            incsp; /* in cycles */
     unsigned int            incsc; /* in cycles */
+    unsigned int            fc; /* fast consumer */
 
     u64                     items;
     u64                     kicks;
@@ -42,10 +43,17 @@ struct vhost_pc {
     u64                     spurious_kicks;
     u64                     last_dump;
     u64                     next_dump;
-    unsigned int            lat_idx;
-#define PC_LAT_ELEMS    8192
-    u32                     latency[PC_LAT_ELEMS];
+    u64                     lat_cnt;
+    u64                     lat_acc;
+    u64                     wc_cnt;
+    u64                     wc_acc;
+    u64                     nc_cnt;
+    u64                     nc_acc;
 };
+
+static u32 pkt_idx = 0;
+static unsigned int event_idx = 0;
+static struct pcevent events[VIRTIOPC_EVENTS];
 
 /******************************* TSC support ***************************/
 
@@ -129,7 +137,9 @@ static u32 sel(u32 *a, unsigned int n, unsigned int k)
 static void
 vhost_pc_stats_reset(struct vhost_pc *pc)
 {
-    pc->items = pc->kicks = pc->sleeps = pc->intrs = pc->spurious_kicks = 0;
+    pc->items = pc->kicks = pc->sleeps = pc->intrs =
+        pc->spurious_kicks = pc->lat_acc = pc->lat_cnt =
+            pc->wc_cnt = pc->wc_acc = pc->nc_acc = pc->nc_cnt = 0;
     pc->last_dump = rdtsc();
     pc->next_dump = pc->last_dump + NS2TSC(5000000000);
 }
@@ -139,28 +149,26 @@ static void consume(struct vhost_work *work)
     struct vhost_virtqueue *vq = container_of(work, struct vhost_virtqueue,
                                               poll.work);
     struct vhost_pc *pc = container_of(vq->dev, struct vhost_pc, hdev);
+    bool first = true;
     unsigned out, in;
     unsigned int b = 0;
     bool intr;
     int head;
     u64 next;
-    u64 ts;
+    u64 tsa, tsb = 0, tsc;
 
     mutex_lock(&vq->mutex);
 
     vhost_disable_notify(&pc->hdev, vq);
 
-    if (pc->incsc) {
-        next = rdtsc() + pc->incsc;
-        while (rdtsc() < next) barrier();
-    }
-
-    next = rdtsc() + pc->wc;
+    tsa = rdtsc();
 
     for (;;) {
 retry:
         head = vhost_get_vq_desc(vq, vq->iov, ARRAY_SIZE(vq->iov),
                 &out, &in, NULL, NULL);
+        tsc = rdtsc();
+
         /* On error, stop handling until the next kick. */
         if (unlikely(head < 0))
             break;
@@ -174,7 +182,8 @@ retry:
                 __set_current_state(TASK_UNINTERRUPTIBLE);
                 schedule_hrtimeout_range(&to, 0, HRTIMER_MODE_REL);
                 pc->sleeps ++;
-                next = rdtsc() + pc->wc;
+                tsa = rdtsc();
+                first = true; /* trigger init code */
                 goto retry;
             } else {
                 if (unlikely(vhost_enable_notify(&pc->hdev, vq))) {
@@ -184,58 +193,109 @@ retry:
                 break;
             }
         }
+
+        events[event_idx].ts = tsc;
+        events[event_idx].id = pkt_idx;
+        events[event_idx].type = VIRTIOPC_PKTSEEN;
+        VIRTIOPC_EVNEXT(event_idx);
+        pkt_idx ++;
+
         if (in) {
             vq_err(vq, "Unexpected descriptor format for TX: "
                     "out %d, int %d\n", out, in);
             break;
         }
 
-        ts = *((u64*)(vq->iov->iov_base));
+        tsa = *((u64*)(vq->iov->iov_base));
+        if (first) {
+            /* Compute Sc: this is only useful with notifications */
+            u64 diff = tsc - (tsa - tscofs);
+            first = false;
+            if (diff < 100000UL) {
+                pc->lat_acc += diff;
+                pc->lat_cnt ++;
+            }
+            /* init next */
+            next = tsc + pc->wc;
+        } else {
+            pc->wc_acc += tsc - tsb;
+            pc->wc_cnt ++;
+        }
+        tsb = tsc;
+
 #if 0
         printk("msglen %d\n", (int)iov_length(vq->iov, out));
 #endif
 
-        while (rdtsc() < next) barrier();
-        next += pc->wc;
+        if (!pc->fc) {
+            while ((tsa = rdtsc()) < next) barrier();
+            /* Check if there was a preemption gap, see explanation in
+             * producer.c */
+            if (unlikely(tsa - next > 3000)) {
+                tsb += tsa - next;
+                next = tsa;
+            }
+            next += pc->wc;
+        }
 
         vhost_add_used(vq, head, 0);
         intr = vhost_notify(&pc->hdev, vq);
         pc->items ++;
         b ++;
-        pc->latency[pc->lat_idx] = (u32)(rdtsc() - (ts - tscofs));
-        if (unlikely(++ pc->lat_idx >= PC_LAT_ELEMS)) {
-            pc->lat_idx = 0;
+
+        if (pc->fc) {
+            while ((tsa = rdtsc()) < next) barrier();
+            /* We ignore the preemption gap, while in fast consumer the
+             * scheduler has many chances to run on this CPU. */
+            next += pc->wc;
         }
+
         if (intr) {
+            tsc = rdtsc();
+            /* TODO this writeback is ignored, we should use a request/response
+             * 2 descriptors scatter-gather. */
+            *((u64*)(vq->iov->iov_base)) = tsc + tscofs;
             pc->intrs ++;
             vhost_do_signal(vq);
+            tsa = rdtsc();
+            pc->nc_acc += tsa - tsc;
+            pc->nc_cnt ++;
             /* When the costly notification routine returns, we need to
              * reset next to correctly emulate the consumption of the
              * next item. */
-            next = rdtsc() + pc->wc;
+            next = tsa + pc->wc;
         }
 
         if (unlikely(next > pc->next_dump)) {
             u64 ndiff = TSC2NS(rdtsc() - pc->last_dump);
-            u32 lat;
 
-            lat = sel(pc->latency, PC_LAT_ELEMS, (PC_LAT_ELEMS*95)/100);
+            (void)sel;
 
             printk("PC: %llu items/s %llu kicks/s %llu sleeps/s %llu intrs/s "
-                   "%llu latency %llu spkicks/s\n",
+                   "%llu latency %llu spkicks/s %llu wc %llu nc\n",
                     (pc->items * 1000000000)/ndiff,
                     (pc->kicks * 1000000000)/ndiff,
                     (pc->sleeps * 1000000000)/ndiff,
                     (pc->intrs * 1000000000)/ndiff,
-                    TSC2NS(lat),
-                    (pc->spurious_kicks * 1000000000)/ndiff);
+                    TSC2NS(pc->lat_cnt ? pc->lat_acc / pc->lat_cnt : 0),
+                    (pc->spurious_kicks * 1000000000)/ndiff,
+                    TSC2NS(pc->wc_cnt ? pc->wc_acc / pc->wc_cnt : 0),
+                    TSC2NS(pc->nc_cnt ? pc->nc_acc / pc->nc_cnt : 0));
 
             vhost_pc_stats_reset(pc);
             next = pc->last_dump + pc->wc;
         }
     }
 
+    events[event_idx].ts = tsa;
+    events[event_idx].id = pkt_idx;
+    events[event_idx].type = VIRTIOPC_C_STOPS;
+    VIRTIOPC_EVNEXT(event_idx);
+
     if (b) {
+        pc->wc_acc += tsa - tsb;
+        pc->wc_cnt ++;
+
         pc->kicks ++;
     } else {
         pc->spurious_kicks ++;
@@ -263,7 +323,6 @@ static int vhost_pc_open(struct inode *inode, struct file *f)
 
     pc->wc = 2000; /* default to 2 microseconds */
     pc->yc = 3000; /* default to 3 microseconds */
-    pc->lat_idx = 0;
     vhost_pc_stats_reset(pc);
     hdev = &pc->hdev;
     vqs[0] = &pc->vq;
@@ -382,12 +441,12 @@ static long vhost_pc_ioctl(struct file *f, unsigned int ioctl,
 
                 case VPC_YP:
                     pc->yp = (unsigned int)file.fd;
-                    printk("virtpc: set Yp=%lluns\n", TSC2NS(pc->yp));
+                    printk("virtpc: set Yp=%uns\n", pc->yp);
                     break;
 
                 case VPC_YC:
                     pc->yc = (unsigned int)file.fd;
-                    printk("virtpc: set Yc=%lluns\n", TSC2NS(pc->yc));
+                    printk("virtpc: set Yc=%uns\n", pc->yc);
                     break;
 
                 case VPC_PSLEEP:
@@ -410,11 +469,25 @@ static long vhost_pc_ioctl(struct file *f, unsigned int ioctl,
                     printk("virtpc: set incSc=%llu\n", TSC2NS(pc->incsc));
                     break;
 
+                case VPC_STOP:
+                    {
+                        unsigned int i;
+
+                        printk("virtpc: STOP\n");
+                        for (i = 0; i < VIRTIOPC_EVENTS; i ++) {
+                            trace_printk("%llu %u %u\n", events[i].ts,
+                                   events[i].id, events[i].type);
+                        }
+                    }
+                    break;
+
                 default:
                     printk("virtpc: unknown param %u\n", file.index);
                     return -EINVAL;
             }
             vhost_pc_stats_reset(pc);
+            pc->fc = (pc->wc < pc->wp);
+            pkt_idx = 0;
             return 0;
         case VHOST_GET_FEATURES:
             features = VHOST_PC_FEATURES;

@@ -57,14 +57,26 @@ struct virtpc_info {
     unsigned int                incsp;
     unsigned int                incsc;
     unsigned int		duration;
+    u64                         np_acc;
+    u64                         np_cnt;
+    u64                         wp_acc;
+    u64                         wp_cnt;
+    u64                         sp_acc;
+    u64                         sp_cnt;
+    u64                         next_dump;
     struct scatterlist	        sg[1];
     u64                         *bufs;
     unsigned int                nbufs;
+    bool                        first;
     char			name[40];
 };
 
 struct virtpc_priv {
 };
+
+static u32 pkt_idx = 0;
+static unsigned int event_idx = 0;
+static struct pcevent events[VIRTIOPC_EVENTS];
 
 /******************************* TSC support ***************************/
 
@@ -109,6 +121,14 @@ calibrate_tsc(void)
 /***********************************************************************/
 
 static void
+virtio_pc_stats_reset(struct virtpc_info *vi)
+{
+    vi->np_acc = vi->np_cnt = vi->wp_acc = vi->wp_cnt =
+                                vi->sp_acc = vi->sp_cnt = 0;
+    vi->next_dump = rdtsc() + NS2TSC(5000000000);
+}
+
+static void
 items_consumed(struct virtqueue *vq)
 {
     struct virtpc_info *vi = vq->vdev->priv;
@@ -121,10 +141,18 @@ items_consumed(struct virtqueue *vq)
 static void
 cleanup_items(struct virtpc_info *vi, int num)
 {
-    void *cookie;
+    u64 *buf;
     unsigned int len;
 
-    while (num && (cookie = virtqueue_get_buf(vi->vq, &len)) != NULL) {
+    while (num && (buf = virtqueue_get_buf(vi->vq, &len)) != NULL) {
+        if (vi->first) {
+            u64 diff = rdtsc() - *buf;
+            vi->first = false;
+            if (diff < 200000UL) {
+                vi->sp_acc += diff;
+                vi->sp_cnt ++;
+            }
+        }
         --num;
 #ifdef DBG
         printk("virtpc: virtqueue_get_buf --> %p\n", cookie);
@@ -139,11 +167,15 @@ produce(struct virtpc_info *vi)
 {
     struct virtqueue *vq = vi->vq;
     unsigned int idx = 0;
+    u64 guard_ofs;
     u64 next;
     u64 finish;
     bool kick;
+    u64 *buf;
     int err;
-    u64 ts;
+    u64 tsa, tsb, tsc, tsd;
+
+    guard_ofs = NS2TSC(1000000);
 
     /* Compute finish time in stages, to avoid overflow of
      * the vi->duration and finish variable. */
@@ -152,15 +184,11 @@ produce(struct virtpc_info *vi)
     finish *= 1000000000;
     finish += rdtsc();
 
-    printk("virtpc: producer start Wp=%uns Wc=%uns Yp=%uns Yc=%uns D=%us\n",
-            vi->wp, vi->wc, vi->yp, vi->yc, vi->duration);
-
     cleanup_items(vi, ~0U);
     virtqueue_enable_cb(vq);
 
-    ts = rdtsc();
-    next = ts + vi->wp;
-    vi->bufs[idx] = ts;
+    tsb = rdtsc();
+    next = tsb + vi->wp;
 
     for (;;) {
 
@@ -176,17 +204,45 @@ produce(struct virtpc_info *vi)
         cleanup_items(vi, THR);
 
         /* Prepare the buffer */
+        buf = vi->bufs + idx;
         sg_init_table(vi->sg, 1);
         sg_set_buf(vi->sg, vi->bufs + idx, sizeof(u64));
         if (++idx >= vi->nbufs) {
             idx = 0;
         }
 
-        while (rdtsc() < next) barrier();
+        while ((tsa = rdtsc()) < next) barrier();
+        /* It may happen that we are preempted while we are
+         * busy waiting. We detect this case by looking at the
+         * clock when the busy waiting finishes. */
+        if (unlikely(tsa - next > 3000)) {
+            /* We were preempted while busy waiting. We need to
+             * reset next, otherwise P would produce a burst which
+             * may cause large bursts on the consumer, specially
+             * when Wp is close to Wc (but fast consumer). We also
+             * need to adjust tsb to fix Wp estimation. Note that
+             * this "gap" causes a little offset between Tavg and
+             * Tbatch. */
+            tsb += tsa - next;
+            next = tsa;
+        }
         next += vi->wp;
-        vi->bufs[idx] = rdtsc();
 
-        err = virtqueue_add_outbuf(vq, vi->sg, 1, vi, GFP_ATOMIC);
+        *buf = tsa - guard_ofs; /* We subtract guard_ofs (1 ms) to
+                                 * give C a way to understand
+                                 * that it didn't see the correct
+                                 * timestamp set below */
+        err = virtqueue_add_outbuf(vq, vi->sg, 1, buf, GFP_ATOMIC);
+        tsc = rdtsc();
+
+        kick = virtqueue_kick_prepare(vq);
+        if (kick) {
+            virtqueue_notify(vq);
+            tsd = rdtsc();
+            *buf = tsd; /* ignore C double-check, assume C was blocked,
+                         * and assume C starts after this point */
+        }
+
         if (unlikely(err)) {
             printk("virtpc: add_outbuf() failed %d\n", err);
 #ifdef DBG
@@ -195,16 +251,36 @@ produce(struct virtpc_info *vi)
 #endif
         }
 
-        kick = virtqueue_kick_prepare(vq);
+        events[event_idx].ts = tsc;
+        events[event_idx].id = pkt_idx;
+        events[event_idx].type = VIRTIOPC_PKTPUB;
+        VIRTIOPC_EVNEXT(event_idx);
+
+        vi->wp_acc += tsc - tsb;
+        tsb = tsc;
+        vi->wp_cnt ++;
+
         if (kick) {
-            virtqueue_notify(vq);
+            vi->np_acc += tsd - tsc;
+            vi->np_cnt ++;
             /* When the costly notification routine returns, we need to
              * reset next to correctly emulate the production of the
              * next item. */
-            next = rdtsc() + vi->wp;
+            next += tsd - tsc;
+            //next = tsd + vi->wp; /* alternative */
+            events[event_idx].ts = tsd;
+            events[event_idx].id = pkt_idx;
+            events[event_idx].type = VIRTIOPC_P_NOTIFY_DONE;
+            VIRTIOPC_EVNEXT(event_idx);
+            tsb = tsd;
         }
 
         if (vq->num_free < THR) {
+            events[event_idx].ts = rdtsc();
+            events[event_idx].id = pkt_idx;
+            events[event_idx].type = VIRTIOPC_P_STOPS;
+            VIRTIOPC_EVNEXT(event_idx);
+
             if (vi->psleep) {
                 do {
                     /* Taken from usleep_range */
@@ -214,7 +290,8 @@ produce(struct virtpc_info *vi)
                     cleanup_items(vi, THR);
                 } while (vq->num_free < THR);
 
-                next = rdtsc() + vi->wp;
+                tsb = rdtsc();
+                next = tsb + vi->wp;
 
             } else {
                 set_current_state(TASK_INTERRUPTIBLE);
@@ -235,11 +312,25 @@ produce(struct virtpc_info *vi)
                         while (rdtsc() < next) barrier();
                     }
 
-                    ts = rdtsc();
-                    next = ts + vi->wp;
-                    vi->bufs[idx] = ts;
+                    vi->first = true; /* Trigger Sp sampling */
+
+                    tsb = rdtsc();
+                    next = tsb + vi->wp;
                 }
             }
+        }
+
+        pkt_idx ++;
+
+        if (unlikely(next > vi->next_dump)) {
+            printk("PC: %llu np %llu wp %llu sp\n",
+                    TSC2NS(vi->np_cnt ? vi->np_acc / vi->np_cnt : 0),
+                    TSC2NS(vi->wp_cnt ? vi->wp_acc / vi->wp_cnt : 0),
+                    TSC2NS(vi->sp_cnt ? vi->sp_acc / vi->sp_cnt : 0));
+
+            virtio_pc_stats_reset(vi);
+            tsb = rdtsc();
+            next = tsb + vi->wp;
         }
     }
 
@@ -305,8 +396,8 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
     vi->busy = true;
     vi->wp = NS2TSC(pcio.wp);
     vi->wc = NS2TSC(pcio.wc);
-    vi->yp = NS2TSC(pcio.yp);
-    vi->yc = NS2TSC(pcio.yc);
+    vi->yp = pcio.yp;
+    vi->yc = pcio.yc;
     vi->psleep = pcio.psleep;
     vi->csleep = pcio.csleep;
     vi->incsp = NS2TSC(pcio.incsp);
@@ -322,6 +413,16 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
     virtio_cwrite32(vi->vdev, 20 /* offset */, (uint32_t)vi->csleep);
     virtio_cwrite32(vi->vdev, 24 /* offset */, (uint32_t)vi->incsp);
     virtio_cwrite32(vi->vdev, 28 /* offset */, (uint32_t)vi->incsc);
+    virtio_cwrite32(vi->vdev, 32 /* offset */, (uint32_t)0);
+
+    printk("virtpc: set Wp=%uns\n", pcio.wp);
+    printk("virtpc: set Wc=%uns\n", pcio.wc);
+    printk("virtpc: set Yp=%uns\n", pcio.yp);
+    printk("virtpc: set Yc=%uns\n", pcio.yc);
+    printk("virtpc: set D=%uns\n", pcio.duration);
+
+    virtio_pc_stats_reset(vi);
+    pkt_idx = 0;
 
     mutex_unlock(&lock);
 
@@ -337,6 +438,17 @@ virtpc_ioctl(struct file *f, unsigned int cmd, unsigned long arg)
     mutex_lock(&lock);
     vi->busy = false;
     mutex_unlock(&lock);
+
+    virtio_cwrite32(vi->vdev, 32 /* offset */, (uint32_t)1); /* stop */
+
+    {
+        unsigned int i;
+
+        for (i = 0; i < VIRTIOPC_EVENTS; i ++) {
+            trace_printk("%llu %u %u\n", events[i].ts,
+                         events[i].id, events[i].type);
+        }
+    }
 
     return ret;
 }
