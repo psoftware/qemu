@@ -94,6 +94,8 @@ run_on_cpu(unsigned int cpuid)
 /* QLEN must be a power of two */
 #define QLEN 512
 
+#define USE_EVENTFDS
+
 static struct global {
     /* Variables read by both P and C */
     CACHELINE_ALIGN
@@ -106,10 +108,22 @@ static struct global {
     unsigned int yc;
     unsigned int psleep;
     unsigned int csleep;
+#ifdef USE_EVENTFDS
     int pnotify;
     int cnotify;
     int pstop;
     int cstop;
+#else
+    CACHELINE_ALIGN
+    pthread_mutex_t notfull_lock;
+    pthread_cond_t notfull;
+    unsigned int notfull_flag;
+
+    CACHELINE_ALIGN
+    pthread_mutex_t notempty_lock;
+    pthread_cond_t notempty;
+    unsigned int notempty_flag;
+#endif
 
     /* Variables written by P */
     CACHELINE_ALIGN
@@ -159,16 +173,18 @@ static void *
 producer(void *opaque)
 {
     struct global *g = opaque;
-    struct pollfd fds[2];
     int need_notify;
     uint64_t next;
+#ifdef USE_EVENTFDS
+    struct pollfd fds[2];
     uint64_t x;
     int ret;
 
-    run_on_cpu(g->cpufirst);
-
     fds[0].fd = g->cnotify;
     fds[1].fd = g->pstop;
+#endif
+
+    run_on_cpu(g->cpufirst);
 
     ACCESS_ONCE(g->ce) = ~0U; /* start with notification disabled */
 
@@ -191,6 +207,7 @@ producer(void *opaque)
                 /* barrier and double-check */
                 barrier();
                 if (queue_full(g)) {
+#ifdef USE_EVENTFDS
                     fds[0].events = POLLIN;
                     fds[1].events = POLLIN;
                     ret = poll(fds, 2, 1000);
@@ -205,6 +222,15 @@ producer(void *opaque)
                     ret = read(g->cnotify, &x, sizeof(x));
                     assert(ret == 8);
                     g->pstarts ++;
+#else
+                    pthread_mutex_lock(&g->notfull_lock);
+                    if (!g->notfull_flag) {
+                        pthread_cond_wait(&g->notfull, &g->notfull_lock);
+                        g->pstarts ++;
+                    }
+                    g->notfull_flag = 0;
+                    pthread_mutex_unlock(&g->notfull_lock);
+#endif
                     next = rdtsc() + g->wp;
                 }
             }
@@ -215,9 +241,18 @@ producer(void *opaque)
         barrier();
         need_notify = (g->p - 1 == ACCESS_ONCE(g->pe));
         if (need_notify) {
+#ifdef USE_EVENTFDS
             x = 1;
             ret = write(g->pnotify, &x, sizeof(x));
             assert(ret == 8);
+#else
+            pthread_mutex_lock(&g->notempty_lock);
+            if (!g->notempty_flag) {
+                g->notempty_flag = 1;
+                pthread_cond_signal(&g->notempty);
+            }
+            pthread_mutex_unlock(&g->notempty_lock);
+#endif
             g->pnotifs ++;
             next = rdtsc() + g->wp;
         }
@@ -231,16 +266,18 @@ static void *
 consumer(void *opaque)
 {
     struct global *g = opaque;
-    struct pollfd fds[2];
     int need_notify;
     uint64_t next;
+#ifdef USE_EVENTFDS
+    struct pollfd fds[2];
     uint64_t x;
     int ret;
 
-    run_on_cpu(g->cpufirst + 1);
-
     fds[0].fd = g->pnotify;
     fds[1].fd = g->cstop;
+#endif
+
+    run_on_cpu(g->cpufirst + 1);
 
     if (g->csleep) {
         ACCESS_ONCE(g->pe) = ~0U; /* notifications disabled */
@@ -266,6 +303,7 @@ consumer(void *opaque)
                 /* barrier and double-check */
                 barrier();
                 if (queue_empty(g)) {
+#ifdef USE_EVENTFDS
                     fds[0].events = POLLIN;
                     fds[1].events = POLLIN;
                     ret = poll(fds, 2, 1000);
@@ -280,6 +318,15 @@ consumer(void *opaque)
                     ret = read(g->pnotify, &x, sizeof(x));
                     assert(ret == 8);
                     g->cstarts ++;
+#else
+                    pthread_mutex_lock(&g->notempty_lock);
+                    if (!g->notempty_flag) {
+                        pthread_cond_wait(&g->notempty, &g->notempty_lock);
+                        g->cstarts ++;
+                    }
+                    g->notempty_flag = 0;
+                    pthread_mutex_unlock(&g->notempty_lock);
+#endif
                     next = rdtsc() + g->wc;
                 }
             }
@@ -290,9 +337,18 @@ consumer(void *opaque)
         barrier();
         need_notify = (g->c - 1 == ACCESS_ONCE(g->ce));
         if (need_notify) {
+#ifdef USE_EVENTFDS
             x = 1;
             ret = write(g->cnotify, &x, sizeof(x));
             assert(ret == 8);
+#else
+            pthread_mutex_lock(&g->notfull_lock);
+            if (!g->notfull_flag) {
+                g->notfull_flag = 1;
+                pthread_cond_signal(&g->notfull);
+            }
+            pthread_mutex_unlock(&g->notfull_lock);
+#endif
             g->cnotifs ++;
             next = rdtsc() + g->wc;
         }
@@ -308,11 +364,22 @@ out:
 static void
 pc_stop(struct global *g)
 {
+#ifdef USE_EVENTFDS
     uint64_t x = 1;
 
+#endif
     g->stop = 1;
+#ifdef USE_EVENTFDS
     write(g->pstop, &x, sizeof(x));
     write(g->cstop, &x, sizeof(x));
+#else
+    pthread_mutex_lock(&g->notfull_lock);
+    pthread_cond_signal(&g->notfull);
+    pthread_mutex_unlock(&g->notfull_lock);
+    pthread_mutex_lock(&g->notempty_lock);
+    pthread_cond_signal(&g->notempty);
+    pthread_mutex_unlock(&g->notempty_lock);
+#endif
 }
 
 static void
@@ -384,6 +451,7 @@ int main(int argc, char **argv)
 
     memset(g, 0, sizeof(*g));
 
+#ifdef USE_EVENTFDS
     g->pnotify = eventfd(0, EFD_NONBLOCK);
     g->cnotify = eventfd(0, EFD_NONBLOCK);
     g->pstop = eventfd(0, EFD_NONBLOCK);
@@ -392,6 +460,12 @@ int main(int argc, char **argv)
         perror("eventfd()");
         return -1;
     }
+#else
+    pthread_mutex_init(&g->notfull_lock, NULL);
+    pthread_mutex_init(&g->notempty_lock, NULL);
+    pthread_cond_init(&g->notfull, NULL);
+    pthread_cond_init(&g->notempty, NULL);
+#endif
 
     g->wp = 2100;
     g->wc = 2000;
