@@ -64,8 +64,9 @@ struct virtpc_info {
     u64                         sp_acc;
     u64                         sp_cnt;
     u64                         next_dump;
-    struct scatterlist	        sg[1];
-    u64                         *bufs;
+    struct scatterlist          in_sg;
+    struct scatterlist          out_sg;
+    struct pcbuf                *bufs;
     unsigned int                nbufs;
     bool                        first;
     char			name[40];
@@ -141,12 +142,12 @@ items_consumed(struct virtqueue *vq)
 static void
 cleanup_items(struct virtpc_info *vi, int num)
 {
-    u64 *buf;
+    struct pcbuf *buf;
     unsigned int len;
 
     while (num && (buf = virtqueue_get_buf(vi->vq, &len)) != NULL) {
         if (vi->first) {
-            u64 diff = rdtsc() - *buf;
+            u64 diff = rdtsc() - buf->sp;
             vi->first = false;
             if (diff < 200000UL) {
                 vi->sp_acc += diff;
@@ -166,12 +167,13 @@ static int
 produce(struct virtpc_info *vi)
 {
     struct virtqueue *vq = vi->vq;
+    struct scatterlist *sgs[2];
     unsigned int idx = 0;
     u64 guard_ofs;
     u64 next;
     u64 finish;
     bool kick;
-    u64 *buf;
+    struct pcbuf *buf;
     int err;
     u64 tsa, tsb, tsc, tsd;
 
@@ -183,6 +185,9 @@ produce(struct virtpc_info *vi)
     finish = NS2TSC(finish);
     finish *= 1000000000;
     finish += rdtsc();
+
+    sgs[0] = &vi->out_sg;
+    sgs[1] = &vi->in_sg;
 
     cleanup_items(vi, ~0U);
     virtqueue_enable_cb(vq);
@@ -201,12 +206,17 @@ produce(struct virtpc_info *vi)
             return -EAGAIN;
         }
 
+        tsa = rdtsc();
+
         cleanup_items(vi, THR);
 
-        /* Prepare the buffer */
+        /* Prepare the SG lists. */
         buf = vi->bufs + idx;
-        sg_init_table(vi->sg, 1);
-        sg_set_buf(vi->sg, vi->bufs + idx, sizeof(u64));
+        buf->lat = tsa;
+        sg_init_table(&vi->out_sg, 1);
+        sg_set_buf(&vi->out_sg, buf, 2 * sizeof(u64));
+        sg_init_table(&vi->in_sg, 1);
+        sg_set_buf(&vi->in_sg, &buf->sp, sizeof(u64));
         if (++idx >= vi->nbufs) {
             idx = 0;
         }
@@ -228,26 +238,26 @@ produce(struct virtpc_info *vi)
         }
         next += vi->wp;
 
-        *buf = tsa - guard_ofs; /* We subtract guard_ofs (1 ms) to
-                                 * give C a way to understand
-                                 * that it didn't see the correct
-                                 * timestamp set below */
-        err = virtqueue_add_outbuf(vq, vi->sg, 1, buf, GFP_ATOMIC);
+        buf->sc = tsa - guard_ofs; /* We subtract guard_ofs (1 ms) to
+                                    * give C a way to understand
+                                    * that it didn't see the correct
+                                    * timestamp set below */
+        err = virtqueue_add_sgs(vq, sgs, 1, 1, buf, GFP_ATOMIC);
         tsc = rdtsc();
 
         kick = virtqueue_kick_prepare(vq);
         if (kick) {
             virtqueue_notify(vq);
             tsd = rdtsc();
-            *buf = tsd; /* ignore C double-check, assume C was blocked,
-                         * and assume C starts after this point */
+            buf->sc = tsd; /* ignore C double-check, assume C was blocked,
+                           * and assume C starts after this point */
         }
 
         if (unlikely(err)) {
             printk("virtpc: add_outbuf() failed %d\n", err);
 #ifdef DBG
         } else {
-            printk("virtpc: virtqueue_add_outbuf --> %p\n", vi->buf);
+            printk("virtpc: virtqueue_add_outbuf --> %p\n", buf);
 #endif
         }
 
@@ -591,7 +601,7 @@ virtpc_probe(struct virtio_device *vdev)
         goto free;
 
     vi->nbufs = virtqueue_get_vring_size(vi->vq);
-    vi->bufs = kzalloc(sizeof(u64) * vi->nbufs, GFP_KERNEL);
+    vi->bufs = kzalloc(sizeof(vi->bufs[0]) * vi->nbufs, GFP_KERNEL);
     if (!vi->bufs) {
         goto delvq;
     }

@@ -43,6 +43,8 @@ struct vhost_pc {
     u64                     spurious_kicks;
     u64                     last_dump;
     u64                     next_dump;
+    u64                     sc_cnt;
+    u64                     sc_acc;
     u64                     lat_cnt;
     u64                     lat_acc;
     u64                     wc_cnt;
@@ -138,8 +140,9 @@ static void
 vhost_pc_stats_reset(struct vhost_pc *pc)
 {
     pc->items = pc->kicks = pc->sleeps = pc->intrs =
-        pc->spurious_kicks = pc->lat_acc = pc->lat_cnt =
-            pc->wc_cnt = pc->wc_acc = pc->nc_acc = pc->nc_cnt = 0;
+        pc->spurious_kicks = pc->sc_acc = pc->sc_cnt =
+            pc->wc_cnt = pc->wc_acc = pc->nc_acc = pc->nc_cnt =
+                pc->lat_cnt = pc->lat_acc = 0;
     pc->last_dump = rdtsc();
     pc->next_dump = pc->last_dump + NS2TSC(5000000000);
 }
@@ -156,6 +159,7 @@ static void consume(struct vhost_work *work)
     int head;
     u64 next;
     u64 tsa, tsb = 0, tsc;
+    struct pcbuf *buf;
 
     mutex_lock(&vq->mutex);
 
@@ -166,7 +170,7 @@ static void consume(struct vhost_work *work)
     for (;;) {
 retry:
         head = vhost_get_vq_desc(vq, vq->iov, ARRAY_SIZE(vq->iov),
-                &out, &in, NULL, NULL);
+                                 &out, &in, NULL, NULL);
         tsc = rdtsc();
 
         /* On error, stop handling until the next kick. */
@@ -200,20 +204,17 @@ retry:
         VIRTIOPC_EVNEXT(event_idx);
         pkt_idx ++;
 
-        if (in) {
-            vq_err(vq, "Unexpected descriptor format for TX: "
-                    "out %d, int %d\n", out, in);
-            break;
-        }
+        //printk("out %d in %u\n", out, in);
 
-        tsa = *((u64*)(vq->iov->iov_base));
+        buf = (struct pcbuf *)(vq->iov[0].iov_base);
+        tsa = buf->sc;
         if (first) {
             /* Compute Sc: this is only useful with notifications */
             u64 diff = tsc - (tsa - tscofs);
             first = false;
             if (diff < 100000UL) {
-                pc->lat_acc += diff;
-                pc->lat_cnt ++;
+                pc->sc_acc += diff;
+                pc->sc_cnt ++;
             }
             /* init next */
             next = tsc + pc->wc;
@@ -250,11 +251,15 @@ retry:
             next += pc->wc;
         }
 
+        {
+            u64 diff = tsa - (buf->lat - tscofs);
+            pc->lat_acc += diff;
+            pc->lat_cnt ++;
+        }
+
         if (intr) {
             tsc = rdtsc();
-            /* TODO this writeback is ignored, we should use a request/response
-             * 2 descriptors scatter-gather. */
-            *((u64*)(vq->iov->iov_base)) = tsc + tscofs;
+            *((u64*)(vq->iov[1].iov_base)) = tsc + tscofs;
             pc->intrs ++;
             vhost_do_signal(vq);
             tsa = rdtsc();
@@ -272,15 +277,16 @@ retry:
             (void)sel;
 
             printk("PC: %llu items/s %llu kicks/s %llu sleeps/s %llu intrs/s "
-                   "%llu latency %llu spkicks/s %llu wc %llu nc\n",
+                   "%llu sc %llu spkicks/s %llu wc %llu nc %llu latency\n",
                     (pc->items * 1000000000)/ndiff,
                     (pc->kicks * 1000000000)/ndiff,
                     (pc->sleeps * 1000000000)/ndiff,
                     (pc->intrs * 1000000000)/ndiff,
-                    TSC2NS(pc->lat_cnt ? pc->lat_acc / pc->lat_cnt : 0),
+                    TSC2NS(pc->sc_cnt ? pc->sc_acc / pc->sc_cnt : 0),
                     (pc->spurious_kicks * 1000000000)/ndiff,
                     TSC2NS(pc->wc_cnt ? pc->wc_acc / pc->wc_cnt : 0),
-                    TSC2NS(pc->nc_cnt ? pc->nc_acc / pc->nc_cnt : 0));
+                    TSC2NS(pc->nc_cnt ? pc->nc_acc / pc->nc_cnt : 0),
+                    TSC2NS(pc->lat_cnt ? pc->lat_acc / pc->lat_cnt : 0));
 
             vhost_pc_stats_reset(pc);
             next = pc->last_dump + pc->wc;

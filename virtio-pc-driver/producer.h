@@ -57,4 +57,11 @@ struct pcevent {
 
 #define VIRTIOPC_EVNEXT(_cnt) if (++ _cnt >= VIRTIOPC_EVENTS) _cnt = 0
 
+struct pcbuf {
+    u64 lat;
+    u64 sc;
+    u64 sp;
+    u64 unused;
+};
+
 #endif  /* __VIRTIO_PRODCONS_H__ */
