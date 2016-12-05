@@ -19,6 +19,7 @@
 
 static long tscofs = 0;
 module_param(tscofs, long, 0644);
+//#define LATENCY_95TH
 
 #define VHOST_PC_FEATURES   VHOST_FEATURES
 
@@ -45,12 +46,17 @@ struct vhost_pc {
     u64                     next_dump;
     u64                     sc_cnt;
     u64                     sc_acc;
-    u64                     lat_cnt;
-    u64                     lat_acc;
     u64                     wc_cnt;
     u64                     wc_acc;
     u64                     nc_cnt;
     u64                     nc_acc;
+    u64                     lat_cnt;
+    u64                     lat_acc;
+    u64                     latencies_idx;
+#ifdef LATENCY_95TH
+#define NUM_LAT_SAMPLES     8129
+    u32                     latencies[NUM_LAT_SAMPLES];
+#endif
 };
 
 static u32 pkt_idx = 0;
@@ -99,6 +105,7 @@ calibrate_tsc(void)
 
 /***********************************************************************/
 
+#ifdef LATENCY_95TH
 static u32 sel(u32 *a, unsigned int n, unsigned int k)
 {
     unsigned int r, w, b, e;
@@ -135,6 +142,7 @@ static u32 sel(u32 *a, unsigned int n, unsigned int k)
 
     return a[k];
 }
+#endif
 
 static void
 vhost_pc_stats_reset(struct vhost_pc *pc)
@@ -253,8 +261,15 @@ retry:
 
         {
             u64 diff = tsa - (buf->lat - tscofs);
+#ifdef LATENCY_95TH
+            pc->latencies[pc->latencies_idx] = (u32)diff;
+            if (unlikely(++ pc->latencies_idx >= NUM_LAT_SAMPLES)) {
+                pc->latencies_idx = 0;
+            }
+#else /* LATENCY_AVG */
             pc->lat_acc += diff;
             pc->lat_cnt ++;
+#endif
         }
 
         if (intr) {
@@ -273,8 +288,14 @@ retry:
 
         if (unlikely(next > pc->next_dump)) {
             u64 ndiff = TSC2NS(rdtsc() - pc->last_dump);
+            u64 lat;
 
-            (void)sel;
+#ifdef LATENCY_95TH
+            lat = sel(pc->latencies, NUM_LAT_SAMPLES,
+                      NUM_LAT_SAMPLES * 95/100);
+#else /* LATENCY_AVG */
+            lat = pc->lat_cnt ? pc->lat_acc / pc->lat_cnt : 0;
+#endif
 
             printk("PC: %llu items/s %llu kicks/s %llu sleeps/s %llu intrs/s "
                    "%llu sc %llu spkicks/s %llu wc %llu nc %llu latency\n",
@@ -286,7 +307,7 @@ retry:
                     (pc->spurious_kicks * 1000000000)/ndiff,
                     TSC2NS(pc->wc_cnt ? pc->wc_acc / pc->wc_cnt : 0),
                     TSC2NS(pc->nc_cnt ? pc->nc_acc / pc->nc_cnt : 0),
-                    TSC2NS(pc->lat_cnt ? pc->lat_acc / pc->lat_cnt : 0));
+                    TSC2NS(lat));
 
             vhost_pc_stats_reset(pc);
             next = pc->last_dump + pc->wc;
@@ -493,6 +514,7 @@ static long vhost_pc_ioctl(struct file *f, unsigned int ioctl,
             }
             vhost_pc_stats_reset(pc);
             pc->fc = (pc->wc < pc->wp);
+            pc->latencies_idx = 0;
             pkt_idx = 0;
             return 0;
         case VHOST_GET_FEATURES:
