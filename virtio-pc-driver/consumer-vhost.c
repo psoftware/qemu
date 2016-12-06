@@ -39,7 +39,6 @@ struct vhost_pc {
 
     u64                     items;
     u64                     kicks;
-    u64                     sleeps;
     u64                     intrs;
     u64                     spurious_kicks;
     u64                     last_dump;
@@ -149,7 +148,7 @@ static u32 sel(u32 *a, unsigned int n, unsigned int k)
 static void
 vhost_pc_stats_reset(struct vhost_pc *pc)
 {
-    pc->items = pc->kicks = pc->sleeps = pc->intrs =
+    pc->items = pc->kicks = pc->intrs =
         pc->spurious_kicks = pc->sc_acc = pc->sc_cnt =
             pc->wc_cnt = pc->wc_acc = pc->nc_acc = pc->nc_cnt =
                 pc->lat_cnt = pc->lat_acc = pc->yc_acc = pc->yc_cnt = 0;
@@ -201,7 +200,6 @@ retry:
                 tsa = rdtsc();
                 pc->yc_acc += tsa - tsc;
                 pc->yc_cnt ++;
-                pc->sleeps ++;
                 first = true; /* trigger init code */
                 goto retry;
             } else {
@@ -308,7 +306,7 @@ retry:
                    "%llu sc %llu spkicks/s %llu wc %llu nc %llu latency %llu yc\n",
                     (pc->items * 1000000000)/ndiff,
                     (pc->kicks * 1000000000)/ndiff,
-                    (pc->sleeps * 1000000000)/ndiff,
+                    (pc->yc_cnt * 1000000000)/ndiff,
                     (pc->intrs * 1000000000)/ndiff,
                     TSC2NS(pc->sc_cnt ? pc->sc_acc / pc->sc_cnt : 0),
                     (pc->spurious_kicks * 1000000000)/ndiff,

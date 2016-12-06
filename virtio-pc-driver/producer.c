@@ -63,7 +63,10 @@ struct virtpc_info {
     u64                         wp_cnt;
     u64                         sp_acc;
     u64                         sp_cnt;
+    u64                         yp_acc;
+    u64                         yp_cnt;
     u64                         next_dump;
+    u64                         last_dump;
     struct scatterlist          in_sg;
     struct scatterlist          out_sg;
     struct pcbuf                *bufs;
@@ -125,8 +128,9 @@ static void
 virtio_pc_stats_reset(struct virtpc_info *vi)
 {
     vi->np_acc = vi->np_cnt = vi->wp_acc = vi->wp_cnt =
-                                vi->sp_acc = vi->sp_cnt = 0;
-    vi->next_dump = rdtsc() + NS2TSC(5000000000);
+        vi->sp_acc = vi->sp_cnt = vi->yp_acc = vi->yp_cnt = 0;
+    vi->last_dump = rdtsc();
+    vi->next_dump = vi->last_dump + NS2TSC(5000000000);
 }
 
 static void
@@ -294,13 +298,18 @@ produce(struct virtpc_info *vi)
             if (vi->psleep) {
                 do {
                     /* Taken from usleep_range */
-                    ktime_t to = ktime_set(0, vi->yp);
+                    ktime_t to;
+
+                    tsa = rdtsc();
+                    to = ktime_set(0, vi->yp);
                     __set_current_state(TASK_UNINTERRUPTIBLE);
                     schedule_hrtimeout_range(&to, 0, HRTIMER_MODE_REL);
+                    tsb = rdtsc();
                     cleanup_items(vi, THR);
+                    vi->yp_acc += tsb - tsa;
+                    vi->yp_cnt ++;
                 } while (vq->num_free < THR);
 
-                tsb = rdtsc();
                 next = tsb + vi->wp;
 
             } else {
@@ -333,10 +342,14 @@ produce(struct virtpc_info *vi)
         pkt_idx ++;
 
         if (unlikely(next > vi->next_dump)) {
-            printk("PC: %llu np %llu wp %llu sp\n",
+            u64 ndiff = TSC2NS(rdtsc() - vi->last_dump);
+
+            printk("PC: %llu np %llu wp %llu sp %llu yc %llu sleeps/s\n",
                     TSC2NS(vi->np_cnt ? vi->np_acc / vi->np_cnt : 0),
                     TSC2NS(vi->wp_cnt ? vi->wp_acc / vi->wp_cnt : 0),
-                    TSC2NS(vi->sp_cnt ? vi->sp_acc / vi->sp_cnt : 0));
+                    TSC2NS(vi->sp_cnt ? vi->sp_acc / vi->sp_cnt : 0),
+                    TSC2NS(vi->yp_cnt ? vi->yp_acc / vi->yp_cnt : 0),
+                    vi->yp_cnt * 1000000000 / ndiff);
 
             virtio_pc_stats_reset(vi);
             tsb = rdtsc();
