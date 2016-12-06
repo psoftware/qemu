@@ -324,7 +324,7 @@ produce(struct virtpc_info *vi)
         if (unlikely(next > vi->next_dump)) {
             u64 ndiff = TSC2NS(rdtsc() - vi->last_dump);
 
-            printk("PC: %llu np %llu wp %llu yc %llu sleeps/s\n",
+            printk("PC: %llu np %llu wp %llu yp %llu sleeps/s\n",
                     TSC2NS(vi->np_cnt ? vi->np_acc / vi->np_cnt : 0),
                     TSC2NS(vi->wp_cnt ? vi->wp_acc / vi->wp_cnt : 0),
                     TSC2NS(vi->yp_cnt ? vi->yp_acc / vi->yp_cnt : 0),
