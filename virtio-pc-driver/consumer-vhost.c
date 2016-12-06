@@ -19,7 +19,7 @@
 
 static long tscofs = 0;
 module_param(tscofs, long, 0644);
-//#define LATENCY_95TH
+#define LATENCY_95TH
 
 #define VHOST_PC_FEATURES   VHOST_FEATURES
 
@@ -279,7 +279,6 @@ retry:
 
         if (intr) {
             tsc = rdtsc();
-            *((u64*)(vq->iov[1].iov_base)) = tsc + tscofs;
             pc->intrs ++;
             vhost_do_signal(vq);
             tsa = rdtsc();

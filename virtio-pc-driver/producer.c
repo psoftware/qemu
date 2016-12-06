@@ -61,17 +61,13 @@ struct virtpc_info {
     u64                         np_cnt;
     u64                         wp_acc;
     u64                         wp_cnt;
-    u64                         sp_acc;
-    u64                         sp_cnt;
     u64                         yp_acc;
     u64                         yp_cnt;
     u64                         next_dump;
     u64                         last_dump;
-    struct scatterlist          in_sg;
     struct scatterlist          out_sg;
     struct pcbuf                *bufs;
     unsigned int                nbufs;
-    bool                        first;
     char			name[40];
 };
 
@@ -128,7 +124,7 @@ static void
 virtio_pc_stats_reset(struct virtpc_info *vi)
 {
     vi->np_acc = vi->np_cnt = vi->wp_acc = vi->wp_cnt =
-        vi->sp_acc = vi->sp_cnt = vi->yp_acc = vi->yp_cnt = 0;
+        vi->yp_acc = vi->yp_cnt = 0;
     vi->last_dump = rdtsc();
     vi->next_dump = vi->last_dump + NS2TSC(5000000000);
 }
@@ -150,14 +146,6 @@ cleanup_items(struct virtpc_info *vi, int num)
     unsigned int len;
 
     while (num && (buf = virtqueue_get_buf(vi->vq, &len)) != NULL) {
-        if (vi->first) {
-            u64 diff = rdtsc() - buf->sp;
-            vi->first = false;
-            if (diff < 200000UL) {
-                vi->sp_acc += diff;
-                vi->sp_cnt ++;
-            }
-        }
         --num;
 #ifdef DBG
         printk("virtpc: virtqueue_get_buf --> %p\n", cookie);
@@ -171,7 +159,6 @@ static int
 produce(struct virtpc_info *vi)
 {
     struct virtqueue *vq = vi->vq;
-    struct scatterlist *sgs[2];
     unsigned int idx = 0;
     u64 guard_ofs;
     u64 next;
@@ -189,9 +176,6 @@ produce(struct virtpc_info *vi)
     finish = NS2TSC(finish);
     finish *= 1000000000;
     finish += rdtsc();
-
-    sgs[0] = &vi->out_sg;
-    sgs[1] = &vi->in_sg;
 
     cleanup_items(vi, ~0U);
     virtqueue_enable_cb(vq);
@@ -219,8 +203,6 @@ produce(struct virtpc_info *vi)
         buf->lat = tsa;
         sg_init_table(&vi->out_sg, 1);
         sg_set_buf(&vi->out_sg, buf, 2 * sizeof(u64));
-        sg_init_table(&vi->in_sg, 1);
-        sg_set_buf(&vi->in_sg, &buf->sp, sizeof(u64));
         if (++idx >= vi->nbufs) {
             idx = 0;
         }
@@ -246,7 +228,7 @@ produce(struct virtpc_info *vi)
                                     * give C a way to understand
                                     * that it didn't see the correct
                                     * timestamp set below */
-        err = virtqueue_add_sgs(vq, sgs, 1, 1, buf, GFP_ATOMIC);
+        err = virtqueue_add_outbuf(vq, &vi->out_sg, 1, buf, GFP_ATOMIC);
         tsc = rdtsc();
 
         kick = virtqueue_kick_prepare(vq);
@@ -331,8 +313,6 @@ produce(struct virtpc_info *vi)
                         while (rdtsc() < next) barrier();
                     }
 
-                    vi->first = true; /* Trigger Sp sampling */
-
                     tsb = rdtsc();
                     next = tsb + vi->wp;
                 }
@@ -344,10 +324,9 @@ produce(struct virtpc_info *vi)
         if (unlikely(next > vi->next_dump)) {
             u64 ndiff = TSC2NS(rdtsc() - vi->last_dump);
 
-            printk("PC: %llu np %llu wp %llu sp %llu yc %llu sleeps/s\n",
+            printk("PC: %llu np %llu wp %llu yc %llu sleeps/s\n",
                     TSC2NS(vi->np_cnt ? vi->np_acc / vi->np_cnt : 0),
                     TSC2NS(vi->wp_cnt ? vi->wp_acc / vi->wp_cnt : 0),
-                    TSC2NS(vi->sp_cnt ? vi->sp_acc / vi->sp_cnt : 0),
                     TSC2NS(vi->yp_cnt ? vi->yp_acc / vi->yp_cnt : 0),
                     vi->yp_cnt * 1000000000 / ndiff);
 
