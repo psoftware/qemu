@@ -50,6 +50,8 @@ struct vhost_pc {
     u64                     wc_acc;
     u64                     nc_cnt;
     u64                     nc_acc;
+    u64                     yc_acc;
+    u64                     yc_cnt;
     u64                     lat_cnt;
     u64                     lat_acc;
     u64                     latencies_idx;
@@ -150,7 +152,7 @@ vhost_pc_stats_reset(struct vhost_pc *pc)
     pc->items = pc->kicks = pc->sleeps = pc->intrs =
         pc->spurious_kicks = pc->sc_acc = pc->sc_cnt =
             pc->wc_cnt = pc->wc_acc = pc->nc_acc = pc->nc_cnt =
-                pc->lat_cnt = pc->lat_acc = 0;
+                pc->lat_cnt = pc->lat_acc = pc->yc_acc = pc->yc_cnt = 0;
     pc->last_dump = rdtsc();
     pc->next_dump = pc->last_dump + NS2TSC(5000000000);
 }
@@ -190,11 +192,16 @@ retry:
         if (head == vq->num) {
             if (pc->csleep) {
                 /* Taken from usleep_range */
-                ktime_t to = ktime_set(0, pc->yc);
+                ktime_t to;
+
+                tsc = rdtsc();
+                to  = ktime_set(0, pc->yc);
                 __set_current_state(TASK_UNINTERRUPTIBLE);
                 schedule_hrtimeout_range(&to, 0, HRTIMER_MODE_REL);
-                pc->sleeps ++;
                 tsa = rdtsc();
+                pc->yc_acc += tsa - tsc;
+                pc->yc_cnt ++;
+                pc->sleeps ++;
                 first = true; /* trigger init code */
                 goto retry;
             } else {
@@ -298,7 +305,7 @@ retry:
 #endif
 
             printk("PC: %llu items/s %llu kicks/s %llu sleeps/s %llu intrs/s "
-                   "%llu sc %llu spkicks/s %llu wc %llu nc %llu latency\n",
+                   "%llu sc %llu spkicks/s %llu wc %llu nc %llu latency %llu yc\n",
                     (pc->items * 1000000000)/ndiff,
                     (pc->kicks * 1000000000)/ndiff,
                     (pc->sleeps * 1000000000)/ndiff,
@@ -307,7 +314,8 @@ retry:
                     (pc->spurious_kicks * 1000000000)/ndiff,
                     TSC2NS(pc->wc_cnt ? pc->wc_acc / pc->wc_cnt : 0),
                     TSC2NS(pc->nc_cnt ? pc->nc_acc / pc->nc_cnt : 0),
-                    TSC2NS(lat));
+                    TSC2NS(lat),
+                    TSC2NS(pc->yc_cnt ? pc->yc_acc / pc->yc_cnt : 0));
 
             vhost_pc_stats_reset(pc);
             next = pc->last_dump + pc->wc;
