@@ -121,8 +121,10 @@ x['kicks'] = dict()
 x['spkicks'] = dict()
 x['sleeps'] = dict()
 x['intrs'] = dict()
-x['latency'] = dict()
+x['sc'] = dict()
 x['wc'] = dict()
+x['nc'] = dict()
+x['latency'] = dict()
 
 if args.guest_log:
     load_producer_stats(args, x)
@@ -143,13 +145,15 @@ while 1:
         x['spkicks'][v] = []
         x['sleeps'][v] = []
         x['intrs'][v] = []
-        x['latency'][v] = []
+        x['sc'][v] = []
         x['wc'][v] = []
+        x['nc'][v] = []
+        x['latency'][v] = []
         first = True
 
         continue
 
-    m = re.search(r'(\d+) items/s (\d+) kicks/s (\d+) sleeps/s (\d+) intrs/s (\d+) latency(?: (\d+) spkicks/s (\d+) wc)?', line)
+    m = re.search(r'(\d+) items/s (\d+) kicks/s (\d+) sleeps/s (\d+) intrs/s (\d+) sc (\d+) spkicks/s (\d+) wc (\d+) nc (\d+) latency', line)
     if m == None:
         continue
 
@@ -161,19 +165,16 @@ while 1:
     x['kicks'][v].append(int(m.group(2)))
     x['sleeps'][v].append(int(m.group(3)))
     x['intrs'][v].append(int(m.group(4)))
-    x['latency'][v].append(int(m.group(5)))
-    if m.group(6):
-        x['spkicks'][v].append(int(m.group(6)))
-    else:
-        x['spkicks'][v].append(0)
-    if m.group(7):
-        x['wc'][v].append(int(m.group(7)))
-    else:
-        x['wc'][v].append(0)
+    x['sc'][v].append(int(m.group(5)))
+    x['spkicks'][v].append(int(m.group(6)))
+    x['wc'][v].append(int(m.group(7)))
+    x['nc'][v].append(int(m.group(8)))
+    x['latency'][v].append(int(m.group(9)))
 
 fin.close()
 
-print("%9s %9s %9s %9s %9s %9s %7s %7s %9s %9s %9s %9s %9s %9s %9s" % (args.varname + 'n', 'Wp', 'Wc', 'Tavg', 'Tmodel', 'Tbatch', 'batch', 'Bmodel', 'items', 'kicks', 'spkicks', 'csleeps', 'intrs', 'latency', 'Np'))
+print("%9s %9s %9s %9s %9s %9s %7s %7s %9s %9s %9s %9s %9s %9s %9s %9s" % (args.varname + 'n', 'Wp', 'Wc', 'Tavg', 'Tmodel', 'Tbatch', 'batch', 'Bmodel', 'items', 'kicks', 'spkicks', 'csleeps', 'intrs', 'Sc', 'Np', 'latency'))
+
 for v in sorted(x['items']):
     if len(x['items'][v]) == 0:
         print("Warning: no samples for v=%d" % (v,))
@@ -183,7 +184,7 @@ for v in sorted(x['items']):
 
     sc = args.sc
     if args.sc < 0:
-        sc = numpy.mean(x['latency'][v])
+        sc = numpy.mean(x['sc'][v])
 
     wx = v
 
@@ -225,7 +226,7 @@ for v in sorted(x['items']):
         t_model = t_batch = T_model_sleep(v, v, wx, woth, args.queue_length)
         b_model = b_model_sleep(v, v, wx, woth, args.queue_length)
 
-    print("%9.0f %9.0f %9.0f %9.0f %9.0f %9.0f %7.1f %7.1f %9.0f %9.0f %9.0f %9.0f %9.0f %9.0f %9.0f" % (v, wx,
+    print("%9.0f %9.0f %9.0f %9.0f %9.0f %9.0f %7.1f %7.1f %9.0f %9.0f %9.0f %9.0f %9.0f %9.0f %9.0f %9.0f" % (v, wx,
                                     numpy.mean(x['wc'][v]),
                                     1000000000/numpy.mean(x['items'][v]),
                                     t_model,
@@ -237,5 +238,6 @@ for v in sorted(x['items']):
                                     numpy.mean(x['spkicks'][v]),
                                     numpy.mean(x['sleeps'][v]),
                                     numpy.mean(x['intrs'][v]),
-                                    numpy.mean(x['latency'][v]),
-                                    np))
+                                    numpy.mean(x['sc'][v]),
+                                    np,
+                                    numpy.mean(x['latency'][v])))
