@@ -125,6 +125,7 @@ x['sc'] = dict()
 x['wc'] = dict()
 x['nc'] = dict()
 x['latency'] = dict()
+x['yc'] = dict()
 
 if args.guest_log:
     load_producer_stats(args, x)
@@ -149,11 +150,12 @@ while 1:
         x['wc'][v] = []
         x['nc'][v] = []
         x['latency'][v] = []
+        x['yc'][v] = []
         first = True
 
         continue
 
-    m = re.search(r'(\d+) items/s (\d+) kicks/s (\d+) sleeps/s (\d+) intrs/s (\d+) sc (\d+) spkicks/s (\d+) wc (\d+) nc (\d+) latency', line)
+    m = re.search(r'(\d+) items/s (\d+) kicks/s (\d+) sleeps/s (\d+) intrs/s (\d+) sc (\d+) spkicks/s (\d+) wc (\d+) nc (\d+) latency (\d+) yc', line)
     if m == None:
         continue
 
@@ -170,10 +172,11 @@ while 1:
     x['wc'][v].append(int(m.group(7)))
     x['nc'][v].append(int(m.group(8)))
     x['latency'][v].append(int(m.group(9)))
+    x['yc'][v].append(int(m.group(10)))
 
 fin.close()
 
-print("%9s %9s %9s %9s %9s %9s %7s %7s %9s %9s %9s %9s %9s %9s %9s %9s" % (args.varname + 'n', 'Wp', 'Wc', 'Tavg', 'Tmodel', 'Tbatch', 'batch', 'Bmodel', 'items', 'kicks', 'spkicks', 'csleeps', 'intrs', 'Sc', 'Np', 'latency'))
+print("%7s %7s %7s %9s %9s %9s %7s %7s %9s %9s %9s %9s %9s %7s %7s %9s %8s" % (args.varname + 'n', 'Wp', 'Wc', 'Tavg', 'Tmodel', 'Tbatch', 'batch', 'Bmodel', 'items', 'kicks', 'spkicks', 'csleeps', 'intrs', 'Sc', 'Np', 'latency', 'Yc'))
 
 for v in sorted(x['items']):
     if len(x['items'][v]) == 0:
@@ -216,6 +219,8 @@ for v in sorted(x['items']):
     b_meas = numpy.mean(x['items'][v])/denom # not taking into account spurious kicks
     b_meas_spurious = numpy.mean(x['items'][v])/denom_s # taking into account spurious kicks
 
+    yc = numpy.mean(x['yc'][v])
+
     if args.varname in ['Wp', 'Wc']:
         # notification tests
         t_model = T_model_notif(wx, woth, args.sp, sc, np, args.nc)
@@ -223,10 +228,10 @@ for v in sorted(x['items']):
         b_model = b_model_notif(wx, woth, args.sp, sc)
     else:
         # sleeping tests
-        t_model = t_batch = T_model_sleep(v, v, wx, woth, args.queue_length)
-        b_model = b_model_sleep(v, v, wx, woth, args.queue_length)
+        t_model = t_batch = T_model_sleep(yc, yc, wx, woth, args.queue_length)
+        b_model = b_model_sleep(yc, yc, wx, woth, args.queue_length)
 
-    print("%9.0f %9.0f %9.0f %9.0f %9.0f %9.0f %7.1f %7.1f %9.0f %9.0f %9.0f %9.0f %9.0f %9.0f %9.0f %9.0f" % (v, wx,
+    print("%7.0f %7.0f %7.0f %9.0f %9.0f %9.0f %7.1f %7.1f %9.0f %9.0f %9.0f %9.0f %9.0f %7.0f %7.0f %9.0f %8.0f" % (v, wx,
                                     numpy.mean(x['wc'][v]),
                                     1000000000/numpy.mean(x['items'][v]),
                                     t_model,
@@ -240,4 +245,5 @@ for v in sorted(x['items']):
                                     numpy.mean(x['intrs'][v]),
                                     numpy.mean(x['sc'][v]),
                                     np,
-                                    numpy.mean(x['latency'][v])))
+                                    numpy.mean(x['latency'][v]),
+                                    yc))
