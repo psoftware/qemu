@@ -297,7 +297,7 @@ retry:
 
 #ifdef LATENCY_95TH
             lat = sel(pc->latencies, NUM_LAT_SAMPLES,
-                      NUM_LAT_SAMPLES * 95/100);
+                      NUM_LAT_SAMPLES * 98/100);
 #else /* LATENCY_AVG */
             lat = pc->lat_cnt ? pc->lat_acc / pc->lat_cnt : 0;
 #endif
