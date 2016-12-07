@@ -52,6 +52,8 @@ def T_model_sleep(Yc, Yp, Wp, Wc, L):
 def load_producer_stats(args, x):
     x['np'] = dict()
     x['wp'] = dict()
+    x['yp'] = dict()
+    x['psleeps'] = dict()
     fin = open(args.guest_log)
     first = True
 
@@ -65,11 +67,13 @@ def load_producer_stats(args, x):
             v = int(m.group(1))
             x['np'][v] = []
             x['wp'][v] = []
+            x['yp'][v] = []
+            x['psleeps'][v] = []
             first = True
 
             continue
 
-        m = re.search(r'(\d+) np (\d+) wp', line)
+        m = re.search(r'(\d+) np (\d+) wp(?: (\d+) yp (\d+) sleeps/s)', line)
         if m == None:
             continue
 
@@ -79,6 +83,12 @@ def load_producer_stats(args, x):
 
         x['np'][v].append(int(m.group(1)))
         x['wp'][v].append(int(m.group(2)))
+        if m.group(3):
+            x['yp'][v].append(int(m.group(3)))
+            x['psleeps'][v].append(int(m.group(4)))
+        else:
+            x['yp'][v].append(0)
+            x['psleeps'][v].append(0)
     fin.close()
 
 

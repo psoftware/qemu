@@ -1,0 +1,1304 @@
+4,945,312580410,-;virtpc: set Wp=1999ns
+4,946,312580413,-;virtpc: set Wc=0ns
+4,947,312580420,-;virtpc: set Wc=1999ns
+4,948,312580424,-;virtpc: set Yp=5000ns
+4,949,312580429,-;virtpc: set Yc=5000ns
+4,950,317580932,-;PC: 496806 items/s 671 kicks/s 0 sleeps/s 865 intrs/s 404 sc 0 spkicks/s 2000 wc 67 nc 5655 latency 0 yc
+4,951,322581437,-;PC: 495710 items/s 674 kicks/s 0 sleeps/s 7 intrs/s 404 sc 0 spkicks/s 1999 wc 958 nc 4474 latency 0 yc
+4,952,327581941,-;PC: 496502 items/s 665 kicks/s 0 sleeps/s 7 intrs/s 408 sc 1 spkicks/s 1999 wc 924 nc 4706 latency 0 yc
+4,953,332582444,-;PC: 497108 items/s 551 kicks/s 0 sleeps/s 7 intrs/s 410 sc 0 spkicks/s 1999 wc 916 nc 4979 latency 0 yc
+4,954,337582948,-;PC: 496841 items/s 627 kicks/s 0 sleeps/s 7 intrs/s 403 sc 0 spkicks/s 1999 wc 943 nc 4684 latency 0 yc
+4,955,342583458,-;PC: 496239 items/s 676 kicks/s 0 sleeps/s 7 intrs/s 416 sc 0 spkicks/s 1999 wc 930 nc 4472 latency 0 yc
+4,956,347583961,-;PC: 496593 items/s 700 kicks/s 0 sleeps/s 7 intrs/s 405 sc 0 spkicks/s 1999 wc 918 nc 4416 latency 0 yc
+4,957,352584465,-;PC: 496815 items/s 672 kicks/s 0 sleeps/s 7 intrs/s 404 sc 0 spkicks/s 1999 wc 945 nc 4562 latency 0 yc
+4,958,357584970,-;PC: 496936 items/s 623 kicks/s 0 sleeps/s 7 intrs/s 406 sc 1 spkicks/s 1999 wc 916 nc 4774 latency 0 yc
+4,959,362585473,-;PC: 497077 items/s 553 kicks/s 0 sleeps/s 7 intrs/s 405 sc 0 spkicks/s 1999 wc 924 nc 4904 latency 0 yc
+4,960,367585976,-;PC: 496736 items/s 666 kicks/s 0 sleeps/s 7 intrs/s 411 sc 0 spkicks/s 1999 wc 936 nc 4555 latency 0 yc
+4,961,372300826,-;virtpc: STOP
+4,962,372393976,-;virtpc: set Wp=2006ns
+4,963,377394481,-;PC: 487788 items/s 8145 kicks/s 0 sleeps/s 7 intrs/s 411 sc 7281 spkicks/s 2000 wc 944 nc 4208 latency 0 yc
+4,964,382394986,-;PC: 487710 items/s 8185 kicks/s 0 sleeps/s 7 intrs/s 413 sc 7323 spkicks/s 2000 wc 929 nc 4195 latency 0 yc
+4,965,387395491,-;PC: 487827 items/s 8121 kicks/s 0 sleeps/s 7 intrs/s 412 sc 7281 spkicks/s 2000 wc 987 nc 7809 latency 0 yc
+4,966,392395996,-;PC: 487845 items/s 8184 kicks/s 0 sleeps/s 7 intrs/s 412 sc 7326 spkicks/s 2000 wc 919 nc 4194 latency 0 yc
+4,967,397396500,-;PC: 488073 items/s 8081 kicks/s 0 sleeps/s 7 intrs/s 410 sc 7218 spkicks/s 1999 wc 907 nc 4201 latency 0 yc
+4,968,402397005,-;PC: 488138 items/s 7925 kicks/s 0 sleeps/s 7 intrs/s 412 sc 7081 spkicks/s 2000 wc 940 nc 9229 latency 0 yc
+4,969,407397510,-;PC: 486762 items/s 7988 kicks/s 0 sleeps/s 7 intrs/s 424 sc 7129 spkicks/s 2000 wc 938 nc 4212 latency 0 yc
+4,970,412398020,-;PC: 487709 items/s 8243 kicks/s 0 sleeps/s 7 intrs/s 411 sc 7388 spkicks/s 2000 wc 927 nc 4192 latency 0 yc
+4,971,417398525,-;PC: 487632 items/s 8285 kicks/s 0 sleeps/s 7 intrs/s 410 sc 7421 spkicks/s 2000 wc 931 nc 4190 latency 0 yc
+4,972,422399028,-;PC: 487888 items/s 8138 kicks/s 0 sleeps/s 7 intrs/s 412 sc 7293 spkicks/s 2000 wc 941 nc 4198 latency 0 yc
+4,973,427399532,-;PC: 488002 items/s 8080 kicks/s 0 sleeps/s 7 intrs/s 411 sc 7224 spkicks/s 1999 wc 926 nc 4203 latency 0 yc
+4,974,432114387,-;virtpc: STOP
+4,975,432207506,-;virtpc: set Wp=2014ns
+4,976,437208011,-;PC: 478332 items/s 16283 kicks/s 0 sleeps/s 7 intrs/s 410 sc 14671 spkicks/s 2000 wc 971 nc 4218 latency 0 yc
+4,977,442208516,-;PC: 477473 items/s 16221 kicks/s 0 sleeps/s 7 intrs/s 412 sc 14595 spkicks/s 2000 wc 924 nc 4222 latency 0 yc
+4,978,447209021,-;PC: 478275 items/s 16313 kicks/s 0 sleeps/s 7 intrs/s 412 sc 14688 spkicks/s 2000 wc 949 nc 4218 latency 0 yc
+4,979,452209525,-;PC: 478453 items/s 16054 kicks/s 0 sleeps/s 7 intrs/s 421 sc 14436 spkicks/s 2000 wc 943 nc 4222 latency 0 yc
+4,980,457210029,-;PC: 478298 items/s 16454 kicks/s 0 sleeps/s 7 intrs/s 410 sc 14793 spkicks/s 2000 wc 954 nc 4213 latency 0 yc
+4,981,462210533,-;PC: 477978 items/s 16273 kicks/s 0 sleeps/s 7 intrs/s 413 sc 14646 spkicks/s 2000 wc 925 nc 4218 latency 0 yc
+4,982,467211038,-;PC: 478478 items/s 16217 kicks/s 0 sleeps/s 7 intrs/s 412 sc 14595 spkicks/s 1999 wc 921 nc 4218 latency 0 yc
+4,983,472211543,-;PC: 478469 items/s 16275 kicks/s 0 sleeps/s 7 intrs/s 412 sc 14625 spkicks/s 2000 wc 921 nc 4218 latency 0 yc
+4,984,477212046,-;PC: 478267 items/s 16436 kicks/s 0 sleeps/s 7 intrs/s 410 sc 14786 spkicks/s 2000 wc 910 nc 4214 latency 0 yc
+4,985,482212552,-;PC: 478316 items/s 16370 kicks/s 0 sleeps/s 7 intrs/s 412 sc 14718 spkicks/s 2000 wc 934 nc 4215 latency 0 yc
+4,986,487213055,-;PC: 477996 items/s 16400 kicks/s 0 sleeps/s 7 intrs/s 412 sc 14770 spkicks/s 2000 wc 905 nc 4215 latency 0 yc
+4,987,491927918,-;virtpc: STOP
+4,988,492021254,-;virtpc: set Wp=2021ns
+4,989,497021760,-;PC: 469943 items/s 23028 kicks/s 0 sleeps/s 7 intrs/s 397 sc 19515 spkicks/s 2000 wc 1098 nc 5110 latency 0 yc
+4,990,502022265,-;PC: 471218 items/s 22631 kicks/s 0 sleeps/s 7 intrs/s 416 sc 19183 spkicks/s 2000 wc 949 nc 4238 latency 0 yc
+4,991,507022769,-;PC: 471499 items/s 22609 kicks/s 0 sleeps/s 7 intrs/s 416 sc 19139 spkicks/s 2000 wc 942 nc 4238 latency 0 yc
+4,992,512023274,-;PC: 471447 items/s 22629 kicks/s 0 sleeps/s 7 intrs/s 416 sc 19171 spkicks/s 2000 wc 943 nc 4237 latency 0 yc
+4,993,517023778,-;PC: 471267 items/s 22718 kicks/s 0 sleeps/s 7 intrs/s 414 sc 19261 spkicks/s 2000 wc 924 nc 4237 latency 0 yc
+4,994,522024283,-;PC: 470414 items/s 22540 kicks/s 0 sleeps/s 7 intrs/s 416 sc 19096 spkicks/s 2000 wc 947 nc 4242 latency 0 yc
+4,995,527024788,-;PC: 471302 items/s 22617 kicks/s 0 sleeps/s 7 intrs/s 416 sc 19153 spkicks/s 2000 wc 946 nc 4240 latency 0 yc
+4,996,532025292,-;PC: 470885 items/s 22575 kicks/s 0 sleeps/s 7 intrs/s 417 sc 19094 spkicks/s 2000 wc 939 nc 4240 latency 0 yc
+4,997,537025795,-;PC: 472139 items/s 21887 kicks/s 0 sleeps/s 7 intrs/s 432 sc 18523 spkicks/s 2000 wc 956 nc 4252 latency 0 yc
+4,998,542026300,-;PC: 471437 items/s 22617 kicks/s 0 sleeps/s 7 intrs/s 416 sc 19146 spkicks/s 2000 wc 929 nc 4238 latency 0 yc
+4,999,547026804,-;PC: 471378 items/s 22620 kicks/s 0 sleeps/s 7 intrs/s 416 sc 19168 spkicks/s 2000 wc 955 nc 4237 latency 0 yc
+4,1000,551741680,-;virtpc: STOP
+4,1001,551834885,-;virtpc: set Wp=2029ns
+4,1002,556835391,-;PC: 463632 items/s 29975 kicks/s 0 sleeps/s 7 intrs/s 414 sc 23177 spkicks/s 2000 wc 929 nc 4268 latency 0 yc
+4,1003,561835896,-;PC: 462247 items/s 30184 kicks/s 0 sleeps/s 7 intrs/s 395 sc 23336 spkicks/s 2000 wc 1120 nc 9580 latency 0 yc
+4,1004,566836402,-;PC: 463682 items/s 29997 kicks/s 0 sleeps/s 7 intrs/s 414 sc 23194 spkicks/s 2000 wc 962 nc 4263 latency 0 yc
+4,1005,571836906,-;PC: 463835 items/s 29956 kicks/s 0 sleeps/s 7 intrs/s 414 sc 23303 spkicks/s 2000 wc 931 nc 4262 latency 0 yc
+4,1006,576837410,-;PC: 463803 items/s 29954 kicks/s 0 sleeps/s 7 intrs/s 414 sc 23225 spkicks/s 2000 wc 941 nc 4264 latency 0 yc
+4,1007,581837914,-;PC: 464402 items/s 29386 kicks/s 0 sleeps/s 7 intrs/s 424 sc 22685 spkicks/s 2000 wc 952 nc 4270 latency 0 yc
+4,1008,586838419,-;PC: 463842 items/s 29930 kicks/s 0 sleeps/s 6 intrs/s 414 sc 23231 spkicks/s 2000 wc 946 nc 4263 latency 0 yc
+4,1009,591838924,-;PC: 463926 items/s 29984 kicks/s 0 sleeps/s 7 intrs/s 414 sc 23260 spkicks/s 2000 wc 940 nc 4262 latency 0 yc
+4,1010,596839427,-;PC: 463345 items/s 30078 kicks/s 0 sleeps/s 7 intrs/s 412 sc 23272 spkicks/s 2000 wc 944 nc 4264 latency 0 yc
+4,1011,601839932,-;PC: 463778 items/s 29938 kicks/s 0 sleeps/s 7 intrs/s 414 sc 23193 spkicks/s 2000 wc 945 nc 4264 latency 0 yc
+4,1012,606840435,-;PC: 463710 items/s 29952 kicks/s 0 sleeps/s 7 intrs/s 414 sc 23206 spkicks/s 2000 wc 928 nc 4262 latency 0 yc
+4,1013,611555298,-;virtpc: STOP
+4,1014,611648657,-;virtpc: set Wp=2037ns
+4,1015,616649162,-;PC: 457619 items/s 37247 kicks/s 0 sleeps/s 7 intrs/s 411 sc 23931 spkicks/s 2000 wc 958 nc 4292 latency 0 yc
+4,1016,621649667,-;PC: 458137 items/s 36722 kicks/s 0 sleeps/s 7 intrs/s 418 sc 23669 spkicks/s 2000 wc 956 nc 4325 latency 0 yc
+4,1017,626650172,-;PC: 457829 items/s 37104 kicks/s 0 sleeps/s 7 intrs/s 414 sc 23709 spkicks/s 2000 wc 942 nc 4291 latency 0 yc
+4,1018,631650676,-;PC: 456871 items/s 37067 kicks/s 0 sleeps/s 7 intrs/s 413 sc 23858 spkicks/s 2000 wc 920 nc 4295 latency 0 yc
+4,1019,636651180,-;PC: 457350 items/s 37222 kicks/s 0 sleeps/s 7 intrs/s 412 sc 23886 spkicks/s 2000 wc 928 nc 4292 latency 0 yc
+4,1020,641651685,-;PC: 457672 items/s 37082 kicks/s 0 sleeps/s 7 intrs/s 413 sc 23923 spkicks/s 2000 wc 935 nc 4291 latency 0 yc
+4,1021,646652189,-;PC: 457539 items/s 37104 kicks/s 0 sleeps/s 7 intrs/s 413 sc 23904 spkicks/s 2000 wc 948 nc 4291 latency 0 yc
+4,1022,651652694,-;PC: 457327 items/s 37060 kicks/s 0 sleeps/s 7 intrs/s 413 sc 23870 spkicks/s 2000 wc 936 nc 4292 latency 0 yc
+4,1023,656653197,-;PC: 457493 items/s 37226 kicks/s 0 sleeps/s 7 intrs/s 411 sc 23851 spkicks/s 2000 wc 948 nc 4291 latency 0 yc
+4,1024,661653703,-;PC: 457848 items/s 37144 kicks/s 0 sleeps/s 6 intrs/s 413 sc 23808 spkicks/s 2000 wc 945 nc 4290 latency 0 yc
+4,1025,666654206,-;PC: 457921 items/s 36925 kicks/s 0 sleeps/s 7 intrs/s 416 sc 23750 spkicks/s 2000 wc 946 nc 4292 latency 0 yc
+4,1026,671369070,-;virtpc: STOP
+4,1027,671462166,-;virtpc: set Wp=2045ns
+4,1028,676462671,-;PC: 451456 items/s 43938 kicks/s 0 sleeps/s 7 intrs/s 412 sc 25786 spkicks/s 2000 wc 961 nc 4317 latency 0 yc
+4,1029,681463175,-;PC: 451478 items/s 43850 kicks/s 0 sleeps/s 6 intrs/s 413 sc 25642 spkicks/s 2000 wc 949 nc 4318 latency 0 yc
+4,1030,686463680,-;PC: 450251 items/s 43655 kicks/s 0 sleeps/s 7 intrs/s 414 sc 25510 spkicks/s 2000 wc 921 nc 4325 latency 0 yc
+4,1031,691464183,-;PC: 451444 items/s 44007 kicks/s 0 sleeps/s 6 intrs/s 411 sc 25599 spkicks/s 2000 wc 953 nc 4318 latency 0 yc
+4,1032,696464686,-;PC: 451388 items/s 43959 kicks/s 0 sleeps/s 7 intrs/s 411 sc 25733 spkicks/s 2000 wc 950 nc 4318 latency 0 yc
+4,1033,701465190,-;PC: 451418 items/s 43974 kicks/s 0 sleeps/s 6 intrs/s 411 sc 25657 spkicks/s 2000 wc 987 nc 4318 latency 0 yc
+4,1034,706465693,-;PC: 451989 items/s 42875 kicks/s 0 sleeps/s 7 intrs/s 424 sc 25103 spkicks/s 2000 wc 938 nc 4326 latency 0 yc
+4,1035,711466196,-;PC: 451727 items/s 43369 kicks/s 0 sleeps/s 6 intrs/s 418 sc 25383 spkicks/s 2000 wc 962 nc 4322 latency 0 yc
+4,1036,716466700,-;PC: 451467 items/s 44011 kicks/s 0 sleeps/s 6 intrs/s 411 sc 25503 spkicks/s 2000 wc 937 nc 4318 latency 0 yc
+4,1037,721467204,-;PC: 451354 items/s 43956 kicks/s 0 sleeps/s 7 intrs/s 412 sc 25631 spkicks/s 2000 wc 938 nc 4318 latency 0 yc
+4,1038,726467707,-;PC: 451511 items/s 43780 kicks/s 0 sleeps/s 6 intrs/s 413 sc 25710 spkicks/s 2000 wc 951 nc 4318 latency 0 yc
+4,1039,731182578,-;virtpc: STOP
+4,1040,731275894,-;virtpc: set Wp=2052ns
+4,1041,736276400,-;PC: 445108 items/s 49820 kicks/s 0 sleeps/s 7 intrs/s 411 sc 27406 spkicks/s 2000 wc 915 nc 4350 latency 0 yc
+4,1042,741276904,-;PC: 445320 items/s 49986 kicks/s 0 sleeps/s 6 intrs/s 410 sc 27641 spkicks/s 2000 wc 950 nc 4346 latency 0 yc
+4,1043,746277408,-;PC: 445865 items/s 49865 kicks/s 0 sleeps/s 6 intrs/s 411 sc 27484 spkicks/s 2000 wc 936 nc 4345 latency 0 yc
+4,1044,751277911,-;PC: 446830 items/s 48661 kicks/s 0 sleeps/s 7 intrs/s 424 sc 26842 spkicks/s 2000 wc 940 nc 4352 latency 0 yc
+4,1045,756278415,-;PC: 445269 items/s 49770 kicks/s 0 sleeps/s 6 intrs/s 412 sc 27818 spkicks/s 2000 wc 933 nc 4347 latency 0 yc
+4,1046,761278919,-;PC: 445561 items/s 50072 kicks/s 0 sleeps/s 6 intrs/s 409 sc 27475 spkicks/s 2000 wc 948 nc 4345 latency 0 yc
+4,1047,766279423,-;PC: 445991 items/s 49882 kicks/s 0 sleeps/s 6 intrs/s 411 sc 27453 spkicks/s 2000 wc 945 nc 4344 latency 0 yc
+4,1048,771279927,-;PC: 444705 items/s 49872 kicks/s 0 sleeps/s 6 intrs/s 410 sc 27783 spkicks/s 2000 wc 968 nc 4349 latency 0 yc
+4,1049,776280432,-;PC: 445721 items/s 49867 kicks/s 0 sleeps/s 6 intrs/s 412 sc 27827 spkicks/s 2000 wc 923 nc 4344 latency 0 yc
+4,1050,781280939,-;PC: 444203 items/s 51874 kicks/s 0 sleeps/s 6 intrs/s 384 sc 28901 spkicks/s 2000 wc 1111 nc 7647 latency 0 yc
+4,1051,786281445,-;PC: 445789 items/s 49870 kicks/s 0 sleeps/s 6 intrs/s 411 sc 27657 spkicks/s 2000 wc 970 nc 4345 latency 0 yc
+4,1052,790996306,-;virtpc: STOP
+4,1053,791089469,-;virtpc: set Wp=2060ns
+4,1054,796089978,-;PC: 438982 items/s 55095 kicks/s 0 sleeps/s 6 intrs/s 417 sc 33216 spkicks/s 2000 wc 1000 nc 4374 latency 0 yc
+4,1055,801090483,-;PC: 438262 items/s 55857 kicks/s 0 sleeps/s 6 intrs/s 409 sc 33779 spkicks/s 2000 wc 954 nc 4370 latency 0 yc
+4,1056,806090987,-;PC: 438595 items/s 55580 kicks/s 0 sleeps/s 6 intrs/s 412 sc 33495 spkicks/s 2000 wc 932 nc 4371 latency 0 yc
+4,1057,811091492,-;PC: 438436 items/s 55704 kicks/s 0 sleeps/s 6 intrs/s 410 sc 33871 spkicks/s 2000 wc 941 nc 4370 latency 0 yc
+4,1058,816091996,-;PC: 438499 items/s 55661 kicks/s 0 sleeps/s 6 intrs/s 411 sc 33673 spkicks/s 2000 wc 947 nc 4370 latency 0 yc
+4,1059,821092501,-;PC: 438177 items/s 55928 kicks/s 0 sleeps/s 6 intrs/s 408 sc 33925 spkicks/s 2000 wc 938 nc 4370 latency 0 yc
+4,1060,826093006,-;PC: 437555 items/s 55626 kicks/s 0 sleeps/s 6 intrs/s 410 sc 33397 spkicks/s 2000 wc 938 nc 4376 latency 0 yc
+4,1061,831093511,-;PC: 438019 items/s 55569 kicks/s 0 sleeps/s 6 intrs/s 411 sc 33856 spkicks/s 2000 wc 932 nc 4372 latency 0 yc
+4,1062,836094015,-;PC: 438607 items/s 55568 kicks/s 0 sleeps/s 6 intrs/s 412 sc 33506 spkicks/s 2000 wc 946 nc 4371 latency 0 yc
+4,1063,841094523,-;PC: 438600 items/s 55655 kicks/s 0 sleeps/s 6 intrs/s 411 sc 33519 spkicks/s 2000 wc 968 nc 4372 latency 0 yc
+4,1064,846095028,-;PC: 438077 items/s 55594 kicks/s 0 sleeps/s 6 intrs/s 411 sc 34029 spkicks/s 2000 wc 962 nc 4372 latency 0 yc
+4,1065,850809882,-;virtpc: STOP
+4,1066,850903176,-;virtpc: set Wp=2068ns
+4,1067,855903684,-;PC: 434271 items/s 64043 kicks/s 0 sleeps/s 6 intrs/s 394 sc 25579 spkicks/s 2000 wc 1070 nc 7289 latency 0 yc
+4,1068,860904188,-;PC: 435650 items/s 62762 kicks/s 0 sleeps/s 6 intrs/s 410 sc 25971 spkicks/s 2000 wc 973 nc 4429 latency 0 yc
+4,1069,865904693,-;PC: 434824 items/s 62614 kicks/s 0 sleeps/s 6 intrs/s 410 sc 26661 spkicks/s 2000 wc 966 nc 4405 latency 0 yc
+4,1070,870905197,-;PC: 435606 items/s 62714 kicks/s 0 sleeps/s 6 intrs/s 410 sc 26318 spkicks/s 2000 wc 956 nc 4402 latency 0 yc
+4,1071,875905700,-;PC: 435543 items/s 62695 kicks/s 0 sleeps/s 6 intrs/s 410 sc 26667 spkicks/s 2000 wc 948 nc 4402 latency 0 yc
+4,1072,880906205,-;PC: 437017 items/s 60735 kicks/s 0 sleeps/s 6 intrs/s 427 sc 25789 spkicks/s 2000 wc 953 nc 4411 latency 0 yc
+4,1073,885906708,-;PC: 435348 items/s 62682 kicks/s 0 sleeps/s 6 intrs/s 409 sc 27129 spkicks/s 2000 wc 944 nc 4401 latency 0 yc
+4,1074,890907213,-;PC: 435077 items/s 62606 kicks/s 0 sleeps/s 6 intrs/s 410 sc 26860 spkicks/s 2000 wc 944 nc 4402 latency 0 yc
+4,1075,895907720,-;PC: 435105 items/s 62598 kicks/s 0 sleeps/s 6 intrs/s 410 sc 27218 spkicks/s 2000 wc 946 nc 4403 latency 0 yc
+4,1076,900908224,-;PC: 434961 items/s 62821 kicks/s 0 sleeps/s 6 intrs/s 407 sc 28076 spkicks/s 2000 wc 1029 nc 4401 latency 0 yc
+4,1077,905908727,-;PC: 435159 items/s 62747 kicks/s 0 sleeps/s 6 intrs/s 408 sc 27252 spkicks/s 2000 wc 982 nc 4407 latency 0 yc
+4,1078,910623588,-;virtpc: STOP
+4,1079,910716949,-;virtpc: set Wp=2076ns
+4,1080,915717455,-;PC: 432172 items/s 69254 kicks/s 0 sleeps/s 6 intrs/s 410 sc 22446 spkicks/s 2000 wc 978 nc 6754 latency 0 yc
+4,1081,920717959,-;PC: 431623 items/s 68543 kicks/s 0 sleeps/s 6 intrs/s 415 sc 25265 spkicks/s 2000 wc 944 nc 4432 latency 0 yc
+4,1082,925718463,-;PC: 430492 items/s 65983 kicks/s 0 sleeps/s 6 intrs/s 430 sc 29211 spkicks/s 2000 wc 929 nc 4438 latency 0 yc
+4,1083,930718968,-;PC: 430642 items/s 67802 kicks/s 0 sleeps/s 6 intrs/s 418 sc 27552 spkicks/s 2000 wc 940 nc 4434 latency 0 yc
+4,1084,935719470,-;PC: 431035 items/s 67910 kicks/s 0 sleeps/s 6 intrs/s 418 sc 27816 spkicks/s 2000 wc 927 nc 4431 latency 0 yc
+4,1085,940719973,-;PC: 430742 items/s 68008 kicks/s 0 sleeps/s 6 intrs/s 416 sc 27875 spkicks/s 2000 wc 940 nc 4431 latency 0 yc
+4,1086,945720477,-;PC: 430657 items/s 67855 kicks/s 0 sleeps/s 6 intrs/s 418 sc 27637 spkicks/s 2000 wc 945 nc 4432 latency 0 yc
+4,1087,950720981,-;PC: 430929 items/s 67784 kicks/s 0 sleeps/s 6 intrs/s 418 sc 27699 spkicks/s 2000 wc 945 nc 4432 latency 0 yc
+4,1088,955721488,-;PC: 431088 items/s 68005 kicks/s 0 sleeps/s 6 intrs/s 417 sc 27522 spkicks/s 2000 wc 948 nc 4431 latency 0 yc
+4,1089,960721991,-;PC: 430959 items/s 68036 kicks/s 0 sleeps/s 6 intrs/s 417 sc 27697 spkicks/s 2000 wc 923 nc 4431 latency 0 yc
+4,1090,965722495,-;PC: 431498 items/s 67294 kicks/s 0 sleeps/s 6 intrs/s 423 sc 26939 spkicks/s 2000 wc 959 nc 4434 latency 0 yc
+4,1091,970437378,-;virtpc: STOP
+4,1092,970530761,-;virtpc: set Wp=2084ns
+4,1093,975531266,-;PC: 421699 items/s 72021 kicks/s 0 sleeps/s 6 intrs/s 410 sc 41443 spkicks/s 2000 wc 1006 nc 4582 latency 0 yc
+4,1094,980531771,-;PC: 421134 items/s 71946 kicks/s 0 sleeps/s 6 intrs/s 410 sc 41044 spkicks/s 2000 wc 967 nc 4453 latency 0 yc
+4,1095,985532277,-;PC: 421528 items/s 71942 kicks/s 0 sleeps/s 6 intrs/s 411 sc 41020 spkicks/s 2000 wc 982 nc 4451 latency 0 yc
+4,1096,990532781,-;PC: 421940 items/s 71981 kicks/s 0 sleeps/s 6 intrs/s 411 sc 40964 spkicks/s 2000 wc 963 nc 4450 latency 0 yc
+4,1097,995533284,-;PC: 422160 items/s 72125 kicks/s 0 sleeps/s 6 intrs/s 411 sc 40421 spkicks/s 2000 wc 944 nc 4449 latency 0 yc
+4,1098,1000533787,-;PC: 421310 items/s 72222 kicks/s 0 sleeps/s 6 intrs/s 409 sc 40988 spkicks/s 2000 wc 955 nc 4451 latency 0 yc
+4,1099,1005534291,-;PC: 421544 items/s 72050 kicks/s 0 sleeps/s 6 intrs/s 410 sc 41553 spkicks/s 2000 wc 955 nc 4449 latency 0 yc
+4,1100,1010534796,-;PC: 422002 items/s 71759 kicks/s 0 sleeps/s 6 intrs/s 413 sc 41292 spkicks/s 2000 wc 962 nc 4449 latency 0 yc
+4,1101,1015535299,-;PC: 421919 items/s 72132 kicks/s 0 sleeps/s 6 intrs/s 410 sc 40751 spkicks/s 2000 wc 963 nc 4449 latency 0 yc
+4,1102,1020535802,-;PC: 421581 items/s 72199 kicks/s 0 sleeps/s 6 intrs/s 409 sc 41635 spkicks/s 2000 wc 968 nc 4449 latency 0 yc
+4,1103,1025536306,-;PC: 421801 items/s 72082 kicks/s 0 sleeps/s 6 intrs/s 410 sc 41356 spkicks/s 2000 wc 954 nc 4449 latency 0 yc
+4,1104,1030251173,-;virtpc: STOP
+4,1105,1030344334,-;virtpc: set Wp=2092ns
+4,1106,1035344838,-;PC: 424636 items/s 83223 kicks/s 0 sleeps/s 6 intrs/s 410 sc 13735 spkicks/s 2000 wc 975 nc 4499 latency 0 yc
+4,1107,1040345343,-;PC: 424932 items/s 83281 kicks/s 0 sleeps/s 6 intrs/s 410 sc 13878 spkicks/s 2000 wc 946 nc 4497 latency 0 yc
+4,1108,1045345848,-;PC: 424595 items/s 83567 kicks/s 0 sleeps/s 6 intrs/s 408 sc 13998 spkicks/s 2000 wc 995 nc 4653 latency 0 yc
+4,1109,1050346355,-;PC: 425470 items/s 81106 kicks/s 0 sleeps/s 6 intrs/s 423 sc 15217 spkicks/s 2000 wc 979 nc 4502 latency 0 yc
+4,1110,1055346858,-;PC: 425511 items/s 82147 kicks/s 0 sleeps/s 6 intrs/s 417 sc 13801 spkicks/s 2000 wc 971 nc 4500 latency 0 yc
+4,1111,1060347362,-;PC: 424886 items/s 83305 kicks/s 0 sleeps/s 6 intrs/s 410 sc 13818 spkicks/s 2000 wc 994 nc 4498 latency 0 yc
+4,1112,1065347866,-;PC: 423056 items/s 82897 kicks/s 0 sleeps/s 6 intrs/s 411 sc 15346 spkicks/s 2000 wc 965 nc 4506 latency 0 yc
+4,1113,1070348370,-;PC: 424270 items/s 82607 kicks/s 0 sleeps/s 6 intrs/s 414 sc 15840 spkicks/s 2000 wc 978 nc 4500 latency 0 yc
+4,1114,1075348874,-;PC: 424543 items/s 82886 kicks/s 0 sleeps/s 6 intrs/s 412 sc 15164 spkicks/s 2000 wc 977 nc 4499 latency 0 yc
+4,1115,1080349376,-;PC: 424174 items/s 82412 kicks/s 0 sleeps/s 6 intrs/s 414 sc 16704 spkicks/s 2000 wc 977 nc 4498 latency 0 yc
+4,1116,1085349879,-;PC: 423940 items/s 83082 kicks/s 0 sleeps/s 6 intrs/s 411 sc 15230 spkicks/s 2000 wc 928 nc 4501 latency 0 yc
+4,1117,1090064748,-;virtpc: STOP
+4,1118,1090157890,-;virtpc: set Wp=2100ns
+4,1119,1095158396,-;PC: 422182 items/s 83591 kicks/s 0 sleeps/s 6 intrs/s 423 sc 15825 spkicks/s 2000 wc 940 nc 4513 latency 0 yc
+4,1120,1100158900,-;PC: 421506 items/s 85399 kicks/s 0 sleeps/s 6 intrs/s 411 sc 15004 spkicks/s 2000 wc 959 nc 4508 latency 0 yc
+4,1121,1105159406,-;PC: 420733 items/s 85593 kicks/s 0 sleeps/s 6 intrs/s 408 sc 16223 spkicks/s 2000 wc 941 nc 4508 latency 0 yc
+4,1122,1110159910,-;PC: 421693 items/s 85371 kicks/s 0 sleeps/s 6 intrs/s 411 sc 14827 spkicks/s 2000 wc 934 nc 4507 latency 0 yc
+4,1123,1115160414,-;PC: 421394 items/s 85432 kicks/s 0 sleeps/s 6 intrs/s 410 sc 15146 spkicks/s 2000 wc 936 nc 4508 latency 0 yc
+4,1124,1120160919,-;PC: 420101 items/s 85096 kicks/s 0 sleeps/s 6 intrs/s 410 sc 15735 spkicks/s 2000 wc 932 nc 4514 latency 0 yc
+4,1125,1125161423,-;PC: 421403 items/s 85693 kicks/s 0 sleeps/s 6 intrs/s 409 sc 14890 spkicks/s 2000 wc 929 nc 4508 latency 0 yc
+4,1126,1130161926,-;PC: 421573 items/s 85541 kicks/s 0 sleeps/s 6 intrs/s 410 sc 14676 spkicks/s 2000 wc 936 nc 4508 latency 0 yc
+4,1127,1135162432,-;PC: 421343 items/s 85000 kicks/s 0 sleeps/s 6 intrs/s 410 sc 15935 spkicks/s 2000 wc 960 nc 6579 latency 0 yc
+4,1128,1140162942,-;PC: 421586 items/s 84420 kicks/s 0 sleeps/s 6 intrs/s 417 sc 15343 spkicks/s 2000 wc 955 nc 4512 latency 0 yc
+4,1129,1145163447,-;PC: 421379 items/s 85728 kicks/s 0 sleeps/s 6 intrs/s 409 sc 14514 spkicks/s 2000 wc 947 nc 4509 latency 0 yc
+4,1130,1149878303,-;virtpc: STOP
+4,1131,1149971470,-;virtpc: set Wp=2108ns
+4,1132,1154971974,-;PC: 405272 items/s 85707 kicks/s 0 sleeps/s 6 intrs/s 412 sc 52323 spkicks/s 2000 wc 951 nc 4528 latency 0 yc
+4,1133,1159972478,-;PC: 404805 items/s 85652 kicks/s 0 sleeps/s 6 intrs/s 412 sc 52205 spkicks/s 2000 wc 965 nc 4530 latency 0 yc
+4,1134,1164972983,-;PC: 403433 items/s 85028 kicks/s 0 sleeps/s 6 intrs/s 412 sc 52545 spkicks/s 2000 wc 989 nc 4536 latency 0 yc
+4,1135,1169973489,-;PC: 404564 items/s 85278 kicks/s 0 sleeps/s 6 intrs/s 413 sc 52620 spkicks/s 2000 wc 953 nc 4530 latency 0 yc
+4,1136,1174973996,-;PC: 404993 items/s 85477 kicks/s 0 sleeps/s 6 intrs/s 412 sc 53155 spkicks/s 2000 wc 932 nc 4528 latency 0 yc
+4,1137,1179974500,-;PC: 405207 items/s 85427 kicks/s 0 sleeps/s 6 intrs/s 413 sc 53274 spkicks/s 2000 wc 967 nc 4525 latency 0 yc
+4,1138,1184975003,-;PC: 405148 items/s 85698 kicks/s 0 sleeps/s 6 intrs/s 411 sc 53158 spkicks/s 2000 wc 970 nc 4526 latency 0 yc
+4,1139,1189975506,-;PC: 405421 items/s 85581 kicks/s 0 sleeps/s 6 intrs/s 412 sc 52510 spkicks/s 2000 wc 977 nc 4526 latency 0 yc
+4,1140,1194976010,-;PC: 405044 items/s 85110 kicks/s 0 sleeps/s 6 intrs/s 413 sc 52705 spkicks/s 2000 wc 981 nc 6556 latency 0 yc
+4,1141,1199976515,-;PC: 405266 items/s 85612 kicks/s 0 sleeps/s 6 intrs/s 412 sc 53002 spkicks/s 2000 wc 968 nc 4526 latency 0 yc
+4,1142,1204977019,-;PC: 405137 items/s 85784 kicks/s 0 sleeps/s 6 intrs/s 410 sc 52780 spkicks/s 2000 wc 939 nc 4526 latency 0 yc
+4,1143,1209691884,-;virtpc: STOP
+4,1144,1209785041,-;virtpc: set Wp=2116ns
+4,1145,1214785547,-;PC: 411824 items/s 101615 kicks/s 0 sleeps/s 6 intrs/s 412 sc 9213 spkicks/s 2000 wc 984 nc 4596 latency 0 yc
+4,1146,1219786052,-;PC: 411925 items/s 101977 kicks/s 0 sleeps/s 6 intrs/s 410 sc 8568 spkicks/s 2000 wc 972 nc 4596 latency 0 yc
+4,1147,1224786557,-;PC: 412938 items/s 97794 kicks/s 0 sleeps/s 6 intrs/s 429 sc 11796 spkicks/s 2000 wc 967 nc 4598 latency 0 yc
+4,1148,1229787061,-;PC: 411296 items/s 101786 kicks/s 0 sleeps/s 6 intrs/s 410 sc 8486 spkicks/s 2000 wc 952 nc 4595 latency 0 yc
+4,1149,1234787564,-;PC: 411734 items/s 101786 kicks/s 0 sleeps/s 6 intrs/s 410 sc 8644 spkicks/s 2000 wc 970 nc 4597 latency 0 yc
+4,1150,1239788068,-;PC: 412013 items/s 101985 kicks/s 0 sleeps/s 6 intrs/s 410 sc 8378 spkicks/s 2000 wc 944 nc 4595 latency 0 yc
+4,1151,1244788571,-;PC: 411719 items/s 102137 kicks/s 0 sleeps/s 6 intrs/s 408 sc 8925 spkicks/s 2000 wc 948 nc 4596 latency 0 yc
+4,1152,1249789076,-;PC: 411607 items/s 101890 kicks/s 0 sleeps/s 6 intrs/s 410 sc 8587 spkicks/s 2000 wc 967 nc 4597 latency 0 yc
+4,1153,1254789578,-;PC: 411984 items/s 101966 kicks/s 0 sleeps/s 6 intrs/s 410 sc 8263 spkicks/s 2000 wc 949 nc 4595 latency 0 yc
+4,1154,1259790085,-;PC: 412152 items/s 102054 kicks/s 0 sleeps/s 6 intrs/s 410 sc 8291 spkicks/s 2000 wc 958 nc 4594 latency 0 yc
+4,1155,1264790588,-;PC: 411673 items/s 101539 kicks/s 0 sleeps/s 6 intrs/s 410 sc 10030 spkicks/s 2000 wc 964 nc 4595 latency 0 yc
+4,1156,1269505453,-;virtpc: STOP
+4,1157,1269598594,-;virtpc: set Wp=2124ns
+4,1158,1274599100,-;PC: 412043 items/s 104189 kicks/s 0 sleeps/s 6 intrs/s 409 sc 1447 spkicks/s 2000 wc 937 nc 4600 latency 0 yc
+4,1159,1279599603,-;PC: 410903 items/s 103975 kicks/s 0 sleeps/s 6 intrs/s 409 sc 1018 spkicks/s 2000 wc 940 nc 4608 latency 0 yc
+4,1160,1284600106,-;PC: 411948 items/s 104577 kicks/s 0 sleeps/s 6 intrs/s 407 sc 1079 spkicks/s 2000 wc 932 nc 4601 latency 0 yc
+4,1161,1289600610,-;PC: 412092 items/s 104235 kicks/s 0 sleeps/s 6 intrs/s 408 sc 1099 spkicks/s 2000 wc 933 nc 4600 latency 0 yc
+4,1162,1294601113,-;PC: 411570 items/s 104096 kicks/s 0 sleeps/s 6 intrs/s 409 sc 2247 spkicks/s 2000 wc 944 nc 4600 latency 0 yc
+4,1163,1299601617,-;PC: 411529 items/s 104032 kicks/s 0 sleeps/s 6 intrs/s 410 sc 1544 spkicks/s 2000 wc 926 nc 4604 latency 0 yc
+4,1164,1304602121,-;PC: 410895 items/s 104294 kicks/s 0 sleeps/s 6 intrs/s 407 sc 3374 spkicks/s 2000 wc 938 nc 4598 latency 0 yc
+4,1165,1309602627,-;PC: 412588 items/s 103063 kicks/s 0 sleeps/s 6 intrs/s 415 sc 1557 spkicks/s 2000 wc 940 nc 4602 latency 0 yc
+4,1166,1314603131,-;PC: 412030 items/s 103692 kicks/s 0 sleeps/s 6 intrs/s 409 sc 1447 spkicks/s 2000 wc 953 nc 6316 latency 0 yc
+4,1167,1319603635,-;PC: 412217 items/s 104161 kicks/s 0 sleeps/s 6 intrs/s 409 sc 997 spkicks/s 2000 wc 945 nc 4601 latency 0 yc
+4,1168,1324604139,-;PC: 412096 items/s 104465 kicks/s 0 sleeps/s 6 intrs/s 407 sc 1145 spkicks/s 2000 wc 937 nc 4601 latency 0 yc
+4,1169,1329319006,-;virtpc: STOP
+4,1170,1329412203,-;virtpc: set Wp=2132ns
+4,1171,1334412708,-;PC: 406523 items/s 102845 kicks/s 0 sleeps/s 6 intrs/s 411 sc 10342 spkicks/s 2000 wc 960 nc 4606 latency 0 yc
+4,1172,1339413214,-;PC: 407885 items/s 103329 kicks/s 0 sleeps/s 6 intrs/s 411 sc 8811 spkicks/s 2000 wc 938 nc 4602 latency 0 yc
+4,1173,1344413718,-;PC: 407502 items/s 103201 kicks/s 0 sleeps/s 6 intrs/s 411 sc 9991 spkicks/s 2000 wc 946 nc 4602 latency 0 yc
+4,1174,1349414222,-;PC: 408054 items/s 102628 kicks/s 0 sleeps/s 6 intrs/s 414 sc 9006 spkicks/s 2000 wc 1026 nc 6305 latency 0 yc
+4,1175,1354414726,-;PC: 409051 items/s 100160 kicks/s 0 sleeps/s 6 intrs/s 430 sc 10640 spkicks/s 2000 wc 952 nc 4607 latency 0 yc
+4,1176,1359415230,-;PC: 407884 items/s 103330 kicks/s 0 sleeps/s 6 intrs/s 411 sc 8924 spkicks/s 2000 wc 947 nc 4602 latency 0 yc
+4,1177,1364415737,-;PC: 407897 items/s 103172 kicks/s 0 sleeps/s 6 intrs/s 412 sc 9304 spkicks/s 2000 wc 931 nc 4602 latency 0 yc
+4,1178,1369416240,-;PC: 404179 items/s 102882 kicks/s 0 sleeps/s 6 intrs/s 410 sc 17957 spkicks/s 2000 wc 939 nc 4604 latency 0 yc
+4,1179,1374416743,-;PC: 404208 items/s 102377 kicks/s 0 sleeps/s 6 intrs/s 410 sc 19221 spkicks/s 2000 wc 956 nc 4600 latency 0 yc
+4,1180,1379417252,-;PC: 404475 items/s 102442 kicks/s 0 sleeps/s 6 intrs/s 411 sc 18567 spkicks/s 2000 wc 936 nc 4600 latency 0 yc
+4,1181,1384417756,-;PC: 406413 items/s 102818 kicks/s 0 sleeps/s 6 intrs/s 412 sc 13264 spkicks/s 2000 wc 974 nc 4601 latency 0 yc
+4,1182,1389132617,-;virtpc: STOP
+4,1183,1389225915,-;virtpc: set Wp=2140ns
+4,1184,1394226420,-;PC: 392642 items/s 99424 kicks/s 0 sleeps/s 6 intrs/s 420 sc 50409 spkicks/s 2000 wc 990 nc 4615 latency 0 yc
+4,1185,1399226924,-;PC: 392275 items/s 99724 kicks/s 0 sleeps/s 6 intrs/s 417 sc 51075 spkicks/s 2000 wc 980 nc 4614 latency 0 yc
+4,1186,1404227428,-;PC: 390632 items/s 100121 kicks/s 0 sleeps/s 6 intrs/s 411 sc 52447 spkicks/s 2000 wc 941 nc 4615 latency 0 yc
+4,1187,1409227931,-;PC: 390922 items/s 100819 kicks/s 0 sleeps/s 6 intrs/s 409 sc 52098 spkicks/s 2000 wc 991 nc 4613 latency 0 yc
+4,1188,1414228435,-;PC: 391272 items/s 100287 kicks/s 0 sleeps/s 6 intrs/s 411 sc 53021 spkicks/s 2000 wc 962 nc 4610 latency 0 yc
+4,1189,1419228938,-;PC: 390773 items/s 100402 kicks/s 0 sleeps/s 6 intrs/s 410 sc 53519 spkicks/s 2000 wc 963 nc 4612 latency 0 yc
+4,1190,1424229443,-;PC: 391165 items/s 100293 kicks/s 0 sleeps/s 6 intrs/s 411 sc 53172 spkicks/s 2000 wc 937 nc 4611 latency 0 yc
+4,1191,1429229946,-;PC: 391278 items/s 100955 kicks/s 0 sleeps/s 5 intrs/s 408 sc 52011 spkicks/s 2000 wc 964 nc 4611 latency 0 yc
+4,1192,1434230452,-;PC: 390902 items/s 100359 kicks/s 0 sleeps/s 5 intrs/s 410 sc 53755 spkicks/s 2000 wc 986 nc 4611 latency 0 yc
+4,1193,1439230956,-;PC: 391241 items/s 99705 kicks/s 0 sleeps/s 5 intrs/s 416 sc 52309 spkicks/s 2000 wc 961 nc 4614 latency 0 yc
+4,1194,1444231459,-;PC: 391145 items/s 100253 kicks/s 0 sleeps/s 6 intrs/s 411 sc 53498 spkicks/s 2000 wc 966 nc 4610 latency 0 yc
+4,1195,1448946328,-;virtpc: STOP
+4,1196,1449039470,-;virtpc: set Wp=2148ns
+4,1197,1454039975,-;PC: 384787 items/s 108780 kicks/s 0 sleeps/s 6 intrs/s 413 sc 54115 spkicks/s 2000 wc 974 nc 4665 latency 0 yc
+4,1198,1459040480,-;PC: 385152 items/s 109625 kicks/s 0 sleeps/s 5 intrs/s 412 sc 52602 spkicks/s 2000 wc 956 nc 4668 latency 0 yc
+4,1199,1464040983,-;PC: 385055 items/s 109503 kicks/s 0 sleeps/s 6 intrs/s 413 sc 52873 spkicks/s 2000 wc 980 nc 4667 latency 0 yc
+4,1200,1469041490,-;PC: 385139 items/s 109685 kicks/s 0 sleeps/s 5 intrs/s 410 sc 52362 spkicks/s 2000 wc 990 nc 4666 latency 0 yc
+4,1201,1474041995,-;PC: 384004 items/s 109162 kicks/s 0 sleeps/s 5 intrs/s 413 sc 52645 spkicks/s 2000 wc 956 nc 4674 latency 0 yc
+4,1202,1479042498,-;PC: 385512 items/s 111201 kicks/s 0 sleeps/s 6 intrs/s 412 sc 48927 spkicks/s 2000 wc 975 nc 4674 latency 0 yc
+4,1203,1484043003,-;PC: 385646 items/s 109275 kicks/s 0 sleeps/s 5 intrs/s 415 sc 51757 spkicks/s 2000 wc 942 nc 4667 latency 0 yc
+4,1204,1489043506,-;PC: 385695 items/s 112726 kicks/s 0 sleeps/s 6 intrs/s 410 sc 45806 spkicks/s 2000 wc 979 nc 4679 latency 0 yc
+4,1205,1494044010,-;PC: 385349 items/s 111452 kicks/s 0 sleeps/s 5 intrs/s 412 sc 48146 spkicks/s 2000 wc 978 nc 4676 latency 0 yc
+4,1206,1499044514,-;PC: 385389 items/s 110959 kicks/s 0 sleeps/s 5 intrs/s 411 sc 49285 spkicks/s 2000 wc 984 nc 6172 latency 0 yc
+4,1207,1504045022,-;PC: 384991 items/s 109458 kicks/s 0 sleeps/s 6 intrs/s 411 sc 52778 spkicks/s 2000 wc 993 nc 5527 latency 0 yc
+4,1208,1508759884,-;virtpc: STOP
+4,1209,1508853051,-;virtpc: set Wp=2156ns
+4,1210,1513853556,-;PC: 390386 items/s 127879 kicks/s 0 sleeps/s 6 intrs/s 410 sc 9110 spkicks/s 2001 wc 990 nc 4749 latency 0 yc
+4,1211,1518854060,-;PC: 390412 items/s 127778 kicks/s 0 sleeps/s 6 intrs/s 411 sc 9348 spkicks/s 2001 wc 956 nc 4748 latency 0 yc
+4,1212,1523854564,-;PC: 392683 items/s 122741 kicks/s 0 sleeps/s 6 intrs/s 429 sc 10396 spkicks/s 2001 wc 1000 nc 4742 latency 0 yc
+4,1213,1528855069,-;PC: 389585 items/s 127522 kicks/s 0 sleeps/s 6 intrs/s 409 sc 9019 spkicks/s 2001 wc 962 nc 4753 latency 0 yc
+4,1214,1533855573,-;PC: 390660 items/s 128197 kicks/s 0 sleeps/s 6 intrs/s 410 sc 8504 spkicks/s 2001 wc 951 nc 4748 latency 0 yc
+4,1215,1538856077,-;PC: 390498 items/s 128515 kicks/s 0 sleeps/s 5 intrs/s 404 sc 8532 spkicks/s 2001 wc 1022 nc 5126 latency 0 yc
+4,1216,1543856582,-;PC: 390765 items/s 128462 kicks/s 0 sleeps/s 6 intrs/s 408 sc 7718 spkicks/s 2001 wc 1010 nc 5884 latency 0 yc
+4,1217,1548857086,-;PC: 390213 items/s 128368 kicks/s 0 sleeps/s 6 intrs/s 407 sc 8761 spkicks/s 2001 wc 952 nc 4748 latency 0 yc
+4,1218,1553857590,-;PC: 390306 items/s 128313 kicks/s 0 sleeps/s 6 intrs/s 409 sc 8118 spkicks/s 2001 wc 954 nc 4750 latency 0 yc
+4,1219,1558858096,-;PC: 390383 items/s 128339 kicks/s 0 sleeps/s 5 intrs/s 409 sc 8073 spkicks/s 2001 wc 938 nc 4750 latency 0 yc
+4,1220,1563858602,-;PC: 390680 items/s 128506 kicks/s 0 sleeps/s 5 intrs/s 408 sc 7782 spkicks/s 2001 wc 953 nc 4748 latency 0 yc
+4,1221,1568573463,-;virtpc: STOP
+4,1222,1568666628,-;virtpc: set Wp=2164ns
+4,1223,1573667132,-;PC: 390069 items/s 130643 kicks/s 0 sleeps/s 6 intrs/s 411 sc 2081 spkicks/s 2001 wc 964 nc 4764 latency 0 yc
+4,1224,1578667637,-;PC: 390325 items/s 130657 kicks/s 0 sleeps/s 6 intrs/s 411 sc 1851 spkicks/s 2001 wc 982 nc 4761 latency 0 yc
+4,1225,1583668141,-;PC: 390233 items/s 130709 kicks/s 0 sleeps/s 6 intrs/s 410 sc 2081 spkicks/s 2001 wc 957 nc 4762 latency 0 yc
+4,1226,1588668645,-;PC: 389851 items/s 130546 kicks/s 0 sleeps/s 6 intrs/s 410 sc 3022 spkicks/s 2001 wc 962 nc 4761 latency 0 yc
+4,1227,1593669148,-;PC: 390302 items/s 130719 kicks/s 0 sleeps/s 5 intrs/s 410 sc 1974 spkicks/s 2001 wc 956 nc 4761 latency 0 yc
+4,1228,1598669652,-;PC: 389409 items/s 130014 kicks/s 0 sleeps/s 6 intrs/s 410 sc 2088 spkicks/s 2001 wc 993 nc 6254 latency 0 yc
+4,1229,1603670156,-;PC: 390243 items/s 130698 kicks/s 0 sleeps/s 6 intrs/s 410 sc 1898 spkicks/s 2001 wc 987 nc 4761 latency 0 yc
+4,1230,1608670662,-;PC: 390056 items/s 130455 kicks/s 0 sleeps/s 5 intrs/s 409 sc 3123 spkicks/s 2001 wc 971 nc 4759 latency 0 yc
+4,1231,1613671165,-;PC: 390753 items/s 128998 kicks/s 0 sleeps/s 5 intrs/s 416 sc 3074 spkicks/s 2001 wc 985 nc 4761 latency 0 yc
+4,1232,1618671669,-;PC: 390103 items/s 130192 kicks/s 0 sleeps/s 6 intrs/s 410 sc 2023 spkicks/s 2001 wc 973 nc 6196 latency 0 yc
+4,1233,1623672174,-;PC: 390107 items/s 130398 kicks/s 0 sleeps/s 6 intrs/s 412 sc 2477 spkicks/s 2001 wc 993 nc 4763 latency 0 yc
+4,1234,1628387039,-;virtpc: STOP
+4,1235,1628480286,-;virtpc: set Wp=2173ns
+4,1236,1633480793,-;PC: 388375 items/s 130845 kicks/s 0 sleeps/s 6 intrs/s 409 sc 2436 spkicks/s 2001 wc 1009 nc 5880 latency 0 yc
+4,1237,1638481298,-;PC: 388677 items/s 130751 kicks/s 0 sleeps/s 6 intrs/s 412 sc 1636 spkicks/s 2001 wc 980 nc 4768 latency 0 yc
+4,1238,1643481803,-;PC: 388839 items/s 130672 kicks/s 0 sleeps/s 5 intrs/s 412 sc 1626 spkicks/s 2001 wc 973 nc 4766 latency 0 yc
+4,1239,1648482307,-;PC: 388901 items/s 130702 kicks/s 0 sleeps/s 6 intrs/s 411 sc 1480 spkicks/s 2001 wc 950 nc 4765 latency 0 yc
+4,1240,1653482810,-;PC: 387927 items/s 130347 kicks/s 0 sleeps/s 6 intrs/s 411 sc 2437 spkicks/s 2001 wc 953 nc 4770 latency 0 yc
+4,1241,1658483314,-;PC: 388415 items/s 130839 kicks/s 0 sleeps/s 5 intrs/s 410 sc 1651 spkicks/s 2001 wc 972 nc 4767 latency 0 yc
+4,1242,1663483818,-;PC: 388548 items/s 131023 kicks/s 0 sleeps/s 6 intrs/s 409 sc 1878 spkicks/s 2001 wc 952 nc 4765 latency 0 yc
+4,1243,1668484321,-;PC: 388695 items/s 130777 kicks/s 0 sleeps/s 6 intrs/s 410 sc 1559 spkicks/s 2001 wc 966 nc 4764 latency 0 yc
+4,1244,1673484824,-;PC: 388295 items/s 130949 kicks/s 0 sleeps/s 5 intrs/s 407 sc 2608 spkicks/s 2001 wc 1008 nc 5723 latency 0 yc
+4,1245,1678485329,-;PC: 388752 items/s 130815 kicks/s 0 sleeps/s 6 intrs/s 411 sc 1408 spkicks/s 2001 wc 953 nc 4763 latency 0 yc
+4,1246,1683485832,-;PC: 388684 items/s 130759 kicks/s 0 sleeps/s 6 intrs/s 410 sc 1535 spkicks/s 2001 wc 948 nc 4761 latency 0 yc
+4,1247,1688200699,-;virtpc: STOP
+4,1248,1688293908,-;virtpc: set Wp=2181ns
+4,1249,1693294413,-;PC: 387453 items/s 130478 kicks/s 0 sleeps/s 6 intrs/s 414 sc 1437 spkicks/s 2001 wc 991 nc 4770 latency 0 yc
+4,1250,1698294918,-;PC: 388918 items/s 128066 kicks/s 0 sleeps/s 6 intrs/s 425 sc 1222 spkicks/s 2001 wc 957 nc 4769 latency 0 yc
+4,1251,1703295422,-;PC: 387368 items/s 130810 kicks/s 0 sleeps/s 5 intrs/s 411 sc 1009 spkicks/s 2001 wc 977 nc 4768 latency 0 yc
+4,1252,1708295925,-;PC: 387693 items/s 130802 kicks/s 0 sleeps/s 6 intrs/s 412 sc 812 spkicks/s 2001 wc 945 nc 4766 latency 0 yc
+4,1253,1713296431,-;PC: 387232 items/s 131503 kicks/s 0 sleeps/s 5 intrs/s 410 sc 1255 spkicks/s 2001 wc 935 nc 4769 latency 0 yc
+4,1254,1718296934,-;PC: 387649 items/s 130929 kicks/s 0 sleeps/s 6 intrs/s 411 sc 831 spkicks/s 2001 wc 928 nc 4767 latency 0 yc
+4,1255,1723297438,-;PC: 386481 items/s 130386 kicks/s 0 sleeps/s 5 intrs/s 412 sc 1126 spkicks/s 2001 wc 959 nc 4775 latency 0 yc
+4,1256,1728297943,-;PC: 387606 items/s 130864 kicks/s 0 sleeps/s 6 intrs/s 412 sc 927 spkicks/s 2001 wc 945 nc 4768 latency 0 yc
+4,1257,1733298447,-;PC: 387015 items/s 131621 kicks/s 0 sleeps/s 6 intrs/s 410 sc 1274 spkicks/s 2001 wc 964 nc 4771 latency 0 yc
+4,1258,1738298951,-;PC: 388483 items/s 128774 kicks/s 0 sleeps/s 5 intrs/s 422 sc 1028 spkicks/s 2001 wc 979 nc 4770 latency 0 yc
+4,1259,1743299454,-;PC: 387872 items/s 129738 kicks/s 0 sleeps/s 6 intrs/s 417 sc 1188 spkicks/s 2001 wc 963 nc 4769 latency 0 yc
+4,1260,1748014319,-;virtpc: STOP
+4,1261,1748107453,-;virtpc: set Wp=2189ns
+4,1262,1753107959,-;PC: 384764 items/s 131467 kicks/s 0 sleeps/s 6 intrs/s 408 sc 1278 spkicks/s 2001 wc 978 nc 4776 latency 0 yc
+4,1263,1758108464,-;PC: 386242 items/s 130663 kicks/s 0 sleeps/s 5 intrs/s 411 sc 1239 spkicks/s 2001 wc 976 nc 4769 latency 0 yc
+4,1264,1763108970,-;PC: 385811 items/s 130754 kicks/s 0 sleeps/s 5 intrs/s 410 sc 1218 spkicks/s 2001 wc 1008 nc 5736 latency 0 yc
+4,1265,1768109475,-;PC: 386094 items/s 130672 kicks/s 0 sleeps/s 5 intrs/s 410 sc 1252 spkicks/s 2001 wc 983 nc 4768 latency 0 yc
+4,1266,1773109980,-;PC: 385330 items/s 131367 kicks/s 0 sleeps/s 6 intrs/s 408 sc 1528 spkicks/s 2001 wc 963 nc 4772 latency 0 yc
+4,1267,1778110485,-;PC: 385206 items/s 130612 kicks/s 0 sleeps/s 5 intrs/s 409 sc 1838 spkicks/s 2001 wc 989 nc 4782 latency 0 yc
+4,1268,1783110992,-;PC: 386221 items/s 129310 kicks/s 0 sleeps/s 5 intrs/s 416 sc 2605 spkicks/s 2001 wc 967 nc 4769 latency 0 yc
+4,1269,1788111496,-;PC: 386038 items/s 130578 kicks/s 0 sleeps/s 6 intrs/s 410 sc 1548 spkicks/s 2001 wc 956 nc 4769 latency 0 yc
+4,1270,1793112005,-;PC: 385653 items/s 131369 kicks/s 0 sleeps/s 5 intrs/s 409 sc 1634 spkicks/s 2001 wc 960 nc 4772 latency 0 yc
+4,1271,1798112509,-;PC: 386008 items/s 130692 kicks/s 0 sleeps/s 6 intrs/s 411 sc 1119 spkicks/s 2001 wc 967 nc 4771 latency 0 yc
+4,1272,1803113013,-;PC: 386134 items/s 130516 kicks/s 0 sleeps/s 5 intrs/s 411 sc 1496 spkicks/s 2001 wc 933 nc 4769 latency 0 yc
+4,1273,1807827866,-;virtpc: STOP
+4,1274,1807921099,-;virtpc: set Wp=2197ns
+4,1275,1812921603,-;PC: 382265 items/s 130249 kicks/s 0 sleeps/s 6 intrs/s 408 sc 8226 spkicks/s 2001 wc 992 nc 6045 latency 0 yc
+4,1276,1817922109,-;PC: 382742 items/s 129877 kicks/s 0 sleeps/s 5 intrs/s 410 sc 7870 spkicks/s 2001 wc 979 nc 4770 latency 0 yc
+4,1277,1822922612,-;PC: 382627 items/s 129819 kicks/s 0 sleeps/s 5 intrs/s 410 sc 7914 spkicks/s 2001 wc 966 nc 4772 latency 0 yc
+4,1278,1827923117,-;PC: 382906 items/s 129528 kicks/s 0 sleeps/s 5 intrs/s 412 sc 7825 spkicks/s 2001 wc 974 nc 4774 latency 0 yc
+4,1279,1832923621,-;PC: 381891 items/s 130473 kicks/s 0 sleeps/s 5 intrs/s 408 sc 8322 spkicks/s 2001 wc 978 nc 4775 latency 0 yc
+4,1280,1837924125,-;PC: 382551 items/s 129964 kicks/s 0 sleeps/s 6 intrs/s 409 sc 8156 spkicks/s 2001 wc 980 nc 4771 latency 0 yc
+4,1281,1842924629,-;PC: 381538 items/s 129237 kicks/s 0 sleeps/s 5 intrs/s 410 sc 8325 spkicks/s 2001 wc 972 nc 6009 latency 0 yc
+4,1282,1847925132,-;PC: 382457 items/s 129818 kicks/s 0 sleeps/s 5 intrs/s 410 sc 7777 spkicks/s 2001 wc 964 nc 4772 latency 0 yc
+4,1283,1852925638,-;PC: 381958 items/s 130687 kicks/s 0 sleeps/s 5 intrs/s 407 sc 7863 spkicks/s 2001 wc 998 nc 4775 latency 0 yc
+4,1284,1857926144,-;PC: 382315 items/s 129634 kicks/s 0 sleeps/s 5 intrs/s 409 sc 8245 spkicks/s 2001 wc 986 nc 6041 latency 0 yc
+4,1285,1862926654,-;PC: 382412 items/s 129588 kicks/s 0 sleeps/s 5 intrs/s 410 sc 8052 spkicks/s 2001 wc 986 nc 4772 latency 0 yc
+4,1286,1867641514,-;virtpc: STOP
+4,1287,1867734741,-;virtpc: set Wp=2206ns
+4,1288,1872735247,-;PC: 368715 items/s 127416 kicks/s 0 sleeps/s 6 intrs/s 408 sc 46386 spkicks/s 2001 wc 990 nc 4783 latency 0 yc
+4,1289,1877735752,-;PC: 367949 items/s 126575 kicks/s 0 sleeps/s 5 intrs/s 409 sc 47685 spkicks/s 2001 wc 984 nc 4786 latency 0 yc
+4,1290,1882736257,-;PC: 368149 items/s 126561 kicks/s 0 sleeps/s 5 intrs/s 409 sc 48494 spkicks/s 2001 wc 964 nc 4782 latency 0 yc
+4,1291,1887736764,-;PC: 367673 items/s 126621 kicks/s 0 sleeps/s 5 intrs/s 407 sc 48041 spkicks/s 2001 wc 981 nc 6184 latency 0 yc
+4,1292,1892737270,-;PC: 367948 items/s 127985 kicks/s 0 sleeps/s 5 intrs/s 405 sc 47861 spkicks/s 2001 wc 1003 nc 5292 latency 0 yc
+4,1293,1897737775,-;PC: 367868 items/s 127345 kicks/s 0 sleeps/s 5 intrs/s 406 sc 47963 spkicks/s 2001 wc 1000 nc 4785 latency 0 yc
+4,1294,1902738279,-;PC: 367856 items/s 126689 kicks/s 0 sleeps/s 5 intrs/s 408 sc 49215 spkicks/s 2001 wc 998 nc 4782 latency 0 yc
+4,1295,1907738784,-;PC: 368423 items/s 126793 kicks/s 0 sleeps/s 5 intrs/s 408 sc 48540 spkicks/s 2001 wc 970 nc 5879 latency 0 yc
+4,1296,1912739291,-;PC: 369964 items/s 126751 kicks/s 0 sleeps/s 5 intrs/s 417 sc 43722 spkicks/s 2001 wc 1008 nc 4789 latency 0 yc
+4,1297,1917739798,-;PC: 368580 items/s 126827 kicks/s 0 sleeps/s 5 intrs/s 409 sc 47735 spkicks/s 2001 wc 946 nc 4781 latency 0 yc
+4,1298,1922740301,-;PC: 368496 items/s 126536 kicks/s 0 sleeps/s 5 intrs/s 410 sc 47014 spkicks/s 2001 wc 944 nc 4782 latency 0 yc
+4,1299,1927455155,-;virtpc: STOP
+4,1300,1927548365,-;virtpc: set Wp=2214ns
+4,1301,1932548870,-;PC: 358946 items/s 131792 kicks/s 0 sleeps/s 5 intrs/s 409 sc 67665 spkicks/s 2001 wc 1030 nc 4932 latency 0 yc
+4,1302,1937549376,-;PC: 359891 items/s 130997 kicks/s 0 sleeps/s 5 intrs/s 408 sc 65874 spkicks/s 2001 wc 1046 nc 4971 latency 0 yc
+4,1303,1942549881,-;PC: 358906 items/s 132377 kicks/s 0 sleeps/s 5 intrs/s 407 sc 67146 spkicks/s 2001 wc 1013 nc 5839 latency 0 yc
+4,1304,1947550385,-;PC: 359238 items/s 131491 kicks/s 0 sleeps/s 5 intrs/s 409 sc 67573 spkicks/s 2001 wc 997 nc 4816 latency 0 yc
+4,1305,1952550889,-;PC: 358935 items/s 131346 kicks/s 0 sleeps/s 5 intrs/s 409 sc 68288 spkicks/s 2001 wc 978 nc 4816 latency 0 yc
+4,1306,1957551393,-;PC: 359872 items/s 131158 kicks/s 0 sleeps/s 5 intrs/s 413 sc 65602 spkicks/s 2001 wc 986 nc 4819 latency 0 yc
+4,1307,1962551897,-;PC: 358781 items/s 129947 kicks/s 0 sleeps/s 5 intrs/s 411 sc 68584 spkicks/s 2001 wc 992 nc 4815 latency 0 yc
+4,1308,1967552402,-;PC: 359216 items/s 129953 kicks/s 0 sleeps/s 5 intrs/s 411 sc 68432 spkicks/s 2001 wc 957 nc 4812 latency 0 yc
+4,1309,1972552906,-;PC: 359488 items/s 130515 kicks/s 0 sleeps/s 5 intrs/s 411 sc 68312 spkicks/s 2001 wc 986 nc 4811 latency 0 yc
+4,1310,1977553413,-;PC: 359142 items/s 130627 kicks/s 0 sleeps/s 5 intrs/s 409 sc 68811 spkicks/s 2001 wc 952 nc 4813 latency 0 yc
+4,1311,1982553917,-;PC: 359418 items/s 129797 kicks/s 0 sleeps/s 5 intrs/s 412 sc 68415 spkicks/s 2001 wc 958 nc 4810 latency 0 yc
+4,1312,1987268778,-;virtpc: STOP
+4,1313,1987361927,-;virtpc: set Wp=2223ns
+4,1314,1992362434,-;PC: 354971 items/s 149877 kicks/s 0 sleeps/s 5 intrs/s 412 sc 50382 spkicks/s 2001 wc 957 nc 4918 latency 0 yc
+4,1315,1997362937,-;PC: 354905 items/s 150199 kicks/s 0 sleeps/s 5 intrs/s 409 sc 49897 spkicks/s 2001 wc 974 nc 4918 latency 0 yc
+4,1316,2002363442,-;PC: 354790 items/s 150985 kicks/s 0 sleeps/s 5 intrs/s 411 sc 48658 spkicks/s 2001 wc 958 nc 4924 latency 0 yc
+4,1317,2007363944,-;PC: 355062 items/s 151975 kicks/s 0 sleeps/s 5 intrs/s 410 sc 47064 spkicks/s 2001 wc 973 nc 4927 latency 0 yc
+4,1318,2012364450,-;PC: 354898 items/s 150127 kicks/s 0 sleeps/s 5 intrs/s 411 sc 50130 spkicks/s 2001 wc 977 nc 4919 latency 0 yc
+4,1319,2017364955,-;PC: 353808 items/s 152530 kicks/s 0 sleeps/s 5 intrs/s 406 sc 46545 spkicks/s 2001 wc 1029 nc 4944 latency 0 yc
+4,1320,2022365459,-;PC: 355040 items/s 150835 kicks/s 0 sleeps/s 5 intrs/s 411 sc 49185 spkicks/s 2001 wc 1016 nc 4921 latency 0 yc
+4,1321,2027365963,-;PC: 354543 items/s 150348 kicks/s 0 sleeps/s 5 intrs/s 411 sc 49593 spkicks/s 2001 wc 976 nc 4922 latency 0 yc
+4,1322,2032366467,-;PC: 355052 items/s 150866 kicks/s 0 sleeps/s 5 intrs/s 411 sc 48898 spkicks/s 2001 wc 946 nc 4921 latency 0 yc
+4,1323,2037366971,-;PC: 355595 items/s 149510 kicks/s 0 sleeps/s 5 intrs/s 414 sc 48594 spkicks/s 2001 wc 978 nc 4919 latency 0 yc
+4,1324,2042367474,-;PC: 356976 items/s 146536 kicks/s 0 sleeps/s 5 intrs/s 424 sc 48523 spkicks/s 2001 wc 970 nc 4916 latency 0 yc
+4,1325,2047082338,-;virtpc: STOP
+4,1326,2047175533,-;virtpc: set Wp=2231ns
+4,1327,2052176038,-;PC: 355448 items/s 173324 kicks/s 0 sleeps/s 5 intrs/s 409 sc 10437 spkicks/s 2001 wc 996 nc 5034 latency 0 yc
+4,1328,2057176543,-;PC: 355616 items/s 174602 kicks/s 0 sleeps/s 5 intrs/s 407 sc 8417 spkicks/s 2001 wc 988 nc 5035 latency 0 yc
+4,1329,2062177046,-;PC: 356257 items/s 173608 kicks/s 0 sleeps/s 5 intrs/s 408 sc 10148 spkicks/s 2001 wc 1032 nc 6063 latency 0 yc
+4,1330,2067177553,-;PC: 356150 items/s 173682 kicks/s 0 sleeps/s 5 intrs/s 409 sc 10425 spkicks/s 2001 wc 969 nc 5029 latency 0 yc
+4,1331,2072178056,-;PC: 355819 items/s 173558 kicks/s 0 sleeps/s 5 intrs/s 408 sc 10133 spkicks/s 2001 wc 976 nc 5032 latency 0 yc
+4,1332,2077178561,-;PC: 356053 items/s 173630 kicks/s 0 sleeps/s 5 intrs/s 407 sc 10141 spkicks/s 2001 wc 973 nc 5029 latency 0 yc
+4,1333,2082179066,-;PC: 356864 items/s 168304 kicks/s 0 sleeps/s 5 intrs/s 419 sc 13196 spkicks/s 2001 wc 965 nc 5020 latency 0 yc
+4,1334,2087179570,-;PC: 356365 items/s 172111 kicks/s 0 sleeps/s 5 intrs/s 412 sc 11219 spkicks/s 2001 wc 982 nc 5026 latency 0 yc
+4,1335,2092180075,-;PC: 356211 items/s 173671 kicks/s 0 sleeps/s 5 intrs/s 409 sc 10034 spkicks/s 2001 wc 953 nc 5029 latency 0 yc
+4,1336,2097180578,-;PC: 355949 items/s 173840 kicks/s 0 sleeps/s 5 intrs/s 407 sc 9725 spkicks/s 2001 wc 1004 nc 5030 latency 0 yc
+4,1337,2102181085,-;PC: 355953 items/s 173444 kicks/s 0 sleeps/s 5 intrs/s 409 sc 10457 spkicks/s 2001 wc 982 nc 5029 latency 0 yc
+4,1338,2106895947,-;virtpc: STOP
+4,1339,2106989172,-;virtpc: set Wp=2240ns
+4,1340,2111989678,-;PC: 355394 items/s 178091 kicks/s 0 sleeps/s 5 intrs/s 409 sc 1074 spkicks/s 2001 wc 1013 nc 5058 latency 0 yc
+4,1341,2116990184,-;PC: 354899 items/s 177731 kicks/s 0 sleeps/s 5 intrs/s 408 sc 1322 spkicks/s 2001 wc 997 nc 5960 latency 0 yc
+4,1342,2121990690,-;PC: 355236 items/s 177858 kicks/s 0 sleeps/s 5 intrs/s 408 sc 1087 spkicks/s 2001 wc 1013 nc 5195 latency 0 yc
+4,1343,2126991195,-;PC: 355927 items/s 175491 kicks/s 0 sleeps/s 5 intrs/s 414 sc 1571 spkicks/s 2001 wc 971 nc 5057 latency 0 yc
+4,1344,2131991698,-;PC: 355414 items/s 177990 kicks/s 0 sleeps/s 5 intrs/s 407 sc 1009 spkicks/s 2001 wc 1006 nc 6026 latency 0 yc
+4,1345,2136992203,-;PC: 355196 items/s 178105 kicks/s 0 sleeps/s 5 intrs/s 406 sc 992 spkicks/s 2001 wc 1017 nc 5058 latency 0 yc
+4,1346,2141992712,-;PC: 355016 items/s 177817 kicks/s 0 sleeps/s 5 intrs/s 408 sc 879 spkicks/s 2001 wc 1005 nc 6099 latency 0 yc
+4,1347,2146993217,-;PC: 355432 items/s 178112 kicks/s 0 sleeps/s 5 intrs/s 408 sc 1087 spkicks/s 2001 wc 987 nc 5059 latency 0 yc
+4,1348,2151993721,-;PC: 354805 items/s 177687 kicks/s 0 sleeps/s 5 intrs/s 408 sc 1031 spkicks/s 2001 wc 974 nc 5063 latency 0 yc
+4,1349,2156994225,-;PC: 355243 items/s 178077 kicks/s 0 sleeps/s 5 intrs/s 406 sc 989 spkicks/s 2001 wc 957 nc 5057 latency 0 yc
+4,1350,2161994728,-;PC: 355367 items/s 177898 kicks/s 0 sleeps/s 5 intrs/s 409 sc 1132 spkicks/s 2001 wc 993 nc 5182 latency 0 yc
+4,1351,2166709586,-;virtpc: STOP
+4,1352,2166802794,-;virtpc: set Wp=2248ns
+4,1353,2171803300,-;PC: 353091 items/s 177478 kicks/s 0 sleeps/s 5 intrs/s 410 sc 278 spkicks/s 2001 wc 1008 nc 5078 latency 0 yc
+4,1354,2176803804,-;PC: 353595 items/s 177665 kicks/s 0 sleeps/s 5 intrs/s 409 sc 285 spkicks/s 2001 wc 999 nc 5074 latency 0 yc
+4,1355,2181804307,-;PC: 353313 items/s 177501 kicks/s 0 sleeps/s 5 intrs/s 411 sc 288 spkicks/s 2001 wc 957 nc 5077 latency 0 yc
+4,1356,2186804810,-;PC: 352225 items/s 177358 kicks/s 0 sleeps/s 5 intrs/s 408 sc 267 spkicks/s 2002 wc 997 nc 5086 latency 0 yc
+4,1357,2191805316,-;PC: 353263 items/s 177473 kicks/s 0 sleeps/s 5 intrs/s 410 sc 284 spkicks/s 2002 wc 960 nc 5079 latency 0 yc
+4,1358,2196805820,-;PC: 353283 items/s 177349 kicks/s 0 sleeps/s 5 intrs/s 409 sc 311 spkicks/s 2002 wc 975 nc 5077 latency 0 yc
+4,1359,2201806324,-;PC: 353148 items/s 177325 kicks/s 0 sleeps/s 5 intrs/s 411 sc 353 spkicks/s 2002 wc 969 nc 5081 latency 0 yc
+4,1360,2206806828,-;PC: 353030 items/s 177180 kicks/s 0 sleeps/s 5 intrs/s 411 sc 395 spkicks/s 2002 wc 950 nc 5079 latency 0 yc
+4,1361,2211807334,-;PC: 355932 items/s 170663 kicks/s 0 sleeps/s 5 intrs/s 428 sc 748 spkicks/s 2001 wc 1020 nc 5958 latency 0 yc
+4,1362,2216807841,-;PC: 353326 items/s 177362 kicks/s 0 sleeps/s 5 intrs/s 410 sc 394 spkicks/s 2002 wc 946 nc 5077 latency 0 yc
+4,1363,2221808346,-;PC: 353103 items/s 177820 kicks/s 0 sleeps/s 5 intrs/s 409 sc 338 spkicks/s 2002 wc 976 nc 5079 latency 0 yc
+4,1364,2226523207,-;virtpc: STOP
+4,1365,2226616328,-;virtpc: set Wp=2257ns
+4,1366,2231616832,-;PC: 351871 items/s 176795 kicks/s 0 sleeps/s 5 intrs/s 411 sc 110 spkicks/s 2001 wc 1038 nc 5194 latency 0 yc
+4,1367,2236617336,-;PC: 351414 items/s 176668 kicks/s 0 sleeps/s 5 intrs/s 410 sc 69 spkicks/s 2001 wc 984 nc 5090 latency 0 yc
+4,1368,2241617840,-;PC: 351647 items/s 176792 kicks/s 0 sleeps/s 5 intrs/s 409 sc 101 spkicks/s 2001 wc 1044 nc 5093 latency 0 yc
+4,1369,2246618347,-;PC: 351205 items/s 176640 kicks/s 0 sleeps/s 5 intrs/s 408 sc 55 spkicks/s 2001 wc 1023 nc 6093 latency 0 yc
+4,1370,2251618852,-;PC: 351953 items/s 176916 kicks/s 0 sleeps/s 5 intrs/s 409 sc 52 spkicks/s 2001 wc 973 nc 5086 latency 0 yc
+4,1371,2256619356,-;PC: 352892 items/s 173800 kicks/s 0 sleeps/s 5 intrs/s 416 sc 338 spkicks/s 2001 wc 980 nc 5080 latency 0 yc
+4,1372,2261619861,-;PC: 351826 items/s 176862 kicks/s 0 sleeps/s 5 intrs/s 409 sc 58 spkicks/s 2002 wc 973 nc 5087 latency 0 yc
+4,1373,2266620364,-;PC: 351969 items/s 176796 kicks/s 0 sleeps/s 5 intrs/s 410 sc 69 spkicks/s 2002 wc 965 nc 5087 latency 0 yc
+4,1374,2271620867,-;PC: 351884 items/s 176808 kicks/s 0 sleeps/s 5 intrs/s 410 sc 73 spkicks/s 2002 wc 970 nc 5088 latency 0 yc
+4,1375,2276621372,-;PC: 351845 items/s 176677 kicks/s 0 sleeps/s 5 intrs/s 410 sc 79 spkicks/s 2001 wc 954 nc 5088 latency 0 yc
+4,1376,2281621878,-;PC: 351956 items/s 176860 kicks/s 0 sleeps/s 5 intrs/s 410 sc 81 spkicks/s 2001 wc 948 nc 5087 latency 0 yc
+4,1377,2286336739,-;virtpc: STOP
+4,1378,2286429964,-;virtpc: set Wp=2265ns
+4,1379,2291430472,-;PC: 349862 items/s 176057 kicks/s 0 sleeps/s 5 intrs/s 410 sc 22 spkicks/s 2002 wc 966 nc 5100 latency 0 yc
+4,1380,2296430976,-;PC: 350944 items/s 176440 kicks/s 0 sleeps/s 5 intrs/s 410 sc 32 spkicks/s 2001 wc 981 nc 5091 latency 0 yc
+4,1381,2301431481,-;PC: 351342 items/s 175199 kicks/s 0 sleeps/s 5 intrs/s 410 sc 438 spkicks/s 2001 wc 1006 nc 6062 latency 0 yc
+4,1382,2306431987,-;PC: 350723 items/s 176422 kicks/s 0 sleeps/s 5 intrs/s 409 sc 24 spkicks/s 2001 wc 994 nc 5091 latency 0 yc
+4,1383,2311432491,-;PC: 350387 items/s 176262 kicks/s 0 sleeps/s 5 intrs/s 409 sc 31 spkicks/s 2001 wc 985 nc 5094 latency 0 yc
+4,1384,2316432995,-;PC: 350889 items/s 176419 kicks/s 0 sleeps/s 5 intrs/s 409 sc 26 spkicks/s 2001 wc 950 nc 5090 latency 0 yc
+4,1385,2321433500,-;PC: 350882 items/s 176385 kicks/s 0 sleeps/s 5 intrs/s 406 sc 31 spkicks/s 2001 wc 1013 nc 6078 latency 0 yc
+4,1386,2326434004,-;PC: 350442 items/s 176249 kicks/s 0 sleeps/s 5 intrs/s 410 sc 19 spkicks/s 2002 wc 973 nc 5096 latency 0 yc
+4,1387,2331434510,-;PC: 350676 items/s 176357 kicks/s 0 sleeps/s 5 intrs/s 410 sc 24 spkicks/s 2002 wc 965 nc 5094 latency 0 yc
+4,1388,2336435015,-;PC: 350787 items/s 176190 kicks/s 0 sleeps/s 5 intrs/s 411 sc 29 spkicks/s 2002 wc 1005 nc 6068 latency 0 yc
+4,1389,2341435519,-;PC: 353375 items/s 169171 kicks/s 0 sleeps/s 5 intrs/s 428 sc 2914 spkicks/s 2001 wc 972 nc 5074 latency 0 yc
+4,1390,2346150376,-;virtpc: STOP
+4,1391,2346243553,-;virtpc: set Wp=2274ns
+4,1392,2351244060,-;PC: 349487 items/s 175769 kicks/s 0 sleeps/s 5 intrs/s 411 sc 35 spkicks/s 2002 wc 1008 nc 5100 latency 0 yc
+4,1393,2356244566,-;PC: 349733 items/s 176005 kicks/s 0 sleeps/s 5 intrs/s 410 sc 36 spkicks/s 2002 wc 993 nc 5098 latency 0 yc
+4,1394,2361245071,-;PC: 348404 items/s 175152 kicks/s 0 sleeps/s 5 intrs/s 409 sc 57 spkicks/s 2001 wc 1015 nc 6100 latency 0 yc
+4,1395,2366245577,-;PC: 349654 items/s 175704 kicks/s 0 sleeps/s 5 intrs/s 410 sc 21 spkicks/s 2001 wc 1006 nc 6000 latency 0 yc
+4,1396,2371246083,-;PC: 349253 items/s 176187 kicks/s 0 sleeps/s 5 intrs/s 408 sc 31 spkicks/s 2001 wc 1058 nc 6656 latency 0 yc
+4,1397,2376246590,-;PC: 349556 items/s 175816 kicks/s 0 sleeps/s 5 intrs/s 409 sc 22 spkicks/s 2001 wc 967 nc 5096 latency 0 yc
+4,1398,2381247094,-;PC: 349796 items/s 174703 kicks/s 0 sleeps/s 5 intrs/s 412 sc 569 spkicks/s 2001 wc 957 nc 5094 latency 0 yc
+4,1399,2386247599,-;PC: 349884 items/s 171782 kicks/s 0 sleeps/s 5 intrs/s 420 sc 1907 spkicks/s 2001 wc 977 nc 5094 latency 0 yc
+4,1400,2391248108,-;PC: 348737 items/s 175505 kicks/s 0 sleeps/s 5 intrs/s 409 sc 26 spkicks/s 2002 wc 995 nc 5859 latency 0 yc
+4,1401,2396248613,-;PC: 348906 items/s 175327 kicks/s 0 sleeps/s 5 intrs/s 409 sc 17 spkicks/s 2002 wc 990 nc 6001 latency 0 yc
+4,1402,2401249117,-;PC: 349121 items/s 175648 kicks/s 0 sleeps/s 5 intrs/s 411 sc 27 spkicks/s 2002 wc 1073 nc 7798 latency 0 yc
+4,1403,2405963966,-;virtpc: STOP
+4,1404,2406057149,-;virtpc: set Wp=2282ns
+4,1405,2411057655,-;PC: 348536 items/s 175138 kicks/s 0 sleeps/s 5 intrs/s 408 sc 46 spkicks/s 2001 wc 979 nc 5997 latency 0 yc
+4,1406,2416058159,-;PC: 348879 items/s 175319 kicks/s 0 sleeps/s 5 intrs/s 410 sc 54 spkicks/s 2002 wc 997 nc 5100 latency 0 yc
+4,1407,2421058664,-;PC: 348683 items/s 175394 kicks/s 0 sleeps/s 5 intrs/s 409 sc 40 spkicks/s 2002 wc 978 nc 5100 latency 0 yc
+4,1408,2426059170,-;PC: 349329 items/s 173464 kicks/s 0 sleeps/s 5 intrs/s 417 sc 1055 spkicks/s 2001 wc 962 nc 5100 latency 0 yc
+4,1409,2431059675,-;PC: 348501 items/s 175433 kicks/s 0 sleeps/s 5 intrs/s 406 sc 281 spkicks/s 2001 wc 1014 nc 6011 latency 0 yc
+4,1410,2436060178,-;PC: 348000 items/s 174908 kicks/s 0 sleeps/s 5 intrs/s 411 sc 63 spkicks/s 2001 wc 1006 nc 5102 latency 0 yc
+4,1411,2441060682,-;PC: 348263 items/s 175159 kicks/s 0 sleeps/s 5 intrs/s 408 sc 118 spkicks/s 2001 wc 974 nc 5101 latency 0 yc
+4,1412,2446061189,-;PC: 348918 items/s 175380 kicks/s 0 sleeps/s 5 intrs/s 410 sc 43 spkicks/s 2001 wc 969 nc 5099 latency 0 yc
+4,1413,2451061696,-;PC: 348725 items/s 175394 kicks/s 0 sleeps/s 5 intrs/s 410 sc 48 spkicks/s 2001 wc 989 nc 5100 latency 0 yc
+4,1414,2456062201,-;PC: 348524 items/s 175193 kicks/s 0 sleeps/s 5 intrs/s 410 sc 120 spkicks/s 2001 wc 970 nc 5101 latency 0 yc
+4,1415,2461062707,-;PC: 348386 items/s 175214 kicks/s 0 sleeps/s 5 intrs/s 408 sc 97 spkicks/s 2001 wc 958 nc 5100 latency 0 yc
+4,1416,2465777562,-;virtpc: STOP
+4,1417,2465870712,-;virtpc: set Wp=2291ns
+4,1418,2470871219,-;PC: 347581 items/s 174191 kicks/s 0 sleeps/s 5 intrs/s 413 sc 529 spkicks/s 2002 wc 951 nc 5108 latency 0 yc
+4,1419,2475871723,-;PC: 347647 items/s 174842 kicks/s 0 sleeps/s 5 intrs/s 411 sc 75 spkicks/s 2001 wc 951 nc 5107 latency 0 yc
+4,1420,2480872226,-;PC: 347660 items/s 174857 kicks/s 0 sleeps/s 5 intrs/s 409 sc 270 spkicks/s 2001 wc 961 nc 5104 latency 0 yc
+4,1421,2485872729,-;PC: 347633 items/s 174761 kicks/s 0 sleeps/s 5 intrs/s 410 sc 136 spkicks/s 2001 wc 967 nc 5106 latency 0 yc
+4,1422,2490873233,-;PC: 347029 items/s 174542 kicks/s 0 sleeps/s 5 intrs/s 409 sc 161 spkicks/s 2002 wc 1004 nc 6046 latency 0 yc
+4,1423,2495873738,-;PC: 347119 items/s 175192 kicks/s 0 sleeps/s 5 intrs/s 408 sc 36 spkicks/s 2001 wc 1011 nc 5496 latency 0 yc
+4,1424,2500874245,-;PC: 347620 items/s 174760 kicks/s 0 sleeps/s 5 intrs/s 408 sc 291 spkicks/s 2001 wc 961 nc 5104 latency 0 yc
+4,1425,2505874749,-;PC: 347625 items/s 174926 kicks/s 0 sleeps/s 5 intrs/s 409 sc 121 spkicks/s 2001 wc 974 nc 5104 latency 0 yc
+4,1426,2510875254,-;PC: 348256 items/s 172027 kicks/s 0 sleeps/s 5 intrs/s 422 sc 1141 spkicks/s 2001 wc 965 nc 5107 latency 0 yc
+4,1427,2515875760,-;PC: 347910 items/s 174122 kicks/s 0 sleeps/s 5 intrs/s 413 sc 707 spkicks/s 2001 wc 1013 nc 6022 latency 0 yc
+4,1428,2520876264,-;PC: 347691 items/s 174758 kicks/s 0 sleeps/s 5 intrs/s 409 sc 263 spkicks/s 2001 wc 999 nc 5100 latency 0 yc
+4,1429,2525591128,-;virtpc: STOP
+4,1430,2525684320,-;virtpc: set Wp=2300ns
+4,1431,2530684826,-;PC: 345861 items/s 173956 kicks/s 0 sleeps/s 5 intrs/s 407 sc 267 spkicks/s 2001 wc 1027 nc 6069 latency 0 yc
+4,1432,2535685332,-;PC: 346369 items/s 174322 kicks/s 0 sleeps/s 5 intrs/s 408 sc 263 spkicks/s 2001 wc 970 nc 5109 latency 0 yc
+4,1433,2540685836,-;PC: 346408 items/s 174251 kicks/s 0 sleeps/s 5 intrs/s 406 sc 771 spkicks/s 2001 wc 988 nc 5876 latency 0 yc
+4,1434,2545686339,-;PC: 346501 items/s 174237 kicks/s 0 sleeps/s 5 intrs/s 408 sc 349 spkicks/s 2001 wc 984 nc 5110 latency 0 yc
+4,1435,2550686844,-;PC: 346369 items/s 174257 kicks/s 0 sleeps/s 5 intrs/s 406 sc 296 spkicks/s 2001 wc 978 nc 5980 latency 0 yc
+4,1436,2555687351,-;PC: 347393 items/s 172144 kicks/s 0 sleeps/s 5 intrs/s 421 sc 713 spkicks/s 2001 wc 984 nc 5110 latency 0 yc
+4,1437,2560687856,-;PC: 346573 items/s 174317 kicks/s 0 sleeps/s 5 intrs/s 406 sc 727 spkicks/s 2001 wc 996 nc 5982 latency 0 yc
+4,1438,2565688361,-;PC: 346524 items/s 174454 kicks/s 0 sleeps/s 5 intrs/s 409 sc 354 spkicks/s 2001 wc 954 nc 5109 latency 0 yc
+4,1439,2570688865,-;PC: 346357 items/s 174599 kicks/s 0 sleeps/s 5 intrs/s 407 sc 289 spkicks/s 2001 wc 983 nc 5109 latency 0 yc
+4,1440,2575689372,-;PC: 346457 items/s 174388 kicks/s 0 sleeps/s 5 intrs/s 408 sc 282 spkicks/s 2001 wc 989 nc 5967 latency 0 yc
+4,1441,2580689882,-;PC: 346594 items/s 174277 kicks/s 0 sleeps/s 5 intrs/s 406 sc 667 spkicks/s 2001 wc 1012 nc 5922 latency 0 yc
+4,1442,2585404735,-;virtpc: STOP
+4,1443,2585497890,-;virtpc: set Wp=2309ns
+4,1444,2590498397,-;PC: 345439 items/s 173651 kicks/s 0 sleeps/s 5 intrs/s 409 sc 748 spkicks/s 2001 wc 1037 nc 5111 latency 0 yc
+4,1445,2595498901,-;PC: 345333 items/s 173895 kicks/s 0 sleeps/s 5 intrs/s 408 sc 442 spkicks/s 2001 wc 984 nc 5953 latency 0 yc
+4,1446,2600499406,-;PC: 345184 items/s 172777 kicks/s 0 sleeps/s 5 intrs/s 413 sc 1520 spkicks/s 2001 wc 1029 nc 5917 latency 0 yc
+4,1447,2605499912,-;PC: 345106 items/s 173621 kicks/s 0 sleeps/s 5 intrs/s 406 sc 1242 spkicks/s 2001 wc 969 nc 5112 latency 0 yc
+4,1448,2610500416,-;PC: 344956 items/s 173393 kicks/s 0 sleeps/s 5 intrs/s 408 sc 678 spkicks/s 2001 wc 965 nc 5111 latency 0 yc
+4,1449,2615500920,-;PC: 345274 items/s 173927 kicks/s 0 sleeps/s 5 intrs/s 407 sc 737 spkicks/s 2001 wc 970 nc 5112 latency 0 yc
+4,1450,2620501426,-;PC: 344620 items/s 173208 kicks/s 0 sleeps/s 5 intrs/s 408 sc 672 spkicks/s 2001 wc 956 nc 5119 latency 0 yc
+4,1451,2625501930,-;PC: 345387 items/s 173710 kicks/s 0 sleeps/s 5 intrs/s 406 sc 1287 spkicks/s 2001 wc 963 nc 5110 latency 0 yc
+4,1452,2630502435,-;PC: 345415 items/s 173849 kicks/s 0 sleeps/s 5 intrs/s 407 sc 703 spkicks/s 2001 wc 1002 nc 5971 latency 0 yc
+4,1453,2635502940,-;PC: 345330 items/s 173760 kicks/s 0 sleeps/s 5 intrs/s 408 sc 719 spkicks/s 2001 wc 963 nc 5113 latency 0 yc
+4,1454,2640503443,-;PC: 345358 items/s 173698 kicks/s 0 sleeps/s 5 intrs/s 408 sc 652 spkicks/s 2001 wc 975 nc 5112 latency 0 yc
+4,1455,2645218303,-;virtpc: STOP
+4,1456,2645311464,-;virtpc: set Wp=2317ns
+4,1457,2650311970,-;PC: 343551 items/s 172723 kicks/s 0 sleeps/s 5 intrs/s 410 sc 1154 spkicks/s 2001 wc 1045 nc 5122 latency 0 yc
+4,1458,2655312478,-;PC: 343984 items/s 173082 kicks/s 0 sleeps/s 5 intrs/s 411 sc 1131 spkicks/s 2001 wc 990 nc 5121 latency 0 yc
+4,1459,2660312981,-;PC: 344196 items/s 173195 kicks/s 0 sleeps/s 5 intrs/s 410 sc 1220 spkicks/s 2001 wc 966 nc 5118 latency 0 yc
+4,1460,2665313486,-;PC: 343956 items/s 173110 kicks/s 0 sleeps/s 5 intrs/s 408 sc 1996 spkicks/s 2001 wc 1005 nc 5988 latency 0 yc
+4,1461,2670313992,-;PC: 344031 items/s 173229 kicks/s 0 sleeps/s 5 intrs/s 408 sc 978 spkicks/s 2001 wc 1028 nc 5969 latency 0 yc
+4,1462,2675314496,-;PC: 344162 items/s 173141 kicks/s 0 sleeps/s 5 intrs/s 408 sc 924 spkicks/s 2002 wc 1015 nc 5929 latency 0 yc
+4,1463,2680315002,-;PC: 344196 items/s 173132 kicks/s 0 sleeps/s 5 intrs/s 408 sc 1085 spkicks/s 2002 wc 1024 nc 5970 latency 0 yc
+4,1464,2685315506,-;PC: 344961 items/s 170853 kicks/s 0 sleeps/s 5 intrs/s 423 sc 2240 spkicks/s 2002 wc 1010 nc 5949 latency 0 yc
+4,1465,2690316017,-;PC: 343679 items/s 172915 kicks/s 0 sleeps/s 5 intrs/s 410 sc 1103 spkicks/s 2002 wc 994 nc 5972 latency 0 yc
+4,1466,2695316522,-;PC: 344273 items/s 173122 kicks/s 0 sleeps/s 5 intrs/s 410 sc 1071 spkicks/s 2001 wc 981 nc 5118 latency 0 yc
+4,1467,2700317028,-;PC: 344331 items/s 173072 kicks/s 0 sleeps/s 5 intrs/s 410 sc 1082 spkicks/s 2001 wc 986 nc 5954 latency 0 yc
+4,1468,2705031878,-;virtpc: STOP
+4,1469,2705125493,-;virtpc: set Wp=2326ns
+4,1470,2710125999,-;PC: 342934 items/s 172687 kicks/s 0 sleeps/s 5 intrs/s 408 sc 1582 spkicks/s 2001 wc 991 nc 5123 latency 0 yc
+4,1471,2715126505,-;PC: 342975 items/s 172740 kicks/s 0 sleeps/s 5 intrs/s 408 sc 1494 spkicks/s 2001 wc 985 nc 5123 latency 0 yc
+4,1472,2720127011,-;PC: 343127 items/s 172728 kicks/s 0 sleeps/s 5 intrs/s 409 sc 1473 spkicks/s 2001 wc 960 nc 5122 latency 0 yc
+4,1473,2725127517,-;PC: 342927 items/s 172497 kicks/s 0 sleeps/s 5 intrs/s 409 sc 2633 spkicks/s 2001 wc 952 nc 5121 latency 0 yc
+4,1474,2730128023,-;PC: 343700 items/s 171274 kicks/s 0 sleeps/s 5 intrs/s 418 sc 1585 spkicks/s 2001 wc 954 nc 5124 latency 0 yc
+4,1475,2735128528,-;PC: 342902 items/s 172860 kicks/s 0 sleeps/s 5 intrs/s 408 sc 1141 spkicks/s 2001 wc 991 nc 5972 latency 0 yc
+4,1476,2740129034,-;PC: 342226 items/s 172480 kicks/s 0 sleeps/s 5 intrs/s 409 sc 1470 spkicks/s 2001 wc 990 nc 5132 latency 0 yc
+4,1477,2745129545,-;PC: 342204 items/s 172559 kicks/s 0 sleeps/s 5 intrs/s 405 sc 2811 spkicks/s 2001 wc 1055 nc 5946 latency 0 yc
+4,1478,2750130050,-;PC: 342900 items/s 172834 kicks/s 0 sleeps/s 5 intrs/s 407 sc 1329 spkicks/s 2001 wc 1020 nc 5645 latency 0 yc
+4,1479,2755130555,-;PC: 343070 items/s 172796 kicks/s 0 sleeps/s 5 intrs/s 408 sc 1352 spkicks/s 2001 wc 983 nc 5122 latency 0 yc
+4,1480,2760131062,-;PC: 342819 items/s 172555 kicks/s 0 sleeps/s 5 intrs/s 408 sc 1539 spkicks/s 2001 wc 977 nc 5124 latency 0 yc
+4,1481,2764845906,-;virtpc: STOP
+4,1482,2764939120,-;virtpc: set Wp=2335ns
+4,1483,2769939626,-;PC: 341768 items/s 171346 kicks/s 0 sleeps/s 5 intrs/s 414 sc 1624 spkicks/s 2001 wc 957 nc 5133 latency 0 yc
+4,1484,2774940131,-;PC: 341623 items/s 172383 kicks/s 0 sleeps/s 5 intrs/s 408 sc 1497 spkicks/s 2001 wc 975 nc 5129 latency 0 yc
+4,1485,2779940637,-;PC: 341938 items/s 172461 kicks/s 0 sleeps/s 5 intrs/s 408 sc 1508 spkicks/s 2001 wc 970 nc 5127 latency 0 yc
+4,1486,2784941141,-;PC: 341579 items/s 172629 kicks/s 0 sleeps/s 5 intrs/s 407 sc 2841 spkicks/s 2001 wc 958 nc 5128 latency 0 yc
+4,1487,2789941645,-;PC: 341555 items/s 172335 kicks/s 0 sleeps/s 5 intrs/s 408 sc 1570 spkicks/s 2001 wc 988 nc 5131 latency 0 yc
+4,1488,2794942151,-;PC: 342013 items/s 172543 kicks/s 0 sleeps/s 5 intrs/s 408 sc 1489 spkicks/s 2001 wc 959 nc 5127 latency 0 yc
+4,1489,2799942655,-;PC: 342029 items/s 172693 kicks/s 0 sleeps/s 5 intrs/s 407 sc 1462 spkicks/s 2001 wc 1009 nc 5927 latency 0 yc
+4,1490,2804943159,-;PC: 340727 items/s 172341 kicks/s 0 sleeps/s 5 intrs/s 408 sc 2966 spkicks/s 2001 wc 1004 nc 5660 latency 0 yc
+4,1491,2809943664,-;PC: 341872 items/s 172406 kicks/s 0 sleeps/s 5 intrs/s 411 sc 1438 spkicks/s 2001 wc 1018 nc 5950 latency 0 yc
+4,1492,2814944168,-;PC: 342075 items/s 172641 kicks/s 0 sleeps/s 5 intrs/s 411 sc 1110 spkicks/s 2001 wc 1026 nc 5946 latency 0 yc
+4,1493,2819944673,-;PC: 341851 items/s 172444 kicks/s 0 sleeps/s 5 intrs/s 410 sc 1602 spkicks/s 2001 wc 974 nc 5130 latency 0 yc
+4,1494,2824659532,-;virtpc: STOP
+4,1495,2824752985,-;virtpc: set Wp=2344ns
+4,1496,2829753491,-;PC: 340761 items/s 171899 kicks/s 0 sleeps/s 5 intrs/s 414 sc 1666 spkicks/s 2001 wc 952 nc 5139 latency 0 yc
+4,1497,2834753996,-;PC: 340565 items/s 172902 kicks/s 0 sleeps/s 5 intrs/s 407 sc 1440 spkicks/s 2001 wc 1005 nc 5262 latency 0 yc
+4,1498,2839754502,-;PC: 340727 items/s 172088 kicks/s 0 sleeps/s 5 intrs/s 409 sc 1443 spkicks/s 2001 wc 989 nc 5134 latency 0 yc
+4,1499,2844755006,-;PC: 340357 items/s 172718 kicks/s 0 sleeps/s 5 intrs/s 406 sc 2711 spkicks/s 2001 wc 974 nc 5134 latency 0 yc
+4,1500,2849755509,-;PC: 340778 items/s 172217 kicks/s 0 sleeps/s 5 intrs/s 409 sc 1588 spkicks/s 2001 wc 983 nc 5133 latency 0 yc
+4,1501,2854756016,-;PC: 340765 items/s 170271 kicks/s 0 sleeps/s 5 intrs/s 421 sc 1298 spkicks/s 2002 wc 987 nc 5139 latency 0 yc
+4,1502,2859756519,-;PC: 340698 items/s 171409 kicks/s 0 sleeps/s 5 intrs/s 415 sc 1329 spkicks/s 2001 wc 972 nc 5140 latency 0 yc
+4,1503,2864757022,-;PC: 340216 items/s 172479 kicks/s 0 sleeps/s 5 intrs/s 410 sc 2738 spkicks/s 2001 wc 977 nc 5139 latency 0 yc
+4,1504,2869757525,-;PC: 340658 items/s 172058 kicks/s 0 sleeps/s 5 intrs/s 412 sc 1656 spkicks/s 2001 wc 977 nc 5136 latency 0 yc
+4,1505,2874758030,-;PC: 340655 items/s 172004 kicks/s 0 sleeps/s 5 intrs/s 411 sc 1416 spkicks/s 2001 wc 970 nc 5135 latency 0 yc
+4,1506,2879758535,-;PC: 340790 items/s 172296 kicks/s 0 sleeps/s 5 intrs/s 411 sc 1326 spkicks/s 2001 wc 964 nc 5134 latency 0 yc
+4,1507,2884473397,-;virtpc: STOP
+4,1508,2884566592,-;virtpc: set Wp=2353ns
+4,1509,2889567099,-;PC: 338973 items/s 172637 kicks/s 0 sleeps/s 5 intrs/s 408 sc 2614 spkicks/s 2002 wc 1162 nc 6005 latency 0 yc
+4,1510,2894567604,-;PC: 339995 items/s 171538 kicks/s 0 sleeps/s 5 intrs/s 411 sc 1048 spkicks/s 2002 wc 1012 nc 5895 latency 0 yc
+4,1511,2899568108,-;PC: 340275 items/s 170225 kicks/s 0 sleeps/s 5 intrs/s 419 sc 1368 spkicks/s 2002 wc 1008 nc 5669 latency 0 yc
+4,1512,2904568615,-;PC: 339688 items/s 171627 kicks/s 0 sleeps/s 5 intrs/s 412 sc 1153 spkicks/s 2001 wc 968 nc 5142 latency 0 yc
+4,1513,2909569119,-;PC: 338206 items/s 171874 kicks/s 0 sleeps/s 5 intrs/s 410 sc 2468 spkicks/s 2001 wc 975 nc 5152 latency 0 yc
+4,1514,2914569623,-;PC: 339592 items/s 171744 kicks/s 0 sleeps/s 5 intrs/s 411 sc 1329 spkicks/s 2002 wc 984 nc 5143 latency 0 yc
+4,1515,2919570129,-;PC: 339639 items/s 172075 kicks/s 0 sleeps/s 5 intrs/s 411 sc 1049 spkicks/s 2002 wc 964 nc 5142 latency 0 yc
+4,1516,2924570634,-;PC: 339871 items/s 172038 kicks/s 0 sleeps/s 5 intrs/s 411 sc 938 spkicks/s 2002 wc 956 nc 5141 latency 0 yc
+4,1517,2929571137,-;PC: 338653 items/s 173118 kicks/s 0 sleeps/s 5 intrs/s 409 sc 1760 spkicks/s 2002 wc 976 nc 5150 latency 0 yc
+4,1518,2934571640,-;PC: 339675 items/s 172077 kicks/s 0 sleeps/s 5 intrs/s 411 sc 1049 spkicks/s 2001 wc 947 nc 5142 latency 0 yc
+4,1519,2939572144,-;PC: 339655 items/s 172097 kicks/s 0 sleeps/s 5 intrs/s 411 sc 985 spkicks/s 2001 wc 984 nc 5142 latency 0 yc
+4,1520,2944287006,-;virtpc: STOP
+4,1521,2944380371,-;virtpc: set Wp=2362ns
+4,1522,2949380876,-;PC: 337631 items/s 172979 kicks/s 0 sleeps/s 5 intrs/s 409 sc 1502 spkicks/s 2001 wc 1018 nc 5154 latency 0 yc
+4,1523,2954381381,-;PC: 339201 items/s 171918 kicks/s 0 sleeps/s 5 intrs/s 411 sc 1081 spkicks/s 2001 wc 962 nc 5139 latency 0 yc
+4,1524,2959381885,-;PC: 338727 items/s 171934 kicks/s 0 sleeps/s 5 intrs/s 410 sc 1089 spkicks/s 2002 wc 1002 nc 5143 latency 0 yc
+4,1525,2964382390,-;PC: 338900 items/s 171736 kicks/s 0 sleeps/s 5 intrs/s 411 sc 861 spkicks/s 2002 wc 975 nc 5145 latency 0 yc
+4,1526,2969382895,-;PC: 337699 items/s 172700 kicks/s 0 sleeps/s 5 intrs/s 409 sc 1937 spkicks/s 2002 wc 976 nc 5155 latency 0 yc
+4,1527,2974383398,-;PC: 338587 items/s 171680 kicks/s 0 sleeps/s 5 intrs/s 411 sc 1038 spkicks/s 2002 wc 1016 nc 5148 latency 0 yc
+4,1528,2979383903,-;PC: 338569 items/s 171607 kicks/s 0 sleeps/s 5 intrs/s 412 sc 1018 spkicks/s 2002 wc 974 nc 5148 latency 0 yc
+4,1529,2984384408,-;PC: 338865 items/s 171461 kicks/s 0 sleeps/s 5 intrs/s 412 sc 1020 spkicks/s 2001 wc 973 nc 5146 latency 0 yc
+4,1530,2989384913,-;PC: 337746 items/s 173015 kicks/s 0 sleeps/s 5 intrs/s 409 sc 2057 spkicks/s 2002 wc 1049 nc 5252 latency 0 yc
+4,1531,2994385420,-;PC: 338287 items/s 171573 kicks/s 0 sleeps/s 5 intrs/s 412 sc 971 spkicks/s 2002 wc 1026 nc 5151 latency 0 yc
+4,1532,2999385926,-;PC: 338689 items/s 172014 kicks/s 0 sleeps/s 5 intrs/s 411 sc 1106 spkicks/s 2002 wc 1061 nc 5146 latency 0 yc
+4,1533,3004100784,-;virtpc: STOP
+4,1534,3004193969,-;virtpc: set Wp=2371ns
+4,1535,3009194476,-;PC: 327734 items/s 190894 kicks/s 0 sleeps/s 5 intrs/s 385 sc 6233 spkicks/s 2002 wc 1011 nc 5242 latency 0 yc
+4,1536,3014194979,-;PC: 338467 items/s 172298 kicks/s 0 sleeps/s 5 intrs/s 410 sc 775 spkicks/s 2001 wc 999 nc 5142 latency 0 yc
+4,1537,3019195483,-;PC: 337358 items/s 172130 kicks/s 0 sleeps/s 5 intrs/s 410 sc 953 spkicks/s 2001 wc 975 nc 5150 latency 0 yc
+4,1538,3024195995,-;PC: 338580 items/s 172181 kicks/s 0 sleeps/s 5 intrs/s 411 sc 754 spkicks/s 2001 wc 981 nc 5140 latency 0 yc
+4,1539,3029196501,-;PC: 337835 items/s 171496 kicks/s 0 sleeps/s 5 intrs/s 420 sc 969 spkicks/s 2001 wc 979 nc 5161 latency 0 yc
+4,1540,3034197007,-;PC: 338185 items/s 172475 kicks/s 0 sleeps/s 4 intrs/s 410 sc 732 spkicks/s 2002 wc 986 nc 5144 latency 0 yc
+4,1541,3039197513,-;PC: 337972 items/s 172152 kicks/s 0 sleeps/s 5 intrs/s 409 sc 896 spkicks/s 2002 wc 993 nc 5146 latency 0 yc
+4,1542,3044198016,-;PC: 337926 items/s 171793 kicks/s 0 sleeps/s 5 intrs/s 412 sc 526 spkicks/s 2002 wc 991 nc 5152 latency 0 yc
+4,1543,3049198519,-;PC: 336568 items/s 173740 kicks/s 0 sleeps/s 5 intrs/s 409 sc 721 spkicks/s 2002 wc 978 nc 5162 latency 0 yc
+4,1544,3054199029,-;PC: 337819 items/s 171885 kicks/s 0 sleeps/s 4 intrs/s 411 sc 735 spkicks/s 2002 wc 985 nc 5151 latency 0 yc
+4,1545,3059199533,-;PC: 337877 items/s 172055 kicks/s 0 sleeps/s 5 intrs/s 411 sc 641 spkicks/s 2002 wc 963 nc 5150 latency 0 yc
+4,1546,3063914381,-;virtpc: STOP
+4,1547,3064007544,-;virtpc: set Wp=2380ns
+4,1548,3069008049,-;PC: 335595 items/s 172869 kicks/s 0 sleeps/s 5 intrs/s 407 sc 3309 spkicks/s 2001 wc 1050 nc 6027 latency 0 yc
+4,1549,3074008554,-;PC: 337421 items/s 169954 kicks/s 0 sleeps/s 5 intrs/s 415 sc 3524 spkicks/s 2001 wc 1038 nc 5850 latency 0 yc
+4,1550,3079009061,-;PC: 336879 items/s 171716 kicks/s 0 sleeps/s 5 intrs/s 409 sc 3336 spkicks/s 2001 wc 1006 nc 5143 latency 0 yc
+4,1551,3084009564,-;PC: 336277 items/s 171129 kicks/s 0 sleeps/s 5 intrs/s 408 sc 3471 spkicks/s 2001 wc 979 nc 5147 latency 0 yc
+4,1552,3089010070,-;PC: 336159 items/s 173072 kicks/s 0 sleeps/s 5 intrs/s 406 sc 3345 spkicks/s 2001 wc 976 nc 5150 latency 0 yc
+4,1553,3094010574,-;PC: 337044 items/s 171861 kicks/s 0 sleeps/s 5 intrs/s 406 sc 3603 spkicks/s 2001 wc 1010 nc 5260 latency 0 yc
+4,1554,3099011078,-;PC: 336917 items/s 172186 kicks/s 0 sleeps/s 5 intrs/s 407 sc 3221 spkicks/s 2001 wc 991 nc 5141 latency 0 yc
+4,1555,3104011584,-;PC: 336864 items/s 171552 kicks/s 0 sleeps/s 5 intrs/s 408 sc 3250 spkicks/s 2001 wc 992 nc 5142 latency 0 yc
+4,1556,3109012089,-;PC: 336002 items/s 173693 kicks/s 0 sleeps/s 5 intrs/s 406 sc 3315 spkicks/s 2001 wc 991 nc 5152 latency 0 yc
+4,1557,3114012599,-;PC: 337071 items/s 171479 kicks/s 0 sleeps/s 4 intrs/s 411 sc 3108 spkicks/s 2001 wc 983 nc 5144 latency 0 yc
+4,1558,3119013102,-;PC: 336871 items/s 171908 kicks/s 0 sleeps/s 5 intrs/s 408 sc 3219 spkicks/s 2001 wc 1000 nc 5144 latency 0 yc
+4,1559,3123727955,-;virtpc: STOP
+4,1560,3123821250,-;virtpc: set Wp=2389ns
+4,1561,3128821755,-;PC: 333539 items/s 172636 kicks/s 0 sleeps/s 5 intrs/s 405 sc 9717 spkicks/s 2001 wc 975 nc 5157 latency 0 yc
+4,1562,3133822260,-;PC: 334361 items/s 170761 kicks/s 0 sleeps/s 5 intrs/s 407 sc 9521 spkicks/s 2001 wc 978 nc 5148 latency 0 yc
+4,1563,3138822763,-;PC: 333757 items/s 170305 kicks/s 0 sleeps/s 5 intrs/s 408 sc 8604 spkicks/s 2001 wc 975 nc 5155 latency 0 yc
+4,1564,3143823266,-;PC: 334460 items/s 170512 kicks/s 0 sleeps/s 5 intrs/s 408 sc 9780 spkicks/s 2001 wc 975 nc 5146 latency 0 yc
+4,1565,3148823770,-;PC: 332980 items/s 172717 kicks/s 0 sleeps/s 5 intrs/s 404 sc 10439 spkicks/s 2001 wc 1023 nc 5887 latency 0 yc
+4,1566,3153824275,-;PC: 334584 items/s 169978 kicks/s 0 sleeps/s 4 intrs/s 412 sc 9346 spkicks/s 2001 wc 994 nc 5150 latency 0 yc
+4,1567,3158824779,-;PC: 332086 items/s 167764 kicks/s 0 sleeps/s 5 intrs/s 417 sc 18392 spkicks/s 2001 wc 986 nc 5154 latency 0 yc
+4,1568,3163825285,-;PC: 334208 items/s 170844 kicks/s 0 sleeps/s 4 intrs/s 407 sc 9422 spkicks/s 2001 wc 1028 nc 5244 latency 0 yc
+4,1569,3168825788,-;PC: 333732 items/s 172456 kicks/s 0 sleeps/s 5 intrs/s 406 sc 9120 spkicks/s 2001 wc 1004 nc 5156 latency 0 yc
+4,1570,3173826294,-;PC: 334516 items/s 170692 kicks/s 0 sleeps/s 4 intrs/s 408 sc 9307 spkicks/s 2001 wc 966 nc 5146 latency 0 yc
+4,1571,3178826811,-;PC: 334078 items/s 170623 kicks/s 0 sleeps/s 5 intrs/s 408 sc 10473 spkicks/s 2001 wc 991 nc 5147 latency 0 yc
+4,1572,3183541662,-;virtpc: STOP
+4,1573,3183634842,-;virtpc: set Wp=2398ns
+4,1574,3188635346,-;PC: 328757 items/s 167988 kicks/s 0 sleeps/s 5 intrs/s 408 sc 23084 spkicks/s 2001 wc 960 nc 5164 latency 0 yc
+4,1575,3193635850,-;PC: 328534 items/s 170250 kicks/s 0 sleeps/s 5 intrs/s 405 sc 23997 spkicks/s 2001 wc 969 nc 5165 latency 0 yc
+4,1576,3198636354,-;PC: 330180 items/s 167374 kicks/s 0 sleeps/s 5 intrs/s 416 sc 22838 spkicks/s 2001 wc 990 nc 5158 latency 0 yc
+4,1577,3203636860,-;PC: 329674 items/s 167976 kicks/s 0 sleeps/s 4 intrs/s 410 sc 23572 spkicks/s 2001 wc 963 nc 5155 latency 0 yc
+4,1578,3208637364,-;PC: 329833 items/s 168559 kicks/s 0 sleeps/s 5 intrs/s 408 sc 22719 spkicks/s 2001 wc 983 nc 5155 latency 0 yc
+4,1579,3213637869,-;PC: 328619 items/s 170556 kicks/s 0 sleeps/s 4 intrs/s 404 sc 23128 spkicks/s 2001 wc 948 nc 5166 latency 0 yc
+4,1580,3218638374,-;PC: 328940 items/s 168454 kicks/s 0 sleeps/s 5 intrs/s 407 sc 24943 spkicks/s 2001 wc 969 nc 5162 latency 0 yc
+4,1581,3223638877,-;PC: 328839 items/s 167979 kicks/s 0 sleeps/s 5 intrs/s 408 sc 25273 spkicks/s 2001 wc 945 nc 5157 latency 0 yc
+4,1582,3228639380,-;PC: 329363 items/s 168502 kicks/s 0 sleeps/s 5 intrs/s 408 sc 23456 spkicks/s 2001 wc 976 nc 5157 latency 0 yc
+4,1583,3233639887,-;PC: 328730 items/s 170484 kicks/s 0 sleeps/s 4 intrs/s 405 sc 22926 spkicks/s 2001 wc 989 nc 5166 latency 0 yc
+4,1584,3238640390,-;PC: 329891 items/s 168515 kicks/s 0 sleeps/s 5 intrs/s 408 sc 22636 spkicks/s 2001 wc 947 nc 5154 latency 0 yc
+4,1585,3243355252,-;virtpc: STOP
+4,1586,3243448395,-;virtpc: set Wp=2407ns
+4,1587,3248448901,-;PC: 320596 items/s 165645 kicks/s 0 sleeps/s 5 intrs/s 408 sc 50828 spkicks/s 2001 wc 1012 nc 5175 latency 0 yc
+4,1588,3253449407,-;PC: 320016 items/s 167511 kicks/s 0 sleeps/s 4 intrs/s 405 sc 49660 spkicks/s 2001 wc 983 nc 5185 latency 0 yc
+4,1589,3258449912,-;PC: 322488 items/s 165911 kicks/s 0 sleeps/s 4 intrs/s 410 sc 42094 spkicks/s 2002 wc 973 nc 5178 latency 0 yc
+4,1590,3263450417,-;PC: 322900 items/s 165805 kicks/s 0 sleeps/s 4 intrs/s 410 sc 42279 spkicks/s 2002 wc 1000 nc 5173 latency 0 yc
+4,1591,3268450922,-;PC: 320519 items/s 164993 kicks/s 0 sleeps/s 4 intrs/s 410 sc 51773 spkicks/s 2002 wc 987 nc 5879 latency 0 yc
+4,1592,3273451427,-;PC: 322486 items/s 167814 kicks/s 0 sleeps/s 5 intrs/s 407 sc 41656 spkicks/s 2002 wc 1031 nc 5825 latency 0 yc
+4,1593,3278451931,-;PC: 322379 items/s 166359 kicks/s 0 sleeps/s 4 intrs/s 408 sc 43302 spkicks/s 2002 wc 999 nc 5179 latency 0 yc
+4,1594,3283452439,-;PC: 323216 items/s 165806 kicks/s 0 sleeps/s 4 intrs/s 411 sc 41973 spkicks/s 2002 wc 968 nc 5172 latency 0 yc
+4,1595,3288452942,-;PC: 323281 items/s 165778 kicks/s 0 sleeps/s 5 intrs/s 412 sc 42156 spkicks/s 2002 wc 972 nc 5172 latency 0 yc
+4,1596,3293453447,-;PC: 322785 items/s 168134 kicks/s 0 sleeps/s 4 intrs/s 408 sc 40352 spkicks/s 2002 wc 974 nc 5182 latency 0 yc
+4,1597,3298453956,-;PC: 322035 items/s 165647 kicks/s 0 sleeps/s 4 intrs/s 409 sc 44884 spkicks/s 2002 wc 983 nc 5176 latency 0 yc
+4,1598,3303168810,-;virtpc: STOP
+4,1599,3303261951,-;virtpc: set Wp=2416ns
+4,1600,3308262457,-;PC: 312489 items/s 164876 kicks/s 0 sleeps/s 5 intrs/s 410 sc 72904 spkicks/s 2002 wc 980 nc 5205 latency 0 yc
+4,1601,3313262964,-;PC: 311181 items/s 166408 kicks/s 0 sleeps/s 4 intrs/s 407 sc 72609 spkicks/s 2002 wc 970 nc 5215 latency 0 yc
+4,1602,3318263470,-;PC: 311933 items/s 164841 kicks/s 0 sleeps/s 4 intrs/s 408 sc 73749 spkicks/s 2001 wc 1036 nc 5935 latency 0 yc
+4,1603,3323263976,-;PC: 313143 items/s 164631 kicks/s 0 sleeps/s 4 intrs/s 411 sc 70742 spkicks/s 2001 wc 1003 nc 5204 latency 0 yc
+4,1604,3328264480,-;PC: 315736 items/s 164058 kicks/s 0 sleeps/s 4 intrs/s 426 sc 63366 spkicks/s 2001 wc 1012 nc 5209 latency 0 yc
+4,1605,3333264984,-;PC: 314135 items/s 166641 kicks/s 0 sleeps/s 4 intrs/s 410 sc 65011 spkicks/s 2001 wc 968 nc 5209 latency 0 yc
+4,1606,3338265490,-;PC: 314641 items/s 164498 kicks/s 0 sleeps/s 4 intrs/s 412 sc 66863 spkicks/s 2001 wc 967 nc 5198 latency 0 yc
+4,1607,3343265999,-;PC: 312142 items/s 164470 kicks/s 0 sleeps/s 4 intrs/s 410 sc 74010 spkicks/s 2001 wc 987 nc 5938 latency 0 yc
+4,1608,3348266504,-;PC: 311704 items/s 165427 kicks/s 0 sleeps/s 4 intrs/s 408 sc 74578 spkicks/s 2001 wc 1026 nc 5209 latency 0 yc
+4,1609,3353267011,-;PC: 311143 items/s 167370 kicks/s 0 sleeps/s 4 intrs/s 406 sc 73367 spkicks/s 2001 wc 960 nc 5219 latency 0 yc
+4,1610,3358267517,-;PC: 311471 items/s 165656 kicks/s 0 sleeps/s 4 intrs/s 406 sc 73811 spkicks/s 2001 wc 1013 nc 5344 latency 0 yc
+4,1611,3362982365,-;virtpc: STOP
+4,1612,3363075633,-;virtpc: set Wp=2425ns
+4,1613,3368076141,-;PC: 305991 items/s 167767 kicks/s 0 sleeps/s 4 intrs/s 409 sc 83305 spkicks/s 2001 wc 1026 nc 6022 latency 0 yc
+4,1614,3373076645,-;PC: 306602 items/s 169489 kicks/s 0 sleeps/s 4 intrs/s 419 sc 79343 spkicks/s 2001 wc 996 nc 5267 latency 0 yc
+4,1615,3378077152,-;PC: 305129 items/s 169216 kicks/s 0 sleeps/s 4 intrs/s 410 sc 85238 spkicks/s 2001 wc 969 nc 5258 latency 0 yc
+4,1616,3383077659,-;PC: 305543 items/s 167887 kicks/s 0 sleeps/s 4 intrs/s 410 sc 84774 spkicks/s 2001 wc 968 nc 5252 latency 0 yc
+4,1617,3388078161,-;PC: 305404 items/s 168771 kicks/s 0 sleeps/s 4 intrs/s 410 sc 84124 spkicks/s 2001 wc 972 nc 5256 latency 0 yc
+4,1618,3393078666,-;PC: 304094 items/s 170824 kicks/s 0 sleeps/s 4 intrs/s 406 sc 82102 spkicks/s 2001 wc 997 nc 5276 latency 0 yc
+4,1619,3398079170,-;PC: 305619 items/s 167821 kicks/s 0 sleeps/s 4 intrs/s 408 sc 83655 spkicks/s 2001 wc 984 nc 6002 latency 0 yc
+4,1620,3403079681,-;PC: 306057 items/s 167582 kicks/s 0 sleeps/s 4 intrs/s 411 sc 83818 spkicks/s 2001 wc 972 nc 5249 latency 0 yc
+4,1621,3408080185,-;PC: 306132 items/s 168401 kicks/s 0 sleeps/s 4 intrs/s 409 sc 82174 spkicks/s 2001 wc 992 nc 5960 latency 0 yc
+4,1622,3413080689,-;PC: 305660 items/s 169139 kicks/s 0 sleeps/s 4 intrs/s 408 sc 81308 spkicks/s 2001 wc 1004 nc 5821 latency 0 yc
+4,1623,3418081194,-;PC: 306513 items/s 168331 kicks/s 0 sleeps/s 4 intrs/s 412 sc 80912 spkicks/s 2001 wc 1011 nc 5956 latency 0 yc
+4,1624,3422796044,-;virtpc: STOP
+4,1625,3422889215,-;virtpc: set Wp=2435ns
+4,1626,3427889720,-;PC: 296211 items/s 184617 kicks/s 0 sleeps/s 4 intrs/s 411 sc 87314 spkicks/s 2002 wc 1018 nc 5377 latency 0 yc
+4,1627,3432890225,-;PC: 295696 items/s 188029 kicks/s 0 sleeps/s 4 intrs/s 409 sc 85453 spkicks/s 2002 wc 1014 nc 5393 latency 0 yc
+4,1628,3437890728,-;PC: 296591 items/s 182626 kicks/s 0 sleeps/s 4 intrs/s 410 sc 88345 spkicks/s 2002 wc 999 nc 5366 latency 0 yc
+4,1629,3442891233,-;PC: 296424 items/s 183426 kicks/s 0 sleeps/s 4 intrs/s 411 sc 88381 spkicks/s 2002 wc 985 nc 5371 latency 0 yc
+4,1630,3447891739,-;PC: 296147 items/s 181586 kicks/s 0 sleeps/s 4 intrs/s 410 sc 87629 spkicks/s 2002 wc 990 nc 6078 latency 0 yc
+4,1631,3452892243,-;PC: 295956 items/s 186636 kicks/s 0 sleeps/s 4 intrs/s 409 sc 85781 spkicks/s 2002 wc 1010 nc 5387 latency 0 yc
+4,1632,3457892746,-;PC: 297334 items/s 180810 kicks/s 0 sleeps/s 4 intrs/s 414 sc 88716 spkicks/s 2002 wc 985 nc 5357 latency 0 yc
+4,1633,3462893253,-;PC: 296553 items/s 184283 kicks/s 0 sleeps/s 4 intrs/s 411 sc 87561 spkicks/s 2002 wc 964 nc 6036 latency 0 yc
+4,1634,3467893757,-;PC: 296705 items/s 181880 kicks/s 0 sleeps/s 4 intrs/s 410 sc 88119 spkicks/s 2002 wc 1042 nc 6104 latency 0 yc
+4,1635,3472894265,-;PC: 295874 items/s 185956 kicks/s 0 sleeps/s 4 intrs/s 408 sc 85935 spkicks/s 2002 wc 999 nc 5962 latency 0 yc
+4,1636,3477894776,-;PC: 296141 items/s 185403 kicks/s 0 sleeps/s 4 intrs/s 411 sc 87572 spkicks/s 2002 wc 972 nc 5379 latency 0 yc
+4,1637,3482609627,-;virtpc: STOP
+4,1638,3482702822,-;virtpc: set Wp=2444ns
+4,1639,3487703328,-;PC: 290107 items/s 205842 kicks/s 0 sleeps/s 4 intrs/s 411 sc 73557 spkicks/s 2002 wc 1018 nc 5520 latency 0 yc
+4,1640,3492703835,-;PC: 289765 items/s 209409 kicks/s 0 sleeps/s 4 intrs/s 410 sc 70263 spkicks/s 2002 wc 1012 nc 5538 latency 0 yc
+4,1641,3497704338,-;PC: 289797 items/s 208638 kicks/s 0 sleeps/s 4 intrs/s 414 sc 67848 spkicks/s 2002 wc 1027 nc 5541 latency 0 yc
+4,1642,3502704844,-;PC: 292320 items/s 201662 kicks/s 0 sleeps/s 4 intrs/s 424 sc 71789 spkicks/s 2002 wc 992 nc 5508 latency 0 yc
+4,1643,3507705348,-;PC: 289868 items/s 207945 kicks/s 0 sleeps/s 4 intrs/s 410 sc 71716 spkicks/s 2002 wc 993 nc 5531 latency 0 yc
+4,1644,3512705852,-;PC: 289781 items/s 208626 kicks/s 0 sleeps/s 4 intrs/s 410 sc 70974 spkicks/s 2002 wc 986 nc 5535 latency 0 yc
+4,1645,3517706358,-;PC: 289276 items/s 210301 kicks/s 0 sleeps/s 4 intrs/s 408 sc 68869 spkicks/s 2002 wc 985 nc 5547 latency 0 yc
+4,1646,3522706862,-;PC: 289891 items/s 208123 kicks/s 0 sleeps/s 4 intrs/s 411 sc 71358 spkicks/s 2002 wc 965 nc 5532 latency 0 yc
+4,1647,3527707367,-;PC: 289817 items/s 208931 kicks/s 0 sleeps/s 4 intrs/s 410 sc 70832 spkicks/s 2002 wc 968 nc 5535 latency 0 yc
+4,1648,3532707870,-;PC: 289487 items/s 209741 kicks/s 0 sleeps/s 4 intrs/s 410 sc 70166 spkicks/s 2002 wc 969 nc 5542 latency 0 yc
+4,1649,3537708373,-;PC: 289666 items/s 208586 kicks/s 0 sleeps/s 4 intrs/s 408 sc 70543 spkicks/s 2002 wc 974 nc 5535 latency 0 yc
+4,1650,3542423236,-;virtpc: STOP
+4,1651,3542516447,-;virtpc: set Wp=2453ns
+4,1652,3547516957,-;PC: 284570 items/s 239181 kicks/s 0 sleeps/s 4 intrs/s 414 sc 38704 spkicks/s 2002 wc 971 nc 5742 latency 0 yc
+4,1653,3552517461,-;PC: 283519 items/s 241856 kicks/s 0 sleeps/s 4 intrs/s 409 sc 37919 spkicks/s 2002 wc 968 nc 5756 latency 0 yc
+4,1654,3557517965,-;PC: 284011 items/s 243499 kicks/s 0 sleeps/s 4 intrs/s 407 sc 36938 spkicks/s 2002 wc 1000 nc 5753 latency 0 yc
+4,1655,3562518471,-;PC: 284171 items/s 242206 kicks/s 0 sleeps/s 4 intrs/s 410 sc 38306 spkicks/s 2002 wc 982 nc 5746 latency 0 yc
+4,1656,3567518976,-;PC: 284059 items/s 242991 kicks/s 0 sleeps/s 4 intrs/s 409 sc 37516 spkicks/s 2002 wc 984 nc 5751 latency 0 yc
+4,1657,3572519479,-;PC: 284033 items/s 241746 kicks/s 0 sleeps/s 4 intrs/s 410 sc 38525 spkicks/s 2002 wc 975 nc 5747 latency 0 yc
+4,1658,3577519982,-;PC: 283866 items/s 244497 kicks/s 0 sleeps/s 4 intrs/s 407 sc 35877 spkicks/s 2002 wc 970 nc 5758 latency 0 yc
+4,1659,3582520486,-;PC: 283976 items/s 242888 kicks/s 0 sleeps/s 4 intrs/s 409 sc 37592 spkicks/s 2002 wc 982 nc 5750 latency 0 yc
+4,1660,3587520990,-;PC: 285736 items/s 238192 kicks/s 0 sleeps/s 4 intrs/s 416 sc 38497 spkicks/s 2002 wc 993 nc 5728 latency 0 yc
+4,1661,3592521499,-;PC: 284259 items/s 241922 kicks/s 0 sleeps/s 4 intrs/s 410 sc 38472 spkicks/s 2002 wc 1032 nc 5744 latency 0 yc
+4,1662,3597522003,-;PC: 284265 items/s 241796 kicks/s 0 sleeps/s 4 intrs/s 408 sc 38616 spkicks/s 2002 wc 953 nc 5742 latency 0 yc
+4,1663,3602236862,-;virtpc: STOP
+4,1664,3602331404,-;virtpc: set Wp=2462ns
+4,1665,3607331911,-;PC: 280713 items/s 264389 kicks/s 0 sleeps/s 4 intrs/s 408 sc 15263 spkicks/s 2003 wc 968 nc 5892 latency 0 yc
+4,1666,3612332416,-;PC: 280187 items/s 263923 kicks/s 0 sleeps/s 4 intrs/s 408 sc 15223 spkicks/s 2003 wc 991 nc 5892 latency 0 yc
+4,1667,3617332920,-;PC: 280434 items/s 264169 kicks/s 0 sleeps/s 4 intrs/s 407 sc 15190 spkicks/s 2003 wc 973 nc 5892 latency 0 yc
+4,1668,3622333425,-;PC: 280769 items/s 264026 kicks/s 0 sleeps/s 4 intrs/s 409 sc 15664 spkicks/s 2003 wc 977 nc 5889 latency 0 yc
+4,1669,3627333930,-;PC: 280630 items/s 263951 kicks/s 0 sleeps/s 4 intrs/s 408 sc 15601 spkicks/s 2003 wc 982 nc 5890 latency 0 yc
+4,1670,3632334435,-;PC: 280929 items/s 263455 kicks/s 0 sleeps/s 4 intrs/s 410 sc 15622 spkicks/s 2003 wc 977 nc 5887 latency 0 yc
+4,1671,3637334938,-;PC: 280604 items/s 263763 kicks/s 0 sleeps/s 4 intrs/s 407 sc 15776 spkicks/s 2003 wc 981 nc 5889 latency 0 yc
+4,1672,3642335445,-;PC: 280150 items/s 263035 kicks/s 0 sleeps/s 4 intrs/s 409 sc 15995 spkicks/s 2003 wc 970 nc 5895 latency 0 yc
+4,1673,3647335950,-;PC: 280398 items/s 263693 kicks/s 0 sleeps/s 4 intrs/s 408 sc 15574 spkicks/s 2003 wc 977 nc 5893 latency 0 yc
+4,1674,3652336454,-;PC: 280595 items/s 263899 kicks/s 0 sleeps/s 4 intrs/s 409 sc 15582 spkicks/s 2003 wc 1011 nc 5893 latency 0 yc
+4,1675,3657336959,-;PC: 280680 items/s 263686 kicks/s 0 sleeps/s 4 intrs/s 407 sc 15824 spkicks/s 2003 wc 983 nc 5888 latency 0 yc
+4,1676,3662051818,-;virtpc: STOP
+4,1677,3662144982,-;virtpc: set Wp=2472ns
+4,1678,3667145488,-;PC: 278427 items/s 273319 kicks/s 0 sleeps/s 4 intrs/s 407 sc 4651 spkicks/s 2003 wc 1076 nc 5975 latency 0 yc
+4,1679,3672145993,-;PC: 283589 items/s 260290 kicks/s 0 sleeps/s 4 intrs/s 431 sc 5829 spkicks/s 2003 wc 1035 nc 5904 latency 0 yc
+4,1680,3677146499,-;PC: 278431 items/s 273650 kicks/s 0 sleeps/s 4 intrs/s 408 sc 4401 spkicks/s 2003 wc 1020 nc 5968 latency 0 yc
+4,1681,3682147003,-;PC: 277665 items/s 273120 kicks/s 0 sleeps/s 4 intrs/s 410 sc 4164 spkicks/s 2003 wc 1009 nc 5982 latency 0 yc
+4,1682,3687147507,-;PC: 278401 items/s 272218 kicks/s 0 sleeps/s 4 intrs/s 411 sc 5700 spkicks/s 2003 wc 1027 nc 5966 latency 0 yc
+4,1683,3692148012,-;PC: 278722 items/s 271703 kicks/s 0 sleeps/s 4 intrs/s 412 sc 6472 spkicks/s 2003 wc 976 nc 5959 latency 0 yc
+4,1684,3697148515,-;PC: 278629 items/s 272655 kicks/s 0 sleeps/s 4 intrs/s 409 sc 5458 spkicks/s 2003 wc 1008 nc 5962 latency 0 yc
+4,1685,3702149020,-;PC: 278439 items/s 272160 kicks/s 0 sleeps/s 4 intrs/s 411 sc 5729 spkicks/s 2003 wc 984 nc 5963 latency 0 yc
+4,1686,3707149523,-;PC: 278224 items/s 272643 kicks/s 0 sleeps/s 4 intrs/s 411 sc 5138 spkicks/s 2003 wc 1002 nc 5970 latency 0 yc
+4,1687,3712150033,-;PC: 278196 items/s 273937 kicks/s 0 sleeps/s 4 intrs/s 403 sc 3892 spkicks/s 2003 wc 974 nc 5969 latency 0 yc
+4,1688,3717150538,-;PC: 282001 items/s 264162 kicks/s 0 sleeps/s 4 intrs/s 421 sc 6037 spkicks/s 2003 wc 1015 nc 5919 latency 0 yc
+4,1689,3721865394,-;virtpc: STOP
+4,1690,3721958676,-;virtpc: set Wp=2481ns
+4,1691,3726959183,-;PC: 277616 items/s 275878 kicks/s 0 sleeps/s 4 intrs/s 410 sc 1523 spkicks/s 2003 wc 1012 nc 5995 latency 0 yc
+4,1692,3731959688,-;PC: 277359 items/s 275407 kicks/s 0 sleeps/s 4 intrs/s 410 sc 1678 spkicks/s 2003 wc 1004 nc 5997 latency 0 yc
+4,1693,3736960192,-;PC: 276784 items/s 274656 kicks/s 0 sleeps/s 4 intrs/s 410 sc 1859 spkicks/s 2003 wc 1010 nc 6001 latency 0 yc
+4,1694,3741960697,-;PC: 277368 items/s 275352 kicks/s 0 sleeps/s 4 intrs/s 412 sc 1709 spkicks/s 2003 wc 968 nc 5998 latency 0 yc
+4,1695,3746961202,-;PC: 277643 items/s 275685 kicks/s 0 sleeps/s 4 intrs/s 410 sc 1517 spkicks/s 2003 wc 1056 nc 6086 latency 0 yc
+4,1696,3751961706,-;PC: 277622 items/s 275674 kicks/s 0 sleeps/s 4 intrs/s 411 sc 1660 spkicks/s 2003 wc 1010 nc 5994 latency 0 yc
+4,1697,3756962209,-;PC: 277694 items/s 274991 kicks/s 0 sleeps/s 4 intrs/s 410 sc 1569 spkicks/s 2003 wc 1005 nc 5988 latency 0 yc
+4,1698,3761962714,-;PC: 279023 items/s 271643 kicks/s 0 sleeps/s 4 intrs/s 417 sc 2259 spkicks/s 2003 wc 1006 nc 5973 latency 0 yc
+4,1699,3766963220,-;PC: 277518 items/s 275657 kicks/s 0 sleeps/s 4 intrs/s 410 sc 1649 spkicks/s 2003 wc 1007 nc 5994 latency 0 yc
+4,1700,3771963723,-;PC: 277579 items/s 275759 kicks/s 0 sleeps/s 4 intrs/s 410 sc 1593 spkicks/s 2003 wc 1000 nc 5994 latency 0 yc
+4,1701,3776964233,-;PC: 277434 items/s 275661 kicks/s 0 sleeps/s 4 intrs/s 409 sc 1569 spkicks/s 2003 wc 986 nc 5993 latency 0 yc
+4,1702,3781679088,-;virtpc: STOP
+4,1703,3781772280,-;virtpc: set Wp=2491ns
+4,1704,3786772787,-;PC: 276147 items/s 275486 kicks/s 0 sleeps/s 4 intrs/s 410 sc 410 spkicks/s 2003 wc 954 nc 6018 latency 0 yc
+4,1705,3791773290,-;PC: 276430 items/s 275788 kicks/s 0 sleeps/s 4 intrs/s 410 sc 393 spkicks/s 2003 wc 1027 nc 6014 latency 0 yc
+4,1706,3796773794,-;PC: 276638 items/s 276034 kicks/s 0 sleeps/s 4 intrs/s 410 sc 404 spkicks/s 2003 wc 1023 nc 6012 latency 0 yc
+4,1707,3801774300,-;PC: 276689 items/s 275813 kicks/s 0 sleeps/s 4 intrs/s 410 sc 409 spkicks/s 2003 wc 1024 nc 6010 latency 0 yc
+4,1708,3806774805,-;PC: 276364 items/s 275834 kicks/s 0 sleeps/s 4 intrs/s 410 sc 390 spkicks/s 2003 wc 1003 nc 6012 latency 0 yc
+4,1709,3811775310,-;PC: 276433 items/s 275876 kicks/s 0 sleeps/s 4 intrs/s 410 sc 397 spkicks/s 2003 wc 1001 nc 6014 latency 0 yc
+4,1710,3816775815,-;PC: 276677 items/s 276144 kicks/s 0 sleeps/s 4 intrs/s 409 sc 382 spkicks/s 2003 wc 974 nc 6011 latency 0 yc
+4,1711,3821776319,-;PC: 276518 items/s 275997 kicks/s 0 sleeps/s 4 intrs/s 410 sc 385 spkicks/s 2003 wc 1013 nc 6013 latency 0 yc
+4,1712,3826776822,-;PC: 276618 items/s 276053 kicks/s 0 sleeps/s 4 intrs/s 411 sc 408 spkicks/s 2003 wc 985 nc 6012 latency 0 yc
+4,1713,3831777330,-;PC: 276646 items/s 276030 kicks/s 0 sleeps/s 4 intrs/s 411 sc 383 spkicks/s 2003 wc 982 nc 6013 latency 0 yc
+4,1714,3836777833,-;PC: 276634 items/s 275968 kicks/s 0 sleeps/s 4 intrs/s 410 sc 389 spkicks/s 2003 wc 1006 nc 6011 latency 0 yc
+4,1715,3841492694,-;virtpc: STOP
+4,1716,3841585855,-;virtpc: set Wp=2500ns
+4,1717,3846586361,-;PC: 279476 items/s 266802 kicks/s 0 sleeps/s 4 intrs/s 425 sc 290 spkicks/s 2003 wc 1047 nc 6050 latency 0 yc
+4,1718,3851586866,-;PC: 275726 items/s 275473 kicks/s 0 sleeps/s 4 intrs/s 410 sc 107 spkicks/s 2003 wc 1004 nc 6024 latency 0 yc
+4,1719,3856587368,-;PC: 275879 items/s 275621 kicks/s 0 sleeps/s 4 intrs/s 410 sc 123 spkicks/s 2003 wc 969 nc 6022 latency 0 yc
+4,1720,3861587874,-;PC: 275941 items/s 275668 kicks/s 0 sleeps/s 4 intrs/s 408 sc 119 spkicks/s 2003 wc 988 nc 6020 latency 0 yc
+4,1721,3866588380,-;PC: 275878 items/s 275602 kicks/s 0 sleeps/s 4 intrs/s 410 sc 122 spkicks/s 2003 wc 981 nc 6022 latency 0 yc
+4,1722,3871588886,-;PC: 275837 items/s 275575 kicks/s 0 sleeps/s 4 intrs/s 411 sc 123 spkicks/s 2003 wc 985 nc 6023 latency 0 yc
+4,1723,3876589394,-;PC: 275434 items/s 275142 kicks/s 0 sleeps/s 4 intrs/s 410 sc 114 spkicks/s 2003 wc 978 nc 6029 latency 0 yc
+4,1724,3881589899,-;PC: 275692 items/s 275370 kicks/s 0 sleeps/s 4 intrs/s 408 sc 109 spkicks/s 2003 wc 992 nc 6022 latency 0 yc
+4,1725,3886590404,-;PC: 279092 items/s 268752 kicks/s 0 sleeps/s 4 intrs/s 421 sc 263 spkicks/s 2003 wc 986 nc 5981 latency 0 yc
+4,1726,3891590909,-;PC: 276337 items/s 274970 kicks/s 0 sleeps/s 4 intrs/s 411 sc 132 spkicks/s 2003 wc 975 nc 6016 latency 0 yc
+4,1727,3896591411,-;PC: 275739 items/s 275482 kicks/s 0 sleeps/s 4 intrs/s 410 sc 114 spkicks/s 2003 wc 999 nc 6023 latency 0 yc
+4,1728,3901306270,-;virtpc: STOP
+4,1729,3901399493,-;virtpc: set Wp=2510ns
+4,1730,3906400001,-;PC: 274198 items/s 274034 kicks/s 0 sleeps/s 4 intrs/s 410 sc 46 spkicks/s 2003 wc 1038 nc 6045 latency 0 yc
+4,1731,3911400507,-;PC: 275036 items/s 274856 kicks/s 0 sleeps/s 4 intrs/s 410 sc 48 spkicks/s 2003 wc 999 nc 6035 latency 0 yc
+4,1732,3916401012,-;PC: 275033 items/s 274854 kicks/s 0 sleeps/s 4 intrs/s 411 sc 47 spkicks/s 2003 wc 998 nc 6035 latency 0 yc
+4,1733,3921401518,-;PC: 275026 items/s 274820 kicks/s 0 sleeps/s 4 intrs/s 410 sc 39 spkicks/s 2003 wc 965 nc 6033 latency 0 yc
+4,1734,3926402022,-;PC: 275014 items/s 274721 kicks/s 0 sleeps/s 4 intrs/s 411 sc 51 spkicks/s 2003 wc 978 nc 6036 latency 0 yc
+4,1735,3931402528,-;PC: 276578 items/s 271158 kicks/s 0 sleeps/s 4 intrs/s 417 sc 133 spkicks/s 2003 wc 1000 nc 6016 latency 0 yc
+4,1736,3936403031,-;PC: 275186 items/s 274858 kicks/s 0 sleeps/s 4 intrs/s 410 sc 51 spkicks/s 2003 wc 980 nc 6037 latency 0 yc
+4,1737,3941403535,-;PC: 274875 items/s 274653 kicks/s 0 sleeps/s 4 intrs/s 409 sc 46 spkicks/s 2003 wc 999 nc 6035 latency 0 yc
+4,1738,3946404041,-;PC: 275091 items/s 274888 kicks/s 0 sleeps/s 4 intrs/s 411 sc 54 spkicks/s 2003 wc 1021 nc 6034 latency 0 yc
+4,1739,3951404544,-;PC: 274983 items/s 274801 kicks/s 0 sleeps/s 4 intrs/s 410 sc 46 spkicks/s 2003 wc 1068 nc 6034 latency 0 yc
+4,1740,3956405050,-;PC: 275191 items/s 274967 kicks/s 0 sleeps/s 4 intrs/s 411 sc 51 spkicks/s 2003 wc 1003 nc 6034 latency 0 yc
+4,1741,3961119919,-;virtpc: STOP
+4,1742,3961213167,-;virtpc: set Wp=2519ns
+4,1743,3966213672,-;PC: 274137 items/s 273963 kicks/s 0 sleeps/s 4 intrs/s 411 sc 30 spkicks/s 2003 wc 997 nc 6047 latency 0 yc
+4,1744,3971214177,-;PC: 278378 items/s 265163 kicks/s 0 sleeps/s 4 intrs/s 426 sc 196 spkicks/s 2003 wc 989 nc 5992 latency 0 yc
+4,1745,3976214682,-;PC: 276072 items/s 270272 kicks/s 0 sleeps/s 4 intrs/s 416 sc 75 spkicks/s 2003 wc 983 nc 6020 latency 0 yc
+4,1746,3981215187,-;PC: 274222 items/s 273976 kicks/s 0 sleeps/s 4 intrs/s 409 sc 34 spkicks/s 2003 wc 992 nc 6044 latency 0 yc
+4,1747,3986215691,-;PC: 274120 items/s 273932 kicks/s 0 sleeps/s 4 intrs/s 411 sc 28 spkicks/s 2003 wc 1004 nc 6047 latency 0 yc
+4,1748,3991216197,-;PC: 274127 items/s 273960 kicks/s 0 sleeps/s 3 intrs/s 410 sc 29 spkicks/s 2003 wc 979 nc 6046 latency 0 yc
+4,1749,3996216699,-;PC: 273381 items/s 273256 kicks/s 0 sleeps/s 4 intrs/s 410 sc 29 spkicks/s 2003 wc 983 nc 6054 latency 0 yc
+4,1750,4001217206,-;PC: 274419 items/s 274286 kicks/s 0 sleeps/s 4 intrs/s 407 sc 21 spkicks/s 2003 wc 988 nc 6038 latency 0 yc
+4,1751,4006217713,-;PC: 274176 items/s 274041 kicks/s 0 sleeps/s 4 intrs/s 409 sc 24 spkicks/s 2003 wc 998 nc 6044 latency 0 yc
+4,1752,4011218219,-;PC: 274303 items/s 274165 kicks/s 0 sleeps/s 4 intrs/s 410 sc 21 spkicks/s 2003 wc 967 nc 6044 latency 0 yc
+4,1753,4016218722,-;PC: 278488 items/s 264164 kicks/s 0 sleeps/s 4 intrs/s 426 sc 172 spkicks/s 2003 wc 992 nc 5989 latency 0 yc
+4,1754,4020933580,-;virtpc: STOP
+4,1755,4021026752,-;virtpc: set Wp=2529ns
+4,1756,4026027260,-;PC: 273155 items/s 272908 kicks/s 0 sleeps/s 4 intrs/s 410 sc 23 spkicks/s 2003 wc 1034 nc 6059 latency 0 yc
+4,1757,4031027765,-;PC: 273855 items/s 273654 kicks/s 0 sleeps/s 4 intrs/s 410 sc 20 spkicks/s 2003 wc 1005 nc 6049 latency 0 yc
+4,1758,4036028269,-;PC: 273648 items/s 273490 kicks/s 0 sleeps/s 4 intrs/s 409 sc 18 spkicks/s 2003 wc 1019 nc 6051 latency 0 yc
+4,1759,4041028773,-;PC: 273615 items/s 273503 kicks/s 0 sleeps/s 4 intrs/s 408 sc 14 spkicks/s 2003 wc 984 nc 6050 latency 0 yc
+4,1760,4046029276,-;PC: 273473 items/s 273366 kicks/s 0 sleeps/s 4 intrs/s 409 sc 12 spkicks/s 2003 wc 981 nc 6054 latency 0 yc
+4,1761,4051029779,-;PC: 273674 items/s 273560 kicks/s 0 sleeps/s 4 intrs/s 409 sc 11 spkicks/s 2003 wc 983 nc 6051 latency 0 yc
+4,1762,4056030284,-;PC: 273596 items/s 273462 kicks/s 0 sleeps/s 4 intrs/s 409 sc 13 spkicks/s 2003 wc 967 nc 6052 latency 0 yc
+4,1763,4061030790,-;PC: 276025 items/s 268464 kicks/s 0 sleeps/s 4 intrs/s 416 sc 57 spkicks/s 2003 wc 1031 nc 6021 latency 0 yc
+4,1764,4066031298,-;PC: 273722 items/s 273583 kicks/s 0 sleeps/s 4 intrs/s 410 sc 9 spkicks/s 2003 wc 986 nc 6051 latency 0 yc
+4,1765,4071031800,-;PC: 273811 items/s 273586 kicks/s 0 sleeps/s 4 intrs/s 410 sc 13 spkicks/s 2003 wc 999 nc 6050 latency 0 yc
+4,1766,4076032305,-;PC: 273777 items/s 273537 kicks/s 0 sleeps/s 4 intrs/s 409 sc 16 spkicks/s 2003 wc 988 nc 6050 latency 0 yc
+4,1767,4080747164,-;virtpc: STOP
+4,1768,4080840347,-;virtpc: set Wp=2538ns
+4,1769,4085840854,-;PC: 273214 items/s 272716 kicks/s 0 sleeps/s 4 intrs/s 408 sc 15 spkicks/s 2003 wc 1035 nc 6710 latency 0 yc
+4,1770,4090841360,-;PC: 273046 items/s 272942 kicks/s 0 sleeps/s 4 intrs/s 409 sc 11 spkicks/s 2003 wc 964 nc 6059 latency 0 yc
+4,1771,4095841865,-;PC: 273001 items/s 272902 kicks/s 0 sleeps/s 4 intrs/s 408 sc 12 spkicks/s 2003 wc 994 nc 6060 latency 0 yc
+4,1772,4100842369,-;PC: 273158 items/s 273012 kicks/s 0 sleeps/s 4 intrs/s 407 sc 17 spkicks/s 2003 wc 977 nc 6056 latency 0 yc
+4,1773,4105842873,-;PC: 274086 items/s 271049 kicks/s 0 sleeps/s 4 intrs/s 412 sc 43 spkicks/s 2003 wc 988 nc 6046 latency 0 yc
+4,1774,4110843377,-;PC: 273137 items/s 273028 kicks/s 0 sleeps/s 4 intrs/s 409 sc 13 spkicks/s 2003 wc 984 nc 6058 latency 0 yc
+4,1775,4115843883,-;PC: 272286 items/s 272128 kicks/s 0 sleeps/s 3 intrs/s 411 sc 15 spkicks/s 2003 wc 991 nc 6072 latency 0 yc
+4,1776,4120844388,-;PC: 273152 items/s 272930 kicks/s 0 sleeps/s 4 intrs/s 410 sc 21 spkicks/s 2003 wc 970 nc 6059 latency 0 yc
+4,1777,4125844893,-;PC: 272967 items/s 272746 kicks/s 0 sleeps/s 4 intrs/s 410 sc 25 spkicks/s 2003 wc 997 nc 6062 latency 0 yc
+4,1778,4130845396,-;PC: 273093 items/s 272921 kicks/s 0 sleeps/s 4 intrs/s 411 sc 21 spkicks/s 2003 wc 1000 nc 6061 latency 0 yc
+4,1779,4135845906,-;PC: 273071 items/s 272928 kicks/s 0 sleeps/s 4 intrs/s 410 sc 24 spkicks/s 2003 wc 982 nc 6060 latency 0 yc
+4,1780,4140560757,-;virtpc: STOP
+4,1781,4140654004,-;virtpc: set Wp=2548ns
+4,1782,4145654510,-;PC: 276718 items/s 259014 kicks/s 0 sleeps/s 4 intrs/s 428 sc 452 spkicks/s 2003 wc 1002 nc 6007 latency 0 yc
+4,1783,4150655017,-;PC: 272071 items/s 271977 kicks/s 0 sleeps/s 3 intrs/s 410 sc 12 spkicks/s 2003 wc 1005 nc 6074 latency 0 yc
+4,1784,4155655523,-;PC: 271896 items/s 271804 kicks/s 0 sleeps/s 4 intrs/s 411 sc 7 spkicks/s 2003 wc 985 nc 6077 latency 0 yc
+4,1785,4160656027,-;PC: 272240 items/s 272124 kicks/s 0 sleeps/s 4 intrs/s 410 sc 11 spkicks/s 2003 wc 993 nc 6072 latency 0 yc
+4,1786,4165656531,-;PC: 272230 items/s 272034 kicks/s 0 sleeps/s 4 intrs/s 410 sc 9 spkicks/s 2003 wc 972 nc 6072 latency 0 yc
+4,1787,4170657036,-;PC: 272331 items/s 272078 kicks/s 0 sleeps/s 3 intrs/s 411 sc 15 spkicks/s 2003 wc 996 nc 6072 latency 0 yc
+4,1788,4175657539,-;PC: 272291 items/s 272085 kicks/s 0 sleeps/s 4 intrs/s 410 sc 16 spkicks/s 2003 wc 966 nc 6070 latency 0 yc
+4,1789,4180658044,-;PC: 272078 items/s 271917 kicks/s 0 sleeps/s 4 intrs/s 411 sc 10 spkicks/s 2003 wc 986 nc 6074 latency 0 yc
+4,1790,4185658548,-;PC: 273375 items/s 268928 kicks/s 0 sleeps/s 4 intrs/s 414 sc 99 spkicks/s 2003 wc 1008 nc 6054 latency 0 yc
+4,1791,4190659051,-;PC: 274941 items/s 265899 kicks/s 0 sleeps/s 4 intrs/s 420 sc 224 spkicks/s 2003 wc 975 nc 6034 latency 0 yc
+4,1792,4195659556,-;PC: 271563 items/s 271448 kicks/s 0 sleeps/s 4 intrs/s 410 sc 7 spkicks/s 2003 wc 1008 nc 6081 latency 0 yc
+4,1793,4200374416,-;virtpc: STOP
+4,1794,4200467615,-;virtpc: set Wp=2558ns
+4,1795,4205468119,-;PC: 271546 items/s 271441 kicks/s 0 sleeps/s 4 intrs/s 409 sc 4 spkicks/s 2003 wc 1003 nc 6081 latency 0 yc
+4,1796,4210468622,-;PC: 270702 items/s 270578 kicks/s 0 sleeps/s 4 intrs/s 411 sc 7 spkicks/s 2003 wc 1018 nc 6094 latency 0 yc
+4,1797,4215469128,-;PC: 271332 items/s 271126 kicks/s 0 sleeps/s 4 intrs/s 411 sc 9 spkicks/s 2003 wc 1007 nc 6082 latency 0 yc
+4,1798,4220469631,-;PC: 271547 items/s 271311 kicks/s 0 sleeps/s 4 intrs/s 411 sc 16 spkicks/s 2003 wc 1006 nc 6081 latency 0 yc
+4,1799,4225470135,-;PC: 271561 items/s 271391 kicks/s 0 sleeps/s 4 intrs/s 409 sc 11 spkicks/s 2003 wc 996 nc 6079 latency 0 yc
+4,1800,4230470641,-;PC: 273244 items/s 266442 kicks/s 0 sleeps/s 4 intrs/s 417 sc 541 spkicks/s 2003 wc 972 nc 6054 latency 0 yc
+4,1801,4235471145,-;PC: 271404 items/s 271292 kicks/s 0 sleeps/s 4 intrs/s 410 sc 8 spkicks/s 2003 wc 1004 nc 6082 latency 0 yc
+4,1802,4240471649,-;PC: 271502 items/s 271402 kicks/s 0 sleeps/s 4 intrs/s 410 sc 7 spkicks/s 2003 wc 982 nc 6081 latency 0 yc
+4,1803,4245472152,-;PC: 271455 items/s 271317 kicks/s 0 sleeps/s 4 intrs/s 409 sc 9 spkicks/s 2003 wc 979 nc 6082 latency 0 yc
+4,1804,4250472657,-;PC: 271456 items/s 271339 kicks/s 0 sleeps/s 4 intrs/s 410 sc 4 spkicks/s 2004 wc 997 nc 6083 latency 0 yc
+4,1805,4255473162,-;PC: 271431 items/s 271303 kicks/s 0 sleeps/s 3 intrs/s 410 sc 8 spkicks/s 2004 wc 996 nc 6082 latency 0 yc
+4,1806,4260188026,-;virtpc: STOP
+4,1807,4260281179,-;virtpc: set Wp=2567ns
+4,1808,4265281687,-;PC: 270141 items/s 269925 kicks/s 0 sleeps/s 4 intrs/s 410 sc 10 spkicks/s 2003 wc 955 nc 6092 latency 0 yc
+4,1809,4270282191,-;PC: 270734 items/s 270522 kicks/s 0 sleeps/s 4 intrs/s 411 sc 15 spkicks/s 2003 wc 1015 nc 6092 latency 0 yc
+4,1810,4275282697,-;PC: 271467 items/s 269073 kicks/s 0 sleeps/s 3 intrs/s 414 sc 399 spkicks/s 2003 wc 975 nc 6081 latency 0 yc
+4,1811,4280283201,-;PC: 270819 items/s 270693 kicks/s 0 sleeps/s 4 intrs/s 411 sc 9 spkicks/s 2003 wc 1011 nc 6091 latency 0 yc
+4,1812,4285283705,-;PC: 270487 items/s 270379 kicks/s 0 sleeps/s 4 intrs/s 409 sc 7 spkicks/s 2003 wc 998 nc 6091 latency 0 yc
+4,1813,4290284209,-;PC: 270831 items/s 270738 kicks/s 0 sleeps/s 4 intrs/s 408 sc 5 spkicks/s 2003 wc 981 nc 6089 latency 0 yc
+4,1814,4295284712,-;PC: 270795 items/s 270681 kicks/s 0 sleeps/s 4 intrs/s 410 sc 4 spkicks/s 2003 wc 955 nc 6091 latency 0 yc
+4,1815,4300285217,-;PC: 270719 items/s 270608 kicks/s 0 sleeps/s 4 intrs/s 411 sc 4 spkicks/s 2004 wc 977 nc 6093 latency 0 yc
+4,1816,4305285721,-;PC: 270802 items/s 270689 kicks/s 0 sleeps/s 4 intrs/s 410 sc 5 spkicks/s 2003 wc 1007 nc 6090 latency 0 yc
+4,1817,4310286227,-;PC: 270930 items/s 270783 kicks/s 0 sleeps/s 4 intrs/s 410 sc 6 spkicks/s 2003 wc 998 nc 6090 latency 0 yc
+4,1818,4315286734,-;PC: 273916 items/s 261442 kicks/s 0 sleeps/s 4 intrs/s 425 sc 1491 spkicks/s 2003 wc 1005 nc 6044 latency 0 yc
+4,1819,4320001593,-;virtpc: STOP
+4,1820,4320094777,-;virtpc: set Wp=2577ns
+4,1821,4325095282,-;PC: 270244 items/s 270124 kicks/s 0 sleeps/s 4 intrs/s 409 sc 8 spkicks/s 2003 wc 1023 nc 6098 latency 0 yc
+4,1822,4330095787,-;PC: 270101 items/s 270003 kicks/s 0 sleeps/s 4 intrs/s 410 sc 5 spkicks/s 2003 wc 1013 nc 6099 latency 0 yc
+4,1823,4335096293,-;PC: 270007 items/s 269916 kicks/s 0 sleeps/s 3 intrs/s 410 sc 6 spkicks/s 2003 wc 1011 nc 6101 latency 0 yc
+4,1824,4340096797,-;PC: 270166 items/s 270072 kicks/s 0 sleeps/s 4 intrs/s 410 sc 4 spkicks/s 2003 wc 965 nc 6099 latency 0 yc
+4,1825,4345097300,-;PC: 270157 items/s 270047 kicks/s 0 sleeps/s 4 intrs/s 407 sc 5 spkicks/s 2003 wc 976 nc 6097 latency 0 yc
+4,1826,4350097806,-;PC: 269616 items/s 269525 kicks/s 0 sleeps/s 3 intrs/s 410 sc 4 spkicks/s 2003 wc 988 nc 6108 latency 0 yc
+4,1827,4355098311,-;PC: 270000 items/s 269793 kicks/s 0 sleeps/s 4 intrs/s 410 sc 5 spkicks/s 2003 wc 1024 nc 6179 latency 0 yc
+4,1828,4360098818,-;PC: 273200 items/s 261734 kicks/s 0 sleeps/s 4 intrs/s 424 sc 2174 spkicks/s 2003 wc 991 nc 6052 latency 0 yc
+4,1829,4365099324,-;PC: 270248 items/s 270050 kicks/s 0 sleeps/s 3 intrs/s 408 sc 11 spkicks/s 2003 wc 1015 nc 6096 latency 0 yc
+4,1830,4370099830,-;PC: 269969 items/s 269758 kicks/s 0 sleeps/s 4 intrs/s 410 sc 17 spkicks/s 2003 wc 974 nc 6102 latency 0 yc
+4,1831,4375100334,-;PC: 270160 items/s 270029 kicks/s 0 sleeps/s 4 intrs/s 410 sc 9 spkicks/s 2003 wc 1026 nc 6099 latency 0 yc
+4,1832,4379815188,-;virtpc: STOP
+4,1833,4379908449,-;virtpc: set Wp=2587ns
+4,1834,4384908956,-;PC: 269279 items/s 269194 kicks/s 0 sleeps/s 4 intrs/s 408 sc 9 spkicks/s 2003 wc 1011 nc 6110 latency 0 yc
+4,1835,4389909462,-;PC: 269418 items/s 269322 kicks/s 0 sleeps/s 4 intrs/s 409 sc 9 spkicks/s 2003 wc 992 nc 6109 latency 0 yc
+4,1836,4394909968,-;PC: 269412 items/s 269315 kicks/s 0 sleeps/s 3 intrs/s 409 sc 9 spkicks/s 2003 wc 969 nc 6109 latency 0 yc
+4,1837,4399910474,-;PC: 269417 items/s 269311 kicks/s 0 sleeps/s 4 intrs/s 409 sc 8 spkicks/s 2003 wc 986 nc 6110 latency 0 yc
+4,1838,4404910977,-;PC: 269842 items/s 265513 kicks/s 0 sleeps/s 4 intrs/s 414 sc 1031 spkicks/s 2003 wc 961 nc 6100 latency 0 yc
+4,1839,4409911481,-;PC: 269158 items/s 268997 kicks/s 0 sleeps/s 4 intrs/s 410 sc 10 spkicks/s 2003 wc 981 nc 6114 latency 0 yc
+4,1840,4414911986,-;PC: 269462 items/s 269252 kicks/s 0 sleeps/s 4 intrs/s 410 sc 14 spkicks/s 2003 wc 1016 nc 6109 latency 0 yc
+4,1841,4419912492,-;PC: 269507 items/s 269338 kicks/s 0 sleeps/s 4 intrs/s 409 sc 14 spkicks/s 2003 wc 980 nc 6108 latency 0 yc
+4,1842,4424912998,-;PC: 269237 items/s 269123 kicks/s 0 sleeps/s 3 intrs/s 395 sc 7 spkicks/s 2003 wc 1040 nc 6099 latency 0 yc
+4,1843,4429913505,-;PC: 269362 items/s 269257 kicks/s 0 sleeps/s 4 intrs/s 409 sc 10 spkicks/s 2003 wc 1010 nc 6109 latency 0 yc
+4,1844,4434914010,-;PC: 269121 items/s 269039 kicks/s 0 sleeps/s 4 intrs/s 409 sc 7 spkicks/s 2003 wc 1007 nc 6113 latency 0 yc
+4,1845,4439628864,-;virtpc: STOP
+4,1846,4439722055,-;virtpc: set Wp=2597ns
+4,1847,4444722562,-;PC: 267957 items/s 267874 kicks/s 0 sleeps/s 4 intrs/s 410 sc 1 spkicks/s 2003 wc 1018 nc 6130 latency 0 yc
+4,1848,4449723066,-;PC: 268550 items/s 268282 kicks/s 0 sleeps/s 4 intrs/s 408 sc 97 spkicks/s 2003 wc 997 nc 6121 latency 0 yc
+4,1849,4454723570,-;PC: 268391 items/s 268283 kicks/s 0 sleeps/s 4 intrs/s 410 sc 7 spkicks/s 2003 wc 993 nc 6124 latency 0 yc
+4,1850,4459724076,-;PC: 268498 items/s 268342 kicks/s 0 sleeps/s 3 intrs/s 410 sc 6 spkicks/s 2003 wc 981 nc 6122 latency 0 yc
+4,1851,4464724579,-;PC: 268441 items/s 268239 kicks/s 0 sleeps/s 4 intrs/s 409 sc 8 spkicks/s 2003 wc 987 nc 6122 latency 0 yc
+4,1852,4469725082,-;PC: 268564 items/s 268413 kicks/s 0 sleeps/s 4 intrs/s 407 sc 7 spkicks/s 2003 wc 977 nc 6118 latency 0 yc
+4,1853,4474725585,-;PC: 268727 items/s 268630 kicks/s 0 sleeps/s 4 intrs/s 408 sc 4 spkicks/s 2003 wc 988 nc 6117 latency 0 yc
+4,1854,4479726090,-;PC: 268836 items/s 268744 kicks/s 0 sleeps/s 3 intrs/s 409 sc 1 spkicks/s 2003 wc 993 nc 6115 latency 0 yc
+4,1855,4484726594,-;PC: 268432 items/s 268362 kicks/s 0 sleeps/s 4 intrs/s 409 sc 2 spkicks/s 2003 wc 998 nc 6122 latency 0 yc
+4,1856,4489727100,-;PC: 271255 items/s 261091 kicks/s 0 sleeps/s 4 intrs/s 425 sc 1022 spkicks/s 2003 wc 1009 nc 6085 latency 0 yc
+4,1857,4494727604,-;PC: 268715 items/s 268612 kicks/s 0 sleeps/s 4 intrs/s 408 sc 3 spkicks/s 2003 wc 974 nc 6119 latency 0 yc
+4,1858,4499442467,-;virtpc: STOP
+4,1859,4499535616,-;virtpc: set Wp=2607ns
+4,1860,4504536121,-;PC: 267813 items/s 267711 kicks/s 0 sleeps/s 4 intrs/s 411 sc 4 spkicks/s 2003 wc 1019 nc 6133 latency 0 yc
+4,1861,4509536626,-;PC: 267982 items/s 267816 kicks/s 0 sleeps/s 4 intrs/s 409 sc 8 spkicks/s 2003 wc 983 nc 6129 latency 0 yc
+4,1862,4514537133,-;PC: 267126 items/s 266940 kicks/s 0 sleeps/s 4 intrs/s 411 sc 7 spkicks/s 2003 wc 985 nc 6135 latency 0 yc
+4,1863,4519537638,-;PC: 267973 items/s 267721 kicks/s 0 sleeps/s 3 intrs/s 410 sc 9 spkicks/s 2003 wc 1045 nc 6206 latency 0 yc
+4,1864,4524538143,-;PC: 267977 items/s 267892 kicks/s 0 sleeps/s 4 intrs/s 411 sc 4 spkicks/s 2003 wc 1023 nc 6131 latency 0 yc
+4,1865,4529538648,-;PC: 268509 items/s 266335 kicks/s 0 sleeps/s 3 intrs/s 412 sc 86 spkicks/s 2003 wc 1010 nc 6122 latency 0 yc
+4,1866,4534539151,-;PC: 268883 items/s 264792 kicks/s 0 sleeps/s 4 intrs/s 418 sc 166 spkicks/s 2003 wc 1001 nc 6119 latency 0 yc
+4,1867,4539539655,-;PC: 267736 items/s 267648 kicks/s 0 sleeps/s 4 intrs/s 409 sc 1 spkicks/s 2003 wc 994 nc 6131 latency 0 yc
+4,1868,4544540161,-;PC: 267963 items/s 267871 kicks/s 0 sleeps/s 4 intrs/s 410 sc 4 spkicks/s 2003 wc 967 nc 6130 latency 0 yc
+4,1869,4549540667,-;PC: 267936 items/s 267832 kicks/s 0 sleeps/s 3 intrs/s 408 sc 2 spkicks/s 2003 wc 989 nc 6130 latency 0 yc
+4,1870,4554541175,-;PC: 267961 items/s 267856 kicks/s 0 sleeps/s 3 intrs/s 410 sc 4 spkicks/s 2003 wc 983 nc 6130 latency 0 yc
+4,1871,4559256027,-;virtpc: STOP
+4,1872,4559349442,-;virtpc: set Wp=2617ns
+4,1873,4564349948,-;PC: 267358 items/s 267154 kicks/s 0 sleeps/s 4 intrs/s 409 sc 9 spkicks/s 2003 wc 1016 nc 6138 latency 0 yc
+4,1874,4569350452,-;PC: 266927 items/s 266656 kicks/s 0 sleeps/s 4 intrs/s 408 sc 10 spkicks/s 2003 wc 1046 nc 6216 latency 0 yc
+4,1875,4574350958,-;PC: 267899 items/s 264944 kicks/s 0 sleeps/s 4 intrs/s 415 sc 61 spkicks/s 2003 wc 982 nc 6131 latency 0 yc
+4,1876,4579351463,-;PC: 267278 items/s 267173 kicks/s 0 sleeps/s 4 intrs/s 410 sc 4 spkicks/s 2003 wc 1001 nc 6139 latency 0 yc
+4,1877,4584351968,-;PC: 267322 items/s 267190 kicks/s 0 sleeps/s 3 intrs/s 407 sc 3 spkicks/s 2003 wc 1040 nc 6143 latency 0 yc
+4,1878,4589352476,-;PC: 267096 items/s 266997 kicks/s 0 sleeps/s 4 intrs/s 408 sc 3 spkicks/s 2003 wc 1034 nc 6137 latency 0 yc
+4,1879,4594352981,-;PC: 267287 items/s 267177 kicks/s 0 sleeps/s 3 intrs/s 408 sc 4 spkicks/s 2003 wc 1042 nc 6138 latency 0 yc
+4,1880,4599353487,-;PC: 267304 items/s 267197 kicks/s 0 sleeps/s 4 intrs/s 409 sc 3 spkicks/s 2003 wc 1087 nc 6139 latency 0 yc
+4,1881,4604353993,-;PC: 267292 items/s 267188 kicks/s 0 sleeps/s 3 intrs/s 409 sc 4 spkicks/s 2003 wc 1023 nc 6138 latency 0 yc
+4,1882,4609354497,-;PC: 267122 items/s 266863 kicks/s 0 sleeps/s 4 intrs/s 406 sc 8 spkicks/s 2003 wc 1049 nc 6207 latency 0 yc
+4,1883,4614355009,-;PC: 267437 items/s 267116 kicks/s 0 sleeps/s 4 intrs/s 405 sc 10 spkicks/s 2003 wc 1054 nc 6202 latency 0 yc
+4,1884,4619069855,-;virtpc: STOP
+4,1885,4619163053,-;virtpc: set Wp=2627ns
+4,1886,4624163561,-;PC: 265238 items/s 265153 kicks/s 0 sleeps/s 4 intrs/s 410 sc 4 spkicks/s 2003 wc 998 nc 6167 latency 0 yc
+4,1887,4629164066,-;PC: 266239 items/s 266161 kicks/s 0 sleeps/s 4 intrs/s 410 sc 5 spkicks/s 2003 wc 1013 nc 6153 latency 0 yc
+4,1888,4634164570,-;PC: 266461 items/s 266397 kicks/s 0 sleeps/s 4 intrs/s 410 sc 2 spkicks/s 2003 wc 1009 nc 6150 latency 0 yc
+4,1889,4639165076,-;PC: 266467 items/s 266398 kicks/s 0 sleeps/s 4 intrs/s 410 sc 3 spkicks/s 2003 wc 990 nc 6152 latency 0 yc
+4,1890,4644165581,-;PC: 266288 items/s 266189 kicks/s 0 sleeps/s 4 intrs/s 410 sc 2 spkicks/s 2003 wc 973 nc 6154 latency 0 yc
+4,1891,4649166086,-;PC: 266525 items/s 266422 kicks/s 0 sleeps/s 3 intrs/s 408 sc 3 spkicks/s 2004 wc 978 nc 6149 latency 0 yc
+4,1892,4654166589,-;PC: 266485 items/s 266376 kicks/s 0 sleeps/s 4 intrs/s 410 sc 5 spkicks/s 2003 wc 996 nc 6152 latency 0 yc
+4,1893,4659167095,-;PC: 268464 items/s 261547 kicks/s 0 sleeps/s 3 intrs/s 422 sc 87 spkicks/s 2003 wc 987 nc 6127 latency 0 yc
+4,1894,4664167599,-;PC: 267161 items/s 264766 kicks/s 0 sleeps/s 4 intrs/s 415 sc 33 spkicks/s 2003 wc 1019 nc 6702 latency 0 yc
+4,1895,4669168103,-;PC: 266613 items/s 266270 kicks/s 0 sleeps/s 4 intrs/s 409 sc 9 spkicks/s 2003 wc 1026 nc 6768 latency 0 yc
+4,1896,4674168608,-;PC: 266355 items/s 266258 kicks/s 0 sleeps/s 4 intrs/s 412 sc 6 spkicks/s 2003 wc 1028 nc 6154 latency 0 yc
+4,1897,4678883468,-;virtpc: STOP
+4,1898,4678976847,-;virtpc: set Wp=2637ns
+4,1899,4683977354,-;PC: 265774 items/s 265704 kicks/s 0 sleeps/s 4 intrs/s 410 sc 3 spkicks/s 2003 wc 1038 nc 6160 latency 0 yc
+4,1900,4688977860,-;PC: 265827 items/s 265757 kicks/s 0 sleeps/s 3 intrs/s 409 sc 3 spkicks/s 2003 wc 987 nc 6159 latency 0 yc
+4,1901,4693978366,-;PC: 265772 items/s 265672 kicks/s 0 sleeps/s 3 intrs/s 410 sc 1 spkicks/s 2003 wc 962 nc 6161 latency 0 yc
+4,1902,4698978869,-;PC: 265824 items/s 265713 kicks/s 0 sleeps/s 4 intrs/s 410 sc 1 spkicks/s 2004 wc 991 nc 6161 latency 0 yc
+4,1903,4703979373,-;PC: 267557 items/s 261796 kicks/s 0 sleeps/s 4 intrs/s 421 sc 74 spkicks/s 2003 wc 1010 nc 6140 latency 0 yc
+4,1904,4708979879,-;PC: 265310 items/s 265203 kicks/s 0 sleeps/s 3 intrs/s 409 sc 2 spkicks/s 2003 wc 989 nc 6166 latency 0 yc
+4,1905,4713980382,-;PC: 265590 items/s 265406 kicks/s 0 sleeps/s 4 intrs/s 411 sc 4 spkicks/s 2003 wc 980 nc 6163 latency 0 yc
+4,1906,4718980888,-;PC: 265874 items/s 265694 kicks/s 0 sleeps/s 3 intrs/s 411 sc 8 spkicks/s 2003 wc 1004 nc 6161 latency 0 yc
+4,1907,4723981393,-;PC: 265791 items/s 265694 kicks/s 0 sleeps/s 3 intrs/s 411 sc 5 spkicks/s 2003 wc 970 nc 6162 latency 0 yc
+4,1908,4728981899,-;PC: 265619 items/s 265434 kicks/s 0 sleeps/s 3 intrs/s 409 sc 3 spkicks/s 2003 wc 1009 nc 6226 latency 0 yc
+4,1909,4733982408,-;PC: 265734 items/s 265656 kicks/s 0 sleeps/s 4 intrs/s 411 sc 3 spkicks/s 2003 wc 988 nc 6162 latency 0 yc
+4,1910,4738697259,-;virtpc: STOP
+4,1911,4738790400,-;virtpc: set Wp=2647ns
+4,1912,4743790905,-;PC: 264527 items/s 264427 kicks/s 0 sleeps/s 4 intrs/s 410 sc 2 spkicks/s 2003 wc 1006 nc 6179 latency 0 yc
+4,1913,4748791412,-;PC: 265840 items/s 263080 kicks/s 0 sleeps/s 3 intrs/s 416 sc 15 spkicks/s 2003 wc 980 nc 6163 latency 0 yc
+4,1914,4753791916,-;PC: 265072 items/s 265003 kicks/s 0 sleeps/s 4 intrs/s 409 sc 2 spkicks/s 2004 wc 983 nc 6169 latency 0 yc
+4,1915,4758792421,-;PC: 265091 items/s 265010 kicks/s 0 sleeps/s 4 intrs/s 411 sc 2 spkicks/s 2003 wc 958 nc 6172 latency 0 yc
+4,1916,4763792924,-;PC: 264086 items/s 263913 kicks/s 0 sleeps/s 4 intrs/s 411 sc 3 spkicks/s 2003 wc 1005 nc 6180 latency 0 yc
+4,1917,4768793430,-;PC: 265218 items/s 265036 kicks/s 0 sleeps/s 3 intrs/s 410 sc 5 spkicks/s 2003 wc 970 nc 6169 latency 0 yc
+4,1918,4773793936,-;PC: 265143 items/s 265036 kicks/s 0 sleeps/s 3 intrs/s 409 sc 7 spkicks/s 2003 wc 992 nc 6169 latency 0 yc
+4,1919,4778794440,-;PC: 264904 items/s 264816 kicks/s 0 sleeps/s 4 intrs/s 410 sc 2 spkicks/s 2003 wc 1022 nc 6174 latency 0 yc
+4,1920,4783794943,-;PC: 264999 items/s 264926 kicks/s 0 sleeps/s 4 intrs/s 411 sc 3 spkicks/s 2003 wc 1006 nc 6172 latency 0 yc
+4,1921,4788795447,-;PC: 268463 items/s 257086 kicks/s 0 sleeps/s 4 intrs/s 432 sc 75 spkicks/s 2003 wc 1005 nc 6130 latency 0 yc
+4,1922,4793795952,-;PC: 265183 items/s 265037 kicks/s 0 sleeps/s 3 intrs/s 408 sc 4 spkicks/s 2003 wc 1015 nc 6167 latency 0 yc
+4,1923,4798510815,-;virtpc: STOP
+4,1924,4798604063,-;virtpc: set Wp=2657ns
+4,1925,4803604568,-;PC: 264440 items/s 264071 kicks/s 0 sleeps/s 4 intrs/s 410 sc 2 spkicks/s 2004 wc 1034 nc 6756 latency 0 yc
+4,1926,4808605074,-;PC: 264502 items/s 264247 kicks/s 0 sleeps/s 4 intrs/s 412 sc 2 spkicks/s 2003 wc 1032 nc 6804 latency 0 yc
+4,1927,4813605581,-;PC: 264544 items/s 264027 kicks/s 0 sleeps/s 3 intrs/s 408 sc 2 spkicks/s 2003 wc 1070 nc 6684 latency 0 yc
+4,1928,4818606087,-;PC: 263523 items/s 263342 kicks/s 0 sleeps/s 3 intrs/s 411 sc 7 spkicks/s 2003 wc 999 nc 6183 latency 0 yc
+4,1929,4823606590,-;PC: 264420 items/s 264306 kicks/s 0 sleeps/s 4 intrs/s 411 sc 8 spkicks/s 2003 wc 992 nc 6181 latency 0 yc
+4,1930,4828607095,-;PC: 264503 items/s 264407 kicks/s 0 sleeps/s 3 intrs/s 410 sc 6 spkicks/s 2003 wc 979 nc 6178 latency 0 yc
+4,1931,4833607601,-;PC: 266270 items/s 259385 kicks/s 0 sleeps/s 4 intrs/s 421 sc 19 spkicks/s 2003 wc 1060 nc 6219 latency 0 yc
+4,1932,4838608106,-;PC: 264447 items/s 264276 kicks/s 0 sleeps/s 4 intrs/s 410 sc 2 spkicks/s 2003 wc 1062 nc 6247 latency 0 yc
+4,1933,4843608612,-;PC: 264390 items/s 264294 kicks/s 0 sleeps/s 3 intrs/s 410 sc 6 spkicks/s 2003 wc 1040 nc 6180 latency 0 yc
+4,1934,4848609121,-;PC: 264486 items/s 264367 kicks/s 0 sleeps/s 3 intrs/s 409 sc 4 spkicks/s 2003 wc 1025 nc 6179 latency 0 yc
+4,1935,4853609626,-;PC: 264321 items/s 264225 kicks/s 0 sleeps/s 4 intrs/s 408 sc 3 spkicks/s 2004 wc 1038 nc 6180 latency 0 yc
+4,1936,4858324475,-;virtpc: STOP
+4,1937,4858417641,-;virtpc: set Wp=2667ns
+4,1938,4863418145,-;PC: 263764 items/s 263626 kicks/s 0 sleeps/s 4 intrs/s 410 sc 5 spkicks/s 2003 wc 1056 nc 6189 latency 0 yc
+4,1939,4868418652,-;PC: 263202 items/s 262706 kicks/s 0 sleeps/s 3 intrs/s 408 sc 6 spkicks/s 2003 wc 1074 nc 6770 latency 0 yc
+4,1940,4873419157,-;PC: 264270 items/s 262387 kicks/s 0 sleeps/s 4 intrs/s 411 sc 10 spkicks/s 2003 wc 1037 nc 6722 latency 0 yc
+4,1941,4878419663,-;PC: 264178 items/s 262880 kicks/s 0 sleeps/s 4 intrs/s 412 sc 9 spkicks/s 2003 wc 1084 nc 6247 latency 0 yc
+4,1942,4883420167,-;PC: 263730 items/s 263640 kicks/s 0 sleeps/s 4 intrs/s 411 sc 4 spkicks/s 2003 wc 1028 nc 6191 latency 0 yc
+4,1943,4888420673,-;PC: 263488 items/s 263332 kicks/s 0 sleeps/s 3 intrs/s 410 sc 3 spkicks/s 2003 wc 1057 nc 6251 latency 0 yc
+4,1944,4893421179,-;PC: 263738 items/s 263386 kicks/s 0 sleeps/s 3 intrs/s 408 sc 2 spkicks/s 2003 wc 1039 nc 6736 latency 0 yc
+4,1945,4898421684,-;PC: 263818 items/s 263733 kicks/s 0 sleeps/s 4 intrs/s 414 sc 1 spkicks/s 2003 wc 999 nc 6193 latency 0 yc
+4,1946,4903422190,-;PC: 263813 items/s 263622 kicks/s 0 sleeps/s 4 intrs/s 409 sc 1 spkicks/s 2003 wc 1035 nc 6256 latency 0 yc
+4,1947,4908422694,-;PC: 263835 items/s 263657 kicks/s 0 sleeps/s 4 intrs/s 409 sc 6 spkicks/s 2003 wc 1050 nc 6251 latency 0 yc
+4,1948,4913423205,-;PC: 263838 items/s 263754 kicks/s 0 sleeps/s 3 intrs/s 408 sc 4 spkicks/s 2003 wc 990 nc 6187 latency 0 yc
+4,1949,4918138053,-;virtpc: STOP
+4,1950,4918231245,-;virtpc: set Wp=2677ns
+4,1951,4923231750,-;PC: 262264 items/s 262106 kicks/s 0 sleeps/s 4 intrs/s 411 sc 10 spkicks/s 2003 wc 1047 nc 6211 latency 0 yc
+4,1952,4928232255,-;PC: 263104 items/s 263019 kicks/s 0 sleeps/s 4 intrs/s 410 sc 6 spkicks/s 2003 wc 1034 nc 6200 latency 0 yc
+4,1953,4933232762,-;PC: 263071 items/s 262984 kicks/s 0 sleeps/s 3 intrs/s 408 sc 4 spkicks/s 2003 wc 1054 nc 6197 latency 0 yc
+4,1954,4938233267,-;PC: 262785 items/s 262712 kicks/s 0 sleeps/s 3 intrs/s 410 sc 6 spkicks/s 2003 wc 1043 nc 6203 latency 0 yc
+4,1955,4943233773,-;PC: 262758 items/s 262695 kicks/s 0 sleeps/s 3 intrs/s 410 sc 7 spkicks/s 2003 wc 1018 nc 6203 latency 0 yc
+4,1956,4948234278,-;PC: 262846 items/s 262769 kicks/s 0 sleeps/s 3 intrs/s 410 sc 5 spkicks/s 2003 wc 1018 nc 6203 latency 0 yc
+4,1957,4953234782,-;PC: 263067 items/s 262689 kicks/s 0 sleeps/s 4 intrs/s 408 sc 6 spkicks/s 2003 wc 1038 nc 6744 latency 0 yc
+4,1958,4958235286,-;PC: 264138 items/s 260096 kicks/s 0 sleeps/s 4 intrs/s 416 sc 10 spkicks/s 2003 wc 1048 nc 6682 latency 0 yc
+4,1959,4963235791,-;PC: 264477 items/s 259531 kicks/s 0 sleeps/s 4 intrs/s 419 sc 15 spkicks/s 2003 wc 1003 nc 6686 latency 0 yc
+4,1960,4968236297,-;PC: 263281 items/s 262750 kicks/s 0 sleeps/s 3 intrs/s 408 sc 15 spkicks/s 2003 wc 1075 nc 6785 latency 0 yc
+4,1961,4973236805,-;PC: 262913 items/s 262707 kicks/s 0 sleeps/s 3 intrs/s 408 sc 21 spkicks/s 2003 wc 1009 nc 6200 latency 0 yc
+4,1962,4977951658,-;virtpc: STOP
+4,1963,4978044802,-;virtpc: set Wp=2687ns
+4,1964,4983045307,-;PC: 262368 items/s 262287 kicks/s 0 sleeps/s 4 intrs/s 412 sc 10 spkicks/s 2003 wc 1044 nc 6211 latency 0 yc
+4,1965,4988045811,-;PC: 262387 items/s 262322 kicks/s 0 sleeps/s 4 intrs/s 411 sc 8 spkicks/s 2003 wc 991 nc 6210 latency 0 yc
+4,1966,4993046316,-;PC: 262227 items/s 262170 kicks/s 0 sleeps/s 4 intrs/s 410 sc 5 spkicks/s 2003 wc 997 nc 6211 latency 0 yc
+4,1967,4998046820,-;PC: 262441 items/s 262090 kicks/s 0 sleeps/s 4 intrs/s 409 sc 7 spkicks/s 2003 wc 1028 nc 6738 latency 0 yc
+4,1968,5003047324,-;PC: 264161 items/s 257996 kicks/s 0 sleeps/s 4 intrs/s 420 sc 8 spkicks/s 2003 wc 1044 nc 6185 latency 0 yc
+4,1969,5008047829,-;PC: 261822 items/s 261080 kicks/s 0 sleeps/s 4 intrs/s 412 sc 5 spkicks/s 2004 wc 1019 nc 6211 latency 0 yc
+4,1970,5013048332,-;PC: 262352 items/s 262287 kicks/s 0 sleeps/s 4 intrs/s 410 sc 13 spkicks/s 2003 wc 1019 nc 6208 latency 0 yc
+4,1971,5018048838,-;PC: 262517 items/s 262118 kicks/s 0 sleeps/s 3 intrs/s 410 sc 16 spkicks/s 2003 wc 997 nc 6736 latency 0 yc
+4,1972,5023049344,-;PC: 262421 items/s 262226 kicks/s 0 sleeps/s 3 intrs/s 411 sc 16 spkicks/s 2003 wc 1020 nc 6210 latency 0 yc
+4,1973,5028049848,-;PC: 262192 items/s 262038 kicks/s 0 sleeps/s 4 intrs/s 411 sc 23 spkicks/s 2003 wc 1001 nc 6212 latency 0 yc
+4,1974,5033050354,-;PC: 262319 items/s 262226 kicks/s 0 sleeps/s 3 intrs/s 410 sc 20 spkicks/s 2003 wc 1025 nc 6210 latency 0 yc
+4,1975,5037765214,-;virtpc: STOP
+4,1976,5037858443,-;virtpc: set Wp=2697ns
+4,1977,5042858951,-;PC: 261647 items/s 261432 kicks/s 0 sleeps/s 4 intrs/s 410 sc 7 spkicks/s 2003 wc 1020 nc 7173 latency 0 yc
+4,1978,5047859458,-;PC: 262471 items/s 259827 kicks/s 0 sleeps/s 3 intrs/s 414 sc 9 spkicks/s 2003 wc 984 nc 6209 latency 0 yc
+4,1979,5052859964,-;PC: 261710 items/s 261643 kicks/s 0 sleeps/s 3 intrs/s 410 sc 8 spkicks/s 2003 wc 973 nc 6219 latency 0 yc
+4,1980,5057860471,-;PC: 261772 items/s 261674 kicks/s 0 sleeps/s 3 intrs/s 408 sc 11 spkicks/s 2003 wc 968 nc 6216 latency 0 yc
+4,1981,5062860976,-;PC: 261208 items/s 261150 kicks/s 0 sleeps/s 3 intrs/s 410 sc 4 spkicks/s 2003 wc 968 nc 6226 latency 0 yc
+4,1982,5067861482,-;PC: 261564 items/s 261498 kicks/s 0 sleeps/s 3 intrs/s 409 sc 7 spkicks/s 2003 wc 968 nc 6219 latency 0 yc
+4,1983,5072861984,-;PC: 261873 items/s 261720 kicks/s 0 sleeps/s 4 intrs/s 410 sc 10 spkicks/s 2003 wc 993 nc 6215 latency 0 yc
+4,1984,5077862489,-;PC: 261913 items/s 261750 kicks/s 0 sleeps/s 4 intrs/s 408 sc 18 spkicks/s 2003 wc 979 nc 6213 latency 0 yc
+4,1985,5082862995,-;PC: 261586 items/s 261504 kicks/s 0 sleeps/s 3 intrs/s 410 sc 10 spkicks/s 2003 wc 980 nc 6217 latency 0 yc
+4,1986,5087863500,-;PC: 261780 items/s 261707 kicks/s 0 sleeps/s 3 intrs/s 410 sc 7 spkicks/s 2003 wc 967 nc 6217 latency 0 yc
+4,1987,5092864010,-;PC: 261988 items/s 260939 kicks/s 0 sleeps/s 3 intrs/s 410 sc 6 spkicks/s 2003 wc 975 nc 6213 latency 0 yc
+4,1988,5097578854,-;virtpc: STOP
+4,1989,5097672033,-;virtpc: set Wp=2707ns
+4,1990,5102672541,-;PC: 261012 items/s 260962 kicks/s 0 sleeps/s 4 intrs/s 409 sc 9 spkicks/s 2003 wc 999 nc 6227 latency 0 yc
+4,1991,5107673044,-;PC: 261056 items/s 260871 kicks/s 0 sleeps/s 4 intrs/s 409 sc 8 spkicks/s 2003 wc 1060 nc 6292 latency 0 yc
+4,1992,5112673550,-;PC: 261153 items/s 261069 kicks/s 0 sleeps/s 4 intrs/s 409 sc 7 spkicks/s 2003 wc 1004 nc 6226 latency 0 yc
+4,1993,5117674055,-;PC: 261135 items/s 261067 kicks/s 0 sleeps/s 3 intrs/s 407 sc 10 spkicks/s 2003 wc 1008 nc 6225 latency 0 yc
+4,1994,5122674559,-;PC: 260396 items/s 260298 kicks/s 0 sleeps/s 4 intrs/s 409 sc 9 spkicks/s 2003 wc 984 nc 6232 latency 0 yc
+4,1995,5127675063,-;PC: 260992 items/s 260828 kicks/s 0 sleeps/s 4 intrs/s 409 sc 13 spkicks/s 2003 wc 992 nc 6229 latency 0 yc
+4,1996,5132675569,-;PC: 263433 items/s 255034 kicks/s 0 sleeps/s 3 intrs/s 423 sc 16 spkicks/s 2003 wc 1017 nc 6194 latency 0 yc
+4,1997,5137676075,-;PC: 261177 items/s 261116 kicks/s 0 sleeps/s 3 intrs/s 407 sc 10 spkicks/s 2003 wc 1009 nc 6223 latency 0 yc
+4,1998,5142676578,-;PC: 260954 items/s 260888 kicks/s 0 sleeps/s 4 intrs/s 409 sc 9 spkicks/s 2003 wc 968 nc 6228 latency 0 yc
+4,1999,5147677084,-;PC: 260970 items/s 260916 kicks/s 0 sleeps/s 3 intrs/s 408 sc 10 spkicks/s 2003 wc 995 nc 6227 latency 0 yc
+4,2000,5152677588,-;PC: 260842 items/s 260696 kicks/s 0 sleeps/s 4 intrs/s 409 sc 11 spkicks/s 2003 wc 1001 nc 6292 latency 0 yc
+4,2001,5157392445,-;virtpc: STOP
+4,2002,5157485599,-;virtpc: set Wp=2718ns
+4,2003,5162486104,-;PC: 260356 items/s 260291 kicks/s 0 sleeps/s 4 intrs/s 408 sc 3 spkicks/s 2003 wc 1054 nc 6238 latency 0 yc
+4,2004,5167486609,-;PC: 260262 items/s 260187 kicks/s 0 sleeps/s 4 intrs/s 409 sc 7 spkicks/s 2003 wc 1048 nc 6242 latency 0 yc
+4,2005,5172487113,-;PC: 260319 items/s 260260 kicks/s 0 sleeps/s 4 intrs/s 409 sc 7 spkicks/s 2003 wc 1040 nc 6240 latency 0 yc
+4,2006,5177487618,-;PC: 261791 items/s 255024 kicks/s 0 sleeps/s 3 intrs/s 419 sc 20 spkicks/s 2003 wc 1029 nc 6216 latency 0 yc
+4,2007,5182488124,-;PC: 259725 items/s 259574 kicks/s 0 sleeps/s 3 intrs/s 409 sc 10 spkicks/s 2003 wc 1030 nc 6247 latency 0 yc
+4,2008,5187488630,-;PC: 260192 items/s 260110 kicks/s 0 sleeps/s 4 intrs/s 399 sc 5 spkicks/s 2003 wc 1019 nc 6229 latency 0 yc
+4,2009,5192489134,-;PC: 260451 items/s 260389 kicks/s 0 sleeps/s 4 intrs/s 409 sc 3 spkicks/s 2003 wc 1013 nc 6236 latency 0 yc
+4,2010,5197489640,-;PC: 260363 items/s 260311 kicks/s 0 sleeps/s 3 intrs/s 407 sc 6 spkicks/s 2003 wc 1015 nc 6236 latency 0 yc
+4,2011,5202490146,-;PC: 259818 items/s 259778 kicks/s 0 sleeps/s 3 intrs/s 410 sc 4 spkicks/s 2003 wc 1006 nc 6246 latency 0 yc
+4,2012,5207490651,-;PC: 259945 items/s 259900 kicks/s 0 sleeps/s 4 intrs/s 410 sc 4 spkicks/s 2003 wc 994 nc 6244 latency 0 yc
+4,2013,5212491161,-;PC: 260349 items/s 260179 kicks/s 0 sleeps/s 3 intrs/s 410 sc 4 spkicks/s 2003 wc 1053 nc 6304 latency 0 yc
+4,2014,5217206013,-;virtpc: STOP
+4,2015,5217299265,-;virtpc: set Wp=2728ns
+4,2016,5222299772,-;PC: 260085 items/s 258467 kicks/s 0 sleeps/s 4 intrs/s 412 sc 7 spkicks/s 2003 wc 1021 nc 6243 latency 0 yc
+4,2017,5227300276,-;PC: 259786 items/s 259707 kicks/s 0 sleeps/s 4 intrs/s 410 sc 2 spkicks/s 2003 wc 993 nc 6248 latency 0 yc
+4,2018,5232300782,-;PC: 259782 items/s 259626 kicks/s 0 sleeps/s 3 intrs/s 410 sc 6 spkicks/s 2003 wc 963 nc 6247 latency 0 yc
+4,2019,5237301285,-;PC: 258927 items/s 258800 kicks/s 0 sleeps/s 4 intrs/s 409 sc 12 spkicks/s 2003 wc 1011 nc 6258 latency 0 yc
+4,2020,5242301789,-;PC: 259633 items/s 259575 kicks/s 0 sleeps/s 4 intrs/s 410 sc 6 spkicks/s 2003 wc 994 nc 6249 latency 0 yc
+4,2021,5247302296,-;PC: 259091 items/s 259026 kicks/s 0 sleeps/s 3 intrs/s 410 sc 4 spkicks/s 2003 wc 1027 nc 6256 latency 0 yc
+4,2022,5252302799,-;PC: 259409 items/s 259355 kicks/s 0 sleeps/s 4 intrs/s 410 sc 5 spkicks/s 2003 wc 985 nc 6252 latency 0 yc
+4,2023,5257303302,-;PC: 259387 items/s 259344 kicks/s 0 sleeps/s 4 intrs/s 408 sc 4 spkicks/s 2003 wc 991 nc 6251 latency 0 yc
+4,2024,5262303806,-;PC: 259327 items/s 258263 kicks/s 0 sleeps/s 4 intrs/s 411 sc 8 spkicks/s 2003 wc 1025 nc 6254 latency 0 yc
+4,2025,5267304311,-;PC: 259114 items/s 259022 kicks/s 0 sleeps/s 3 intrs/s 409 sc 3 spkicks/s 2003 wc 996 nc 6258 latency 0 yc
+4,2026,5272304813,-;PC: 259612 items/s 259553 kicks/s 0 sleeps/s 4 intrs/s 409 sc 5 spkicks/s 2004 wc 1002 nc 6250 latency 0 yc
+4,2027,5277019693,-;virtpc: STOP
+4,2028,5277112856,-;virtpc: set Wp=2738ns
+4,2029,5282113362,-;PC: 258752 items/s 258644 kicks/s 0 sleeps/s 4 intrs/s 410 sc 3 spkicks/s 2003 wc 1030 nc 6262 latency 0 yc
+4,2030,5287113867,-;PC: 258179 items/s 258030 kicks/s 0 sleeps/s 4 intrs/s 409 sc 7 spkicks/s 2003 wc 1028 nc 6270 latency 0 yc
+4,2031,5292114372,-;PC: 258706 items/s 258584 kicks/s 0 sleeps/s 3 intrs/s 409 sc 9 spkicks/s 2003 wc 994 nc 6262 latency 0 yc
+4,2032,5297114879,-;PC: 258984 items/s 258822 kicks/s 0 sleeps/s 3 intrs/s 408 sc 5 spkicks/s 2003 wc 1070 nc 6320 latency 0 yc
+4,2033,5302115384,-;PC: 259935 items/s 256622 kicks/s 0 sleeps/s 3 intrs/s 415 sc 20 spkicks/s 2003 wc 1011 nc 6243 latency 0 yc
+4,2034,5307115891,-;PC: 259921 items/s 254911 kicks/s 0 sleeps/s 3 intrs/s 418 sc 30 spkicks/s 2003 wc 1077 nc 6304 latency 0 yc
+4,2035,5312116395,-;PC: 258530 items/s 258382 kicks/s 0 sleeps/s 4 intrs/s 409 sc 1 spkicks/s 2003 wc 1096 nc 6327 latency 0 yc
+4,2036,5317116901,-;PC: 258646 items/s 258599 kicks/s 0 sleeps/s 3 intrs/s 408 sc 0 spkicks/s 2003 wc 1057 nc 6264 latency 0 yc
+4,2037,5322117407,-;PC: 258447 items/s 258393 kicks/s 0 sleeps/s 3 intrs/s 410 sc 0 spkicks/s 2003 wc 1017 nc 6266 latency 0 yc
+4,2038,5327117914,-;PC: 258129 items/s 258110 kicks/s 0 sleeps/s 3 intrs/s 408 sc 1 spkicks/s 2003 wc 995 nc 6269 latency 0 yc
+4,2039,5332118420,-;PC: 258256 items/s 258235 kicks/s 0 sleeps/s 3 intrs/s 407 sc 1 spkicks/s 2003 wc 985 nc 6267 latency 0 yc
+4,2040,5336833269,-;virtpc: STOP
+4,2041,5336926377,-;virtpc: set Wp=2749ns
+4,2042,5341926883,-;PC: 256959 items/s 256937 kicks/s 0 sleeps/s 4 intrs/s 405 sc 0 spkicks/s 2003 wc 1027 nc 6276 latency 0 yc
+4,2043,5346927390,-;PC: 259250 items/s 253530 kicks/s 0 sleeps/s 3 intrs/s 415 sc 64 spkicks/s 2003 wc 1059 nc 6720 latency 0 yc
+4,2044,5351927894,-;PC: 257516 items/s 257493 kicks/s 0 sleeps/s 4 intrs/s 406 sc 0 spkicks/s 2003 wc 996 nc 6277 latency 0 yc
+4,2045,5356928397,-;PC: 257661 items/s 257642 kicks/s 0 sleeps/s 3 intrs/s 405 sc 0 spkicks/s 2003 wc 1000 nc 6274 latency 0 yc
+4,2046,5361928900,-;PC: 257583 items/s 257561 kicks/s 0 sleeps/s 4 intrs/s 403 sc 0 spkicks/s 2003 wc 1033 nc 6271 latency 0 yc
+4,2047,5366929404,-;PC: 257697 items/s 257681 kicks/s 0 sleeps/s 4 intrs/s 405 sc 0 spkicks/s 2003 wc 996 nc 6273 latency 0 yc
+4,2048,5371929907,-;PC: 257774 items/s 257747 kicks/s 0 sleeps/s 3 intrs/s 404 sc 0 spkicks/s 2003 wc 1002 nc 6272 latency 0 yc
+4,2049,5376930412,-;PC: 257891 items/s 257869 kicks/s 0 sleeps/s 3 intrs/s 404 sc 0 spkicks/s 2003 wc 1014 nc 6270 latency 0 yc
+4,2050,5381930916,-;PC: 257829 items/s 257805 kicks/s 0 sleeps/s 4 intrs/s 404 sc 0 spkicks/s 2003 wc 982 nc 6270 latency 0 yc
+4,2051,5386931422,-;PC: 257818 items/s 257799 kicks/s 0 sleeps/s 3 intrs/s 406 sc 0 spkicks/s 2003 wc 971 nc 6273 latency 0 yc
+4,2052,5391931927,-;PC: 258398 items/s 255802 kicks/s 0 sleeps/s 3 intrs/s 410 sc 39 spkicks/s 2003 wc 987 nc 6262 latency 0 yc
+4,2053,5396646790,-;virtpc: STOP
+4,2054,5396739939,-;virtpc: set Wp=2759ns
+4,2055,5401740445,-;PC: 257160 items/s 257134 kicks/s 0 sleeps/s 4 intrs/s 403 sc 1 spkicks/s 2003 wc 1037 nc 6277 latency 0 yc
+4,2056,5406740950,-;PC: 256608 items/s 256548 kicks/s 0 sleeps/s 4 intrs/s 406 sc 2 spkicks/s 2003 wc 1004 nc 6287 latency 0 yc
+4,2057,5411741454,-;PC: 256782 items/s 256749 kicks/s 0 sleeps/s 3 intrs/s 407 sc 1 spkicks/s 2003 wc 1023 nc 6286 latency 0 yc
+4,2058,5416741959,-;PC: 256963 items/s 256920 kicks/s 0 sleeps/s 4 intrs/s 407 sc 1 spkicks/s 2003 wc 1020 nc 6286 latency 0 yc
+4,2059,5421742464,-;PC: 257061 items/s 257032 kicks/s 0 sleeps/s 4 intrs/s 405 sc 1 spkicks/s 2003 wc 965 nc 6284 latency 0 yc
+4,2060,5426742967,-;PC: 256545 items/s 256523 kicks/s 0 sleeps/s 3 intrs/s 407 sc 1 spkicks/s 2003 wc 986 nc 6293 latency 0 yc
+4,2061,5431743473,-;PC: 256981 items/s 256951 kicks/s 0 sleeps/s 3 intrs/s 406 sc 1 spkicks/s 2003 wc 979 nc 6287 latency 0 yc
+4,2062,5436743976,-;PC: 257035 items/s 257006 kicks/s 0 sleeps/s 3 intrs/s 406 sc 2 spkicks/s 2003 wc 972 nc 6286 latency 0 yc
+4,2063,5441744482,-;PC: 256908 items/s 256875 kicks/s 0 sleeps/s 3 intrs/s 405 sc 1 spkicks/s 2003 wc 967 nc 6287 latency 0 yc
+4,2064,5446744987,-;PC: 257015 items/s 256959 kicks/s 0 sleeps/s 4 intrs/s 407 sc 2 spkicks/s 2003 wc 951 nc 6286 latency 0 yc
+4,2065,5451745490,-;PC: 257007 items/s 256927 kicks/s 0 sleeps/s 3 intrs/s 406 sc 4 spkicks/s 2003 wc 983 nc 6286 latency 0 yc
+4,2066,5456460350,-;virtpc: STOP
+4,2067,5456553493,-;virtpc: set Wp=2770ns
+4,2068,5461554001,-;PC: 255801 items/s 255740 kicks/s 0 sleeps/s 4 intrs/s 405 sc 4 spkicks/s 2003 wc 1033 nc 6301 latency 0 yc
+4,2069,5466554509,-;PC: 256123 items/s 256035 kicks/s 0 sleeps/s 3 intrs/s 405 sc 3 spkicks/s 2003 wc 1016 nc 6299 latency 0 yc
+4,2070,5471555013,-;PC: 256321 items/s 256233 kicks/s 0 sleeps/s 3 intrs/s 405 sc 4 spkicks/s 2003 wc 1012 nc 6294 latency 0 yc
+4,2071,5476555519,-;PC: 258773 items/s 250571 kicks/s 0 sleeps/s 3 intrs/s 421 sc 914 spkicks/s 2003 wc 1008 nc 6258 latency 0 yc
+4,2072,5481556030,-;PC: 256081 items/s 256025 kicks/s 0 sleeps/s 3 intrs/s 404 sc 3 spkicks/s 2003 wc 1002 nc 6296 latency 0 yc
+4,2073,5486556536,-;PC: 256421 items/s 256361 kicks/s 0 sleeps/s 3 intrs/s 406 sc 3 spkicks/s 2003 wc 964 nc 6294 latency 0 yc
+4,2074,5491557039,-;PC: 256315 items/s 256243 kicks/s 0 sleeps/s 4 intrs/s 405 sc 4 spkicks/s 2003 wc 1026 nc 6295 latency 0 yc
+4,2075,5496557546,-;PC: 256296 items/s 256221 kicks/s 0 sleeps/s 3 intrs/s 405 sc 3 spkicks/s 2003 wc 983 nc 6297 latency 0 yc
+4,2076,5501558050,-;PC: 256247 items/s 256171 kicks/s 0 sleeps/s 4 intrs/s 408 sc 2 spkicks/s 2003 wc 1041 nc 6301 latency 0 yc
+4,2077,5506558557,-;PC: 256302 items/s 256204 kicks/s 0 sleeps/s 3 intrs/s 410 sc 6 spkicks/s 2003 wc 1021 nc 6300 latency 0 yc
+4,2078,5511559071,-;PC: 256189 items/s 256107 kicks/s 0 sleeps/s 3 intrs/s 410 sc 6 spkicks/s 2003 wc 994 nc 6296 latency 0 yc
+4,2079,5516273913,-;virtpc: STOP
+4,2080,5516367093,-;virtpc: set Wp=2780ns
+4,2081,5521367598,-;PC: 256973 items/s 251696 kicks/s 0 sleeps/s 4 intrs/s 414 sc 1251 spkicks/s 2003 wc 1015 nc 6332 latency 0 yc
+4,2082,5526368104,-;PC: 255832 items/s 255774 kicks/s 0 sleeps/s 3 intrs/s 405 sc 1 spkicks/s 2003 wc 984 nc 6302 latency 0 yc
+4,2083,5531368611,-;PC: 254904 items/s 254839 kicks/s 0 sleeps/s 3 intrs/s 406 sc 1 spkicks/s 2003 wc 1030 nc 6317 latency 0 yc
+4,2084,5536369115,-;PC: 255494 items/s 255410 kicks/s 0 sleeps/s 4 intrs/s 406 sc 4 spkicks/s 2003 wc 994 nc 6310 latency 0 yc
+4,2085,5541369621,-;PC: 255457 items/s 255388 kicks/s 0 sleeps/s 3 intrs/s 405 sc 2 spkicks/s 2003 wc 981 nc 6308 latency 0 yc
+4,2086,5546370125,-;PC: 254938 items/s 254860 kicks/s 0 sleeps/s 4 intrs/s 406 sc 3 spkicks/s 2003 wc 1009 nc 6310 latency 0 yc
+4,2087,5551370630,-;PC: 255247 items/s 255176 kicks/s 0 sleeps/s 3 intrs/s 406 sc 2 spkicks/s 2003 wc 1013 nc 6311 latency 0 yc
+4,2088,5556371133,-;PC: 255514 items/s 255442 kicks/s 0 sleeps/s 3 intrs/s 407 sc 2 spkicks/s 2003 wc 1018 nc 6309 latency 0 yc
+4,2089,5561371638,-;PC: 255767 items/s 254596 kicks/s 0 sleeps/s 3 intrs/s 407 sc 215 spkicks/s 2003 wc 987 nc 6303 latency 0 yc
+4,2090,5566372143,-;PC: 255656 items/s 254140 kicks/s 0 sleeps/s 3 intrs/s 409 sc 300 spkicks/s 2003 wc 1014 nc 6304 latency 0 yc
+4,2091,5571372652,-;PC: 255381 items/s 255310 kicks/s 0 sleeps/s 3 intrs/s 406 sc 3 spkicks/s 2003 wc 1005 nc 6310 latency 0 yc
+4,2092,5576087507,-;virtpc: STOP
+4,2093,5576180633,-;virtpc: set Wp=2791ns
+4,2094,5581181139,-;PC: 254902 items/s 254836 kicks/s 0 sleeps/s 4 intrs/s 405 sc 2 spkicks/s 2003 wc 1030 nc 6316 latency 0 yc
+4,2095,5586181643,-;PC: 254880 items/s 254814 kicks/s 0 sleeps/s 3 intrs/s 406 sc 2 spkicks/s 2003 wc 988 nc 6318 latency 0 yc
+4,2096,5591182148,-;PC: 254644 items/s 254574 kicks/s 0 sleeps/s 3 intrs/s 406 sc 2 spkicks/s 2003 wc 998 nc 6322 latency 0 yc
+4,2097,5596182653,-;PC: 254805 items/s 254740 kicks/s 0 sleeps/s 3 intrs/s 406 sc 3 spkicks/s 2003 wc 994 nc 6320 latency 0 yc
+4,2098,5601183159,-;PC: 254277 items/s 253734 kicks/s 0 sleeps/s 3 intrs/s 407 sc 204 spkicks/s 2003 wc 981 nc 6327 latency 0 yc
+4,2099,5606183664,-;PC: 256778 items/s 247271 kicks/s 0 sleeps/s 3 intrs/s 426 sc 3930 spkicks/s 2003 wc 1014 nc 6279 latency 0 yc
+4,2100,5611184169,-;PC: 254788 items/s 254718 kicks/s 0 sleeps/s 3 intrs/s 407 sc 1 spkicks/s 2003 wc 1012 nc 6320 latency 0 yc
+4,2101,5616184674,-;PC: 254877 items/s 254782 kicks/s 0 sleeps/s 3 intrs/s 406 sc 3 spkicks/s 2003 wc 993 nc 6318 latency 0 yc
+4,2102,5621185179,-;PC: 254567 items/s 254504 kicks/s 0 sleeps/s 3 intrs/s 405 sc 2 spkicks/s 2003 wc 985 nc 6318 latency 0 yc
+4,2103,5626185684,-;PC: 254898 items/s 254832 kicks/s 0 sleeps/s 3 intrs/s 405 sc 2 spkicks/s 2003 wc 951 nc 6316 latency 0 yc
+4,2104,5631186189,-;PC: 254696 items/s 254625 kicks/s 0 sleeps/s 3 intrs/s 407 sc 2 spkicks/s 2003 wc 974 nc 6319 latency 0 yc
+4,2105,5635901047,-;virtpc: STOP
+4,2106,5635994244,-;virtpc: set Wp=2802ns
+4,2107,5640994751,-;PC: 253761 items/s 253703 kicks/s 0 sleeps/s 4 intrs/s 405 sc 2 spkicks/s 2003 wc 997 nc 6334 latency 0 yc
+4,2108,5645995257,-;PC: 254662 items/s 252549 kicks/s 0 sleeps/s 3 intrs/s 411 sc 1314 spkicks/s 2003 wc 1024 nc 6319 latency 0 yc
+4,2109,5650995761,-;PC: 254895 items/s 250777 kicks/s 0 sleeps/s 4 intrs/s 417 sc 2559 spkicks/s 2003 wc 988 nc 6313 latency 0 yc
+4,2110,5655996267,-;PC: 254159 items/s 254094 kicks/s 0 sleeps/s 3 intrs/s 406 sc 2 spkicks/s 2003 wc 992 nc 6330 latency 0 yc
+4,2111,5660996771,-;PC: 254058 items/s 253994 kicks/s 0 sleeps/s 4 intrs/s 405 sc 2 spkicks/s 2003 wc 995 nc 6330 latency 0 yc
+4,2112,5665997276,-;PC: 254022 items/s 253954 kicks/s 0 sleeps/s 3 intrs/s 406 sc 3 spkicks/s 2003 wc 968 nc 6330 latency 0 yc
+4,2113,5670997780,-;PC: 254142 items/s 254051 kicks/s 0 sleeps/s 3 intrs/s 406 sc 3 spkicks/s 2003 wc 954 nc 6329 latency 0 yc
+4,2114,5675998286,-;PC: 254243 items/s 254171 kicks/s 0 sleeps/s 3 intrs/s 406 sc 3 spkicks/s 2003 wc 970 nc 6326 latency 0 yc
+4,2115,5680998789,-;PC: 254205 items/s 254140 kicks/s 0 sleeps/s 3 intrs/s 405 sc 2 spkicks/s 2003 wc 974 nc 6325 latency 0 yc
+4,2116,5685999295,-;PC: 254147 items/s 254082 kicks/s 0 sleeps/s 3 intrs/s 406 sc 3 spkicks/s 2003 wc 996 nc 6328 latency 0 yc
+4,2117,5690999799,-;PC: 254615 items/s 252626 kicks/s 0 sleeps/s 4 intrs/s 412 sc 1228 spkicks/s 2003 wc 984 nc 6320 latency 0 yc
+4,2118,5695714659,-;virtpc: STOP
+4,2119,5695807909,-;virtpc: set Wp=2812ns
+4,2120,5700808416,-;PC: 253527 items/s 253459 kicks/s 0 sleeps/s 4 intrs/s 406 sc 3 spkicks/s 2003 wc 965 nc 6339 latency 0 yc
+4,2121,5705808921,-;PC: 253480 items/s 253413 kicks/s 0 sleeps/s 3 intrs/s 404 sc 3 spkicks/s 2003 wc 985 nc 6338 latency 0 yc
+4,2122,5710809425,-;PC: 253530 items/s 253460 kicks/s 0 sleeps/s 4 intrs/s 405 sc 2 spkicks/s 2003 wc 954 nc 6338 latency 0 yc
+4,2123,5715809931,-;PC: 253526 items/s 253468 kicks/s 0 sleeps/s 3 intrs/s 406 sc 2 spkicks/s 2003 wc 984 nc 6338 latency 0 yc
+4,2124,5720810435,-;PC: 253637 items/s 253579 kicks/s 0 sleeps/s 3 intrs/s 406 sc 2 spkicks/s 2003 wc 983 nc 6336 latency 0 yc
+4,2125,5725810939,-;PC: 253521 items/s 253453 kicks/s 0 sleeps/s 4 intrs/s 404 sc 1 spkicks/s 2003 wc 993 nc 6337 latency 0 yc
+4,2126,5730811444,-;PC: 252836 items/s 252774 kicks/s 0 sleeps/s 3 intrs/s 406 sc 1 spkicks/s 2003 wc 983 nc 6346 latency 0 yc
+4,2127,5735811950,-;PC: 253732 items/s 253070 kicks/s 0 sleeps/s 3 intrs/s 405 sc 389 spkicks/s 2003 wc 985 nc 6415 latency 0 yc
+4,2128,5740812455,-;PC: 253603 items/s 253537 kicks/s 0 sleeps/s 4 intrs/s 406 sc 3 spkicks/s 2003 wc 1030 nc 6336 latency 0 yc
+4,2129,5745812960,-;PC: 253555 items/s 253489 kicks/s 0 sleeps/s 3 intrs/s 404 sc 1 spkicks/s 2003 wc 998 nc 6336 latency 0 yc
+4,2130,5750813465,-;PC: 253809 items/s 253513 kicks/s 0 sleeps/s 3 intrs/s 404 sc 2 spkicks/s 2003 wc 1029 nc 6779 latency 0 yc
+4,2131,5755528320,-;virtpc: STOP
+4,2132,5755621470,-;virtpc: set Wp=2823ns
+4,2133,5760621975,-;PC: 252314 items/s 251927 kicks/s 0 sleeps/s 4 intrs/s 407 sc 2 spkicks/s 2003 wc 1029 nc 6887 latency 0 yc
+4,2134,5765622480,-;PC: 252659 items/s 252600 kicks/s 0 sleeps/s 3 intrs/s 410 sc 2 spkicks/s 2003 wc 994 nc 6357 latency 0 yc
+4,2135,5770622985,-;PC: 252773 items/s 252710 kicks/s 0 sleeps/s 3 intrs/s 411 sc 1 spkicks/s 2003 wc 991 nc 6355 latency 0 yc
+4,2136,5775623491,-;PC: 253246 items/s 250305 kicks/s 0 sleeps/s 3 intrs/s 426 sc 2404 spkicks/s 2003 wc 975 nc 6350 latency 0 yc
+4,2137,5780623996,-;PC: 252716 items/s 252026 kicks/s 0 sleeps/s 3 intrs/s 410 sc 304 spkicks/s 2003 wc 1053 nc 6804 latency 0 yc
+4,2138,5785624503,-;PC: 252606 items/s 252535 kicks/s 0 sleeps/s 3 intrs/s 404 sc 0 spkicks/s 2003 wc 964 nc 6350 latency 0 yc
+4,2139,5790625008,-;PC: 252898 items/s 252603 kicks/s 0 sleeps/s 3 intrs/s 406 sc 4 spkicks/s 2003 wc 1023 nc 6790 latency 0 yc
+4,2140,5795625514,-;PC: 252986 items/s 252527 kicks/s 0 sleeps/s 4 intrs/s 402 sc 2 spkicks/s 2003 wc 1092 nc 7427 latency 0 yc
+4,2141,5800626020,-;PC: 252909 items/s 252831 kicks/s 0 sleeps/s 3 intrs/s 410 sc 3 spkicks/s 2003 wc 982 nc 6353 latency 0 yc
+4,2142,5805626527,-;PC: 252970 items/s 252912 kicks/s 0 sleeps/s 3 intrs/s 409 sc 2 spkicks/s 2003 wc 974 nc 6350 latency 0 yc
+4,2143,5810627031,-;PC: 252998 items/s 252716 kicks/s 0 sleeps/s 4 intrs/s 407 sc 2 spkicks/s 2003 wc 1014 nc 6773 latency 0 yc
+4,2144,5815341882,-;virtpc: STOP
+4,2145,5815435486,-;virtpc: set Wp=2834ns
+4,2146,5820435993,-;PC: 252270 items/s 251429 kicks/s 0 sleeps/s 4 intrs/s 419 sc 690 spkicks/s 2003 wc 986 nc 6368 latency 0 yc
+4,2147,5825436498,-;PC: 251996 items/s 251930 kicks/s 0 sleeps/s 3 intrs/s 405 sc 2 spkicks/s 2003 wc 985 nc 6362 latency 0 yc
+4,2148,5830437003,-;PC: 251311 items/s 251251 kicks/s 0 sleeps/s 3 intrs/s 407 sc 3 spkicks/s 2003 wc 1002 nc 6375 latency 0 yc
+4,2149,5835437510,-;PC: 251881 items/s 251796 kicks/s 0 sleeps/s 3 intrs/s 407 sc 2 spkicks/s 2003 wc 989 nc 6364 latency 0 yc
+4,2150,5840438014,-;PC: 252032 items/s 251954 kicks/s 0 sleeps/s 4 intrs/s 407 sc 1 spkicks/s 2003 wc 971 nc 6362 latency 0 yc
+4,2151,5845438517,-;PC: 251858 items/s 251803 kicks/s 0 sleeps/s 3 intrs/s 406 sc 1 spkicks/s 2003 wc 1012 nc 6362 latency 0 yc
+4,2152,5850439021,-;PC: 251809 items/s 251515 kicks/s 0 sleeps/s 3 intrs/s 406 sc 1 spkicks/s 2003 wc 1050 nc 6813 latency 0 yc
+4,2153,5855439527,-;PC: 251936 items/s 251864 kicks/s 0 sleeps/s 3 intrs/s 406 sc 2 spkicks/s 2003 wc 1008 nc 6364 latency 0 yc
+4,2154,5860440033,-;PC: 251918 items/s 251860 kicks/s 0 sleeps/s 3 intrs/s 407 sc 2 spkicks/s 2003 wc 1006 nc 6361 latency 0 yc
+4,2155,5865440540,-;PC: 252004 items/s 251603 kicks/s 0 sleeps/s 3 intrs/s 410 sc 306 spkicks/s 2003 wc 949 nc 6364 latency 0 yc
+4,2156,5870441046,-;PC: 252043 items/s 251987 kicks/s 0 sleeps/s 3 intrs/s 407 sc 1 spkicks/s 2003 wc 1000 nc 6364 latency 0 yc
+4,2157,5875155898,-;virtpc: STOP
+4,2158,5875249102,-;virtpc: set Wp=2844ns
+4,2159,5880249607,-;PC: 251244 items/s 251188 kicks/s 0 sleeps/s 4 intrs/s 407 sc 2 spkicks/s 2003 wc 1020 nc 6376 latency 0 yc
+4,2160,5885250112,-;PC: 251284 items/s 251225 kicks/s 0 sleeps/s 3 intrs/s 406 sc 2 spkicks/s 2003 wc 989 nc 6374 latency 0 yc
+4,2161,5890250618,-;PC: 251348 items/s 251049 kicks/s 0 sleeps/s 3 intrs/s 406 sc 2 spkicks/s 2003 wc 1056 nc 6803 latency 0 yc
+4,2162,5895251122,-;PC: 250916 items/s 250848 kicks/s 0 sleeps/s 3 intrs/s 407 sc 2 spkicks/s 2003 wc 1024 nc 6372 latency 0 yc
+4,2163,5900251627,-;PC: 251175 items/s 251127 kicks/s 0 sleeps/s 3 intrs/s 407 sc 2 spkicks/s 2003 wc 970 nc 6374 latency 0 yc
+4,2164,5905252131,-;PC: 251437 items/s 251354 kicks/s 0 sleeps/s 4 intrs/s 407 sc 27 spkicks/s 2003 wc 981 nc 6371 latency 0 yc
+4,2165,5910252635,-;PC: 251337 items/s 251259 kicks/s 0 sleeps/s 3 intrs/s 408 sc 18 spkicks/s 2003 wc 984 nc 6374 latency 0 yc
+4,2166,5915253140,-;PC: 251106 items/s 251049 kicks/s 0 sleeps/s 3 intrs/s 407 sc 2 spkicks/s 2003 wc 991 nc 6378 latency 0 yc
+4,2167,5920253646,-;PC: 251375 items/s 251084 kicks/s 0 sleeps/s 3 intrs/s 406 sc 1 spkicks/s 2003 wc 1038 nc 6814 latency 0 yc
+4,2168,5925254153,-;PC: 251509 items/s 251454 kicks/s 0 sleeps/s 3 intrs/s 405 sc 3 spkicks/s 2003 wc 969 nc 6370 latency 0 yc
+4,2169,5930254656,-;PC: 251414 items/s 251351 kicks/s 0 sleeps/s 3 intrs/s 408 sc 2 spkicks/s 2003 wc 981 nc 6374 latency 0 yc
+4,2170,5934969516,-;virtpc: STOP
+4,2171,5935062722,-;virtpc: set Wp=2855ns
+4,2172,5940063230,-;PC: 250761 items/s 250697 kicks/s 0 sleeps/s 4 intrs/s 409 sc 2 spkicks/s 2003 wc 1052 nc 6385 latency 0 yc
+4,2173,5945063734,-;PC: 250704 items/s 250643 kicks/s 0 sleeps/s 3 intrs/s 405 sc 4 spkicks/s 2003 wc 991 nc 6382 latency 0 yc
+4,2174,5950064240,-;PC: 250023 items/s 249824 kicks/s 0 sleeps/s 3 intrs/s 420 sc 88 spkicks/s 2003 wc 1017 nc 6406 latency 0 yc
+4,2175,5955064744,-;PC: 250742 items/s 250683 kicks/s 0 sleeps/s 3 intrs/s 407 sc 2 spkicks/s 2003 wc 1008 nc 6382 latency 0 yc
+4,2176,5960065248,-;PC: 250764 items/s 250707 kicks/s 0 sleeps/s 3 intrs/s 407 sc 1 spkicks/s 2003 wc 1005 nc 6381 latency 0 yc
+4,2177,5965065754,-;PC: 250388 items/s 250323 kicks/s 0 sleeps/s 3 intrs/s 406 sc 1 spkicks/s 2003 wc 986 nc 6387 latency 0 yc
+4,2178,5970066258,-;PC: 250455 items/s 250390 kicks/s 0 sleeps/s 3 intrs/s 407 sc 3 spkicks/s 2003 wc 1020 nc 6389 latency 0 yc
+4,2179,5975066765,-;PC: 250743 items/s 250392 kicks/s 0 sleeps/s 3 intrs/s 406 sc 3 spkicks/s 2003 wc 1045 nc 6830 latency 0 yc
+4,2180,5980067270,-;PC: 250665 items/s 250598 kicks/s 0 sleeps/s 4 intrs/s 407 sc 3 spkicks/s 2003 wc 987 nc 6388 latency 0 yc
+4,2181,5985067778,-;PC: 250710 items/s 250428 kicks/s 0 sleeps/s 3 intrs/s 405 sc 2 spkicks/s 2003 wc 1017 nc 6799 latency 0 yc
+4,2182,5990068283,-;PC: 250632 items/s 250523 kicks/s 0 sleeps/s 3 intrs/s 412 sc 33 spkicks/s 2003 wc 1023 nc 6391 latency 0 yc
+4,2183,5994783134,-;virtpc: STOP
+4,2184,5994876324,-;virtpc: set Wp=2866ns
+4,2185,5999876831,-;PC: 249257 items/s 249197 kicks/s 0 sleeps/s 4 intrs/s 407 sc 2 spkicks/s 2003 wc 1041 nc 6408 latency 0 yc
+4,2186,6004877338,-;PC: 249537 items/s 249461 kicks/s 0 sleeps/s 3 intrs/s 407 sc 2 spkicks/s 2003 wc 1012 nc 6401 latency 0 yc
+4,2187,6009877841,-;PC: 249703 items/s 249634 kicks/s 0 sleeps/s 3 intrs/s 405 sc 1 spkicks/s 2003 wc 999 nc 6397 latency 0 yc
+4,2188,6014878344,-;PC: 249764 items/s 249703 kicks/s 0 sleeps/s 3 intrs/s 408 sc 1 spkicks/s 2003 wc 1010 nc 6398 latency 0 yc
+4,2189,6019878850,-;PC: 249585 items/s 249525 kicks/s 0 sleeps/s 3 intrs/s 406 sc 2 spkicks/s 2003 wc 993 nc 6399 latency 0 yc
+4,2190,6024879356,-;PC: 249593 items/s 249534 kicks/s 0 sleeps/s 3 intrs/s 408 sc 2 spkicks/s 2003 wc 995 nc 6402 latency 0 yc
+4,2191,6029879861,-;PC: 249792 items/s 249742 kicks/s 0 sleeps/s 3 intrs/s 406 sc 2 spkicks/s 2003 wc 976 nc 6398 latency 0 yc
+4,2192,6034880370,-;PC: 249472 items/s 249392 kicks/s 0 sleeps/s 3 intrs/s 412 sc 14 spkicks/s 2003 wc 1008 nc 6406 latency 0 yc
+4,2193,6039880877,-;PC: 249742 items/s 249686 kicks/s 0 sleeps/s 3 intrs/s 406 sc 2 spkicks/s 2003 wc 1033 nc 6399 latency 0 yc
+4,2194,6044881382,-;PC: 249640 items/s 249499 kicks/s 0 sleeps/s 3 intrs/s 406 sc 4 spkicks/s 2003 wc 1052 nc 6423 latency 0 yc
+4,2195,6049881887,-;PC: 249771 items/s 249704 kicks/s 0 sleeps/s 3 intrs/s 405 sc 3 spkicks/s 2003 wc 1027 nc 6397 latency 0 yc
+4,2196,6054596736,-;virtpc: STOP
+4,2197,6054689903,-;virtpc: set Wp=2877ns
+4,2198,6059690409,-;PC: 249220 items/s 249152 kicks/s 0 sleeps/s 4 intrs/s 405 sc 2 spkicks/s 2003 wc 1026 nc 6405 latency 0 yc
+4,2199,6064690913,-;PC: 249514 items/s 249442 kicks/s 0 sleeps/s 3 intrs/s 406 sc 3 spkicks/s 2003 wc 997 nc 6401 latency 0 yc
+4,2200,6069691418,-;PC: 248761 items/s 248694 kicks/s 0 sleeps/s 3 intrs/s 404 sc 2 spkicks/s 2003 wc 987 nc 6408 latency 0 yc
+4,2201,6074691925,-;PC: 249339 items/s 249280 kicks/s 0 sleeps/s 3 intrs/s 406 sc 2 spkicks/s 2003 wc 991 nc 6403 latency 0 yc
+4,2202,6079692430,-;PC: 249205 items/s 249145 kicks/s 0 sleeps/s 3 intrs/s 408 sc 2 spkicks/s 2003 wc 977 nc 6409 latency 0 yc
+4,2203,6084692933,-;PC: 248773 items/s 248725 kicks/s 0 sleeps/s 3 intrs/s 407 sc 2 spkicks/s 2003 wc 990 nc 6415 latency 0 yc
+4,2204,6089693437,-;PC: 249149 items/s 248877 kicks/s 0 sleeps/s 3 intrs/s 404 sc 2 spkicks/s 2003 wc 1051 nc 6847 latency 0 yc
+4,2205,6094693945,-;PC: 249311 items/s 249252 kicks/s 0 sleeps/s 3 intrs/s 407 sc 2 spkicks/s 2003 wc 997 nc 6407 latency 0 yc
+4,2206,6099694452,-;PC: 249264 items/s 249186 kicks/s 0 sleeps/s 3 intrs/s 406 sc 1 spkicks/s 2003 wc 1039 nc 6410 latency 0 yc
+4,2207,6104694956,-;PC: 249215 items/s 249156 kicks/s 0 sleeps/s 3 intrs/s 407 sc 3 spkicks/s 2003 wc 984 nc 6406 latency 0 yc
+4,2208,6109695461,-;PC: 249134 items/s 249083 kicks/s 0 sleeps/s 3 intrs/s 406 sc 3 spkicks/s 2003 wc 998 nc 6408 latency 0 yc
+4,2209,6114410314,-;virtpc: STOP
+4,2210,6114503621,-;virtpc: set Wp=2888ns
+4,2211,6119504126,-;PC: 248716 items/s 248316 kicks/s 0 sleeps/s 4 intrs/s 417 sc 5 spkicks/s 2003 wc 1068 nc 6919 latency 0 yc
+4,2212,6124504630,-;PC: 248710 items/s 248641 kicks/s 0 sleeps/s 3 intrs/s 409 sc 3 spkicks/s 2003 wc 1008 nc 6417 latency 0 yc
+4,2213,6129505134,-;PC: 248305 items/s 248242 kicks/s 0 sleeps/s 3 intrs/s 405 sc 4 spkicks/s 2003 wc 1008 nc 6419 latency 0 yc
+4,2214,6134505637,-;PC: 248386 items/s 248337 kicks/s 0 sleeps/s 3 intrs/s 407 sc 1 spkicks/s 2003 wc 958 nc 6420 latency 0 yc
+4,2215,6139506142,-;PC: 247898 items/s 247840 kicks/s 0 sleeps/s 3 intrs/s 407 sc 4 spkicks/s 2003 wc 994 nc 6429 latency 0 yc
+4,2216,6144506648,-;PC: 248260 items/s 247987 kicks/s 0 sleeps/s 3 intrs/s 406 sc 2 spkicks/s 2003 wc 1007 nc 6836 latency 0 yc
+4,2217,6149507155,-;PC: 248415 items/s 248363 kicks/s 0 sleeps/s 3 intrs/s 405 sc 2 spkicks/s 2003 wc 1014 nc 6419 latency 0 yc
+4,2218,6154507661,-;PC: 248692 items/s 248639 kicks/s 0 sleeps/s 3 intrs/s 407 sc 3 spkicks/s 2003 wc 994 nc 6416 latency 0 yc
+4,2219,6159508165,-;PC: 248173 items/s 248113 kicks/s 0 sleeps/s 3 intrs/s 406 sc 2 spkicks/s 2003 wc 993 nc 6424 latency 0 yc
+4,2220,6164508673,-;PC: 248402 items/s 248322 kicks/s 0 sleeps/s 3 intrs/s 415 sc 4 spkicks/s 2003 wc 1000 nc 6430 latency 0 yc
+4,2221,6169509178,-;PC: 248686 items/s 248625 kicks/s 0 sleeps/s 3 intrs/s 404 sc 1 spkicks/s 2003 wc 993 nc 6414 latency 0 yc
+4,2222,6174224033,-;virtpc: STOP
+4,2223,6174317236,-;virtpc: set Wp=2899ns
+4,2224,6179317744,-;PC: 248169 items/s 247894 kicks/s 0 sleeps/s 3 intrs/s 405 sc 2 spkicks/s 2003 wc 1052 nc 6828 latency 0 yc
+4,2225,6184318250,-;PC: 248152 items/s 248100 kicks/s 0 sleeps/s 3 intrs/s 407 sc 2 spkicks/s 2003 wc 988 nc 6423 latency 0 yc
+4,2226,6189318756,-;PC: 247649 items/s 247588 kicks/s 0 sleeps/s 3 intrs/s 404 sc 2 spkicks/s 2003 wc 998 nc 6422 latency 0 yc
+4,2227,6194319262,-;PC: 247917 items/s 247862 kicks/s 0 sleeps/s 3 intrs/s 406 sc 1 spkicks/s 2003 wc 971 nc 6427 latency 0 yc
+4,2228,6199319765,-;PC: 248152 items/s 248102 kicks/s 0 sleeps/s 3 intrs/s 407 sc 2 spkicks/s 2003 wc 963 nc 6425 latency 0 yc
+4,2229,6204320268,-;PC: 248162 items/s 248114 kicks/s 0 sleeps/s 3 intrs/s 406 sc 2 spkicks/s 2003 wc 973 nc 6425 latency 0 yc
+4,2230,6209320774,-;PC: 248044 items/s 247986 kicks/s 0 sleeps/s 3 intrs/s 409 sc 1 spkicks/s 2003 wc 977 nc 6430 latency 0 yc
+4,2231,6214321276,-;PC: 248061 items/s 248010 kicks/s 0 sleeps/s 3 intrs/s 406 sc 1 spkicks/s 2003 wc 980 nc 6426 latency 0 yc
+4,2232,6219321779,-;PC: 248187 items/s 248121 kicks/s 0 sleeps/s 3 intrs/s 406 sc 2 spkicks/s 2003 wc 1008 nc 6426 latency 0 yc
+4,2233,6224322287,-;PC: 248135 items/s 248089 kicks/s 0 sleeps/s 3 intrs/s 406 sc 1 spkicks/s 2003 wc 984 nc 6425 latency 0 yc
+4,2234,6229322792,-;PC: 248164 items/s 248106 kicks/s 0 sleeps/s 3 intrs/s 405 sc 2 spkicks/s 2003 wc 986 nc 6423 latency 0 yc
+4,2235,6234037648,-;virtpc: STOP
+4,2236,6234130831,-;virtpc: set Wp=2910ns
+4,2237,6239131339,-;PC: 247211 items/s 247142 kicks/s 0 sleeps/s 3 intrs/s 406 sc 1 spkicks/s 2003 wc 1023 nc 6438 latency 0 yc
+4,2238,6244131845,-;PC: 246591 items/s 246536 kicks/s 0 sleeps/s 3 intrs/s 408 sc 2 spkicks/s 2003 wc 996 nc 6441 latency 0 yc
+4,2239,6249132350,-;PC: 246856 items/s 246804 kicks/s 0 sleeps/s 3 intrs/s 406 sc 1 spkicks/s 2003 wc 1006 nc 6443 latency 0 yc
+4,2240,6254132854,-;PC: 247123 items/s 246863 kicks/s 0 sleeps/s 3 intrs/s 408 sc 2 spkicks/s 2003 wc 1013 nc 6851 latency 0 yc
+4,2241,6259133361,-;PC: 247090 items/s 246894 kicks/s 0 sleeps/s 3 intrs/s 411 sc 2 spkicks/s 2003 wc 1052 nc 7076 latency 0 yc
+4,2242,6264133864,-;PC: 246955 items/s 246692 kicks/s 0 sleeps/s 3 intrs/s 410 sc 2 spkicks/s 2003 wc 1008 nc 6881 latency 0 yc
+4,2243,6269134371,-;PC: 246866 items/s 246813 kicks/s 0 sleeps/s 3 intrs/s 407 sc 2 spkicks/s 2003 wc 1022 nc 6446 latency 0 yc
+4,2244,6274134875,-;PC: 247236 items/s 246972 kicks/s 0 sleeps/s 3 intrs/s 408 sc 2 spkicks/s 2003 wc 1032 nc 6846 latency 0 yc
+4,2245,6279135381,-;PC: 247134 items/s 246914 kicks/s 0 sleeps/s 3 intrs/s 406 sc 3 spkicks/s 2003 wc 1050 nc 7064 latency 0 yc
+4,2246,6284135890,-;PC: 247149 items/s 247094 kicks/s 0 sleeps/s 3 intrs/s 408 sc 2 spkicks/s 2003 wc 984 nc 6441 latency 0 yc
+4,2247,6289136395,-;PC: 247178 items/s 247110 kicks/s 0 sleeps/s 3 intrs/s 406 sc 1 spkicks/s 2003 wc 978 nc 6439 latency 0 yc
+4,2248,6293851243,-;virtpc: STOP
