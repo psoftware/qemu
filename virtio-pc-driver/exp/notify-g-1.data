@@ -1,0 +1,3384 @@
++# Taken with idle=poll and halt_poll_ns=0
+4,7334,164794065982,-;virtpc: set Wp=221ns
+4,7335,164794065984,-;virtpc: set Wc=2000ns
+4,7336,164794065985,-;virtpc: set Yp=5000ns
+4,7337,164794065985,-;virtpc: set Yc=5000ns
+4,7338,164794065986,-;virtpc: set D=60ns
+4,7339,164799066324,-;PC: 1204 np 220 wp 0 yp 0 sleeps/s
+4,7340,164804066977,-;PC: 1372 np 220 wp 0 yp 0 sleeps/s
+4,7341,164809066973,-;PC: 1172 np 220 wp 0 yp 0 sleeps/s
+4,7342,164814066967,-;PC: 1222 np 220 wp 0 yp 0 sleeps/s
+4,7343,164819067642,-;PC: 1228 np 220 wp 0 yp 0 sleeps/s
+4,7344,164824067891,-;PC: 1267 np 220 wp 0 yp 0 sleeps/s
+4,7345,164829068522,-;PC: 1781 np 220 wp 0 yp 0 sleeps/s
+4,7346,164834068685,-;PC: 1236 np 220 wp 0 yp 0 sleeps/s
+4,7347,164839068834,-;PC: 1207 np 220 wp 0 yp 0 sleeps/s
+4,7348,164844068924,-;PC: 1158 np 220 wp 0 yp 0 sleeps/s
+4,7349,164849069339,-;PC: 1150 np 220 wp 0 yp 0 sleeps/s
+4,7350,164853780752,-;virtpc: producer stops
+4,7351,164853873571,-;virtpc: set Wp=226ns
+4,7352,164853873573,-;virtpc: set Wc=2000ns
+4,7353,164853873573,-;virtpc: set Yp=5000ns
+4,7354,164853873574,-;virtpc: set Yc=5000ns
+4,7355,164853873575,-;virtpc: set D=60ns
+4,7356,164858873647,-;PC: 1232 np 225 wp 0 yp 0 sleeps/s
+4,7357,164863873727,-;PC: 1298 np 225 wp 0 yp 0 sleeps/s
+4,7358,164868873902,-;PC: 1232 np 225 wp 0 yp 0 sleeps/s
+4,7359,164873874323,-;PC: 1149 np 225 wp 0 yp 0 sleeps/s
+4,7360,164878874607,-;PC: 1158 np 225 wp 0 yp 0 sleeps/s
+4,7361,164883874725,-;PC: 1198 np 225 wp 0 yp 0 sleeps/s
+4,7362,164888875256,-;PC: 1168 np 225 wp 0 yp 0 sleeps/s
+4,7363,164893875404,-;PC: 1157 np 225 wp 0 yp 0 sleeps/s
+4,7364,164898875453,-;PC: 1172 np 225 wp 0 yp 0 sleeps/s
+4,7365,164903875830,-;PC: 1143 np 225 wp 0 yp 0 sleeps/s
+4,7366,164908875928,-;PC: 1169 np 225 wp 0 yp 0 sleeps/s
+4,7367,164913588231,-;virtpc: producer stops
+4,7368,164913680979,-;virtpc: set Wp=231ns
+4,7369,164913680981,-;virtpc: set Wc=2000ns
+4,7370,164913680982,-;virtpc: set Yp=5000ns
+4,7371,164913680983,-;virtpc: set Yc=5000ns
+4,7372,164913680983,-;virtpc: set D=60ns
+4,7373,164918681363,-;PC: 1307 np 230 wp 0 yp 0 sleeps/s
+4,7374,164923681492,-;PC: 1180 np 230 wp 0 yp 0 sleeps/s
+4,7375,164928682116,-;PC: 1136 np 230 wp 0 yp 0 sleeps/s
+4,7376,164933682542,-;PC: 1148 np 230 wp 0 yp 0 sleeps/s
+4,7377,164938683276,-;PC: 1190 np 230 wp 0 yp 0 sleeps/s
+4,7378,164943683941,-;PC: 1172 np 230 wp 0 yp 0 sleeps/s
+4,7379,164948684698,-;PC: 1148 np 230 wp 0 yp 0 sleeps/s
+4,7380,164953685066,-;PC: 1179 np 230 wp 0 yp 0 sleeps/s
+4,7381,164958685730,-;PC: 1182 np 230 wp 0 yp 0 sleeps/s
+4,7382,164963686305,-;PC: 1179 np 230 wp 0 yp 0 sleeps/s
+4,7383,164968686512,-;PC: 1197 np 230 wp 0 yp 0 sleeps/s
+4,7384,164973395334,-;virtpc: producer stops
+4,7385,164973488190,-;virtpc: set Wp=236ns
+4,7386,164973488192,-;virtpc: set Wc=2000ns
+4,7387,164973488193,-;virtpc: set Yp=5000ns
+4,7388,164973488194,-;virtpc: set Yc=5000ns
+4,7389,164973488194,-;virtpc: set D=60ns
+4,7390,164978488661,-;PC: 1253 np 235 wp 0 yp 0 sleeps/s
+4,7391,164983488790,-;PC: 1178 np 235 wp 0 yp 0 sleeps/s
+4,7392,164988489519,-;PC: 1157 np 235 wp 0 yp 0 sleeps/s
+4,7393,164993489624,-;PC: 1144 np 235 wp 0 yp 0 sleeps/s
+4,7394,164998489691,-;PC: 1146 np 235 wp 0 yp 0 sleeps/s
+4,7395,165003490113,-;PC: 1187 np 235 wp 0 yp 0 sleeps/s
+4,7396,165008490466,-;PC: 1178 np 235 wp 0 yp 0 sleeps/s
+4,7397,165013490621,-;PC: 1143 np 235 wp 0 yp 0 sleeps/s
+4,7398,165018491298,-;PC: 1169 np 235 wp 0 yp 0 sleeps/s
+4,7399,165023491524,-;PC: 1282 np 235 wp 0 yp 0 sleeps/s
+4,7400,165028492141,-;PC: 1150 np 235 wp 0 yp 0 sleeps/s
+4,7401,165033202766,-;virtpc: producer stops
+4,7402,165033295594,-;virtpc: set Wp=241ns
+4,7403,165033295596,-;virtpc: set Wc=2000ns
+4,7404,165033295597,-;virtpc: set Yp=5000ns
+4,7405,165033295598,-;virtpc: set Yc=5000ns
+4,7406,165033295598,-;virtpc: set D=60ns
+4,7407,165038295939,-;PC: 1250 np 240 wp 0 yp 0 sleeps/s
+4,7408,165043296004,-;PC: 1159 np 240 wp 0 yp 0 sleeps/s
+4,7409,165048296081,-;PC: 1183 np 240 wp 0 yp 0 sleeps/s
+4,7410,165053296704,-;PC: 1159 np 240 wp 0 yp 0 sleeps/s
+4,7411,165058296911,-;PC: 1156 np 240 wp 0 yp 0 sleeps/s
+4,7412,165063297023,-;PC: 1238 np 240 wp 0 yp 0 sleeps/s
+4,7413,165068297261,-;PC: 1223 np 240 wp 0 yp 0 sleeps/s
+4,7414,165073297329,-;PC: 1187 np 240 wp 0 yp 0 sleeps/s
+4,7415,165078297661,-;PC: 1181 np 240 wp 0 yp 0 sleeps/s
+4,7416,165083298222,-;PC: 1204 np 240 wp 0 yp 0 sleeps/s
+4,7417,165088298677,-;PC: 1159 np 240 wp 0 yp 0 sleeps/s
+4,7418,165093009953,-;virtpc: producer stops
+4,7419,165093102722,-;virtpc: set Wp=247ns
+4,7420,165093102724,-;virtpc: set Wc=2000ns
+4,7421,165093102724,-;virtpc: set Yp=5000ns
+4,7422,165093102725,-;virtpc: set Yc=5000ns
+4,7423,165093102726,-;virtpc: set D=60ns
+4,7424,165098103047,-;PC: 1217 np 246 wp 0 yp 0 sleeps/s
+4,7425,165103103054,-;PC: 1158 np 246 wp 0 yp 0 sleeps/s
+4,7426,165108103073,-;PC: 1160 np 246 wp 0 yp 0 sleeps/s
+4,7427,165113103066,-;PC: 1163 np 246 wp 0 yp 0 sleeps/s
+4,7428,165118103059,-;PC: 1190 np 246 wp 0 yp 0 sleeps/s
+4,7429,165123103053,-;PC: 1176 np 246 wp 0 yp 0 sleeps/s
+4,7430,165128103067,-;PC: 1160 np 246 wp 0 yp 0 sleeps/s
+4,7431,165133103060,-;PC: 1142 np 246 wp 0 yp 0 sleeps/s
+4,7432,165138103053,-;PC: 1203 np 246 wp 0 yp 0 sleeps/s
+4,7433,165143103068,-;PC: 1189 np 246 wp 0 yp 0 sleeps/s
+4,7434,165148103061,-;PC: 1159 np 246 wp 0 yp 0 sleeps/s
+4,7435,165152817601,-;virtpc: producer stops
+4,7436,165152910405,-;virtpc: set Wp=252ns
+4,7437,165152910407,-;virtpc: set Wc=2000ns
+4,7438,165152910408,-;virtpc: set Yp=5000ns
+4,7439,165152910408,-;virtpc: set Yc=5000ns
+4,7440,165152910409,-;virtpc: set D=60ns
+4,7441,165157910710,-;PC: 1280 np 251 wp 0 yp 0 sleeps/s
+4,7442,165162911299,-;PC: 1206 np 251 wp 0 yp 0 sleeps/s
+4,7443,165167911573,-;PC: 1281 np 251 wp 0 yp 0 sleeps/s
+4,7444,165172912277,-;PC: 1207 np 251 wp 0 yp 0 sleeps/s
+4,7445,165177912478,-;PC: 1198 np 251 wp 0 yp 0 sleeps/s
+4,7446,165182913156,-;PC: 1221 np 251 wp 0 yp 0 sleeps/s
+4,7447,165187913398,-;PC: 1246 np 251 wp 0 yp 0 sleeps/s
+4,7448,165192913990,-;PC: 1184 np 251 wp 0 yp 0 sleeps/s
+4,7449,165197914324,-;PC: 1209 np 251 wp 0 yp 0 sleeps/s
+4,7450,165202914890,-;PC: 1200 np 251 wp 0 yp 0 sleeps/s
+4,7451,165207915333,-;PC: 1192 np 251 wp 0 yp 0 sleeps/s
+4,7452,165212624948,-;virtpc: producer stops
+4,7453,165212717733,-;virtpc: set Wp=258ns
+4,7454,165212717735,-;virtpc: set Wc=2000ns
+4,7455,165212717736,-;virtpc: set Yp=5000ns
+4,7456,165212717736,-;virtpc: set Yc=5000ns
+4,7457,165212717737,-;virtpc: set D=60ns
+4,7458,165217718310,-;PC: 1258 np 257 wp 0 yp 0 sleeps/s
+4,7459,165222718699,-;PC: 1242 np 257 wp 0 yp 0 sleeps/s
+4,7460,165227719285,-;PC: 1191 np 257 wp 0 yp 0 sleeps/s
+4,7461,165232719358,-;PC: 1160 np 257 wp 0 yp 0 sleeps/s
+4,7462,165237720090,-;PC: 1159 np 257 wp 0 yp 0 sleeps/s
+4,7463,165242720117,-;PC: 1188 np 257 wp 0 yp 0 sleeps/s
+4,7464,165247720469,-;PC: 1168 np 257 wp 0 yp 0 sleeps/s
+4,7465,165252720636,-;PC: 1168 np 257 wp 0 yp 0 sleeps/s
+4,7466,165257720956,-;PC: 1200 np 257 wp 0 yp 0 sleeps/s
+4,7467,165262721128,-;PC: 1165 np 257 wp 0 yp 0 sleeps/s
+4,7468,165267721140,-;PC: 1201 np 257 wp 0 yp 0 sleeps/s
+4,7469,165272432588,-;virtpc: producer stops
+4,7470,165272525371,-;virtpc: set Wp=264ns
+4,7471,165272525374,-;virtpc: set Wc=2000ns
+4,7472,165272525374,-;virtpc: set Yp=5000ns
+4,7473,165272525375,-;virtpc: set Yc=5000ns
+4,7474,165272525375,-;virtpc: set D=60ns
+4,7475,165277525894,-;PC: 1257 np 263 wp 0 yp 0 sleeps/s
+4,7476,165282526513,-;PC: 1178 np 263 wp 0 yp 0 sleeps/s
+4,7477,165287526612,-;PC: 1145 np 263 wp 0 yp 0 sleeps/s
+4,7478,165292527362,-;PC: 1200 np 263 wp 0 yp 0 sleeps/s
+4,7479,165297527646,-;PC: 1159 np 263 wp 0 yp 0 sleeps/s
+4,7480,165302527641,-;PC: 1192 np 263 wp 0 yp 0 sleeps/s
+4,7481,165307527636,-;PC: 1157 np 263 wp 0 yp 0 sleeps/s
+4,7482,165312528306,-;PC: 1212 np 263 wp 0 yp 0 sleeps/s
+4,7483,165317528329,-;PC: 1212 np 263 wp 0 yp 0 sleeps/s
+4,7484,165322528524,-;PC: 1180 np 263 wp 0 yp 0 sleeps/s
+4,7485,165327528650,-;PC: 1258 np 263 wp 0 yp 0 sleeps/s
+4,7486,165332239680,-;virtpc: producer stops
+4,7487,165332332471,-;virtpc: set Wp=270ns
+4,7488,165332332473,-;virtpc: set Wc=2000ns
+4,7489,165332332474,-;virtpc: set Yp=5000ns
+4,7490,165332332474,-;virtpc: set Yc=5000ns
+4,7491,165332332475,-;virtpc: set D=60ns
+4,7492,165337333064,-;PC: 1280 np 269 wp 0 yp 0 sleeps/s
+4,7493,165342333595,-;PC: 1189 np 269 wp 0 yp 0 sleeps/s
+4,7494,165347334344,-;PC: 1194 np 269 wp 0 yp 0 sleeps/s
+4,7495,165352334338,-;PC: 1234 np 269 wp 0 yp 0 sleeps/s
+4,7496,165357334866,-;PC: 1176 np 269 wp 0 yp 0 sleeps/s
+4,7497,165362335315,-;PC: 1667 np 269 wp 0 yp 0 sleeps/s
+4,7498,165367335875,-;PC: 1184 np 269 wp 0 yp 0 sleeps/s
+4,7499,165372336003,-;PC: 1227 np 269 wp 0 yp 0 sleeps/s
+4,7500,165377335998,-;PC: 1218 np 269 wp 0 yp 0 sleeps/s
+4,7501,165382336292,-;PC: 1155 np 269 wp 0 yp 0 sleeps/s
+4,7502,165387336896,-;PC: 1161 np 269 wp 0 yp 0 sleeps/s
+4,7503,165392047543,-;virtpc: producer stops
+4,7504,165392140319,-;virtpc: set Wp=276ns
+4,7505,165392140321,-;virtpc: set Wc=2000ns
+4,7506,165392140321,-;virtpc: set Yp=5000ns
+4,7507,165392140322,-;virtpc: set Yc=5000ns
+4,7508,165392140322,-;virtpc: set D=60ns
+4,7509,165397140598,-;PC: 1272 np 275 wp 0 yp 0 sleeps/s
+4,7510,165402141010,-;PC: 1189 np 275 wp 0 yp 0 sleeps/s
+4,7511,165407141312,-;PC: 1160 np 275 wp 0 yp 0 sleeps/s
+4,7512,165412141640,-;PC: 1204 np 275 wp 0 yp 0 sleeps/s
+4,7513,165417142268,-;PC: 1180 np 275 wp 0 yp 0 sleeps/s
+4,7514,165422142721,-;PC: 1162 np 275 wp 0 yp 0 sleeps/s
+4,7515,165427143473,-;PC: 1200 np 275 wp 0 yp 0 sleeps/s
+4,7516,165432143468,-;PC: 1250 np 275 wp 0 yp 0 sleeps/s
+4,7517,165437143938,-;PC: 1257 np 275 wp 0 yp 0 sleeps/s
+4,7518,165442144360,-;PC: 1217 np 275 wp 0 yp 0 sleeps/s
+4,7519,165447145139,-;PC: 1186 np 275 wp 0 yp 0 sleeps/s
+4,7520,165451855265,-;virtpc: producer stops
+4,7521,165451948037,-;virtpc: set Wp=282ns
+4,7522,165451948039,-;virtpc: set Wc=2000ns
+4,7523,165451948039,-;virtpc: set Yp=5000ns
+4,7524,165451948040,-;virtpc: set Yc=5000ns
+4,7525,165451948041,-;virtpc: set D=60ns
+4,7526,165456948671,-;PC: 1270 np 281 wp 0 yp 0 sleeps/s
+4,7527,165461949143,-;PC: 1157 np 281 wp 0 yp 0 sleeps/s
+4,7528,165466949606,-;PC: 1246 np 281 wp 0 yp 0 sleeps/s
+4,7529,165471950147,-;PC: 1197 np 281 wp 0 yp 0 sleeps/s
+4,7530,165476950839,-;PC: 1152 np 281 wp 0 yp 0 sleeps/s
+4,7531,165481951209,-;PC: 1166 np 281 wp 0 yp 0 sleeps/s
+4,7532,165486951565,-;PC: 1256 np 281 wp 0 yp 0 sleeps/s
+4,7533,165491951560,-;PC: 1165 np 281 wp 0 yp 0 sleeps/s
+4,7534,165496951620,-;PC: 1218 np 281 wp 0 yp 0 sleeps/s
+4,7535,165501952256,-;PC: 1154 np 281 wp 0 yp 0 sleeps/s
+4,7536,165506952648,-;PC: 1239 np 281 wp 0 yp 0 sleeps/s
+4,7537,165511662547,-;virtpc: producer stops
+4,7538,165511755321,-;virtpc: set Wp=288ns
+4,7539,165511755323,-;virtpc: set Wc=2000ns
+4,7540,165511755323,-;virtpc: set Yp=5000ns
+4,7541,165511755324,-;virtpc: set Yc=5000ns
+4,7542,165511755325,-;virtpc: set D=60ns
+4,7543,165516755596,-;PC: 1360 np 287 wp 0 yp 0 sleeps/s
+4,7544,165521755866,-;PC: 1177 np 287 wp 0 yp 0 sleeps/s
+4,7545,165526756521,-;PC: 1235 np 287 wp 0 yp 0 sleeps/s
+4,7546,165531756781,-;PC: 1150 np 287 wp 0 yp 0 sleeps/s
+4,7547,165536757543,-;PC: 1253 np 287 wp 0 yp 0 sleeps/s
+4,7548,165541757910,-;PC: 1232 np 287 wp 0 yp 0 sleeps/s
+4,7549,165546758384,-;PC: 1193 np 287 wp 0 yp 0 sleeps/s
+4,7550,165551758597,-;PC: 1155 np 287 wp 0 yp 0 sleeps/s
+4,7551,165556759214,-;PC: 2683 np 287 wp 0 yp 0 sleeps/s
+4,7552,165561759631,-;PC: 1155 np 287 wp 0 yp 0 sleeps/s
+4,7553,165566761986,-;PC: 1222 np 287 wp 0 yp 0 sleeps/s
+4,7554,165571470418,-;virtpc: producer stops
+4,7555,165571563240,-;virtpc: set Wp=295ns
+4,7556,165571563242,-;virtpc: set Wc=2000ns
+4,7557,165571563242,-;virtpc: set Yp=5000ns
+4,7558,165571563243,-;virtpc: set Yc=5000ns
+4,7559,165571563244,-;virtpc: set D=60ns
+4,7560,165576563989,-;PC: 1287 np 294 wp 0 yp 0 sleeps/s
+4,7561,165581564012,-;PC: 1168 np 294 wp 0 yp 0 sleeps/s
+4,7562,165586564007,-;PC: 1195 np 294 wp 0 yp 0 sleeps/s
+4,7563,165591564076,-;PC: 1159 np 294 wp 0 yp 0 sleeps/s
+4,7564,165596564666,-;PC: 1166 np 294 wp 0 yp 0 sleeps/s
+4,7565,165601565029,-;PC: 1160 np 294 wp 0 yp 0 sleeps/s
+4,7566,165606565023,-;PC: 2757 np 294 wp 0 yp 0 sleeps/s
+4,7567,165611565786,-;PC: 1188 np 294 wp 0 yp 0 sleeps/s
+4,7568,165616565994,-;PC: 1214 np 294 wp 0 yp 0 sleeps/s
+4,7569,165621566674,-;PC: 1234 np 294 wp 0 yp 0 sleeps/s
+4,7570,165626567106,-;PC: 1230 np 294 wp 0 yp 0 sleeps/s
+4,7571,165631277670,-;virtpc: producer stops
+4,7572,165631371767,-;virtpc: set Wp=301ns
+4,7573,165631371769,-;virtpc: set Wc=2000ns
+4,7574,165631371770,-;virtpc: set Yp=5000ns
+4,7575,165631371771,-;virtpc: set Yc=5000ns
+4,7576,165631371771,-;virtpc: set D=60ns
+4,7577,165636372058,-;PC: 1218 np 300 wp 0 yp 0 sleeps/s
+4,7578,165641372673,-;PC: 1178 np 300 wp 0 yp 0 sleeps/s
+4,7579,165646373430,-;PC: 1169 np 300 wp 0 yp 0 sleeps/s
+4,7580,165651374034,-;PC: 1180 np 300 wp 0 yp 0 sleeps/s
+4,7581,165656374612,-;PC: 1234 np 300 wp 0 yp 0 sleeps/s
+4,7582,165661375306,-;PC: 1216 np 300 wp 0 yp 0 sleeps/s
+4,7583,165666375927,-;PC: 1149 np 300 wp 0 yp 0 sleeps/s
+4,7584,165671376455,-;PC: 1180 np 300 wp 0 yp 0 sleeps/s
+4,7585,165676377167,-;PC: 1240 np 300 wp 0 yp 0 sleeps/s
+4,7586,165681377807,-;PC: 1148 np 300 wp 0 yp 0 sleeps/s
+4,7587,165686378278,-;PC: 1213 np 300 wp 0 yp 0 sleeps/s
+4,7588,165691086431,-;virtpc: producer stops
+4,7589,165691179204,-;virtpc: set Wp=308ns
+4,7590,165691179206,-;virtpc: set Wc=2000ns
+4,7591,165691179207,-;virtpc: set Yp=5000ns
+4,7592,165691179207,-;virtpc: set Yc=5000ns
+4,7593,165691179208,-;virtpc: set D=60ns
+4,7594,165696179720,-;PC: 1237 np 307 wp 0 yp 0 sleeps/s
+4,7595,165701179714,-;PC: 1158 np 307 wp 0 yp 0 sleeps/s
+4,7596,165706179871,-;PC: 1177 np 307 wp 0 yp 0 sleeps/s
+4,7597,165711179881,-;PC: 1197 np 307 wp 0 yp 0 sleeps/s
+4,7598,165716180508,-;PC: 1155 np 307 wp 0 yp 0 sleeps/s
+4,7599,165721181069,-;PC: 1176 np 307 wp 0 yp 0 sleeps/s
+4,7600,165726181578,-;PC: 1237 np 307 wp 0 yp 0 sleeps/s
+4,7601,165731182241,-;PC: 1208 np 307 wp 0 yp 0 sleeps/s
+4,7602,165736182245,-;PC: 1218 np 307 wp 0 yp 0 sleeps/s
+4,7603,165741182526,-;PC: 1153 np 307 wp 0 yp 0 sleeps/s
+4,7604,165746183123,-;PC: 1170 np 307 wp 0 yp 0 sleeps/s
+4,7605,165750893512,-;virtpc: producer stops
+4,7606,165750986310,-;virtpc: set Wp=315ns
+4,7607,165750986312,-;virtpc: set Wc=2000ns
+4,7608,165750986312,-;virtpc: set Yp=5000ns
+4,7609,165750986313,-;virtpc: set Yc=5000ns
+4,7610,165750986314,-;virtpc: set D=60ns
+4,7611,165755986921,-;PC: 1279 np 314 wp 0 yp 0 sleeps/s
+4,7612,165760987010,-;PC: 1192 np 314 wp 0 yp 0 sleeps/s
+4,7613,165765987005,-;PC: 2886 np 314 wp 0 yp 0 sleeps/s
+4,7614,165770987000,-;PC: 1159 np 314 wp 0 yp 0 sleeps/s
+4,7615,165775987228,-;PC: 1177 np 314 wp 0 yp 0 sleeps/s
+4,7616,165780987956,-;PC: 1175 np 314 wp 0 yp 0 sleeps/s
+4,7617,165785988734,-;PC: 1156 np 314 wp 0 yp 0 sleeps/s
+4,7618,165790988906,-;PC: 1152 np 314 wp 0 yp 0 sleeps/s
+4,7619,165795988900,-;PC: 1238 np 314 wp 0 yp 0 sleeps/s
+4,7620,165800989547,-;PC: 1210 np 314 wp 0 yp 0 sleeps/s
+4,7621,165805989835,-;PC: 1197 np 314 wp 0 yp 0 sleeps/s
+4,7622,165810700863,-;virtpc: producer stops
+4,7623,165810793641,-;virtpc: set Wp=322ns
+4,7624,165810793643,-;virtpc: set Wc=2000ns
+4,7625,165810793643,-;virtpc: set Yp=5000ns
+4,7626,165810793644,-;virtpc: set Yc=5000ns
+4,7627,165810793645,-;virtpc: set D=60ns
+4,7628,165815793637,-;PC: 1350 np 321 wp 0 yp 0 sleeps/s
+4,7629,165820793649,-;PC: 1174 np 321 wp 0 yp 0 sleeps/s
+4,7630,165825793642,-;PC: 1146 np 321 wp 0 yp 0 sleeps/s
+4,7631,165830793636,-;PC: 1196 np 321 wp 0 yp 0 sleeps/s
+4,7632,165835793647,-;PC: 1193 np 321 wp 0 yp 0 sleeps/s
+4,7633,165840793641,-;PC: 1153 np 321 wp 0 yp 0 sleeps/s
+4,7634,165845793634,-;PC: 1188 np 321 wp 0 yp 0 sleeps/s
+4,7635,165850793658,-;PC: 1217 np 321 wp 0 yp 0 sleeps/s
+4,7636,165855793946,-;PC: 1145 np 321 wp 0 yp 0 sleeps/s
+4,7637,165860794450,-;PC: 1128 np 321 wp 0 yp 0 sleeps/s
+4,7638,165865794613,-;PC: 1138 np 321 wp 0 yp 0 sleeps/s
+4,7639,165870508347,-;virtpc: producer stops
+4,7640,165870601160,-;virtpc: set Wp=329ns
+4,7641,165870601162,-;virtpc: set Wc=2000ns
+4,7642,165870601163,-;virtpc: set Yp=5000ns
+4,7643,165870601163,-;virtpc: set Yc=5000ns
+4,7644,165870601164,-;virtpc: set D=60ns
+4,7645,165875601157,-;PC: 1205 np 328 wp 0 yp 0 sleeps/s
+4,7646,165880601191,-;PC: 1132 np 328 wp 0 yp 0 sleeps/s
+4,7647,165885601225,-;PC: 1234 np 328 wp 0 yp 0 sleeps/s
+4,7648,165890601219,-;PC: 1140 np 328 wp 0 yp 0 sleeps/s
+4,7649,165895601256,-;PC: 1149 np 328 wp 0 yp 0 sleeps/s
+4,7650,165900601250,-;PC: 1147 np 328 wp 0 yp 0 sleeps/s
+4,7651,165905601244,-;PC: 1184 np 328 wp 0 yp 0 sleeps/s
+4,7652,165910601650,-;PC: 1139 np 328 wp 0 yp 0 sleeps/s
+4,7653,165915602355,-;PC: 1228 np 328 wp 0 yp 0 sleeps/s
+4,7654,165920603053,-;PC: 1146 np 328 wp 0 yp 0 sleeps/s
+4,7655,165925603552,-;PC: 1142 np 328 wp 0 yp 0 sleeps/s
+4,7656,165930315468,-;virtpc: producer stops
+4,7657,165930408294,-;virtpc: set Wp=337ns
+4,7658,165930408296,-;virtpc: set Wc=2000ns
+4,7659,165930408296,-;virtpc: set Yp=5000ns
+4,7660,165930408297,-;virtpc: set Yc=5000ns
+4,7661,165930408297,-;virtpc: set D=60ns
+4,7662,165935408585,-;PC: 1309 np 336 wp 0 yp 0 sleeps/s
+4,7663,165940409082,-;PC: 1312 np 336 wp 0 yp 0 sleeps/s
+4,7664,165945409224,-;PC: 1200 np 336 wp 0 yp 0 sleeps/s
+4,7665,165950409563,-;PC: 1169 np 336 wp 0 yp 0 sleeps/s
+4,7666,165955410072,-;PC: 1174 np 336 wp 0 yp 0 sleeps/s
+4,7667,165960410499,-;PC: 1184 np 336 wp 0 yp 0 sleeps/s
+4,7668,165965410942,-;PC: 1144 np 336 wp 0 yp 0 sleeps/s
+4,7669,165970411025,-;PC: 1135 np 336 wp 0 yp 0 sleeps/s
+4,7670,165975411466,-;PC: 1167 np 336 wp 0 yp 0 sleeps/s
+4,7671,165980411976,-;PC: 1202 np 336 wp 0 yp 0 sleeps/s
+4,7672,165985415584,-;PC: 1176 np 336 wp 0 yp 0 sleeps/s
+4,7673,165990123267,-;virtpc: producer stops
+4,7674,165990216042,-;virtpc: set Wp=344ns
+4,7675,165990216044,-;virtpc: set Wc=2000ns
+4,7676,165990216045,-;virtpc: set Yp=5000ns
+4,7677,165990216045,-;virtpc: set Yc=5000ns
+4,7678,165990216046,-;virtpc: set D=60ns
+4,7679,165995216803,-;PC: 1323 np 343 wp 0 yp 0 sleeps/s
+4,7680,166000216796,-;PC: 1178 np 343 wp 0 yp 0 sleeps/s
+4,7681,166005217045,-;PC: 1180 np 343 wp 0 yp 0 sleeps/s
+4,7682,166010217039,-;PC: 1149 np 343 wp 0 yp 0 sleeps/s
+4,7683,166015217354,-;PC: 1152 np 343 wp 0 yp 0 sleeps/s
+4,7684,166020217636,-;PC: 1146 np 343 wp 0 yp 0 sleeps/s
+4,7685,166025218143,-;PC: 1248 np 343 wp 0 yp 0 sleeps/s
+4,7686,166030218622,-;PC: 1143 np 343 wp 0 yp 0 sleeps/s
+4,7687,166035218674,-;PC: 1261 np 343 wp 0 yp 0 sleeps/s
+4,7688,166040218777,-;PC: 1171 np 343 wp 0 yp 0 sleeps/s
+4,7689,166045219472,-;PC: 1180 np 343 wp 0 yp 0 sleeps/s
+4,7690,166049930622,-;virtpc: producer stops
+4,7691,166050023387,-;virtpc: set Wp=352ns
+4,7692,166050023389,-;virtpc: set Wc=2000ns
+4,7693,166050023389,-;virtpc: set Yp=5000ns
+4,7694,166050023390,-;virtpc: set Yc=5000ns
+4,7695,166050023390,-;virtpc: set D=60ns
+4,7696,166055023552,-;PC: 1234 np 351 wp 0 yp 0 sleeps/s
+4,7697,166060023871,-;PC: 1169 np 351 wp 0 yp 0 sleeps/s
+4,7698,166065024122,-;PC: 1168 np 351 wp 0 yp 0 sleeps/s
+4,7699,166070024805,-;PC: 1188 np 351 wp 0 yp 0 sleeps/s
+4,7700,166075024799,-;PC: 1192 np 351 wp 0 yp 0 sleeps/s
+4,7701,166080025123,-;PC: 1246 np 351 wp 0 yp 0 sleeps/s
+4,7702,166085025418,-;PC: 1174 np 351 wp 0 yp 0 sleeps/s
+4,7703,166090025803,-;PC: 1168 np 351 wp 0 yp 0 sleeps/s
+4,7704,166095026097,-;PC: 1215 np 351 wp 0 yp 0 sleeps/s
+4,7705,166100026725,-;PC: 1186 np 351 wp 0 yp 0 sleeps/s
+4,7706,166105026777,-;PC: 1158 np 351 wp 0 yp 0 sleeps/s
+4,7707,166109737719,-;virtpc: producer stops
+4,7708,166109830705,-;virtpc: set Wp=360ns
+4,7709,166109830707,-;virtpc: set Wc=2000ns
+4,7710,166109830707,-;virtpc: set Yp=5000ns
+4,7711,166109830708,-;virtpc: set Yc=5000ns
+4,7712,166109830709,-;virtpc: set D=60ns
+4,7713,166114831246,-;PC: 1326 np 359 wp 0 yp 0 sleeps/s
+4,7714,166119831472,-;PC: 1175 np 359 wp 0 yp 0 sleeps/s
+4,7715,166124831940,-;PC: 1174 np 359 wp 0 yp 0 sleeps/s
+4,7716,166129832516,-;PC: 1320 np 359 wp 0 yp 0 sleeps/s
+4,7717,166134833108,-;PC: 1182 np 359 wp 0 yp 0 sleeps/s
+4,7718,166139833507,-;PC: 1219 np 359 wp 0 yp 0 sleeps/s
+4,7719,166144833961,-;PC: 1184 np 359 wp 0 yp 0 sleeps/s
+4,7720,166149833955,-;PC: 1309 np 359 wp 0 yp 0 sleeps/s
+4,7721,166154834404,-;PC: 1166 np 359 wp 0 yp 0 sleeps/s
+4,7722,166159834500,-;PC: 1194 np 359 wp 0 yp 0 sleeps/s
+4,7723,166164834923,-;PC: 1157 np 359 wp 0 yp 0 sleeps/s
+4,7724,166169545271,-;virtpc: producer stops
+4,7725,166169638080,-;virtpc: set Wp=368ns
+4,7726,166169638082,-;virtpc: set Wc=2000ns
+4,7727,166169638083,-;virtpc: set Yp=5000ns
+4,7728,166169638083,-;virtpc: set Yc=5000ns
+4,7729,166169638084,-;virtpc: set D=60ns
+4,7730,166174638705,-;PC: 1259 np 367 wp 0 yp 0 sleeps/s
+4,7731,166179638700,-;PC: 1242 np 367 wp 0 yp 0 sleeps/s
+4,7732,166184638833,-;PC: 1256 np 367 wp 0 yp 0 sleeps/s
+4,7733,166189639506,-;PC: 1176 np 367 wp 0 yp 0 sleeps/s
+4,7734,166194640242,-;PC: 1151 np 367 wp 0 yp 0 sleeps/s
+4,7735,166199640635,-;PC: 1204 np 367 wp 0 yp 0 sleeps/s
+4,7736,166204640630,-;PC: 1157 np 367 wp 0 yp 0 sleeps/s
+4,7737,166209641402,-;PC: 1165 np 367 wp 0 yp 0 sleeps/s
+4,7738,166214641679,-;PC: 1175 np 367 wp 0 yp 0 sleeps/s
+4,7739,166219641767,-;PC: 1204 np 367 wp 0 yp 0 sleeps/s
+4,7740,166224641863,-;PC: 1138 np 367 wp 0 yp 0 sleeps/s
+4,7741,166229352612,-;virtpc: producer stops
+4,7742,166229445632,-;virtpc: set Wp=377ns
+4,7743,166229445634,-;virtpc: set Wc=2000ns
+4,7744,166229445635,-;virtpc: set Yp=5000ns
+4,7745,166229445635,-;virtpc: set Yc=5000ns
+4,7746,166229445636,-;virtpc: set D=60ns
+4,7747,166234445925,-;PC: 1295 np 376 wp 0 yp 0 sleeps/s
+4,7748,166239446004,-;PC: 1245 np 376 wp 0 yp 0 sleeps/s
+4,7749,166244445997,-;PC: 1160 np 376 wp 0 yp 0 sleeps/s
+4,7750,166249446115,-;PC: 1152 np 376 wp 0 yp 0 sleeps/s
+4,7751,166254446108,-;PC: 1139 np 376 wp 0 yp 0 sleeps/s
+4,7752,166259446101,-;PC: 1158 np 376 wp 0 yp 0 sleeps/s
+4,7753,166264446095,-;PC: 1170 np 376 wp 0 yp 0 sleeps/s
+4,7754,166269446088,-;PC: 1206 np 376 wp 0 yp 0 sleeps/s
+4,7755,166274446574,-;PC: 1173 np 376 wp 0 yp 0 sleeps/s
+4,7756,166279447003,-;PC: 1184 np 376 wp 0 yp 0 sleeps/s
+4,7757,166284446996,-;PC: 1179 np 376 wp 0 yp 0 sleeps/s
+4,7758,166289160678,-;virtpc: producer stops
+4,7759,166289253485,-;virtpc: set Wp=385ns
+4,7760,166289253487,-;virtpc: set Wc=2000ns
+4,7761,166289253487,-;virtpc: set Yp=5000ns
+4,7762,166289253488,-;virtpc: set Yc=5000ns
+4,7763,166289253489,-;virtpc: set D=60ns
+4,7764,166294253539,-;PC: 1274 np 384 wp 0 yp 0 sleeps/s
+4,7765,166299254305,-;PC: 1173 np 384 wp 0 yp 0 sleeps/s
+4,7766,166304254362,-;PC: 1238 np 384 wp 0 yp 0 sleeps/s
+4,7767,166309254356,-;PC: 1152 np 384 wp 0 yp 0 sleeps/s
+4,7768,166314254502,-;PC: 1178 np 384 wp 0 yp 0 sleeps/s
+4,7769,166319254496,-;PC: 1179 np 384 wp 0 yp 0 sleeps/s
+4,7770,166324254490,-;PC: 1255 np 384 wp 0 yp 0 sleeps/s
+4,7771,166329254747,-;PC: 1156 np 384 wp 0 yp 0 sleeps/s
+4,7772,166334255477,-;PC: 1177 np 384 wp 0 yp 0 sleeps/s
+4,7773,166339255707,-;PC: 1170 np 384 wp 0 yp 0 sleeps/s
+4,7774,166344256207,-;PC: 1156 np 384 wp 0 yp 0 sleeps/s
+4,7775,166348967863,-;virtpc: producer stops
+4,7776,166349060907,-;virtpc: set Wp=394ns
+4,7777,166349060909,-;virtpc: set Wc=2000ns
+4,7778,166349060910,-;virtpc: set Yp=5000ns
+4,7779,166349060910,-;virtpc: set Yc=5000ns
+4,7780,166349060911,-;virtpc: set D=60ns
+4,7781,166354061695,-;PC: 1294 np 393 wp 0 yp 0 sleeps/s
+4,7782,166359062236,-;PC: 1244 np 393 wp 0 yp 0 sleeps/s
+4,7783,166364062668,-;PC: 1214 np 393 wp 0 yp 0 sleeps/s
+4,7784,166369062661,-;PC: 1184 np 393 wp 0 yp 0 sleeps/s
+4,7785,166374062696,-;PC: 1279 np 393 wp 0 yp 0 sleeps/s
+4,7786,166379063439,-;PC: 1155 np 393 wp 0 yp 0 sleeps/s
+4,7787,166384063738,-;PC: 1162 np 393 wp 0 yp 0 sleeps/s
+4,7788,166389063765,-;PC: 1143 np 393 wp 0 yp 0 sleeps/s
+4,7789,166394063758,-;PC: 1164 np 393 wp 0 yp 0 sleeps/s
+4,7790,166399063810,-;PC: 1188 np 393 wp 0 yp 0 sleeps/s
+4,7791,166404063804,-;PC: 1167 np 393 wp 0 yp 0 sleeps/s
+4,7792,166408775996,-;virtpc: producer stops
+4,7793,166408868810,-;virtpc: set Wp=403ns
+4,7794,166408868812,-;virtpc: set Wc=2000ns
+4,7795,166408868813,-;virtpc: set Yp=5000ns
+4,7796,166408868814,-;virtpc: set Yc=5000ns
+4,7797,166408868814,-;virtpc: set D=60ns
+4,7798,166413868981,-;PC: 1261 np 402 wp 0 yp 0 sleeps/s
+4,7799,166418869006,-;PC: 1158 np 402 wp 0 yp 0 sleeps/s
+4,7800,166423869001,-;PC: 1163 np 402 wp 0 yp 0 sleeps/s
+4,7801,166428868996,-;PC: 1156 np 402 wp 0 yp 0 sleeps/s
+4,7802,166433868991,-;PC: 1165 np 402 wp 0 yp 0 sleeps/s
+4,7803,166438869052,-;PC: 1187 np 402 wp 0 yp 0 sleeps/s
+4,7804,166443869046,-;PC: 2911 np 402 wp 0 yp 0 sleeps/s
+4,7805,166448869268,-;PC: 1152 np 402 wp 0 yp 0 sleeps/s
+4,7806,166453869960,-;PC: 1150 np 402 wp 0 yp 0 sleeps/s
+4,7807,166458869963,-;PC: 1169 np 402 wp 0 yp 0 sleeps/s
+4,7808,166463869958,-;PC: 1197 np 402 wp 0 yp 0 sleeps/s
+4,7809,166468583140,-;virtpc: producer stops
+4,7810,166468676162,-;virtpc: set Wp=412ns
+4,7811,166468676164,-;virtpc: set Wc=2000ns
+4,7812,166468676164,-;virtpc: set Yp=5000ns
+4,7813,166468676165,-;virtpc: set Yc=5000ns
+4,7814,166468676165,-;virtpc: set D=60ns
+4,7815,166473676326,-;PC: 1260 np 411 wp 0 yp 0 sleeps/s
+4,7816,166478676319,-;PC: 1151 np 411 wp 0 yp 0 sleeps/s
+4,7817,166483676565,-;PC: 1207 np 411 wp 0 yp 0 sleeps/s
+4,7818,166488677104,-;PC: 1158 np 411 wp 0 yp 0 sleeps/s
+4,7819,166493677453,-;PC: 1195 np 411 wp 0 yp 0 sleeps/s
+4,7820,166498678101,-;PC: 1212 np 411 wp 0 yp 0 sleeps/s
+4,7821,166503678094,-;PC: 1238 np 411 wp 0 yp 0 sleeps/s
+4,7822,166508678810,-;PC: 1179 np 411 wp 0 yp 0 sleeps/s
+4,7823,166513678903,-;PC: 1322 np 411 wp 0 yp 0 sleeps/s
+4,7824,166518678896,-;PC: 1178 np 411 wp 0 yp 0 sleeps/s
+4,7825,166523678890,-;PC: 1152 np 411 wp 0 yp 0 sleeps/s
+4,7826,166528390469,-;virtpc: producer stops
+4,7827,166528483271,-;virtpc: set Wp=421ns
+4,7828,166528483273,-;virtpc: set Wc=2000ns
+4,7829,166528483274,-;virtpc: set Yp=5000ns
+4,7830,166528483274,-;virtpc: set Yc=5000ns
+4,7831,166528483275,-;virtpc: set D=60ns
+4,7832,166533483539,-;PC: 1210 np 420 wp 0 yp 0 sleeps/s
+4,7833,166538483827,-;PC: 1140 np 420 wp 0 yp 0 sleeps/s
+4,7834,166543484211,-;PC: 1210 np 420 wp 0 yp 0 sleeps/s
+4,7835,166548484542,-;PC: 1230 np 420 wp 0 yp 0 sleeps/s
+4,7836,166553484641,-;PC: 1342 np 420 wp 0 yp 0 sleeps/s
+4,7837,166558484883,-;PC: 1172 np 420 wp 0 yp 0 sleeps/s
+4,7838,166563485026,-;PC: 1163 np 420 wp 0 yp 0 sleeps/s
+4,7839,166568485485,-;PC: 1209 np 420 wp 0 yp 0 sleeps/s
+4,7840,166573485849,-;PC: 1154 np 420 wp 0 yp 0 sleeps/s
+4,7841,166578486028,-;PC: 1148 np 420 wp 0 yp 0 sleeps/s
+4,7842,166583486148,-;PC: 1190 np 420 wp 0 yp 0 sleeps/s
+4,7843,166588198121,-;virtpc: producer stops
+4,7844,166588291129,-;virtpc: set Wp=430ns
+4,7845,166588291131,-;virtpc: set Wc=2000ns
+4,7846,166588291131,-;virtpc: set Yp=5000ns
+4,7847,166588291132,-;virtpc: set Yc=5000ns
+4,7848,166588291132,-;virtpc: set D=60ns
+4,7849,166593291513,-;PC: 1235 np 429 wp 0 yp 0 sleeps/s
+4,7850,166598292043,-;PC: 1156 np 429 wp 0 yp 0 sleeps/s
+4,7851,166603292037,-;PC: 1206 np 429 wp 0 yp 0 sleeps/s
+4,7852,166608292748,-;PC: 1186 np 429 wp 0 yp 0 sleeps/s
+4,7853,166613292921,-;PC: 1157 np 429 wp 0 yp 0 sleeps/s
+4,7854,166618292947,-;PC: 1282 np 429 wp 0 yp 0 sleeps/s
+4,7855,166623293070,-;PC: 1176 np 429 wp 0 yp 0 sleeps/s
+4,7856,166628293767,-;PC: 1216 np 429 wp 0 yp 0 sleeps/s
+4,7857,166633293761,-;PC: 1174 np 429 wp 0 yp 0 sleeps/s
+4,7858,166638293995,-;PC: 1235 np 429 wp 0 yp 0 sleeps/s
+4,7859,166643294055,-;PC: 1194 np 429 wp 0 yp 0 sleeps/s
+4,7860,166648005978,-;virtpc: producer stops
+4,7861,166648098755,-;virtpc: set Wp=440ns
+4,7862,166648098757,-;virtpc: set Wc=2000ns
+4,7863,166648098758,-;virtpc: set Yp=5000ns
+4,7864,166648098759,-;virtpc: set Yc=5000ns
+4,7865,166648098759,-;virtpc: set D=60ns
+4,7866,166653099412,-;PC: 1218 np 439 wp 0 yp 0 sleeps/s
+4,7867,166658099407,-;PC: 1185 np 439 wp 0 yp 0 sleeps/s
+4,7868,166663099583,-;PC: 1155 np 439 wp 0 yp 0 sleeps/s
+4,7869,166668099843,-;PC: 1235 np 439 wp 0 yp 0 sleeps/s
+4,7870,166673100500,-;PC: 1190 np 439 wp 0 yp 0 sleeps/s
+4,7871,166678100878,-;PC: 1155 np 439 wp 0 yp 0 sleeps/s
+4,7872,166683101642,-;PC: 1182 np 439 wp 0 yp 0 sleeps/s
+4,7873,166688102169,-;PC: 1240 np 439 wp 0 yp 0 sleeps/s
+4,7874,166693102844,-;PC: 1165 np 439 wp 0 yp 0 sleeps/s
+4,7875,166698102994,-;PC: 1169 np 439 wp 0 yp 0 sleeps/s
+4,7876,166703103471,-;PC: 1182 np 439 wp 0 yp 0 sleeps/s
+4,7877,166707813063,-;virtpc: producer stops
+4,7878,166707906048,-;virtpc: set Wp=450ns
+4,7879,166707906050,-;virtpc: set Wc=2000ns
+4,7880,166707906051,-;virtpc: set Yp=5000ns
+4,7881,166707906052,-;virtpc: set Yc=5000ns
+4,7882,166707906052,-;virtpc: set D=60ns
+4,7883,166712906045,-;PC: 1236 np 449 wp 0 yp 0 sleeps/s
+4,7884,166717906826,-;PC: 1154 np 449 wp 0 yp 0 sleeps/s
+4,7885,166722906988,-;PC: 1263 np 449 wp 0 yp 0 sleeps/s
+4,7886,166727907613,-;PC: 1157 np 449 wp 0 yp 0 sleeps/s
+4,7887,166732908284,-;PC: 1194 np 449 wp 0 yp 0 sleeps/s
+4,7888,166737909046,-;PC: 1148 np 449 wp 0 yp 0 sleeps/s
+4,7889,166742909626,-;PC: 1345 np 449 wp 0 yp 0 sleeps/s
+4,7890,166747909877,-;PC: 1198 np 449 wp 0 yp 0 sleeps/s
+4,7891,166752910236,-;PC: 1191 np 449 wp 0 yp 0 sleeps/s
+4,7892,166757910795,-;PC: 1149 np 449 wp 0 yp 0 sleeps/s
+4,7893,166762911195,-;PC: 1166 np 449 wp 0 yp 0 sleeps/s
+4,7894,166767620434,-;virtpc: producer stops
+4,7895,166767713259,-;virtpc: set Wp=460ns
+4,7896,166767713261,-;virtpc: set Wc=2000ns
+4,7897,166767713261,-;virtpc: set Yp=5000ns
+4,7898,166767713262,-;virtpc: set Yc=5000ns
+4,7899,166767713262,-;virtpc: set D=60ns
+4,7900,166772713256,-;PC: 1271 np 459 wp 0 yp 0 sleeps/s
+4,7901,166777713814,-;PC: 1252 np 459 wp 0 yp 0 sleeps/s
+4,7902,166782714543,-;PC: 1157 np 459 wp 0 yp 0 sleeps/s
+4,7903,166787715229,-;PC: 1159 np 459 wp 0 yp 0 sleeps/s
+4,7904,166792715953,-;PC: 1243 np 459 wp 0 yp 0 sleeps/s
+4,7905,166797716650,-;PC: 1150 np 459 wp 0 yp 0 sleeps/s
+4,7906,166802717251,-;PC: 1180 np 459 wp 0 yp 0 sleeps/s
+4,7907,166807718014,-;PC: 1212 np 459 wp 0 yp 0 sleeps/s
+4,7908,166812718660,-;PC: 1164 np 459 wp 0 yp 0 sleeps/s
+4,7909,166817719351,-;PC: 1178 np 459 wp 0 yp 0 sleeps/s
+4,7910,166822721918,-;PC: 1177 np 459 wp 0 yp 0 sleeps/s
+4,7911,166827427915,-;virtpc: producer stops
+4,7912,166827520910,-;virtpc: set Wp=471ns
+4,7913,166827520912,-;virtpc: set Wc=2000ns
+4,7914,166827520912,-;virtpc: set Yp=5000ns
+4,7915,166827520913,-;virtpc: set Yc=5000ns
+4,7916,166827520914,-;virtpc: set D=60ns
+4,7917,166832521673,-;PC: 1286 np 470 wp 0 yp 0 sleeps/s
+4,7918,166837522023,-;PC: 1161 np 470 wp 0 yp 0 sleeps/s
+4,7919,166842522167,-;PC: 1178 np 470 wp 0 yp 0 sleeps/s
+4,7920,166847522883,-;PC: 1227 np 470 wp 0 yp 0 sleeps/s
+4,7921,166852523163,-;PC: 1212 np 470 wp 0 yp 0 sleeps/s
+4,7922,166857523660,-;PC: 1172 np 470 wp 0 yp 0 sleeps/s
+4,7923,166862524224,-;PC: 1233 np 470 wp 0 yp 0 sleeps/s
+4,7924,166867524618,-;PC: 1233 np 470 wp 0 yp 0 sleeps/s
+4,7925,166872525211,-;PC: 1271 np 470 wp 0 yp 0 sleeps/s
+4,7926,166877525456,-;PC: 1155 np 470 wp 0 yp 0 sleeps/s
+4,7927,166882525450,-;PC: 1211 np 470 wp 0 yp 0 sleeps/s
+4,7928,166887235855,-;virtpc: producer stops
+4,7929,166887328657,-;virtpc: set Wp=481ns
+4,7930,166887328659,-;virtpc: set Wc=2000ns
+4,7931,166887328660,-;virtpc: set Yp=5000ns
+4,7932,166887328660,-;virtpc: set Yc=5000ns
+4,7933,166887328661,-;virtpc: set D=60ns
+4,7934,166892328654,-;PC: 1215 np 480 wp 0 yp 0 sleeps/s
+4,7935,166897328983,-;PC: 1226 np 480 wp 0 yp 0 sleeps/s
+4,7936,166902328977,-;PC: 1142 np 480 wp 0 yp 0 sleeps/s
+4,7937,166907329151,-;PC: 1157 np 480 wp 0 yp 0 sleeps/s
+4,7938,166912329723,-;PC: 1169 np 480 wp 0 yp 0 sleeps/s
+4,7939,166917329846,-;PC: 1194 np 480 wp 0 yp 0 sleeps/s
+4,7940,166922329841,-;PC: 1153 np 480 wp 0 yp 0 sleeps/s
+4,7941,166927329836,-;PC: 1164 np 480 wp 0 yp 0 sleeps/s
+4,7942,166932329831,-;PC: 1180 np 480 wp 0 yp 0 sleeps/s
+4,7943,166937330206,-;PC: 1157 np 480 wp 0 yp 0 sleeps/s
+4,7944,166942330746,-;PC: 1147 np 480 wp 0 yp 0 sleeps/s
+4,7945,166947043058,-;virtpc: producer stops
+4,7946,166947136041,-;virtpc: set Wp=492ns
+4,7947,166947136043,-;virtpc: set Wc=2000ns
+4,7948,166947136044,-;virtpc: set Yp=5000ns
+4,7949,166947136045,-;virtpc: set Yc=5000ns
+4,7950,166947136045,-;virtpc: set D=60ns
+4,7951,166952136038,-;PC: 1279 np 491 wp 0 yp 0 sleeps/s
+4,7952,166957136430,-;PC: 1217 np 491 wp 0 yp 0 sleeps/s
+4,7953,166962136423,-;PC: 1216 np 491 wp 0 yp 0 sleeps/s
+4,7954,166967136417,-;PC: 1175 np 491 wp 0 yp 0 sleeps/s
+4,7955,166972136985,-;PC: 1220 np 491 wp 0 yp 0 sleeps/s
+4,7956,166977137577,-;PC: 1186 np 491 wp 0 yp 0 sleeps/s
+4,7957,166982138027,-;PC: 1163 np 491 wp 0 yp 0 sleeps/s
+4,7958,166987138047,-;PC: 1157 np 491 wp 0 yp 0 sleeps/s
+4,7959,166992138040,-;PC: 1143 np 491 wp 0 yp 0 sleeps/s
+4,7960,166997138040,-;PC: 1246 np 491 wp 0 yp 0 sleeps/s
+4,7961,167002138101,-;PC: 1218 np 491 wp 0 yp 0 sleeps/s
+4,7962,167006850369,-;virtpc: producer stops
+4,7963,167006943192,-;virtpc: set Wp=503ns
+4,7964,167006943194,-;virtpc: set Wc=2000ns
+4,7965,167006943194,-;virtpc: set Yp=5000ns
+4,7966,167006943195,-;virtpc: set Yc=5000ns
+4,7967,167006943196,-;virtpc: set D=60ns
+4,7968,167011943758,-;PC: 1228 np 502 wp 0 yp 0 sleeps/s
+4,7969,167016943753,-;PC: 1173 np 502 wp 0 yp 0 sleeps/s
+4,7970,167021943928,-;PC: 1279 np 502 wp 0 yp 0 sleeps/s
+4,7971,167026944144,-;PC: 1195 np 502 wp 0 yp 0 sleeps/s
+4,7972,167031944613,-;PC: 1176 np 502 wp 0 yp 0 sleeps/s
+4,7973,167036944981,-;PC: 1204 np 502 wp 0 yp 0 sleeps/s
+4,7974,167041944975,-;PC: 1150 np 502 wp 0 yp 0 sleeps/s
+4,7975,167046945687,-;PC: 1149 np 502 wp 0 yp 0 sleeps/s
+4,7976,167051945767,-;PC: 1184 np 502 wp 0 yp 0 sleeps/s
+4,7977,167056945761,-;PC: 1229 np 502 wp 0 yp 0 sleeps/s
+4,7978,167061945756,-;PC: 1177 np 502 wp 0 yp 0 sleeps/s
+4,7979,167066657499,-;virtpc: producer stops
+4,7980,167066750466,-;virtpc: set Wp=514ns
+4,7981,167066750468,-;virtpc: set Wc=2000ns
+4,7982,167066750469,-;virtpc: set Yp=5000ns
+4,7983,167066750470,-;virtpc: set Yc=5000ns
+4,7984,167066750470,-;virtpc: set D=60ns
+4,7985,167071750655,-;PC: 1226 np 513 wp 0 yp 0 sleeps/s
+4,7986,167076750965,-;PC: 1154 np 513 wp 0 yp 0 sleeps/s
+4,7987,167081751360,-;PC: 1604 np 513 wp 0 yp 0 sleeps/s
+4,7988,167086751703,-;PC: 1157 np 513 wp 0 yp 0 sleeps/s
+4,7989,167091752057,-;PC: 1211 np 513 wp 0 yp 0 sleeps/s
+4,7990,167096752395,-;PC: 1232 np 513 wp 0 yp 0 sleeps/s
+4,7991,167101752769,-;PC: 1201 np 513 wp 0 yp 0 sleeps/s
+4,7992,167106753099,-;PC: 1171 np 513 wp 0 yp 0 sleeps/s
+4,7993,167111753598,-;PC: 1239 np 513 wp 0 yp 0 sleeps/s
+4,7994,167116753845,-;PC: 1168 np 513 wp 0 yp 0 sleeps/s
+4,7995,167121758093,-;PC: 1152 np 513 wp 0 yp 0 sleeps/s
+4,7996,167126465093,-;virtpc: producer stops
+4,7997,167126557905,-;virtpc: set Wp=526ns
+4,7998,167126557907,-;virtpc: set Wc=2000ns
+4,7999,167126557908,-;virtpc: set Yp=5000ns
+4,8000,167126557908,-;virtpc: set Yc=5000ns
+4,8001,167126557909,-;virtpc: set D=60ns
+4,8002,167131558677,-;PC: 1239 np 525 wp 0 yp 0 sleeps/s
+4,8003,167136558732,-;PC: 1144 np 525 wp 0 yp 0 sleeps/s
+4,8004,167141558727,-;PC: 1157 np 525 wp 0 yp 0 sleeps/s
+4,8005,167146558834,-;PC: 1169 np 525 wp 0 yp 0 sleeps/s
+4,8006,167151558827,-;PC: 1271 np 525 wp 0 yp 0 sleeps/s
+4,8007,167156558821,-;PC: 1198 np 525 wp 0 yp 0 sleeps/s
+4,8008,167161559539,-;PC: 1195 np 525 wp 0 yp 0 sleeps/s
+4,8009,167166559953,-;PC: 1220 np 525 wp 0 yp 0 sleeps/s
+4,8010,167171560702,-;PC: 1154 np 525 wp 0 yp 0 sleeps/s
+4,8011,167176560959,-;PC: 1231 np 525 wp 0 yp 0 sleeps/s
+4,8012,167181561027,-;PC: 1282 np 525 wp 0 yp 0 sleeps/s
+4,8013,167186272560,-;virtpc: producer stops
+4,8014,167186365559,-;virtpc: set Wp=538ns
+4,8015,167186365561,-;virtpc: set Wc=2000ns
+4,8016,167186365562,-;virtpc: set Yp=5000ns
+4,8017,167186365562,-;virtpc: set Yc=5000ns
+4,8018,167186365563,-;virtpc: set D=60ns
+4,8019,167191365556,-;PC: 1267 np 537 wp 0 yp 0 sleeps/s
+4,8020,167196365551,-;PC: 1619 np 537 wp 0 yp 0 sleeps/s
+4,8021,167201365547,-;PC: 2889 np 537 wp 0 yp 0 sleeps/s
+4,8022,167206365679,-;PC: 1263 np 537 wp 0 yp 0 sleeps/s
+4,8023,167211365674,-;PC: 1140 np 537 wp 0 yp 0 sleeps/s
+4,8024,167216365669,-;PC: 1200 np 537 wp 0 yp 0 sleeps/s
+4,8025,167221365850,-;PC: 1211 np 537 wp 0 yp 0 sleeps/s
+4,8026,167226366431,-;PC: 1165 np 537 wp 0 yp 0 sleeps/s
+4,8027,167231366619,-;PC: 1215 np 537 wp 0 yp 0 sleeps/s
+4,8028,167236366613,-;PC: 1159 np 537 wp 0 yp 0 sleeps/s
+4,8029,167241366608,-;PC: 1148 np 537 wp 0 yp 0 sleeps/s
+4,8030,167246079987,-;virtpc: producer stops
+4,8031,167246172813,-;virtpc: set Wp=550ns
+4,8032,167246172815,-;virtpc: set Wc=2000ns
+4,8033,167246172816,-;virtpc: set Yp=5000ns
+4,8034,167246172816,-;virtpc: set Yc=5000ns
+4,8035,167246172817,-;virtpc: set D=60ns
+4,8036,167251173025,-;PC: 2824 np 549 wp 0 yp 0 sleeps/s
+4,8037,167256173165,-;PC: 1152 np 549 wp 0 yp 0 sleeps/s
+4,8038,167261173159,-;PC: 1136 np 549 wp 0 yp 0 sleeps/s
+4,8039,167266173153,-;PC: 1198 np 549 wp 0 yp 0 sleeps/s
+4,8040,167271173224,-;PC: 1182 np 549 wp 0 yp 0 sleeps/s
+4,8041,167276173218,-;PC: 1190 np 549 wp 0 yp 0 sleeps/s
+4,8042,167281173212,-;PC: 1209 np 549 wp 0 yp 0 sleeps/s
+4,8043,167286173206,-;PC: 1140 np 549 wp 0 yp 0 sleeps/s
+4,8044,167291173200,-;PC: 1182 np 549 wp 0 yp 0 sleeps/s
+4,8045,167296173194,-;PC: 1194 np 549 wp 0 yp 0 sleeps/s
+4,8046,167301173188,-;PC: 1174 np 549 wp 0 yp 0 sleeps/s
+4,8047,167305887306,-;virtpc: producer stops
+4,8048,167305980307,-;virtpc: set Wp=562ns
+4,8049,167305980310,-;virtpc: set Wc=2000ns
+4,8050,167305980310,-;virtpc: set Yp=5000ns
+4,8051,167305980311,-;virtpc: set Yc=5000ns
+4,8052,167305980311,-;virtpc: set D=60ns
+4,8053,167310980304,-;PC: 1206 np 561 wp 0 yp 0 sleeps/s
+4,8054,167315980808,-;PC: 1133 np 561 wp 0 yp 0 sleeps/s
+4,8055,167320981425,-;PC: 1212 np 561 wp 0 yp 0 sleeps/s
+4,8056,167325981419,-;PC: 1204 np 561 wp 0 yp 0 sleeps/s
+4,8057,167330982057,-;PC: 1154 np 561 wp 0 yp 0 sleeps/s
+4,8058,167335982324,-;PC: 1191 np 561 wp 0 yp 0 sleeps/s
+4,8059,167340982588,-;PC: 2904 np 561 wp 0 yp 0 sleeps/s
+4,8060,167345983277,-;PC: 1201 np 561 wp 0 yp 0 sleeps/s
+4,8061,167350983661,-;PC: 1225 np 561 wp 0 yp 0 sleeps/s
+4,8062,167355984256,-;PC: 1234 np 561 wp 0 yp 0 sleeps/s
+4,8063,167360984778,-;PC: 1174 np 561 wp 0 yp 0 sleeps/s
+4,8064,167365694811,-;virtpc: producer stops
+4,8065,167365787800,-;virtpc: set Wp=575ns
+4,8066,167365787802,-;virtpc: set Wc=2000ns
+4,8067,167365787803,-;virtpc: set Yp=5000ns
+4,8068,167365787804,-;virtpc: set Yc=5000ns
+4,8069,167365787804,-;virtpc: set D=60ns
+4,8070,167370787797,-;PC: 1368 np 574 wp 0 yp 0 sleeps/s
+4,8071,167375788115,-;PC: 1156 np 574 wp 0 yp 0 sleeps/s
+4,8072,167380788314,-;PC: 1179 np 574 wp 0 yp 0 sleeps/s
+4,8073,167385788307,-;PC: 1184 np 574 wp 0 yp 0 sleeps/s
+4,8074,167390788302,-;PC: 1192 np 574 wp 0 yp 0 sleeps/s
+4,8075,167395788295,-;PC: 1200 np 574 wp 0 yp 0 sleeps/s
+4,8076,167400788290,-;PC: 1236 np 574 wp 0 yp 0 sleeps/s
+4,8077,167405788565,-;PC: 1245 np 574 wp 0 yp 0 sleeps/s
+4,8078,167410788559,-;PC: 1239 np 574 wp 0 yp 0 sleeps/s
+4,8079,167415788553,-;PC: 1138 np 574 wp 0 yp 0 sleeps/s
+4,8080,167420789095,-;PC: 1208 np 574 wp 0 yp 0 sleeps/s
+4,8081,167425502171,-;virtpc: producer stops
+4,8082,167425595204,-;virtpc: set Wp=588ns
+4,8083,167425595206,-;virtpc: set Wc=2000ns
+4,8084,167425595207,-;virtpc: set Yp=5000ns
+4,8085,167425595208,-;virtpc: set Yc=5000ns
+4,8086,167425595208,-;virtpc: set D=60ns
+4,8087,167430595933,-;PC: 1254 np 587 wp 0 yp 0 sleeps/s
+4,8088,167435595927,-;PC: 1154 np 587 wp 0 yp 0 sleeps/s
+4,8089,167440596709,-;PC: 1177 np 587 wp 0 yp 0 sleeps/s
+4,8090,167445596703,-;PC: 1158 np 587 wp 0 yp 0 sleeps/s
+4,8091,167450596974,-;PC: 1171 np 587 wp 0 yp 0 sleeps/s
+4,8092,167455596968,-;PC: 1304 np 587 wp 0 yp 0 sleeps/s
+4,8093,167460597130,-;PC: 1254 np 587 wp 0 yp 0 sleeps/s
+4,8094,167465597124,-;PC: 1163 np 587 wp 0 yp 0 sleeps/s
+4,8095,167470597856,-;PC: 1158 np 587 wp 0 yp 0 sleeps/s
+4,8096,167475598650,-;PC: 1372 np 587 wp 0 yp 0 sleeps/s
+4,8097,167480599298,-;PC: 1148 np 587 wp 0 yp 0 sleeps/s
+4,8098,167485309512,-;virtpc: producer stops
+4,8099,167485402347,-;virtpc: set Wp=601ns
+4,8100,167485402349,-;virtpc: set Wc=2000ns
+4,8101,167485402349,-;virtpc: set Yp=5000ns
+4,8102,167485402350,-;virtpc: set Yc=5000ns
+4,8103,167485402350,-;virtpc: set D=60ns
+4,8104,167490402343,-;PC: 1266 np 600 wp 0 yp 0 sleeps/s
+4,8105,167495402745,-;PC: 1162 np 600 wp 0 yp 0 sleeps/s
+4,8106,167500402738,-;PC: 1235 np 600 wp 0 yp 0 sleeps/s
+4,8107,167505403003,-;PC: 1267 np 600 wp 0 yp 0 sleeps/s
+4,8108,167510403525,-;PC: 1234 np 600 wp 0 yp 0 sleeps/s
+4,8109,167515403935,-;PC: 1173 np 600 wp 0 yp 0 sleeps/s
+4,8110,167520404542,-;PC: 1241 np 600 wp 0 yp 0 sleeps/s
+4,8111,167525404848,-;PC: 1234 np 600 wp 0 yp 0 sleeps/s
+4,8112,167530404842,-;PC: 1209 np 600 wp 0 yp 0 sleeps/s
+4,8113,167535404835,-;PC: 1146 np 600 wp 0 yp 0 sleeps/s
+4,8114,167540404855,-;PC: 1174 np 600 wp 0 yp 0 sleeps/s
+4,8115,167545117379,-;virtpc: producer stops
+4,8116,167545210370,-;virtpc: set Wp=615ns
+4,8117,167545210372,-;virtpc: set Wc=2000ns
+4,8118,167545210373,-;virtpc: set Yp=5000ns
+4,8119,167545210373,-;virtpc: set Yc=5000ns
+4,8120,167545210374,-;virtpc: set D=60ns
+4,8121,167550210367,-;PC: 1223 np 614 wp 0 yp 0 sleeps/s
+4,8122,167555210362,-;PC: 1177 np 614 wp 0 yp 0 sleeps/s
+4,8123,167560210617,-;PC: 1284 np 614 wp 0 yp 0 sleeps/s
+4,8124,167565210612,-;PC: 1330 np 614 wp 0 yp 0 sleeps/s
+4,8125,167570211147,-;PC: 1212 np 614 wp 0 yp 0 sleeps/s
+4,8126,167575211571,-;PC: 1158 np 614 wp 0 yp 0 sleeps/s
+4,8127,167580211566,-;PC: 1214 np 614 wp 0 yp 0 sleeps/s
+4,8128,167585211560,-;PC: 1193 np 614 wp 0 yp 0 sleeps/s
+4,8129,167590211812,-;PC: 1373 np 614 wp 0 yp 0 sleeps/s
+4,8130,167595212512,-;PC: 1184 np 614 wp 0 yp 0 sleeps/s
+4,8131,167600212507,-;PC: 1212 np 614 wp 0 yp 0 sleeps/s
+4,8132,167604925377,-;virtpc: producer stops
+4,8133,167605018170,-;virtpc: set Wp=628ns
+4,8134,167605018172,-;virtpc: set Wc=2000ns
+4,8135,167605018173,-;virtpc: set Yp=5000ns
+4,8136,167605018173,-;virtpc: set Yc=5000ns
+4,8137,167605018174,-;virtpc: set D=60ns
+4,8138,167610018334,-;PC: 1285 np 627 wp 0 yp 0 sleeps/s
+4,8139,167615018329,-;PC: 1236 np 627 wp 0 yp 0 sleeps/s
+4,8140,167620018502,-;PC: 1186 np 627 wp 0 yp 0 sleeps/s
+4,8141,167625018496,-;PC: 1147 np 627 wp 0 yp 0 sleeps/s
+4,8142,167630018490,-;PC: 1248 np 627 wp 0 yp 0 sleeps/s
+4,8143,167635018484,-;PC: 1191 np 627 wp 0 yp 0 sleeps/s
+4,8144,167640018566,-;PC: 1144 np 627 wp 0 yp 0 sleeps/s
+4,8145,167645018596,-;PC: 1191 np 627 wp 0 yp 0 sleeps/s
+4,8146,167650018591,-;PC: 1198 np 627 wp 0 yp 0 sleeps/s
+4,8147,167655019191,-;PC: 1185 np 627 wp 0 yp 0 sleeps/s
+4,8148,167660019738,-;PC: 1184 np 627 wp 0 yp 0 sleeps/s
+4,8149,167664732478,-;virtpc: producer stops
+4,8150,167664825455,-;virtpc: set Wp=643ns
+4,8151,167664825457,-;virtpc: set Wc=2000ns
+4,8152,167664825458,-;virtpc: set Yp=5000ns
+4,8153,167664825459,-;virtpc: set Yc=5000ns
+4,8154,167664825459,-;virtpc: set D=60ns
+4,8155,167669825452,-;PC: 1244 np 642 wp 0 yp 0 sleeps/s
+4,8156,167674825990,-;PC: 1167 np 642 wp 0 yp 0 sleeps/s
+4,8157,167679825984,-;PC: 1144 np 642 wp 0 yp 0 sleeps/s
+4,8158,167684826649,-;PC: 1162 np 642 wp 0 yp 0 sleeps/s
+4,8159,167689826715,-;PC: 1150 np 642 wp 0 yp 0 sleeps/s
+4,8160,167694827022,-;PC: 1216 np 642 wp 0 yp 0 sleeps/s
+4,8161,167699827338,-;PC: 1194 np 642 wp 0 yp 0 sleeps/s
+4,8162,167704827781,-;PC: 1218 np 642 wp 0 yp 0 sleeps/s
+4,8163,167709828270,-;PC: 1217 np 642 wp 0 yp 0 sleeps/s
+4,8164,167714829012,-;PC: 1178 np 642 wp 0 yp 0 sleeps/s
+4,8165,167719829061,-;PC: 1268 np 642 wp 0 yp 0 sleeps/s
+4,8166,167724540078,-;virtpc: producer stops
+4,8167,167724632949,-;virtpc: set Wp=657ns
+4,8168,167724632951,-;virtpc: set Wc=2000ns
+4,8169,167724632952,-;virtpc: set Yp=5000ns
+4,8170,167724632952,-;virtpc: set Yc=5000ns
+4,8171,167724632953,-;virtpc: set D=60ns
+4,8172,167729633612,-;PC: 1225 np 656 wp 0 yp 0 sleeps/s
+4,8173,167734634088,-;PC: 1203 np 656 wp 0 yp 0 sleeps/s
+4,8174,167739634082,-;PC: 1237 np 656 wp 0 yp 0 sleeps/s
+4,8175,167744634332,-;PC: 1205 np 656 wp 0 yp 0 sleeps/s
+4,8176,167749634794,-;PC: 1203 np 656 wp 0 yp 0 sleeps/s
+4,8177,167754635546,-;PC: 1217 np 656 wp 0 yp 0 sleeps/s
+4,8178,167759636002,-;PC: 1194 np 656 wp 0 yp 0 sleeps/s
+4,8179,167764635996,-;PC: 1207 np 656 wp 0 yp 0 sleeps/s
+4,8180,167769636133,-;PC: 1186 np 656 wp 0 yp 0 sleeps/s
+4,8181,167774636566,-;PC: 1144 np 656 wp 0 yp 0 sleeps/s
+4,8182,167779637333,-;PC: 1161 np 656 wp 0 yp 0 sleeps/s
+4,8183,167784347257,-;virtpc: producer stops
+4,8184,167784440254,-;virtpc: set Wp=672ns
+4,8185,167784440256,-;virtpc: set Wc=2000ns
+4,8186,167784440256,-;virtpc: set Yp=5000ns
+4,8187,167784440257,-;virtpc: set Yc=5000ns
+4,8188,167784440257,-;virtpc: set D=60ns
+4,8189,167789440251,-;PC: 1320 np 671 wp 0 yp 0 sleeps/s
+4,8190,167794440522,-;PC: 1218 np 671 wp 0 yp 0 sleeps/s
+4,8191,167799440916,-;PC: 1163 np 671 wp 0 yp 0 sleeps/s
+4,8192,167804441297,-;PC: 1219 np 671 wp 0 yp 0 sleeps/s
+4,8193,167809441639,-;PC: 1176 np 671 wp 0 yp 0 sleeps/s
+4,8194,167814442064,-;PC: 1219 np 671 wp 0 yp 0 sleeps/s
+4,8195,167819442488,-;PC: 1270 np 671 wp 0 yp 0 sleeps/s
+4,8196,167824442884,-;PC: 1291 np 671 wp 0 yp 0 sleeps/s
+4,8197,167829443286,-;PC: 1148 np 671 wp 0 yp 0 sleeps/s
+4,8198,167834443717,-;PC: 1197 np 671 wp 0 yp 0 sleeps/s
+4,8199,167839444224,-;PC: 1228 np 671 wp 0 yp 0 sleeps/s
+4,8200,167844155320,-;virtpc: producer stops
+4,8201,167844248125,-;virtpc: set Wp=687ns
+4,8202,167844248127,-;virtpc: set Wc=2000ns
+4,8203,167844248128,-;virtpc: set Yp=5000ns
+4,8204,167844248128,-;virtpc: set Yc=5000ns
+4,8205,167844248129,-;virtpc: set D=60ns
+4,8206,167849248122,-;PC: 1246 np 686 wp 0 yp 0 sleeps/s
+4,8207,167854248576,-;PC: 1192 np 686 wp 0 yp 0 sleeps/s
+4,8208,167859248831,-;PC: 1198 np 686 wp 0 yp 0 sleeps/s
+4,8209,167864249515,-;PC: 1175 np 686 wp 0 yp 0 sleeps/s
+4,8210,167869249509,-;PC: 1176 np 686 wp 0 yp 0 sleeps/s
+4,8211,167874249851,-;PC: 1271 np 686 wp 0 yp 0 sleeps/s
+4,8212,167879250329,-;PC: 1188 np 686 wp 0 yp 0 sleeps/s
+4,8213,167884251014,-;PC: 1241 np 686 wp 0 yp 0 sleeps/s
+4,8214,167889251052,-;PC: 1187 np 686 wp 0 yp 0 sleeps/s
+4,8215,167894251047,-;PC: 1214 np 686 wp 0 yp 0 sleeps/s
+4,8216,167899251041,-;PC: 1240 np 686 wp 0 yp 0 sleeps/s
+4,8217,167903962433,-;virtpc: producer stops
+4,8218,167904055758,-;virtpc: set Wp=703ns
+4,8219,167904055760,-;virtpc: set Wc=2000ns
+4,8220,167904055760,-;virtpc: set Yp=5000ns
+4,8221,167904055761,-;virtpc: set Yc=5000ns
+4,8222,167904055761,-;virtpc: set D=60ns
+4,8223,167909055900,-;PC: 1223 np 702 wp 0 yp 0 sleeps/s
+4,8224,167914055894,-;PC: 1199 np 702 wp 0 yp 0 sleeps/s
+4,8225,167919056060,-;PC: 1150 np 702 wp 0 yp 0 sleeps/s
+4,8226,167924056632,-;PC: 1198 np 702 wp 0 yp 0 sleeps/s
+4,8227,167929057055,-;PC: 1233 np 702 wp 0 yp 0 sleeps/s
+4,8228,167934057759,-;PC: 1143 np 702 wp 0 yp 0 sleeps/s
+4,8229,167939057918,-;PC: 1169 np 702 wp 0 yp 0 sleeps/s
+4,8230,167944057912,-;PC: 1261 np 702 wp 0 yp 0 sleeps/s
+4,8231,167949057905,-;PC: 1168 np 702 wp 0 yp 0 sleeps/s
+4,8232,167954057940,-;PC: 1162 np 702 wp 0 yp 0 sleeps/s
+4,8233,167959058526,-;PC: 1225 np 702 wp 0 yp 0 sleeps/s
+4,8234,167963770065,-;virtpc: producer stops
+4,8235,167963862923,-;virtpc: set Wp=718ns
+4,8236,167963862925,-;virtpc: set Wc=2000ns
+4,8237,167963862926,-;virtpc: set Yp=5000ns
+4,8238,167963862926,-;virtpc: set Yc=5000ns
+4,8239,167963862927,-;virtpc: set D=60ns
+4,8240,167968863329,-;PC: 1247 np 717 wp 0 yp 0 sleeps/s
+4,8241,167973863354,-;PC: 1191 np 717 wp 0 yp 0 sleeps/s
+4,8242,167978863453,-;PC: 1268 np 717 wp 0 yp 0 sleeps/s
+4,8243,167983863448,-;PC: 1159 np 717 wp 0 yp 0 sleeps/s
+4,8244,167988863443,-;PC: 1180 np 717 wp 0 yp 0 sleeps/s
+4,8245,167993863438,-;PC: 1194 np 717 wp 0 yp 0 sleeps/s
+4,8246,167998863432,-;PC: 1206 np 717 wp 0 yp 0 sleeps/s
+4,8247,168003863427,-;PC: 1234 np 717 wp 0 yp 0 sleeps/s
+4,8248,168008863422,-;PC: 1184 np 717 wp 0 yp 0 sleeps/s
+4,8249,168013863417,-;PC: 1153 np 717 wp 0 yp 0 sleeps/s
+4,8250,168018863411,-;PC: 1153 np 717 wp 0 yp 0 sleeps/s
+4,8251,168023577240,-;virtpc: producer stops
+4,8252,168023670232,-;virtpc: set Wp=734ns
+4,8253,168023670234,-;virtpc: set Wc=2000ns
+4,8254,168023670235,-;virtpc: set Yp=5000ns
+4,8255,168023670235,-;virtpc: set Yc=5000ns
+4,8256,168023670236,-;virtpc: set D=60ns
+4,8257,168028670539,-;PC: 1275 np 733 wp 0 yp 0 sleeps/s
+4,8258,168033670533,-;PC: 1270 np 733 wp 0 yp 0 sleeps/s
+4,8259,168038670799,-;PC: 1210 np 733 wp 0 yp 0 sleeps/s
+4,8260,168043670830,-;PC: 1159 np 733 wp 0 yp 0 sleeps/s
+4,8261,168048671391,-;PC: 1195 np 733 wp 0 yp 0 sleeps/s
+4,8262,168053671385,-;PC: 1190 np 733 wp 0 yp 0 sleeps/s
+4,8263,168058672080,-;PC: 1188 np 733 wp 0 yp 0 sleeps/s
+4,8264,168063672594,-;PC: 1264 np 733 wp 0 yp 0 sleeps/s
+4,8265,168068672588,-;PC: 1196 np 733 wp 0 yp 0 sleeps/s
+4,8266,168073672851,-;PC: 1181 np 733 wp 0 yp 0 sleeps/s
+4,8267,168078673271,-;PC: 1304 np 733 wp 0 yp 0 sleeps/s
+4,8268,168083384540,-;virtpc: producer stops
+4,8269,168083477350,-;virtpc: set Wp=751ns
+4,8270,168083477352,-;virtpc: set Wc=2000ns
+4,8271,168083477353,-;virtpc: set Yp=5000ns
+4,8272,168083477353,-;virtpc: set Yc=5000ns
+4,8273,168083477354,-;virtpc: set D=60ns
+4,8274,168088477430,-;PC: 1265 np 750 wp 0 yp 0 sleeps/s
+4,8275,168093478111,-;PC: 1193 np 750 wp 0 yp 0 sleeps/s
+4,8276,168098478104,-;PC: 1207 np 750 wp 0 yp 0 sleeps/s
+4,8277,168103478398,-;PC: 1211 np 750 wp 0 yp 0 sleeps/s
+4,8278,168108479013,-;PC: 1233 np 750 wp 0 yp 0 sleeps/s
+4,8279,168113479605,-;PC: 1275 np 750 wp 0 yp 0 sleeps/s
+4,8280,168118480256,-;PC: 1162 np 750 wp 0 yp 0 sleeps/s
+4,8281,168123480711,-;PC: 1292 np 750 wp 0 yp 0 sleeps/s
+4,8282,168128481060,-;PC: 1331 np 750 wp 0 yp 0 sleeps/s
+4,8283,168133481599,-;PC: 1240 np 750 wp 0 yp 0 sleeps/s
+4,8284,168138481593,-;PC: 1241 np 750 wp 0 yp 0 sleeps/s
+4,8285,168143191657,-;virtpc: producer stops
+4,8286,168143284636,-;virtpc: set Wp=768ns
+4,8287,168143284638,-;virtpc: set Wc=2000ns
+4,8288,168143284639,-;virtpc: set Yp=5000ns
+4,8289,168143284640,-;virtpc: set Yc=5000ns
+4,8290,168143284640,-;virtpc: set D=60ns
+4,8291,168148284632,-;PC: 1250 np 767 wp 0 yp 0 sleeps/s
+4,8292,168153284626,-;PC: 1203 np 767 wp 0 yp 0 sleeps/s
+4,8293,168158284908,-;PC: 1196 np 767 wp 0 yp 0 sleeps/s
+4,8294,168163285015,-;PC: 1284 np 767 wp 0 yp 0 sleeps/s
+4,8295,168168285585,-;PC: 1145 np 767 wp 0 yp 0 sleeps/s
+4,8296,168173285579,-;PC: 1180 np 767 wp 0 yp 0 sleeps/s
+4,8297,168178285952,-;PC: 1221 np 767 wp 0 yp 0 sleeps/s
+4,8298,168183286288,-;PC: 1251 np 767 wp 0 yp 0 sleeps/s
+4,8299,168188286281,-;PC: 1277 np 767 wp 0 yp 0 sleeps/s
+4,8300,168193286275,-;PC: 1173 np 767 wp 0 yp 0 sleeps/s
+4,8301,168198286537,-;PC: 1193 np 767 wp 0 yp 0 sleeps/s
+4,8302,168202999416,-;virtpc: producer stops
+4,8303,168203092197,-;virtpc: set Wp=785ns
+4,8304,168203092199,-;virtpc: set Wc=2000ns
+4,8305,168203092199,-;virtpc: set Yp=5000ns
+4,8306,168203092200,-;virtpc: set Yc=5000ns
+4,8307,168203092201,-;virtpc: set D=60ns
+4,8308,168208092192,-;PC: 1261 np 784 wp 0 yp 0 sleeps/s
+4,8309,168213092185,-;PC: 1224 np 784 wp 0 yp 0 sleeps/s
+4,8310,168218092412,-;PC: 1282 np 784 wp 0 yp 0 sleeps/s
+4,8311,168223092405,-;PC: 1193 np 784 wp 0 yp 0 sleeps/s
+4,8312,168228092398,-;PC: 1179 np 784 wp 0 yp 0 sleeps/s
+4,8313,168233092587,-;PC: 1245 np 784 wp 0 yp 0 sleeps/s
+4,8314,168238092580,-;PC: 1183 np 784 wp 0 yp 0 sleeps/s
+4,8315,168243092977,-;PC: 1197 np 784 wp 0 yp 0 sleeps/s
+4,8316,168248092970,-;PC: 1151 np 784 wp 0 yp 0 sleeps/s
+4,8317,168253093436,-;PC: 1161 np 784 wp 0 yp 0 sleeps/s
+4,8318,168258093577,-;PC: 1189 np 784 wp 0 yp 0 sleeps/s
+4,8319,168262807271,-;virtpc: producer stops
+4,8320,168262900294,-;virtpc: set Wp=803ns
+4,8321,168262900296,-;virtpc: set Wc=2000ns
+4,8322,168262900297,-;virtpc: set Yp=5000ns
+4,8323,168262900297,-;virtpc: set Yc=5000ns
+4,8324,168262900298,-;virtpc: set D=60ns
+4,8325,168267901020,-;PC: 1331 np 802 wp 0 yp 0 sleeps/s
+4,8326,168272901014,-;PC: 1177 np 802 wp 0 yp 0 sleeps/s
+4,8327,168277901007,-;PC: 1284 np 802 wp 0 yp 0 sleeps/s
+4,8328,168282901000,-;PC: 1170 np 802 wp 0 yp 0 sleeps/s
+4,8329,168287901051,-;PC: 1217 np 802 wp 0 yp 0 sleeps/s
+4,8330,168292901044,-;PC: 1238 np 802 wp 0 yp 0 sleeps/s
+4,8331,168297901036,-;PC: 1232 np 802 wp 0 yp 0 sleeps/s
+4,8332,168302901030,-;PC: 1151 np 802 wp 0 yp 0 sleeps/s
+4,8333,168307901022,-;PC: 1197 np 802 wp 0 yp 0 sleeps/s
+4,8334,168312901016,-;PC: 1206 np 802 wp 0 yp 0 sleeps/s
+4,8335,168317901449,-;PC: 1188 np 802 wp 0 yp 0 sleeps/s
+4,8336,168322615362,-;virtpc: producer stops
+4,8337,168322708144,-;virtpc: set Wp=821ns
+4,8338,168322708146,-;virtpc: set Wc=2000ns
+4,8339,168322708147,-;virtpc: set Yp=5000ns
+4,8340,168322708148,-;virtpc: set Yc=5000ns
+4,8341,168322708148,-;virtpc: set D=60ns
+4,8342,168327708140,-;PC: 1303 np 820 wp 0 yp 0 sleeps/s
+4,8343,168332708134,-;PC: 1196 np 820 wp 0 yp 0 sleeps/s
+4,8344,168337708538,-;PC: 1191 np 820 wp 0 yp 0 sleeps/s
+4,8345,168342709042,-;PC: 1175 np 820 wp 0 yp 0 sleeps/s
+4,8346,168347709645,-;PC: 1160 np 820 wp 0 yp 0 sleeps/s
+4,8347,168352709639,-;PC: 1202 np 820 wp 0 yp 0 sleeps/s
+4,8348,168357710319,-;PC: 1295 np 820 wp 0 yp 0 sleeps/s
+4,8349,168362710842,-;PC: 1167 np 820 wp 0 yp 0 sleeps/s
+4,8350,168367711492,-;PC: 1320 np 820 wp 0 yp 0 sleeps/s
+4,8351,168372711853,-;PC: 1163 np 820 wp 0 yp 0 sleeps/s
+4,8352,168377712355,-;PC: 1174 np 820 wp 0 yp 0 sleeps/s
+4,8353,168382422452,-;virtpc: producer stops
+4,8354,168382515441,-;virtpc: set Wp=839ns
+4,8355,168382515444,-;virtpc: set Wc=2000ns
+4,8356,168382515444,-;virtpc: set Yp=5000ns
+4,8357,168382515445,-;virtpc: set Yc=5000ns
+4,8358,168382515446,-;virtpc: set D=60ns
+4,8359,168387516022,-;PC: 1318 np 838 wp 0 yp 0 sleeps/s
+4,8360,168392516017,-;PC: 1195 np 838 wp 0 yp 0 sleeps/s
+4,8361,168397516010,-;PC: 1273 np 838 wp 0 yp 0 sleeps/s
+4,8362,168402516004,-;PC: 1226 np 838 wp 0 yp 0 sleeps/s
+4,8363,168407515998,-;PC: 1238 np 838 wp 0 yp 0 sleeps/s
+4,8364,168412515992,-;PC: 1198 np 838 wp 0 yp 0 sleeps/s
+4,8365,168417515985,-;PC: 1211 np 838 wp 0 yp 0 sleeps/s
+4,8366,168422515979,-;PC: 1174 np 838 wp 0 yp 0 sleeps/s
+4,8367,168427515973,-;PC: 1192 np 838 wp 0 yp 0 sleeps/s
+4,8368,168432516531,-;PC: 1174 np 838 wp 0 yp 0 sleeps/s
+4,8369,168437516525,-;PC: 1232 np 838 wp 0 yp 0 sleeps/s
+4,8370,168442229750,-;virtpc: producer stops
+4,8371,168442322604,-;virtpc: set Wp=858ns
+4,8372,168442322606,-;virtpc: set Wc=2000ns
+4,8373,168442322606,-;virtpc: set Yp=5000ns
+4,8374,168442322607,-;virtpc: set Yc=5000ns
+4,8375,168442322608,-;virtpc: set D=60ns
+4,8376,168447322601,-;PC: 1255 np 857 wp 0 yp 0 sleeps/s
+4,8377,168452322595,-;PC: 1160 np 857 wp 0 yp 0 sleeps/s
+4,8378,168457322589,-;PC: 1195 np 857 wp 0 yp 0 sleeps/s
+4,8379,168462322584,-;PC: 1157 np 857 wp 0 yp 0 sleeps/s
+4,8380,168467323180,-;PC: 1151 np 857 wp 0 yp 0 sleeps/s
+4,8381,168472323350,-;PC: 1262 np 857 wp 0 yp 0 sleeps/s
+4,8382,168477323533,-;PC: 1302 np 857 wp 0 yp 0 sleeps/s
+4,8383,168482323617,-;PC: 1165 np 857 wp 0 yp 0 sleeps/s
+4,8384,168487323612,-;PC: 1192 np 857 wp 0 yp 0 sleeps/s
+4,8385,168492323606,-;PC: 1220 np 857 wp 0 yp 0 sleeps/s
+4,8386,168497323601,-;PC: 1154 np 857 wp 0 yp 0 sleeps/s
+4,8387,168502037086,-;virtpc: producer stops
+4,8388,168502130072,-;virtpc: set Wp=878ns
+4,8389,168502130074,-;virtpc: set Wc=2000ns
+4,8390,168502130075,-;virtpc: set Yp=5000ns
+4,8391,168502130076,-;virtpc: set Yc=5000ns
+4,8392,168502130076,-;virtpc: set D=60ns
+4,8393,168507130256,-;PC: 1354 np 877 wp 0 yp 0 sleeps/s
+4,8394,168512130406,-;PC: 1226 np 877 wp 0 yp 0 sleeps/s
+4,8395,168517130400,-;PC: 1173 np 877 wp 0 yp 0 sleeps/s
+4,8396,168522130433,-;PC: 1167 np 877 wp 0 yp 0 sleeps/s
+4,8397,168527130427,-;PC: 1197 np 877 wp 0 yp 0 sleeps/s
+4,8398,168532130462,-;PC: 1201 np 877 wp 0 yp 0 sleeps/s
+4,8399,168537130456,-;PC: 1204 np 877 wp 0 yp 0 sleeps/s
+4,8400,168542130450,-;PC: 1178 np 877 wp 0 yp 0 sleeps/s
+4,8401,168547130445,-;PC: 1208 np 877 wp 0 yp 0 sleeps/s
+4,8402,168552130462,-;PC: 1221 np 877 wp 0 yp 0 sleeps/s
+4,8403,168557130456,-;PC: 1149 np 877 wp 0 yp 0 sleeps/s
+4,8404,168561844380,-;virtpc: producer stops
+4,8405,168561937175,-;virtpc: set Wp=897ns
+4,8406,168561937177,-;virtpc: set Wc=2000ns
+4,8407,168561937177,-;virtpc: set Yp=5000ns
+4,8408,168561937178,-;virtpc: set Yc=5000ns
+4,8409,168561937179,-;virtpc: set D=60ns
+4,8410,168566937172,-;PC: 1242 np 896 wp 0 yp 0 sleeps/s
+4,8411,168571937166,-;PC: 1162 np 896 wp 0 yp 0 sleeps/s
+4,8412,168576937161,-;PC: 1160 np 896 wp 0 yp 0 sleeps/s
+4,8413,168581937156,-;PC: 1244 np 896 wp 0 yp 0 sleeps/s
+4,8414,168586937862,-;PC: 1166 np 896 wp 0 yp 0 sleeps/s
+4,8415,168591938580,-;PC: 1160 np 896 wp 0 yp 0 sleeps/s
+4,8416,168596938575,-;PC: 1349 np 896 wp 0 yp 0 sleeps/s
+4,8417,168601938570,-;PC: 1277 np 896 wp 0 yp 0 sleeps/s
+4,8418,168606938565,-;PC: 1256 np 896 wp 0 yp 0 sleeps/s
+4,8419,168611938626,-;PC: 1168 np 896 wp 0 yp 0 sleeps/s
+4,8420,168616939258,-;PC: 1263 np 896 wp 0 yp 0 sleeps/s
+4,8421,168621651799,-;virtpc: producer stops
+4,8422,168621744802,-;virtpc: set Wp=918ns
+4,8423,168621744804,-;virtpc: set Wc=2000ns
+4,8424,168621744805,-;virtpc: set Yp=5000ns
+4,8425,168621744805,-;virtpc: set Yc=5000ns
+4,8426,168621744806,-;virtpc: set D=60ns
+4,8427,168626744798,-;PC: 1317 np 917 wp 0 yp 0 sleeps/s
+4,8428,168631744792,-;PC: 1207 np 917 wp 0 yp 0 sleeps/s
+4,8429,168636744932,-;PC: 1209 np 917 wp 0 yp 0 sleeps/s
+4,8430,168641744926,-;PC: 1176 np 917 wp 0 yp 0 sleeps/s
+4,8431,168646744920,-;PC: 1259 np 917 wp 0 yp 0 sleeps/s
+4,8432,168651745288,-;PC: 1292 np 917 wp 0 yp 0 sleeps/s
+4,8433,168656745281,-;PC: 1197 np 917 wp 0 yp 0 sleeps/s
+4,8434,168661745274,-;PC: 1182 np 917 wp 0 yp 0 sleeps/s
+4,8435,168666745267,-;PC: 1251 np 917 wp 0 yp 0 sleeps/s
+4,8436,168671745260,-;PC: 1286 np 917 wp 0 yp 0 sleeps/s
+4,8437,168676745964,-;PC: 1223 np 917 wp 0 yp 0 sleeps/s
+4,8438,168681459110,-;virtpc: producer stops
+4,8439,168681551912,-;virtpc: set Wp=938ns
+4,8440,168681551914,-;virtpc: set Wc=2000ns
+4,8441,168681551915,-;virtpc: set Yp=5000ns
+4,8442,168681551915,-;virtpc: set Yc=5000ns
+4,8443,168681551916,-;virtpc: set D=60ns
+4,8444,168686551908,-;PC: 1284 np 937 wp 0 yp 0 sleeps/s
+4,8445,168691551901,-;PC: 1182 np 937 wp 0 yp 0 sleeps/s
+4,8446,168696552142,-;PC: 1320 np 937 wp 0 yp 0 sleeps/s
+4,8447,168701552380,-;PC: 1229 np 937 wp 0 yp 0 sleeps/s
+4,8448,168706552754,-;PC: 1298 np 937 wp 0 yp 0 sleeps/s
+4,8449,168711552856,-;PC: 1167 np 937 wp 0 yp 0 sleeps/s
+4,8450,168716553251,-;PC: 1168 np 937 wp 0 yp 0 sleeps/s
+4,8451,168721553245,-;PC: 1256 np 937 wp 0 yp 0 sleeps/s
+4,8452,168726553684,-;PC: 1246 np 937 wp 0 yp 0 sleeps/s
+4,8453,168731553950,-;PC: 1195 np 937 wp 0 yp 0 sleeps/s
+4,8454,168736554473,-;PC: 1211 np 937 wp 0 yp 0 sleeps/s
+4,8455,168741266219,-;virtpc: producer stops
+4,8456,168741359222,-;virtpc: set Wp=959ns
+4,8457,168741359224,-;virtpc: set Wc=2000ns
+4,8458,168741359225,-;virtpc: set Yp=5000ns
+4,8459,168741359225,-;virtpc: set Yc=5000ns
+4,8460,168741359226,-;virtpc: set D=60ns
+4,8461,168746359219,-;PC: 1243 np 958 wp 0 yp 0 sleeps/s
+4,8462,168751359213,-;PC: 1248 np 958 wp 0 yp 0 sleeps/s
+4,8463,168756359207,-;PC: 1297 np 958 wp 0 yp 0 sleeps/s
+4,8464,168761359458,-;PC: 1172 np 958 wp 0 yp 0 sleeps/s
+4,8465,168766359452,-;PC: 1170 np 958 wp 0 yp 0 sleeps/s
+4,8466,168771359885,-;PC: 1215 np 958 wp 0 yp 0 sleeps/s
+4,8467,168776359879,-;PC: 1240 np 958 wp 0 yp 0 sleeps/s
+4,8468,168781360363,-;PC: 1229 np 958 wp 0 yp 0 sleeps/s
+4,8469,168786360358,-;PC: 1218 np 958 wp 0 yp 0 sleeps/s
+4,8470,168791361070,-;PC: 1170 np 958 wp 0 yp 0 sleeps/s
+4,8471,168796361064,-;PC: 1248 np 958 wp 0 yp 0 sleeps/s
+4,8472,168801073530,-;virtpc: producer stops
+4,8473,168801166345,-;virtpc: set Wp=981ns
+4,8474,168801166347,-;virtpc: set Wc=2000ns
+4,8475,168801166348,-;virtpc: set Yp=5000ns
+4,8476,168801166349,-;virtpc: set Yc=5000ns
+4,8477,168801166349,-;virtpc: set D=60ns
+4,8478,168806166342,-;PC: 1318 np 980 wp 0 yp 0 sleeps/s
+4,8479,168811166396,-;PC: 1187 np 980 wp 0 yp 0 sleeps/s
+4,8480,168816166791,-;PC: 1188 np 980 wp 0 yp 0 sleeps/s
+4,8481,168821167449,-;PC: 1181 np 980 wp 0 yp 0 sleeps/s
+4,8482,168826167443,-;PC: 1213 np 980 wp 0 yp 0 sleeps/s
+4,8483,168831167852,-;PC: 2515 np 980 wp 0 yp 0 sleeps/s
+4,8484,168836167846,-;PC: 1213 np 980 wp 0 yp 0 sleeps/s
+4,8485,168841167843,-;PC: 1164 np 980 wp 0 yp 0 sleeps/s
+4,8486,168846168360,-;PC: 1163 np 980 wp 0 yp 0 sleeps/s
+4,8487,168851169028,-;PC: 1184 np 980 wp 0 yp 0 sleeps/s
+4,8488,168856169022,-;PC: 1224 np 980 wp 0 yp 0 sleeps/s
+4,8489,168860880653,-;virtpc: producer stops
+4,8490,168860973644,-;virtpc: set Wp=1003ns
+4,8491,168860973646,-;virtpc: set Wc=2000ns
+4,8492,168860973647,-;virtpc: set Yp=5000ns
+4,8493,168860973647,-;virtpc: set Yc=5000ns
+4,8494,168860973648,-;virtpc: set D=60ns
+4,8495,168865973933,-;PC: 1276 np 1002 wp 0 yp 0 sleeps/s
+4,8496,168870973928,-;PC: 1162 np 1002 wp 0 yp 0 sleeps/s
+4,8497,168875973942,-;PC: 1191 np 1002 wp 0 yp 0 sleeps/s
+4,8498,168880974217,-;PC: 1213 np 1002 wp 0 yp 0 sleeps/s
+4,8499,168885974211,-;PC: 1211 np 1002 wp 0 yp 0 sleeps/s
+4,8500,168890974205,-;PC: 1216 np 1002 wp 0 yp 0 sleeps/s
+4,8501,168895974271,-;PC: 1284 np 1002 wp 0 yp 0 sleeps/s
+4,8502,168900974265,-;PC: 1164 np 1002 wp 0 yp 0 sleeps/s
+4,8503,168905974259,-;PC: 1172 np 1002 wp 0 yp 0 sleeps/s
+4,8504,168910974253,-;PC: 1256 np 1002 wp 0 yp 0 sleeps/s
+4,8505,168915974247,-;PC: 1176 np 1002 wp 0 yp 0 sleeps/s
+4,8506,168920688120,-;virtpc: producer stops
+4,8507,168920780957,-;virtpc: set Wp=1026ns
+4,8508,168920780959,-;virtpc: set Wc=2000ns
+4,8509,168920780959,-;virtpc: set Yp=5000ns
+4,8510,168920780960,-;virtpc: set Yc=5000ns
+4,8511,168920780960,-;virtpc: set D=60ns
+4,8512,168925781339,-;PC: 1279 np 1025 wp 0 yp 0 sleeps/s
+4,8513,168930781374,-;PC: 1180 np 1025 wp 0 yp 0 sleeps/s
+4,8514,168935781740,-;PC: 1156 np 1025 wp 0 yp 0 sleeps/s
+4,8515,168940781761,-;PC: 1222 np 1025 wp 0 yp 0 sleeps/s
+4,8516,168945781753,-;PC: 1246 np 1025 wp 0 yp 0 sleeps/s
+4,8517,168950782340,-;PC: 1276 np 1025 wp 0 yp 0 sleeps/s
+4,8518,168955782427,-;PC: 1215 np 1025 wp 0 yp 0 sleeps/s
+4,8519,168960783057,-;PC: 1180 np 1025 wp 0 yp 0 sleeps/s
+4,8520,168965783049,-;PC: 1219 np 1025 wp 0 yp 0 sleeps/s
+4,8521,168970783041,-;PC: 1228 np 1025 wp 0 yp 0 sleeps/s
+4,8522,168975783033,-;PC: 1257 np 1025 wp 0 yp 0 sleeps/s
+4,8523,168980495937,-;virtpc: producer stops
+4,8524,168980588943,-;virtpc: set Wp=1049ns
+4,8525,168980588945,-;virtpc: set Wc=2000ns
+4,8526,168980588945,-;virtpc: set Yp=5000ns
+4,8527,168980588946,-;virtpc: set Yc=5000ns
+4,8528,168980588947,-;virtpc: set D=60ns
+4,8529,168985588939,-;PC: 1236 np 1048 wp 0 yp 0 sleeps/s
+4,8530,168990588933,-;PC: 1211 np 1048 wp 0 yp 0 sleeps/s
+4,8531,168995588928,-;PC: 1262 np 1048 wp 0 yp 0 sleeps/s
+4,8532,169000588923,-;PC: 1284 np 1048 wp 0 yp 0 sleeps/s
+4,8533,169005588918,-;PC: 1180 np 1048 wp 0 yp 0 sleeps/s
+4,8534,169010588913,-;PC: 1222 np 1048 wp 0 yp 0 sleeps/s
+4,8535,169015588907,-;PC: 1276 np 1048 wp 0 yp 0 sleeps/s
+4,8536,169020588901,-;PC: 1183 np 1048 wp 0 yp 0 sleeps/s
+4,8537,169025588896,-;PC: 1179 np 1048 wp 0 yp 0 sleeps/s
+4,8538,169030588890,-;PC: 1221 np 1048 wp 0 yp 0 sleeps/s
+4,8539,169035588885,-;PC: 1228 np 1048 wp 0 yp 0 sleeps/s
+4,8540,169040303436,-;virtpc: producer stops
+4,8541,169040396261,-;virtpc: set Wp=1072ns
+4,8542,169040396263,-;virtpc: set Wc=2000ns
+4,8543,169040396264,-;virtpc: set Yp=5000ns
+4,8544,169040396264,-;virtpc: set Yc=5000ns
+4,8545,169040396265,-;virtpc: set D=60ns
+4,8546,169045396258,-;PC: 1247 np 1071 wp 0 yp 0 sleeps/s
+4,8547,169050396431,-;PC: 1208 np 1071 wp 0 yp 0 sleeps/s
+4,8548,169055396425,-;PC: 1275 np 1071 wp 0 yp 0 sleeps/s
+4,8549,169060396419,-;PC: 1158 np 1071 wp 0 yp 0 sleeps/s
+4,8550,169065396413,-;PC: 1169 np 1071 wp 0 yp 0 sleeps/s
+4,8551,169070396578,-;PC: 1245 np 1071 wp 0 yp 0 sleeps/s
+4,8552,169075396621,-;PC: 1186 np 1071 wp 0 yp 0 sleeps/s
+4,8553,169080396615,-;PC: 1178 np 1071 wp 0 yp 0 sleeps/s
+4,8554,169085396609,-;PC: 1240 np 1071 wp 0 yp 0 sleeps/s
+4,8555,169090396603,-;PC: 1239 np 1071 wp 0 yp 0 sleeps/s
+4,8556,169095396597,-;PC: 1172 np 1071 wp 0 yp 0 sleeps/s
+4,8557,169100110568,-;virtpc: producer stops
+4,8558,169100203567,-;virtpc: set Wp=1096ns
+4,8559,169100203569,-;virtpc: set Wc=2000ns
+4,8560,169100203570,-;virtpc: set Yp=5000ns
+4,8561,169100203571,-;virtpc: set Yc=5000ns
+4,8562,169100203571,-;virtpc: set D=60ns
+4,8563,169105203564,-;PC: 1336 np 1095 wp 0 yp 0 sleeps/s
+4,8564,169110204283,-;PC: 1200 np 1095 wp 0 yp 0 sleeps/s
+4,8565,169115204277,-;PC: 1191 np 1095 wp 0 yp 0 sleeps/s
+4,8566,169120204561,-;PC: 1296 np 1095 wp 0 yp 0 sleeps/s
+4,8567,169125204555,-;PC: 1161 np 1095 wp 0 yp 0 sleeps/s
+4,8568,169130205343,-;PC: 1183 np 1095 wp 0 yp 0 sleeps/s
+4,8569,169135205337,-;PC: 1218 np 1095 wp 0 yp 0 sleeps/s
+4,8570,169140205949,-;PC: 1276 np 1095 wp 0 yp 0 sleeps/s
+4,8571,169145205943,-;PC: 1231 np 1095 wp 0 yp 0 sleeps/s
+4,8572,169150206432,-;PC: 1187 np 1095 wp 0 yp 0 sleeps/s
+4,8573,169155206425,-;PC: 1172 np 1095 wp 0 yp 0 sleeps/s
+4,8574,169159917874,-;virtpc: producer stops
+4,8575,169160010664,-;virtpc: set Wp=1121ns
+4,8576,169160010665,-;virtpc: set Wc=2000ns
+4,8577,169160010666,-;virtpc: set Yp=5000ns
+4,8578,169160010667,-;virtpc: set Yc=5000ns
+4,8579,169160010667,-;virtpc: set D=60ns
+4,8580,169165011080,-;PC: 1252 np 1120 wp 0 yp 0 sleeps/s
+4,8581,169170011074,-;PC: 1256 np 1120 wp 0 yp 0 sleeps/s
+4,8582,169175011693,-;PC: 1291 np 1120 wp 0 yp 0 sleeps/s
+4,8583,169180012224,-;PC: 1187 np 1120 wp 0 yp 0 sleeps/s
+4,8584,169185012218,-;PC: 1168 np 1120 wp 0 yp 0 sleeps/s
+4,8585,169190012410,-;PC: 1280 np 1120 wp 0 yp 0 sleeps/s
+4,8586,169195012404,-;PC: 1257 np 1120 wp 0 yp 0 sleeps/s
+4,8587,169200012398,-;PC: 1169 np 1120 wp 0 yp 0 sleeps/s
+4,8588,169205012391,-;PC: 1178 np 1120 wp 0 yp 0 sleeps/s
+4,8589,169210012385,-;PC: 1276 np 1120 wp 0 yp 0 sleeps/s
+4,8590,169215012379,-;PC: 1182 np 1120 wp 0 yp 0 sleeps/s
+4,8591,169219724971,-;virtpc: producer stops
+4,8592,169219818006,-;virtpc: set Wp=1146ns
+4,8593,169219818008,-;virtpc: set Wc=2000ns
+4,8594,169219818009,-;virtpc: set Yp=5000ns
+4,8595,169219818009,-;virtpc: set Yc=5000ns
+4,8596,169219818010,-;virtpc: set D=60ns
+4,8597,169224818002,-;PC: 1343 np 1145 wp 0 yp 0 sleeps/s
+4,8598,169229818251,-;PC: 1261 np 1145 wp 0 yp 0 sleeps/s
+4,8599,169234818954,-;PC: 1256 np 1145 wp 0 yp 0 sleeps/s
+4,8600,169239819593,-;PC: 1231 np 1145 wp 0 yp 0 sleeps/s
+4,8601,169244820091,-;PC: 1238 np 1145 wp 0 yp 0 sleeps/s
+4,8602,169249820770,-;PC: 1271 np 1145 wp 0 yp 0 sleeps/s
+4,8603,169254821391,-;PC: 1200 np 1145 wp 0 yp 0 sleeps/s
+4,8604,169259821883,-;PC: 1240 np 1145 wp 0 yp 0 sleeps/s
+4,8605,169264822596,-;PC: 1266 np 1145 wp 0 yp 0 sleeps/s
+4,8606,169269823227,-;PC: 1245 np 1145 wp 0 yp 0 sleeps/s
+4,8607,169274823760,-;PC: 1240 np 1145 wp 0 yp 0 sleeps/s
+4,8608,169279532313,-;virtpc: producer stops
+4,8609,169279626408,-;virtpc: set Wp=1172ns
+4,8610,169279626410,-;virtpc: set Wc=2000ns
+4,8611,169279626411,-;virtpc: set Yp=5000ns
+4,8612,169279626411,-;virtpc: set Yc=5000ns
+4,8613,169279626412,-;virtpc: set D=60ns
+4,8614,169284626405,-;PC: 1264 np 1171 wp 0 yp 0 sleeps/s
+4,8615,169289626892,-;PC: 1190 np 1171 wp 0 yp 0 sleeps/s
+4,8616,169294626887,-;PC: 1321 np 1171 wp 0 yp 0 sleeps/s
+4,8617,169299627176,-;PC: 1268 np 1171 wp 0 yp 0 sleeps/s
+4,8618,169304627170,-;PC: 1180 np 1171 wp 0 yp 0 sleeps/s
+4,8619,169309627165,-;PC: 1253 np 1171 wp 0 yp 0 sleeps/s
+4,8620,169314627159,-;PC: 1161 np 1171 wp 0 yp 0 sleeps/s
+4,8621,169319627532,-;PC: 1212 np 1171 wp 0 yp 0 sleeps/s
+4,8622,169324627603,-;PC: 1173 np 1171 wp 0 yp 0 sleeps/s
+4,8623,169329627597,-;PC: 1283 np 1171 wp 0 yp 0 sleeps/s
+4,8624,169334627591,-;PC: 1243 np 1171 wp 0 yp 0 sleeps/s
+4,8625,169339340715,-;virtpc: producer stops
+4,8626,169339433689,-;virtpc: set Wp=1199ns
+4,8627,169339433691,-;virtpc: set Wc=2000ns
+4,8628,169339433692,-;virtpc: set Yp=5000ns
+4,8629,169339433692,-;virtpc: set Yc=5000ns
+4,8630,169339433693,-;virtpc: set D=60ns
+4,8631,169344433687,-;PC: 1339 np 1198 wp 0 yp 0 sleeps/s
+4,8632,169349433682,-;PC: 1200 np 1198 wp 0 yp 0 sleeps/s
+4,8633,169354433676,-;PC: 1259 np 1198 wp 0 yp 0 sleeps/s
+4,8634,169359433670,-;PC: 1204 np 1198 wp 0 yp 0 sleeps/s
+4,8635,169364433665,-;PC: 1258 np 1198 wp 0 yp 0 sleeps/s
+4,8636,169369433660,-;PC: 1289 np 1198 wp 0 yp 0 sleeps/s
+4,8637,169374433654,-;PC: 1769 np 1198 wp 0 yp 0 sleeps/s
+4,8638,169379433648,-;PC: 1219 np 1198 wp 0 yp 0 sleeps/s
+4,8639,169384433643,-;PC: 1330 np 1198 wp 0 yp 0 sleeps/s
+4,8640,169389433638,-;PC: 1280 np 1198 wp 0 yp 0 sleeps/s
+4,8641,169394433632,-;PC: 1288 np 1198 wp 0 yp 0 sleeps/s
+4,8642,169399147996,-;virtpc: producer stops
+4,8643,169399240802,-;virtpc: set Wp=1225ns
+4,8644,169399240804,-;virtpc: set Wc=2000ns
+4,8645,169399240804,-;virtpc: set Yp=5000ns
+4,8646,169399240805,-;virtpc: set Yc=5000ns
+4,8647,169399240805,-;virtpc: set D=60ns
+4,8648,169404240797,-;PC: 1320 np 1224 wp 0 yp 0 sleeps/s
+4,8649,169409240790,-;PC: 1172 np 1224 wp 0 yp 0 sleeps/s
+4,8650,169414241204,-;PC: 1223 np 1224 wp 0 yp 0 sleeps/s
+4,8651,169419241838,-;PC: 1292 np 1224 wp 0 yp 0 sleeps/s
+4,8652,169424241830,-;PC: 1164 np 1224 wp 0 yp 0 sleeps/s
+4,8653,169429242262,-;PC: 1314 np 1224 wp 0 yp 0 sleeps/s
+4,8654,169434242255,-;PC: 1292 np 1224 wp 0 yp 0 sleeps/s
+4,8655,169439242565,-;PC: 1252 np 1224 wp 0 yp 0 sleeps/s
+4,8656,169444243206,-;PC: 1179 np 1224 wp 0 yp 0 sleeps/s
+4,8657,169449243898,-;PC: 1272 np 1224 wp 0 yp 0 sleeps/s
+4,8658,169454243891,-;PC: 1252 np 1224 wp 0 yp 0 sleeps/s
+4,8659,169458955109,-;virtpc: producer stops
+4,8660,169459048084,-;virtpc: set Wp=1253ns
+4,8661,169459048086,-;virtpc: set Wc=2000ns
+4,8662,169459048087,-;virtpc: set Yp=5000ns
+4,8663,169459048087,-;virtpc: set Yc=5000ns
+4,8664,169459048088,-;virtpc: set D=60ns
+4,8665,169464048082,-;PC: 1346 np 1252 wp 0 yp 0 sleeps/s
+4,8666,169469048544,-;PC: 1488 np 1252 wp 0 yp 0 sleeps/s
+4,8667,169474049293,-;PC: 1276 np 1252 wp 0 yp 0 sleeps/s
+4,8668,169479049413,-;PC: 1215 np 1252 wp 0 yp 0 sleeps/s
+4,8669,169484049407,-;PC: 1180 np 1252 wp 0 yp 0 sleeps/s
+4,8670,169489050079,-;PC: 1183 np 1252 wp 0 yp 0 sleeps/s
+4,8671,169494050075,-;PC: 1274 np 1252 wp 0 yp 0 sleeps/s
+4,8672,169499054320,-;PC: 1184 np 1252 wp 0 yp 0 sleeps/s
+4,8673,169504054353,-;PC: 1300 np 1252 wp 0 yp 0 sleeps/s
+4,8674,169509054348,-;PC: 1242 np 1252 wp 0 yp 0 sleeps/s
+4,8675,169514054342,-;PC: 1236 np 1252 wp 0 yp 0 sleeps/s
+4,8676,169518762678,-;virtpc: producer stops
+4,8677,169518855467,-;virtpc: set Wp=1281ns
+4,8678,169518855469,-;virtpc: set Wc=2000ns
+4,8679,169518855470,-;virtpc: set Yp=5000ns
+4,8680,169518855471,-;virtpc: set Yc=5000ns
+4,8681,169518855471,-;virtpc: set D=60ns
+4,8682,169523855798,-;PC: 1299 np 1280 wp 0 yp 0 sleeps/s
+4,8683,169528855791,-;PC: 1176 np 1280 wp 0 yp 0 sleeps/s
+4,8684,169533855784,-;PC: 1266 np 1280 wp 0 yp 0 sleeps/s
+4,8685,169538855776,-;PC: 1310 np 1280 wp 0 yp 0 sleeps/s
+4,8686,169543855768,-;PC: 1241 np 1280 wp 0 yp 0 sleeps/s
+4,8687,169548855761,-;PC: 1218 np 1280 wp 0 yp 0 sleeps/s
+4,8688,169553856523,-;PC: 1210 np 1280 wp 0 yp 0 sleeps/s
+4,8689,169558856740,-;PC: 1228 np 1280 wp 0 yp 0 sleeps/s
+4,8690,169563856732,-;PC: 1535 np 1280 wp 0 yp 0 sleeps/s
+4,8691,169568856726,-;PC: 1262 np 1280 wp 0 yp 0 sleeps/s
+4,8692,169573856718,-;PC: 1179 np 1280 wp 0 yp 0 sleeps/s
+4,8693,169578569775,-;virtpc: producer stops
+4,8694,169578662763,-;virtpc: set Wp=1310ns
+4,8695,169578662765,-;virtpc: set Wc=2000ns
+4,8696,169578662765,-;virtpc: set Yp=5000ns
+4,8697,169578662766,-;virtpc: set Yc=5000ns
+4,8698,169578662767,-;virtpc: set D=60ns
+4,8699,169583662760,-;PC: 1333 np 1309 wp 0 yp 0 sleeps/s
+4,8700,169588662754,-;PC: 1255 np 1309 wp 0 yp 0 sleeps/s
+4,8701,169593662747,-;PC: 1294 np 1309 wp 0 yp 0 sleeps/s
+4,8702,169598662741,-;PC: 1206 np 1309 wp 0 yp 0 sleeps/s
+4,8703,169603663025,-;PC: 1302 np 1309 wp 0 yp 0 sleeps/s
+4,8704,169608663018,-;PC: 1232 np 1309 wp 0 yp 0 sleeps/s
+4,8705,169613663012,-;PC: 1178 np 1309 wp 0 yp 0 sleeps/s
+4,8706,169618663673,-;PC: 1217 np 1309 wp 0 yp 0 sleeps/s
+4,8707,169623663666,-;PC: 1212 np 1309 wp 0 yp 0 sleeps/s
+4,8708,169628664170,-;PC: 1177 np 1309 wp 0 yp 0 sleeps/s
+4,8709,169633665025,-;PC: 1261 np 1309 wp 0 yp 0 sleeps/s
+4,8710,169638377070,-;virtpc: producer stops
+4,8711,169638469883,-;virtpc: set Wp=1340ns
+4,8712,169638469885,-;virtpc: set Wc=2000ns
+4,8713,169638469886,-;virtpc: set Yp=5000ns
+4,8714,169638469886,-;virtpc: set Yc=5000ns
+4,8715,169638469887,-;virtpc: set D=60ns
+4,8716,169643469880,-;PC: 1314 np 1339 wp 0 yp 0 sleeps/s
+4,8717,169648469965,-;PC: 1208 np 1339 wp 0 yp 0 sleeps/s
+4,8718,169653469960,-;PC: 1215 np 1339 wp 0 yp 0 sleeps/s
+4,8719,169658469954,-;PC: 1178 np 1339 wp 0 yp 0 sleeps/s
+4,8720,169663469948,-;PC: 1214 np 1339 wp 0 yp 0 sleeps/s
+4,8721,169668470664,-;PC: 1217 np 1339 wp 0 yp 0 sleeps/s
+4,8722,169673470659,-;PC: 1308 np 1339 wp 0 yp 0 sleeps/s
+4,8723,169678470653,-;PC: 1306 np 1339 wp 0 yp 0 sleeps/s
+4,8724,169683470648,-;PC: 1242 np 1339 wp 0 yp 0 sleeps/s
+4,8725,169688470825,-;PC: 1205 np 1339 wp 0 yp 0 sleeps/s
+4,8726,169693471418,-;PC: 1295 np 1339 wp 0 yp 0 sleeps/s
+4,8727,169698184190,-;virtpc: producer stops
+4,8728,169698277169,-;virtpc: set Wp=1370ns
+4,8729,169698277170,-;virtpc: set Wc=2000ns
+4,8730,169698277171,-;virtpc: set Yp=5000ns
+4,8731,169698277172,-;virtpc: set Yc=5000ns
+4,8732,169698277172,-;virtpc: set D=60ns
+4,8733,169703277164,-;PC: 1263 np 1369 wp 0 yp 0 sleeps/s
+4,8734,169708277580,-;PC: 1253 np 1369 wp 0 yp 0 sleeps/s
+4,8735,169713277573,-;PC: 1228 np 1369 wp 0 yp 0 sleeps/s
+4,8736,169718277567,-;PC: 1217 np 1369 wp 0 yp 0 sleeps/s
+4,8737,169723278147,-;PC: 1319 np 1369 wp 0 yp 0 sleeps/s
+4,8738,169728278140,-;PC: 1184 np 1369 wp 0 yp 0 sleeps/s
+4,8739,169733278775,-;PC: 1184 np 1369 wp 0 yp 0 sleeps/s
+4,8740,169738278769,-;PC: 1226 np 1369 wp 0 yp 0 sleeps/s
+4,8741,169743279039,-;PC: 1311 np 1369 wp 0 yp 0 sleeps/s
+4,8742,169748279032,-;PC: 1273 np 1369 wp 0 yp 0 sleeps/s
+4,8743,169753279025,-;PC: 1184 np 1369 wp 0 yp 0 sleeps/s
+4,8744,169757992027,-;virtpc: producer stops
+4,8745,169758084784,-;virtpc: set Wp=1401ns
+4,8746,169758084786,-;virtpc: set Wc=2000ns
+4,8747,169758084787,-;virtpc: set Yp=5000ns
+4,8748,169758084787,-;virtpc: set Yc=5000ns
+4,8749,169758084788,-;virtpc: set D=60ns
+4,8750,169763085392,-;PC: 1259 np 1400 wp 0 yp 0 sleeps/s
+4,8751,169768085387,-;PC: 1193 np 1400 wp 0 yp 0 sleeps/s
+4,8752,169773085382,-;PC: 1277 np 1400 wp 0 yp 0 sleeps/s
+4,8753,169778085375,-;PC: 1302 np 1400 wp 0 yp 0 sleeps/s
+4,8754,169783085369,-;PC: 1184 np 1400 wp 0 yp 0 sleeps/s
+4,8755,169788085916,-;PC: 1256 np 1400 wp 0 yp 0 sleeps/s
+4,8756,169793085909,-;PC: 1262 np 1400 wp 0 yp 0 sleeps/s
+4,8757,169798085904,-;PC: 1284 np 1400 wp 0 yp 0 sleeps/s
+4,8758,169803086360,-;PC: 1254 np 1400 wp 0 yp 0 sleeps/s
+4,8759,169808086353,-;PC: 1245 np 1400 wp 0 yp 0 sleeps/s
+4,8760,169813086347,-;PC: 1170 np 1400 wp 0 yp 0 sleeps/s
+4,8761,169817799092,-;virtpc: producer stops
+4,8762,169817892058,-;virtpc: set Wp=1432ns
+4,8763,169817892060,-;virtpc: set Wc=2000ns
+4,8764,169817892061,-;virtpc: set Yp=5000ns
+4,8765,169817892061,-;virtpc: set Yc=5000ns
+4,8766,169817892062,-;virtpc: set D=60ns
+4,8767,169822892054,-;PC: 1298 np 1431 wp 0 yp 0 sleeps/s
+4,8768,169827892049,-;PC: 1223 np 1431 wp 0 yp 0 sleeps/s
+4,8769,169832892803,-;PC: 1286 np 1431 wp 0 yp 0 sleeps/s
+4,8770,169837893589,-;PC: 1242 np 1431 wp 0 yp 0 sleeps/s
+4,8771,169842893851,-;PC: 1247 np 1431 wp 0 yp 0 sleeps/s
+4,8772,169847893846,-;PC: 1300 np 1431 wp 0 yp 0 sleeps/s
+4,8773,169852893840,-;PC: 1308 np 1431 wp 0 yp 0 sleeps/s
+4,8774,169857894415,-;PC: 1188 np 1431 wp 0 yp 0 sleeps/s
+4,8775,169862894409,-;PC: 1232 np 1431 wp 0 yp 0 sleeps/s
+4,8776,169867894402,-;PC: 1227 np 1431 wp 0 yp 0 sleeps/s
+4,8777,169872894395,-;PC: 1184 np 1431 wp 0 yp 0 sleeps/s
+4,8778,169877606365,-;virtpc: producer stops
+4,8779,169877699153,-;virtpc: set Wp=1464ns
+4,8780,169877699155,-;virtpc: set Wc=2000ns
+4,8781,169877699155,-;virtpc: set Yp=5000ns
+4,8782,169877699156,-;virtpc: set Yc=5000ns
+4,8783,169877699157,-;virtpc: set D=60ns
+4,8784,169882699149,-;PC: 1297 np 1463 wp 0 yp 0 sleeps/s
+4,8785,169887699143,-;PC: 1292 np 1463 wp 0 yp 0 sleeps/s
+4,8786,169892699137,-;PC: 1240 np 1463 wp 0 yp 0 sleeps/s
+4,8787,169897699131,-;PC: 1228 np 1463 wp 0 yp 0 sleeps/s
+4,8788,169902699547,-;PC: 1207 np 1463 wp 0 yp 0 sleeps/s
+4,8789,169907699542,-;PC: 1218 np 1463 wp 0 yp 0 sleeps/s
+4,8790,169912699536,-;PC: 1294 np 1463 wp 0 yp 0 sleeps/s
+4,8791,169917699676,-;PC: 1293 np 1463 wp 0 yp 0 sleeps/s
+4,8792,169922699670,-;PC: 1243 np 1463 wp 0 yp 0 sleeps/s
+4,8793,169927699663,-;PC: 1215 np 1463 wp 0 yp 0 sleeps/s
+4,8794,169932699657,-;PC: 1219 np 1463 wp 0 yp 0 sleeps/s
+4,8795,169937413461,-;virtpc: producer stops
+4,8796,169937506436,-;virtpc: set Wp=1497ns
+4,8797,169937506438,-;virtpc: set Wc=2000ns
+4,8798,169937506439,-;virtpc: set Yp=5000ns
+4,8799,169937506440,-;virtpc: set Yc=5000ns
+4,8800,169937506440,-;virtpc: set D=60ns
+4,8801,169942506432,-;PC: 1529 np 1496 wp 0 yp 0 sleeps/s
+4,8802,169947506425,-;PC: 1246 np 1496 wp 0 yp 0 sleeps/s
+4,8803,169952506419,-;PC: 1293 np 1496 wp 0 yp 0 sleeps/s
+4,8804,169957506411,-;PC: 1207 np 1496 wp 0 yp 0 sleeps/s
+4,8805,169962506404,-;PC: 1223 np 1496 wp 0 yp 0 sleeps/s
+4,8806,169967507126,-;PC: 1242 np 1496 wp 0 yp 0 sleeps/s
+4,8807,169972507460,-;PC: 1309 np 1496 wp 0 yp 0 sleeps/s
+4,8808,169977507669,-;PC: 1216 np 1496 wp 0 yp 0 sleeps/s
+4,8809,169982507663,-;PC: 1283 np 1496 wp 0 yp 0 sleeps/s
+4,8810,169987507657,-;PC: 1227 np 1496 wp 0 yp 0 sleeps/s
+4,8811,169992507649,-;PC: 1304 np 1496 wp 0 yp 0 sleeps/s
+4,8812,169997220744,-;virtpc: producer stops
+4,8813,169997313561,-;virtpc: set Wp=1531ns
+4,8814,169997313563,-;virtpc: set Wc=2000ns
+4,8815,169997313563,-;virtpc: set Yp=5000ns
+4,8816,169997313564,-;virtpc: set Yc=5000ns
+4,8817,169997313565,-;virtpc: set D=60ns
+4,8818,170002313557,-;PC: 1339 np 1530 wp 0 yp 0 sleeps/s
+4,8819,170007313551,-;PC: 1198 np 1530 wp 0 yp 0 sleeps/s
+4,8820,170012313545,-;PC: 1312 np 1530 wp 0 yp 0 sleeps/s
+4,8821,170017313768,-;PC: 1262 np 1530 wp 0 yp 0 sleeps/s
+4,8822,170022313763,-;PC: 1248 np 1530 wp 0 yp 0 sleeps/s
+4,8823,170027313757,-;PC: 1272 np 1530 wp 0 yp 0 sleeps/s
+4,8824,170032313751,-;PC: 1261 np 1530 wp 0 yp 0 sleeps/s
+4,8825,170037313745,-;PC: 1184 np 1530 wp 0 yp 0 sleeps/s
+4,8826,170042313740,-;PC: 1263 np 1530 wp 0 yp 0 sleeps/s
+4,8827,170047313734,-;PC: 1217 np 1530 wp 0 yp 0 sleeps/s
+4,8828,170052313729,-;PC: 1263 np 1530 wp 0 yp 0 sleeps/s
+4,8829,170057027868,-;virtpc: producer stops
+4,8830,170057120875,-;virtpc: set Wp=1565ns
+4,8831,170057120877,-;virtpc: set Wc=2000ns
+4,8832,170057120878,-;virtpc: set Yp=5000ns
+4,8833,170057120878,-;virtpc: set Yc=5000ns
+4,8834,170057120879,-;virtpc: set D=60ns
+4,8835,170062120871,-;PC: 1351 np 1564 wp 0 yp 0 sleeps/s
+4,8836,170067121026,-;PC: 1203 np 1564 wp 0 yp 0 sleeps/s
+4,8837,170072121019,-;PC: 1207 np 1564 wp 0 yp 0 sleeps/s
+4,8838,170077121012,-;PC: 1258 np 1564 wp 0 yp 0 sleeps/s
+4,8839,170082121005,-;PC: 1228 np 1564 wp 0 yp 0 sleeps/s
+4,8840,170087121382,-;PC: 1320 np 1564 wp 0 yp 0 sleeps/s
+4,8841,170092121376,-;PC: 1900 np 1564 wp 0 yp 0 sleeps/s
+4,8842,170097121370,-;PC: 1197 np 1564 wp 0 yp 0 sleeps/s
+4,8843,170102121501,-;PC: 1230 np 1564 wp 0 yp 0 sleeps/s
+4,8844,170107121495,-;PC: 1247 np 1564 wp 0 yp 0 sleeps/s
+4,8845,170112121488,-;PC: 1236 np 1564 wp 0 yp 0 sleeps/s
+4,8846,170116835182,-;virtpc: producer stops
+4,8847,170116928016,-;virtpc: set Wp=1601ns
+4,8848,170116928018,-;virtpc: set Wc=2000ns
+4,8849,170116928018,-;virtpc: set Yp=5000ns
+4,8850,170116928019,-;virtpc: set Yc=5000ns
+4,8851,170116928020,-;virtpc: set D=60ns
+4,8852,170121928013,-;PC: 1420 np 1600 wp 0 yp 0 sleeps/s
+4,8853,170126928007,-;PC: 1247 np 1600 wp 0 yp 0 sleeps/s
+4,8854,170131928001,-;PC: 1284 np 1600 wp 0 yp 0 sleeps/s
+4,8855,170136927994,-;PC: 1270 np 1600 wp 0 yp 0 sleeps/s
+4,8856,170141927989,-;PC: 1254 np 1600 wp 0 yp 0 sleeps/s
+4,8857,170146927983,-;PC: 1296 np 1600 wp 0 yp 0 sleeps/s
+4,8858,170151927977,-;PC: 1452 np 1600 wp 0 yp 0 sleeps/s
+4,8859,170156928251,-;PC: 1272 np 1600 wp 0 yp 0 sleeps/s
+4,8860,170161928257,-;PC: 1257 np 1600 wp 0 yp 0 sleeps/s
+4,8861,170166928251,-;PC: 1295 np 1600 wp 0 yp 0 sleeps/s
+4,8862,170171928245,-;PC: 1204 np 1600 wp 0 yp 0 sleeps/s
+4,8863,170176642322,-;virtpc: producer stops
+4,8864,170176735338,-;virtpc: set Wp=1637ns
+4,8865,170176735340,-;virtpc: set Wc=2000ns
+4,8866,170176735341,-;virtpc: set Yp=5000ns
+4,8867,170176735342,-;virtpc: set Yc=5000ns
+4,8868,170176735342,-;virtpc: set D=60ns
+4,8869,170181735335,-;PC: 1342 np 1636 wp 0 yp 0 sleeps/s
+4,8870,170186735328,-;PC: 1218 np 1636 wp 0 yp 0 sleeps/s
+4,8871,170191735378,-;PC: 1830 np 1636 wp 0 yp 0 sleeps/s
+4,8872,170196735372,-;PC: 1274 np 1636 wp 0 yp 0 sleeps/s
+4,8873,170201735366,-;PC: 1225 np 1636 wp 0 yp 0 sleeps/s
+4,8874,170206735884,-;PC: 1214 np 1636 wp 0 yp 0 sleeps/s
+4,8875,170211735878,-;PC: 1295 np 1636 wp 0 yp 0 sleeps/s
+4,8876,170216735873,-;PC: 1528 np 1636 wp 0 yp 0 sleeps/s
+4,8877,170221735868,-;PC: 1242 np 1636 wp 0 yp 0 sleeps/s
+4,8878,170226735861,-;PC: 1273 np 1636 wp 0 yp 0 sleeps/s
+4,8879,170231735855,-;PC: 1234 np 1636 wp 0 yp 0 sleeps/s
+4,8880,170236449645,-;virtpc: producer stops
+4,8881,170236542439,-;virtpc: set Wp=1673ns
+4,8882,170236542441,-;virtpc: set Wc=2000ns
+4,8883,170236542442,-;virtpc: set Yp=5000ns
+4,8884,170236542442,-;virtpc: set Yc=5000ns
+4,8885,170236542443,-;virtpc: set D=60ns
+4,8886,170241542436,-;PC: 1317 np 1672 wp 0 yp 0 sleeps/s
+4,8887,170246543061,-;PC: 1206 np 1672 wp 0 yp 0 sleeps/s
+4,8888,170251543055,-;PC: 1332 np 1672 wp 0 yp 0 sleeps/s
+4,8889,170256543049,-;PC: 1334 np 1672 wp 0 yp 0 sleeps/s
+4,8890,170261543042,-;PC: 1222 np 1672 wp 0 yp 0 sleeps/s
+4,8891,170266543037,-;PC: 1229 np 1672 wp 0 yp 0 sleeps/s
+4,8892,170271543030,-;PC: 1254 np 1672 wp 0 yp 0 sleeps/s
+4,8893,170276543166,-;PC: 1287 np 1672 wp 0 yp 0 sleeps/s
+4,8894,170281543161,-;PC: 1202 np 1672 wp 0 yp 0 sleeps/s
+4,8895,170286543185,-;PC: 1231 np 1672 wp 0 yp 0 sleeps/s
+4,8896,170291543179,-;PC: 1212 np 1672 wp 0 yp 0 sleeps/s
+4,8897,170296256746,-;virtpc: producer stops
+4,8898,170296349719,-;virtpc: set Wp=1711ns
+4,8899,170296349721,-;virtpc: set Wc=2000ns
+4,8900,170296349722,-;virtpc: set Yp=5000ns
+4,8901,170296349723,-;virtpc: set Yc=5000ns
+4,8902,170296349723,-;virtpc: set D=60ns
+4,8903,170301349716,-;PC: 1391 np 1710 wp 0 yp 0 sleeps/s
+4,8904,170306350068,-;PC: 1306 np 1710 wp 0 yp 0 sleeps/s
+4,8905,170311350062,-;PC: 1249 np 1710 wp 0 yp 0 sleeps/s
+4,8906,170316350055,-;PC: 1335 np 1710 wp 0 yp 0 sleeps/s
+4,8907,170321350048,-;PC: 1251 np 1710 wp 0 yp 0 sleeps/s
+4,8908,170326350346,-;PC: 1352 np 1710 wp 0 yp 0 sleeps/s
+4,8909,170331350339,-;PC: 1284 np 1710 wp 0 yp 0 sleeps/s
+4,8910,170336350333,-;PC: 1211 np 1710 wp 0 yp 0 sleeps/s
+4,8911,170341350327,-;PC: 1319 np 1710 wp 0 yp 0 sleeps/s
+4,8912,170346350321,-;PC: 1318 np 1710 wp 0 yp 0 sleeps/s
+4,8913,170351350315,-;PC: 1251 np 1710 wp 0 yp 0 sleeps/s
+4,8914,170356064027,-;virtpc: producer stops
+4,8915,170356156872,-;virtpc: set Wp=1750ns
+4,8916,170356156874,-;virtpc: set Wc=2000ns
+4,8917,170356156874,-;virtpc: set Yp=5000ns
+4,8918,170356156875,-;virtpc: set Yc=5000ns
+4,8919,170356156875,-;virtpc: set D=60ns
+4,8920,170361156868,-;PC: 1323 np 1749 wp 0 yp 0 sleeps/s
+4,8921,170366156861,-;PC: 1340 np 1749 wp 0 yp 0 sleeps/s
+4,8922,170371156854,-;PC: 1291 np 1749 wp 0 yp 0 sleeps/s
+4,8923,170376156846,-;PC: 2209 np 1749 wp 0 yp 0 sleeps/s
+4,8924,170381156840,-;PC: 1214 np 1749 wp 0 yp 0 sleeps/s
+4,8925,170386156834,-;PC: 1312 np 1749 wp 0 yp 0 sleeps/s
+4,8926,170391156827,-;PC: 1310 np 1749 wp 0 yp 0 sleeps/s
+4,8927,170396156820,-;PC: 1270 np 1749 wp 0 yp 0 sleeps/s
+4,8928,170401156813,-;PC: 1330 np 1749 wp 0 yp 0 sleeps/s
+4,8929,170406156807,-;PC: 1296 np 1749 wp 0 yp 0 sleeps/s
+4,8930,170411156802,-;PC: 1220 np 1749 wp 0 yp 0 sleeps/s
+4,8931,170415871178,-;virtpc: producer stops
+4,8932,170415964199,-;virtpc: set Wp=1789ns
+4,8933,170415964201,-;virtpc: set Wc=2000ns
+4,8934,170415964201,-;virtpc: set Yp=5000ns
+4,8935,170415964202,-;virtpc: set Yc=5000ns
+4,8936,170415964202,-;virtpc: set D=60ns
+4,8937,170420964763,-;PC: 1311 np 1788 wp 0 yp 0 sleeps/s
+4,8938,170425964748,-;PC: 1256 np 1788 wp 0 yp 0 sleeps/s
+4,8939,170430964734,-;PC: 1308 np 1788 wp 0 yp 0 sleeps/s
+4,8940,170435964720,-;PC: 1332 np 1788 wp 0 yp 0 sleeps/s
+4,8941,170440964706,-;PC: 1218 np 1788 wp 0 yp 0 sleeps/s
+4,8942,170445964690,-;PC: 1416 np 1788 wp 0 yp 0 sleeps/s
+4,8943,170450964676,-;PC: 1312 np 1788 wp 0 yp 0 sleeps/s
+4,8944,170455964663,-;PC: 1299 np 1788 wp 0 yp 0 sleeps/s
+4,8945,170460964648,-;PC: 1317 np 1788 wp 0 yp 0 sleeps/s
+4,8946,170465964634,-;PC: 1280 np 1788 wp 0 yp 0 sleeps/s
+4,8947,170470964618,-;PC: 1260 np 1788 wp 0 yp 0 sleeps/s
+4,8948,170475678507,-;virtpc: producer stops
+4,8949,170475771349,-;virtpc: set Wp=1829ns
+4,8950,170475771351,-;virtpc: set Wc=2000ns
+4,8951,170475771352,-;virtpc: set Yp=5000ns
+4,8952,170475771352,-;virtpc: set Yc=5000ns
+4,8953,170475771353,-;virtpc: set D=60ns
+4,8954,170480771628,-;PC: 1311 np 1828 wp 0 yp 0 sleeps/s
+4,8955,170485771623,-;PC: 1292 np 1828 wp 0 yp 0 sleeps/s
+4,8956,170490771618,-;PC: 1322 np 1828 wp 0 yp 0 sleeps/s
+4,8957,170495771612,-;PC: 1391 np 1828 wp 0 yp 0 sleeps/s
+4,8958,170500771606,-;PC: 1328 np 1828 wp 0 yp 0 sleeps/s
+4,8959,170505771601,-;PC: 1281 np 1828 wp 0 yp 0 sleeps/s
+4,8960,170510771595,-;PC: 1232 np 1828 wp 0 yp 0 sleeps/s
+4,8961,170515771588,-;PC: 1326 np 1828 wp 0 yp 0 sleeps/s
+4,8962,170520771582,-;PC: 1351 np 1828 wp 0 yp 0 sleeps/s
+4,8963,170525771578,-;PC: 1328 np 1828 wp 0 yp 0 sleeps/s
+4,8964,170530771572,-;PC: 1225 np 1828 wp 0 yp 0 sleeps/s
+4,8965,170535485655,-;virtpc: producer stops
+4,8966,170535578630,-;virtpc: set Wp=1870ns
+4,8967,170535578632,-;virtpc: set Wc=2000ns
+4,8968,170535578632,-;virtpc: set Yp=5000ns
+4,8969,170535578633,-;virtpc: set Yc=5000ns
+4,8970,170535578634,-;virtpc: set D=60ns
+4,8971,170540578626,-;PC: 1421 np 1869 wp 0 yp 0 sleeps/s
+4,8972,170545578619,-;PC: 1230 np 1869 wp 0 yp 0 sleeps/s
+4,8973,170550578612,-;PC: 1325 np 1869 wp 0 yp 0 sleeps/s
+4,8974,170555578605,-;PC: 1314 np 1869 wp 0 yp 0 sleeps/s
+4,8975,170560578597,-;PC: 1287 np 1869 wp 0 yp 0 sleeps/s
+4,8976,170565578591,-;PC: 1271 np 1869 wp 0 yp 0 sleeps/s
+4,8977,170570578584,-;PC: 1325 np 1869 wp 0 yp 0 sleeps/s
+4,8978,170575578577,-;PC: 1356 np 1869 wp 0 yp 0 sleeps/s
+4,8979,170580578570,-;PC: 1336 np 1869 wp 0 yp 0 sleeps/s
+4,8980,170585578564,-;PC: 1272 np 1869 wp 0 yp 0 sleeps/s
+4,8981,170590578557,-;PC: 1511 np 1869 wp 0 yp 0 sleeps/s
+4,8982,170595292937,-;virtpc: producer stops
+4,8983,170595385716,-;virtpc: set Wp=1912ns
+4,8984,170595385718,-;virtpc: set Wc=2000ns
+4,8985,170595385719,-;virtpc: set Yp=5000ns
+4,8986,170595385720,-;virtpc: set Yc=5000ns
+4,8987,170595385720,-;virtpc: set D=60ns
+4,8988,170600385713,-;PC: 1340 np 1911 wp 0 yp 0 sleeps/s
+4,8989,170605385708,-;PC: 1326 np 1911 wp 0 yp 0 sleeps/s
+4,8990,170610385701,-;PC: 1339 np 1911 wp 0 yp 0 sleeps/s
+4,8991,170615385696,-;PC: 1261 np 1911 wp 0 yp 0 sleeps/s
+4,8992,170620385689,-;PC: 1337 np 1911 wp 0 yp 0 sleeps/s
+4,8993,170625385684,-;PC: 1300 np 1911 wp 0 yp 0 sleeps/s
+4,8994,170630385677,-;PC: 1333 np 1911 wp 0 yp 0 sleeps/s
+4,8995,170635385670,-;PC: 1314 np 1911 wp 0 yp 0 sleeps/s
+4,8996,170640385665,-;PC: 1349 np 1911 wp 0 yp 0 sleeps/s
+4,8997,170645385659,-;PC: 1246 np 1911 wp 0 yp 0 sleeps/s
+4,8998,170650385653,-;PC: 1336 np 1911 wp 0 yp 0 sleeps/s
+4,8999,170655100024,-;virtpc: producer stops
+4,9000,170655193033,-;virtpc: set Wp=1956ns
+4,9001,170655193036,-;virtpc: set Wc=2000ns
+4,9002,170655193036,-;virtpc: set Yp=5000ns
+4,9003,170655193037,-;virtpc: set Yc=5000ns
+4,9004,170655193037,-;virtpc: set D=60ns
+4,9005,170660193029,-;PC: 1429 np 1955 wp 0 yp 0 sleeps/s
+4,9006,170665193022,-;PC: 1951 np 1955 wp 0 yp 0 sleeps/s
+4,9007,170670193016,-;PC: 1328 np 1955 wp 0 yp 0 sleeps/s
+4,9008,170675193008,-;PC: 1315 np 1955 wp 0 yp 0 sleeps/s
+4,9009,170680193002,-;PC: 1374 np 1955 wp 0 yp 0 sleeps/s
+4,9010,170685192995,-;PC: 1440 np 1955 wp 0 yp 0 sleeps/s
+4,9011,170690192988,-;PC: 1260 np 1955 wp 0 yp 0 sleeps/s
+4,9012,170695192980,-;PC: 1384 np 1955 wp 0 yp 0 sleeps/s
+4,9013,170700192973,-;PC: 1310 np 1955 wp 0 yp 0 sleeps/s
+4,9014,170705192966,-;PC: 1270 np 1955 wp 0 yp 0 sleeps/s
+4,9015,170710192959,-;PC: 1378 np 1955 wp 0 yp 0 sleeps/s
+4,9016,170714907340,-;virtpc: producer stops
+4,9017,170715000170,-;virtpc: set Wp=2000ns
+4,9018,170715000172,-;virtpc: set Wc=2000ns
+4,9019,170715000173,-;virtpc: set Yp=5000ns
+4,9020,170715000173,-;virtpc: set Yc=5000ns
+4,9021,170715000174,-;virtpc: set D=60ns
+4,9022,170720000166,-;PC: 1276 np 1999 wp 0 yp 0 sleeps/s
+4,9023,170725000159,-;PC: 1275 np 1999 wp 0 yp 0 sleeps/s
+4,9024,170730000152,-;PC: 1297 np 1999 wp 0 yp 0 sleeps/s
+4,9025,170735000145,-;PC: 1265 np 1999 wp 0 yp 0 sleeps/s
+4,9026,170740000138,-;PC: 1271 np 1999 wp 0 yp 0 sleeps/s
+4,9027,170745000132,-;PC: 1263 np 1999 wp 0 yp 0 sleeps/s
+4,9028,170750000124,-;PC: 1293 np 1999 wp 0 yp 0 sleeps/s
+4,9029,170755000118,-;PC: 1314 np 1999 wp 0 yp 0 sleeps/s
+4,9030,170760000111,-;PC: 1284 np 1999 wp 0 yp 0 sleeps/s
+4,9031,170765000104,-;PC: 1267 np 1999 wp 0 yp 0 sleeps/s
+4,9032,170770000096,-;PC: 1265 np 1999 wp 0 yp 0 sleeps/s
+4,9033,170774714477,-;virtpc: producer stops
+4,9034,170774807468,-;virtpc: set Wp=2007ns
+4,9035,170774807470,-;virtpc: set Wc=2000ns
+4,9036,170774807470,-;virtpc: set Yp=5000ns
+4,9037,170774807471,-;virtpc: set Yc=5000ns
+4,9038,170774807472,-;virtpc: set D=60ns
+4,9039,170779807462,-;PC: 994 np 2006 wp 0 yp 0 sleeps/s
+4,9040,170784807453,-;PC: 996 np 2006 wp 0 yp 0 sleeps/s
+4,9041,170789807444,-;PC: 996 np 2006 wp 0 yp 0 sleeps/s
+4,9042,170794807437,-;PC: 995 np 2006 wp 0 yp 0 sleeps/s
+4,9043,170799807428,-;PC: 995 np 2006 wp 0 yp 0 sleeps/s
+4,9044,170804807419,-;PC: 1001 np 2006 wp 0 yp 0 sleeps/s
+4,9045,170809807410,-;PC: 996 np 2006 wp 0 yp 0 sleeps/s
+4,9046,170814807403,-;PC: 997 np 2006 wp 0 yp 0 sleeps/s
+4,9047,170819807394,-;PC: 995 np 2006 wp 0 yp 0 sleeps/s
+4,9048,170824807386,-;PC: 994 np 2006 wp 0 yp 0 sleeps/s
+4,9049,170829807378,-;PC: 996 np 2006 wp 0 yp 0 sleeps/s
+4,9050,170834521776,-;virtpc: producer stops
+4,9051,170834614602,-;virtpc: set Wp=2015ns
+4,9052,170834614604,-;virtpc: set Wc=2000ns
+4,9053,170834614605,-;virtpc: set Yp=5000ns
+4,9054,170834614606,-;virtpc: set Yc=5000ns
+4,9055,170834614606,-;virtpc: set D=60ns
+4,9056,170839614600,-;PC: 988 np 2014 wp 0 yp 0 sleeps/s
+4,9057,170844614595,-;PC: 988 np 2014 wp 0 yp 0 sleeps/s
+4,9058,170849614589,-;PC: 988 np 2014 wp 0 yp 0 sleeps/s
+4,9059,170854614583,-;PC: 988 np 2014 wp 0 yp 0 sleeps/s
+4,9060,170859614576,-;PC: 986 np 2014 wp 0 yp 0 sleeps/s
+4,9061,170864614570,-;PC: 989 np 2014 wp 0 yp 0 sleeps/s
+4,9062,170869614565,-;PC: 986 np 2014 wp 0 yp 0 sleeps/s
+4,9063,170874614560,-;PC: 986 np 2014 wp 0 yp 0 sleeps/s
+4,9064,170879614553,-;PC: 986 np 2014 wp 0 yp 0 sleeps/s
+4,9065,170884614548,-;PC: 986 np 2014 wp 0 yp 0 sleeps/s
+4,9066,170889614541,-;PC: 986 np 2014 wp 0 yp 0 sleeps/s
+4,9067,170894328910,-;virtpc: producer stops
+4,9068,170894421923,-;virtpc: set Wp=2022ns
+4,9069,170894421925,-;virtpc: set Wc=2000ns
+4,9070,170894421926,-;virtpc: set Yp=5000ns
+4,9071,170894421926,-;virtpc: set Yc=5000ns
+4,9072,170894421927,-;virtpc: set D=60ns
+4,9073,170899421919,-;PC: 996 np 2021 wp 0 yp 0 sleeps/s
+4,9074,170904421913,-;PC: 996 np 2021 wp 0 yp 0 sleeps/s
+4,9075,170909421907,-;PC: 999 np 2021 wp 0 yp 0 sleeps/s
+4,9076,170914421901,-;PC: 1000 np 2021 wp 0 yp 0 sleeps/s
+4,9077,170919421895,-;PC: 996 np 2021 wp 0 yp 0 sleeps/s
+4,9078,170924421889,-;PC: 996 np 2021 wp 0 yp 0 sleeps/s
+4,9079,170929421882,-;PC: 998 np 2021 wp 0 yp 0 sleeps/s
+4,9080,170934421876,-;PC: 997 np 2021 wp 0 yp 0 sleeps/s
+4,9081,170939421869,-;PC: 996 np 2021 wp 0 yp 0 sleeps/s
+4,9082,170944421863,-;PC: 998 np 2021 wp 0 yp 0 sleeps/s
+4,9083,170949421857,-;PC: 992 np 2021 wp 0 yp 0 sleeps/s
+4,9084,170954136230,-;virtpc: producer stops
+4,9085,170954228999,-;virtpc: set Wp=2030ns
+4,9086,170954229001,-;virtpc: set Wc=2000ns
+4,9087,170954229001,-;virtpc: set Yp=5000ns
+4,9088,170954229002,-;virtpc: set Yc=5000ns
+4,9089,170954229003,-;virtpc: set D=60ns
+4,9090,170959228996,-;PC: 998 np 2029 wp 0 yp 0 sleeps/s
+4,9091,170964228991,-;PC: 999 np 2029 wp 0 yp 0 sleeps/s
+4,9092,170969229042,-;PC: 1000 np 2029 wp 0 yp 0 sleeps/s
+4,9093,170974229035,-;PC: 999 np 2029 wp 0 yp 0 sleeps/s
+4,9094,170979229050,-;PC: 998 np 2029 wp 0 yp 0 sleeps/s
+4,9095,170984229045,-;PC: 999 np 2029 wp 0 yp 0 sleeps/s
+4,9096,170989229038,-;PC: 998 np 2029 wp 0 yp 0 sleeps/s
+4,9097,170994229048,-;PC: 998 np 2029 wp 0 yp 0 sleeps/s
+4,9098,170999229043,-;PC: 999 np 2029 wp 0 yp 0 sleeps/s
+4,9099,171004229038,-;PC: 999 np 2029 wp 0 yp 0 sleeps/s
+4,9100,171009229036,-;PC: 998 np 2029 wp 0 yp 0 sleeps/s
+4,9101,171013943306,-;virtpc: producer stops
+4,9102,171014036917,-;virtpc: set Wp=2038ns
+4,9103,171014036919,-;virtpc: set Wc=2000ns
+4,9104,171014036920,-;virtpc: set Yp=5000ns
+4,9105,171014036920,-;virtpc: set Yc=5000ns
+4,9106,171014036921,-;virtpc: set D=60ns
+4,9107,171019036913,-;PC: 1014 np 2037 wp 0 yp 0 sleeps/s
+4,9108,171024036906,-;PC: 1015 np 2037 wp 0 yp 0 sleeps/s
+4,9109,171029036900,-;PC: 1016 np 2037 wp 0 yp 0 sleeps/s
+4,9110,171034036893,-;PC: 1016 np 2037 wp 0 yp 0 sleeps/s
+4,9111,171039036887,-;PC: 1016 np 2037 wp 0 yp 0 sleeps/s
+4,9112,171044036880,-;PC: 1014 np 2037 wp 0 yp 0 sleeps/s
+4,9113,171049036874,-;PC: 1014 np 2037 wp 0 yp 0 sleeps/s
+4,9114,171054036869,-;PC: 1014 np 2037 wp 0 yp 0 sleeps/s
+4,9115,171059036862,-;PC: 1013 np 2037 wp 0 yp 0 sleeps/s
+4,9116,171064036856,-;PC: 1013 np 2037 wp 0 yp 0 sleeps/s
+4,9117,171069036849,-;PC: 1013 np 2037 wp 0 yp 0 sleeps/s
+4,9118,171073751225,-;virtpc: producer stops
+4,9119,171073844109,-;virtpc: set Wp=2046ns
+4,9120,171073844111,-;virtpc: set Wc=2000ns
+4,9121,171073844112,-;virtpc: set Yp=5000ns
+4,9122,171073844112,-;virtpc: set Yc=5000ns
+4,9123,171073844113,-;virtpc: set D=60ns
+4,9124,171078844106,-;PC: 1022 np 2045 wp 0 yp 0 sleeps/s
+4,9125,171083844099,-;PC: 1026 np 2045 wp 0 yp 0 sleeps/s
+4,9126,171088844092,-;PC: 1023 np 2045 wp 0 yp 0 sleeps/s
+4,9127,171093844087,-;PC: 1023 np 2045 wp 0 yp 0 sleeps/s
+4,9128,171098844080,-;PC: 1023 np 2045 wp 0 yp 0 sleeps/s
+4,9129,171103844075,-;PC: 1022 np 2045 wp 0 yp 0 sleeps/s
+4,9130,171108844069,-;PC: 1024 np 2045 wp 0 yp 0 sleeps/s
+4,9131,171113844062,-;PC: 1022 np 2045 wp 0 yp 0 sleeps/s
+4,9132,171118844056,-;PC: 1023 np 2045 wp 0 yp 0 sleeps/s
+4,9133,171123844049,-;PC: 1029 np 2045 wp 0 yp 0 sleeps/s
+4,9134,171128844043,-;PC: 1023 np 2045 wp 0 yp 0 sleeps/s
+4,9135,171133558415,-;virtpc: producer stops
+4,9136,171133651466,-;virtpc: set Wp=2053ns
+4,9137,171133651468,-;virtpc: set Wc=2000ns
+4,9138,171133651469,-;virtpc: set Yp=5000ns
+4,9139,171133651470,-;virtpc: set Yc=5000ns
+4,9140,171133651470,-;virtpc: set D=60ns
+4,9141,171138651463,-;PC: 1027 np 2052 wp 0 yp 0 sleeps/s
+4,9142,171143651456,-;PC: 1028 np 2052 wp 0 yp 0 sleeps/s
+4,9143,171148651451,-;PC: 1026 np 2052 wp 0 yp 0 sleeps/s
+4,9144,171153651444,-;PC: 1028 np 2052 wp 0 yp 0 sleeps/s
+4,9145,171158651438,-;PC: 1029 np 2052 wp 0 yp 0 sleeps/s
+4,9146,171163651432,-;PC: 1025 np 2052 wp 0 yp 0 sleeps/s
+4,9147,171168651426,-;PC: 1028 np 2052 wp 0 yp 0 sleeps/s
+4,9148,171173651419,-;PC: 1027 np 2052 wp 0 yp 0 sleeps/s
+4,9149,171178651412,-;PC: 1027 np 2052 wp 0 yp 0 sleeps/s
+4,9150,171183651405,-;PC: 1025 np 2052 wp 0 yp 0 sleeps/s
+4,9151,171188651397,-;PC: 1027 np 2052 wp 0 yp 0 sleeps/s
+4,9152,171193365775,-;virtpc: producer stops
+4,9153,171193458560,-;virtpc: set Wp=2061ns
+4,9154,171193458562,-;virtpc: set Wc=2000ns
+4,9155,171193458563,-;virtpc: set Yp=5000ns
+4,9156,171193458563,-;virtpc: set Yc=5000ns
+4,9157,171193458564,-;virtpc: set D=60ns
+4,9158,171198458555,-;PC: 1022 np 2060 wp 0 yp 0 sleeps/s
+4,9159,171203458548,-;PC: 1023 np 2060 wp 0 yp 0 sleeps/s
+4,9160,171208458541,-;PC: 1022 np 2060 wp 0 yp 0 sleeps/s
+4,9161,171213458532,-;PC: 1022 np 2060 wp 0 yp 0 sleeps/s
+4,9162,171218458525,-;PC: 1022 np 2060 wp 0 yp 0 sleeps/s
+4,9163,171223458518,-;PC: 1022 np 2060 wp 0 yp 0 sleeps/s
+4,9164,171228458511,-;PC: 1024 np 2060 wp 0 yp 0 sleeps/s
+4,9165,171233458506,-;PC: 1022 np 2060 wp 0 yp 0 sleeps/s
+4,9166,171238458499,-;PC: 1018 np 2060 wp 0 yp 0 sleeps/s
+4,9167,171243458491,-;PC: 1030 np 2060 wp 0 yp 0 sleeps/s
+4,9168,171248458484,-;PC: 1024 np 2060 wp 0 yp 0 sleeps/s
+4,9169,171253172866,-;virtpc: producer stops
+4,9170,171253265833,-;virtpc: set Wp=2069ns
+4,9171,171253265836,-;virtpc: set Wc=2000ns
+4,9172,171253265836,-;virtpc: set Yp=5000ns
+4,9173,171253265837,-;virtpc: set Yc=5000ns
+4,9174,171253265837,-;virtpc: set D=60ns
+4,9175,171258265829,-;PC: 1050 np 2068 wp 0 yp 0 sleeps/s
+4,9176,171263265823,-;PC: 1050 np 2068 wp 0 yp 0 sleeps/s
+4,9177,171268265817,-;PC: 1050 np 2068 wp 0 yp 0 sleeps/s
+4,9178,171273265811,-;PC: 1049 np 2068 wp 0 yp 0 sleeps/s
+4,9179,171278265805,-;PC: 1049 np 2068 wp 0 yp 0 sleeps/s
+4,9180,171283265798,-;PC: 1050 np 2068 wp 0 yp 0 sleeps/s
+4,9181,171288265792,-;PC: 1050 np 2068 wp 0 yp 0 sleeps/s
+4,9182,171293265785,-;PC: 1050 np 2068 wp 0 yp 0 sleeps/s
+4,9183,171298265779,-;PC: 1049 np 2068 wp 0 yp 0 sleeps/s
+4,9184,171303265773,-;PC: 1036 np 2068 wp 0 yp 0 sleeps/s
+4,9185,171308265767,-;PC: 1057 np 2068 wp 0 yp 0 sleeps/s
+4,9186,171312980140,-;virtpc: producer stops
+4,9187,171313072949,-;virtpc: set Wp=2077ns
+4,9188,171313072951,-;virtpc: set Wc=2000ns
+4,9189,171313072952,-;virtpc: set Yp=5000ns
+4,9190,171313072952,-;virtpc: set Yc=5000ns
+4,9191,171313072953,-;virtpc: set D=60ns
+4,9192,171318072945,-;PC: 1072 np 2076 wp 0 yp 0 sleeps/s
+4,9193,171323072990,-;PC: 1070 np 2076 wp 0 yp 0 sleeps/s
+4,9194,171328072984,-;PC: 1070 np 2076 wp 0 yp 0 sleeps/s
+4,9195,171333072977,-;PC: 1068 np 2076 wp 0 yp 0 sleeps/s
+4,9196,171338072988,-;PC: 1072 np 2076 wp 0 yp 0 sleeps/s
+4,9197,171343072982,-;PC: 1058 np 2076 wp 0 yp 0 sleeps/s
+4,9198,171348072974,-;PC: 1071 np 2076 wp 0 yp 0 sleeps/s
+4,9199,171353072986,-;PC: 1065 np 2076 wp 0 yp 0 sleeps/s
+4,9200,171358072980,-;PC: 1070 np 2076 wp 0 yp 0 sleeps/s
+4,9201,171363072973,-;PC: 1068 np 2076 wp 0 yp 0 sleeps/s
+4,9202,171368072986,-;PC: 1069 np 2076 wp 0 yp 0 sleeps/s
+4,9203,171372787258,-;virtpc: producer stops
+4,9204,171372880279,-;virtpc: set Wp=2085ns
+4,9205,171372880281,-;virtpc: set Wc=2000ns
+4,9206,171372880281,-;virtpc: set Yp=5000ns
+4,9207,171372880282,-;virtpc: set Yc=5000ns
+4,9208,171372880282,-;virtpc: set D=60ns
+4,9209,171377880276,-;PC: 1034 np 2084 wp 0 yp 0 sleeps/s
+4,9210,171382880269,-;PC: 1037 np 2084 wp 0 yp 0 sleeps/s
+4,9211,171387880263,-;PC: 1035 np 2084 wp 0 yp 0 sleeps/s
+4,9212,171392880256,-;PC: 1037 np 2084 wp 0 yp 0 sleeps/s
+4,9213,171397880250,-;PC: 1040 np 2084 wp 0 yp 0 sleeps/s
+4,9214,171402880244,-;PC: 1029 np 2084 wp 0 yp 0 sleeps/s
+4,9215,171407880238,-;PC: 1028 np 2084 wp 0 yp 0 sleeps/s
+4,9216,171412880233,-;PC: 1028 np 2084 wp 0 yp 0 sleeps/s
+4,9217,171417880227,-;PC: 1027 np 2084 wp 0 yp 0 sleeps/s
+4,9218,171422880220,-;PC: 1028 np 2084 wp 0 yp 0 sleeps/s
+4,9219,171427880213,-;PC: 1028 np 2084 wp 0 yp 0 sleeps/s
+4,9220,171432594587,-;virtpc: producer stops
+4,9221,171432687396,-;virtpc: set Wp=2093ns
+4,9222,171432687398,-;virtpc: set Wc=2000ns
+4,9223,171432687398,-;virtpc: set Yp=5000ns
+4,9224,171432687399,-;virtpc: set Yc=5000ns
+4,9225,171432687399,-;virtpc: set D=60ns
+4,9226,171437687392,-;PC: 1096 np 2092 wp 0 yp 0 sleeps/s
+4,9227,171442687384,-;PC: 1097 np 2092 wp 0 yp 0 sleeps/s
+4,9228,171447687377,-;PC: 1095 np 2092 wp 0 yp 0 sleeps/s
+4,9229,171452687370,-;PC: 1095 np 2092 wp 0 yp 0 sleeps/s
+4,9230,171457687362,-;PC: 1095 np 2092 wp 0 yp 0 sleeps/s
+4,9231,171462687354,-;PC: 1096 np 2092 wp 0 yp 0 sleeps/s
+4,9232,171467687347,-;PC: 1098 np 2092 wp 0 yp 0 sleeps/s
+4,9233,171472687340,-;PC: 1095 np 2092 wp 0 yp 0 sleeps/s
+4,9234,171477687334,-;PC: 1094 np 2092 wp 0 yp 0 sleeps/s
+4,9235,171482687328,-;PC: 1108 np 2092 wp 0 yp 0 sleeps/s
+4,9236,171487687321,-;PC: 1096 np 2092 wp 0 yp 0 sleeps/s
+4,9237,171492401704,-;virtpc: producer stops
+4,9238,171492494717,-;virtpc: set Wp=2101ns
+4,9239,171492494719,-;virtpc: set Wc=2000ns
+4,9240,171492494719,-;virtpc: set Yp=5000ns
+4,9241,171492494720,-;virtpc: set Yc=5000ns
+4,9242,171492494720,-;virtpc: set D=60ns
+4,9243,171497494711,-;PC: 1099 np 2100 wp 0 yp 0 sleeps/s
+4,9244,171502494702,-;PC: 1100 np 2100 wp 0 yp 0 sleeps/s
+4,9245,171507494694,-;PC: 1100 np 2100 wp 0 yp 0 sleeps/s
+4,9246,171512494684,-;PC: 1097 np 2100 wp 0 yp 0 sleeps/s
+4,9247,171517494675,-;PC: 1095 np 2100 wp 0 yp 0 sleeps/s
+4,9248,171522494667,-;PC: 1103 np 2100 wp 0 yp 0 sleeps/s
+4,9249,171527494658,-;PC: 1096 np 2100 wp 0 yp 0 sleeps/s
+4,9250,171532494650,-;PC: 1094 np 2100 wp 0 yp 0 sleeps/s
+4,9251,171537494641,-;PC: 1099 np 2100 wp 0 yp 0 sleeps/s
+4,9252,171542494632,-;PC: 1097 np 2100 wp 0 yp 0 sleeps/s
+4,9253,171547494625,-;PC: 1095 np 2100 wp 0 yp 0 sleeps/s
+4,9254,171552209023,-;virtpc: producer stops
+4,9255,171552301813,-;virtpc: set Wp=2109ns
+4,9256,171552301815,-;virtpc: set Wc=2000ns
+4,9257,171552301816,-;virtpc: set Yp=5000ns
+4,9258,171552301816,-;virtpc: set Yc=5000ns
+4,9259,171552301817,-;virtpc: set D=60ns
+4,9260,171557301807,-;PC: 1022 np 2108 wp 0 yp 0 sleeps/s
+4,9261,171562301800,-;PC: 1028 np 2108 wp 0 yp 0 sleeps/s
+4,9262,171567301792,-;PC: 1022 np 2108 wp 0 yp 0 sleeps/s
+4,9263,171572301785,-;PC: 1026 np 2108 wp 0 yp 0 sleeps/s
+4,9264,171577301778,-;PC: 1022 np 2108 wp 0 yp 0 sleeps/s
+4,9265,171582301771,-;PC: 1023 np 2108 wp 0 yp 0 sleeps/s
+4,9266,171587301763,-;PC: 1024 np 2108 wp 0 yp 0 sleeps/s
+4,9267,171592301756,-;PC: 1024 np 2108 wp 0 yp 0 sleeps/s
+4,9268,171597301749,-;PC: 1022 np 2108 wp 0 yp 0 sleeps/s
+4,9269,171602301744,-;PC: 1024 np 2108 wp 0 yp 0 sleeps/s
+4,9270,171607301738,-;PC: 1025 np 2108 wp 0 yp 0 sleeps/s
+4,9271,171612016119,-;virtpc: producer stops
+4,9272,171612109093,-;virtpc: set Wp=2117ns
+4,9273,171612109095,-;virtpc: set Wc=2000ns
+4,9274,171612109096,-;virtpc: set Yp=5000ns
+4,9275,171612109097,-;virtpc: set Yc=5000ns
+4,9276,171612109097,-;virtpc: set D=60ns
+4,9277,171617109088,-;PC: 1126 np 2116 wp 0 yp 0 sleeps/s
+4,9278,171622109080,-;PC: 1126 np 2116 wp 0 yp 0 sleeps/s
+4,9279,171627109071,-;PC: 1120 np 2116 wp 0 yp 0 sleeps/s
+4,9280,171632109063,-;PC: 1124 np 2116 wp 0 yp 0 sleeps/s
+4,9281,171637109056,-;PC: 1125 np 2116 wp 0 yp 0 sleeps/s
+4,9282,171642109048,-;PC: 1125 np 2116 wp 0 yp 0 sleeps/s
+4,9283,171647109040,-;PC: 1127 np 2116 wp 0 yp 0 sleeps/s
+4,9284,171652109032,-;PC: 1115 np 2116 wp 0 yp 0 sleeps/s
+4,9285,171657109024,-;PC: 1112 np 2116 wp 0 yp 0 sleeps/s
+4,9286,171662109017,-;PC: 1121 np 2116 wp 0 yp 0 sleeps/s
+4,9287,171667109010,-;PC: 1118 np 2116 wp 0 yp 0 sleeps/s
+4,9288,171671823401,-;virtpc: producer stops
+4,9289,171671916221,-;virtpc: set Wp=2125ns
+4,9290,171671916223,-;virtpc: set Wc=2000ns
+4,9291,171671916224,-;virtpc: set Yp=5000ns
+4,9292,171671916224,-;virtpc: set Yc=5000ns
+4,9293,171671916225,-;virtpc: set D=60ns
+4,9294,171676916217,-;PC: 1140 np 2124 wp 0 yp 0 sleeps/s
+4,9295,171681916209,-;PC: 1142 np 2124 wp 0 yp 0 sleeps/s
+4,9296,171686916202,-;PC: 1134 np 2124 wp 0 yp 0 sleeps/s
+4,9297,171691916194,-;PC: 1144 np 2124 wp 0 yp 0 sleeps/s
+4,9298,171696916186,-;PC: 1142 np 2124 wp 0 yp 0 sleeps/s
+4,9299,171701916178,-;PC: 1141 np 2124 wp 0 yp 0 sleeps/s
+4,9300,171706916171,-;PC: 1145 np 2124 wp 0 yp 0 sleeps/s
+4,9301,171711916163,-;PC: 1148 np 2124 wp 0 yp 0 sleeps/s
+4,9302,171716916157,-;PC: 1142 np 2124 wp 0 yp 0 sleeps/s
+4,9303,171721916150,-;PC: 1139 np 2124 wp 0 yp 0 sleeps/s
+4,9304,171726916143,-;PC: 1141 np 2124 wp 0 yp 0 sleeps/s
+4,9305,171731630528,-;virtpc: producer stops
+4,9306,171731723554,-;virtpc: set Wp=2133ns
+4,9307,171731723556,-;virtpc: set Wc=2000ns
+4,9308,171731723557,-;virtpc: set Yp=5000ns
+4,9309,171731723558,-;virtpc: set Yc=5000ns
+4,9310,171731723558,-;virtpc: set D=60ns
+4,9311,171736723550,-;PC: 1109 np 2132 wp 0 yp 0 sleeps/s
+4,9312,171741723543,-;PC: 1112 np 2132 wp 0 yp 0 sleeps/s
+4,9313,171746723537,-;PC: 1110 np 2132 wp 0 yp 0 sleeps/s
+4,9314,171751723531,-;PC: 1112 np 2132 wp 0 yp 0 sleeps/s
+4,9315,171756723525,-;PC: 1111 np 2132 wp 0 yp 0 sleeps/s
+4,9316,171761723517,-;PC: 1111 np 2132 wp 0 yp 0 sleeps/s
+4,9317,171766723511,-;PC: 1112 np 2132 wp 0 yp 0 sleeps/s
+4,9318,171771723505,-;PC: 1110 np 2132 wp 0 yp 0 sleeps/s
+4,9319,171776723497,-;PC: 1115 np 2132 wp 0 yp 0 sleeps/s
+4,9320,171781723491,-;PC: 1109 np 2132 wp 0 yp 0 sleeps/s
+4,9321,171786723484,-;PC: 1112 np 2132 wp 0 yp 0 sleeps/s
+4,9322,171791437861,-;virtpc: producer stops
+4,9323,171791530660,-;virtpc: set Wp=2141ns
+4,9324,171791530662,-;virtpc: set Wc=2000ns
+4,9325,171791530663,-;virtpc: set Yp=5000ns
+4,9326,171791530664,-;virtpc: set Yc=5000ns
+4,9327,171791530664,-;virtpc: set D=60ns
+4,9328,171796530657,-;PC: 1036 np 2140 wp 0 yp 0 sleeps/s
+4,9329,171801530650,-;PC: 1034 np 2140 wp 0 yp 0 sleeps/s
+4,9330,171806530643,-;PC: 1034 np 2140 wp 0 yp 0 sleeps/s
+4,9331,171811530637,-;PC: 1035 np 2140 wp 0 yp 0 sleeps/s
+4,9332,171816530629,-;PC: 1036 np 2140 wp 0 yp 0 sleeps/s
+4,9333,171821530623,-;PC: 1036 np 2140 wp 0 yp 0 sleeps/s
+4,9334,171826530616,-;PC: 1033 np 2140 wp 0 yp 0 sleeps/s
+4,9335,171831530608,-;PC: 1033 np 2140 wp 0 yp 0 sleeps/s
+4,9336,171836530601,-;PC: 1035 np 2140 wp 0 yp 0 sleeps/s
+4,9337,171841530595,-;PC: 1035 np 2140 wp 0 yp 0 sleeps/s
+4,9338,171846530588,-;PC: 1036 np 2140 wp 0 yp 0 sleeps/s
+4,9339,171851244968,-;virtpc: producer stops
+4,9340,171851337953,-;virtpc: set Wp=2149ns
+4,9341,171851337954,-;virtpc: set Wc=2000ns
+4,9342,171851337955,-;virtpc: set Yp=5000ns
+4,9343,171851337956,-;virtpc: set Yc=5000ns
+4,9344,171851337956,-;virtpc: set D=60ns
+4,9345,171856337949,-;PC: 1042 np 2148 wp 0 yp 0 sleeps/s
+4,9346,171861337943,-;PC: 1043 np 2148 wp 0 yp 0 sleeps/s
+4,9347,171866337936,-;PC: 1047 np 2148 wp 0 yp 0 sleeps/s
+4,9348,171871337929,-;PC: 1042 np 2148 wp 0 yp 0 sleeps/s
+4,9349,171876337922,-;PC: 1042 np 2148 wp 0 yp 0 sleeps/s
+4,9350,171881337915,-;PC: 1045 np 2148 wp 0 yp 0 sleeps/s
+4,9351,171886337908,-;PC: 1042 np 2148 wp 0 yp 0 sleeps/s
+4,9352,171891337902,-;PC: 1040 np 2148 wp 0 yp 0 sleeps/s
+4,9353,171896337896,-;PC: 1044 np 2148 wp 0 yp 0 sleeps/s
+4,9354,171901337890,-;PC: 1042 np 2148 wp 0 yp 0 sleeps/s
+4,9355,171906337883,-;PC: 1046 np 2148 wp 0 yp 0 sleeps/s
+4,9356,171911052260,-;virtpc: producer stops
+4,9357,171911145097,-;virtpc: set Wp=2157ns
+4,9358,171911145098,-;virtpc: set Wc=2000ns
+4,9359,171911145099,-;virtpc: set Yp=5000ns
+4,9360,171911145100,-;virtpc: set Yc=5000ns
+4,9361,171911145100,-;virtpc: set D=60ns
+4,9362,171916145092,-;PC: 1122 np 2156 wp 0 yp 0 sleeps/s
+4,9363,171921145086,-;PC: 1121 np 2156 wp 0 yp 0 sleeps/s
+4,9364,171926145079,-;PC: 1125 np 2156 wp 0 yp 0 sleeps/s
+4,9365,171931145074,-;PC: 1123 np 2156 wp 0 yp 0 sleeps/s
+4,9366,171936145068,-;PC: 1121 np 2156 wp 0 yp 0 sleeps/s
+4,9367,171941145061,-;PC: 1119 np 2156 wp 0 yp 0 sleeps/s
+4,9368,171946145054,-;PC: 1123 np 2156 wp 0 yp 0 sleeps/s
+4,9369,171951145047,-;PC: 1120 np 2156 wp 0 yp 0 sleeps/s
+4,9370,171956145040,-;PC: 1119 np 2156 wp 0 yp 0 sleeps/s
+4,9371,171961145032,-;PC: 1123 np 2156 wp 0 yp 0 sleeps/s
+4,9372,171966145027,-;PC: 1119 np 2156 wp 0 yp 0 sleeps/s
+4,9373,171970859405,-;virtpc: producer stops
+4,9374,171970952405,-;virtpc: set Wp=2165ns
+4,9375,171970952407,-;virtpc: set Wc=2000ns
+4,9376,171970952408,-;virtpc: set Yp=5000ns
+4,9377,171970952408,-;virtpc: set Yc=5000ns
+4,9378,171970952409,-;virtpc: set D=60ns
+4,9379,171975952402,-;PC: 1134 np 2164 wp 0 yp 0 sleeps/s
+4,9380,171980952395,-;PC: 1136 np 2164 wp 0 yp 0 sleeps/s
+4,9381,171985952388,-;PC: 1124 np 2164 wp 0 yp 0 sleeps/s
+4,9382,171990952382,-;PC: 1136 np 2164 wp 0 yp 0 sleeps/s
+4,9383,171995952376,-;PC: 1133 np 2164 wp 0 yp 0 sleeps/s
+4,9384,172000952369,-;PC: 1140 np 2164 wp 0 yp 0 sleeps/s
+4,9385,172005952363,-;PC: 1141 np 2164 wp 0 yp 0 sleeps/s
+4,9386,172010952355,-;PC: 1141 np 2164 wp 0 yp 0 sleeps/s
+4,9387,172015952349,-;PC: 1144 np 2164 wp 0 yp 0 sleeps/s
+4,9388,172020952342,-;PC: 1139 np 2164 wp 0 yp 0 sleeps/s
+4,9389,172025952336,-;PC: 1140 np 2164 wp 0 yp 0 sleeps/s
+4,9390,172030666713,-;virtpc: producer stops
+4,9391,172030759497,-;virtpc: set Wp=2174ns
+4,9392,172030759499,-;virtpc: set Wc=2000ns
+4,9393,172030759500,-;virtpc: set Yp=5000ns
+4,9394,172030759500,-;virtpc: set Yc=5000ns
+4,9395,172030759501,-;virtpc: set D=60ns
+4,9396,172035759493,-;PC: 1136 np 2173 wp 0 yp 0 sleeps/s
+4,9397,172040759487,-;PC: 1137 np 2173 wp 0 yp 0 sleeps/s
+4,9398,172045759481,-;PC: 1124 np 2173 wp 0 yp 0 sleeps/s
+4,9399,172050759474,-;PC: 1138 np 2173 wp 0 yp 0 sleeps/s
+4,9400,172055759467,-;PC: 1135 np 2173 wp 0 yp 0 sleeps/s
+4,9401,172060759460,-;PC: 1131 np 2173 wp 0 yp 0 sleeps/s
+4,9402,172065759454,-;PC: 1139 np 2173 wp 0 yp 0 sleeps/s
+4,9403,172070759446,-;PC: 1137 np 2173 wp 0 yp 0 sleeps/s
+4,9404,172075759438,-;PC: 1134 np 2173 wp 0 yp 0 sleeps/s
+4,9405,172080759431,-;PC: 1136 np 2173 wp 0 yp 0 sleeps/s
+4,9406,172085759425,-;PC: 1138 np 2173 wp 0 yp 0 sleeps/s
+4,9407,172090473803,-;virtpc: producer stops
+4,9408,172090566837,-;virtpc: set Wp=2182ns
+4,9409,172090566839,-;virtpc: set Wc=2000ns
+4,9410,172090566840,-;virtpc: set Yp=5000ns
+4,9411,172090566840,-;virtpc: set Yc=5000ns
+4,9412,172090566841,-;virtpc: set D=60ns
+4,9413,172095566832,-;PC: 1139 np 2181 wp 0 yp 0 sleeps/s
+4,9414,172100566825,-;PC: 1154 np 2181 wp 0 yp 0 sleeps/s
+4,9415,172105566819,-;PC: 1141 np 2181 wp 0 yp 0 sleeps/s
+4,9416,172110566811,-;PC: 1140 np 2181 wp 0 yp 0 sleeps/s
+4,9417,172115566804,-;PC: 1139 np 2181 wp 0 yp 0 sleeps/s
+4,9418,172120566796,-;PC: 1138 np 2181 wp 0 yp 0 sleeps/s
+4,9419,172125566788,-;PC: 1140 np 2181 wp 0 yp 0 sleeps/s
+4,9420,172130566781,-;PC: 1139 np 2181 wp 0 yp 0 sleeps/s
+4,9421,172135566774,-;PC: 1130 np 2181 wp 0 yp 0 sleeps/s
+4,9422,172140566768,-;PC: 1139 np 2181 wp 0 yp 0 sleeps/s
+4,9423,172145566762,-;PC: 1141 np 2181 wp 0 yp 0 sleeps/s
+4,9424,172150281144,-;virtpc: producer stops
+4,9425,172150373971,-;virtpc: set Wp=2190ns
+4,9426,172150373973,-;virtpc: set Wc=2000ns
+4,9427,172150373974,-;virtpc: set Yp=5000ns
+4,9428,172150373974,-;virtpc: set Yc=5000ns
+4,9429,172150373975,-;virtpc: set D=60ns
+4,9430,172155373967,-;PC: 1142 np 2189 wp 0 yp 0 sleeps/s
+4,9431,172160373960,-;PC: 1140 np 2189 wp 0 yp 0 sleeps/s
+4,9432,172165373954,-;PC: 1137 np 2189 wp 0 yp 0 sleeps/s
+4,9433,172170373946,-;PC: 1138 np 2189 wp 0 yp 0 sleeps/s
+4,9434,172175373939,-;PC: 1139 np 2189 wp 0 yp 0 sleeps/s
+4,9435,172180373933,-;PC: 1138 np 2189 wp 0 yp 0 sleeps/s
+4,9436,172185373926,-;PC: 1139 np 2189 wp 0 yp 0 sleeps/s
+4,9437,172190373920,-;PC: 1136 np 2189 wp 0 yp 0 sleeps/s
+4,9438,172195373913,-;PC: 1140 np 2189 wp 0 yp 0 sleeps/s
+4,9439,172200373907,-;PC: 1137 np 2189 wp 0 yp 0 sleeps/s
+4,9440,172205373901,-;PC: 1133 np 2189 wp 0 yp 0 sleeps/s
+4,9441,172210088277,-;virtpc: producer stops
+4,9442,172210181284,-;virtpc: set Wp=2198ns
+4,9443,172210181285,-;virtpc: set Wc=2000ns
+4,9444,172210181286,-;virtpc: set Yp=5000ns
+4,9445,172210181287,-;virtpc: set Yc=5000ns
+4,9446,172210181287,-;virtpc: set D=60ns
+4,9447,172215181280,-;PC: 1116 np 2197 wp 0 yp 0 sleeps/s
+4,9448,172220181274,-;PC: 1118 np 2197 wp 0 yp 0 sleeps/s
+4,9449,172225181267,-;PC: 1116 np 2197 wp 0 yp 0 sleeps/s
+4,9450,172230181260,-;PC: 1114 np 2197 wp 0 yp 0 sleeps/s
+4,9451,172235181252,-;PC: 1109 np 2197 wp 0 yp 0 sleeps/s
+4,9452,172240181244,-;PC: 1090 np 2197 wp 0 yp 0 sleeps/s
+4,9453,172245181238,-;PC: 1094 np 2197 wp 0 yp 0 sleeps/s
+4,9454,172250181232,-;PC: 1105 np 2197 wp 0 yp 0 sleeps/s
+4,9455,172255181226,-;PC: 1104 np 2197 wp 0 yp 0 sleeps/s
+4,9456,172260181218,-;PC: 1114 np 2197 wp 0 yp 0 sleeps/s
+4,9457,172265181211,-;PC: 1111 np 2197 wp 0 yp 0 sleeps/s
+4,9458,172269895591,-;virtpc: producer stops
+4,9459,172269988390,-;virtpc: set Wp=2207ns
+4,9460,172269988392,-;virtpc: set Wc=2000ns
+4,9461,172269988393,-;virtpc: set Yp=5000ns
+4,9462,172269988393,-;virtpc: set Yc=5000ns
+4,9463,172269988394,-;virtpc: set D=60ns
+4,9464,172274988386,-;PC: 1042 np 2206 wp 0 yp 0 sleeps/s
+4,9465,172279988380,-;PC: 1054 np 2206 wp 0 yp 0 sleeps/s
+4,9466,172284988374,-;PC: 1044 np 2206 wp 0 yp 0 sleeps/s
+4,9467,172289988367,-;PC: 1044 np 2206 wp 0 yp 0 sleeps/s
+4,9468,172294988361,-;PC: 1059 np 2206 wp 0 yp 0 sleeps/s
+4,9469,172299988355,-;PC: 1056 np 2206 wp 0 yp 0 sleeps/s
+4,9470,172304988349,-;PC: 1043 np 2206 wp 0 yp 0 sleeps/s
+4,9471,172309988342,-;PC: 1042 np 2206 wp 0 yp 0 sleeps/s
+4,9472,172314988335,-;PC: 1053 np 2206 wp 0 yp 0 sleeps/s
+4,9473,172319988329,-;PC: 1046 np 2206 wp 0 yp 0 sleeps/s
+4,9474,172324988324,-;PC: 1053 np 2206 wp 0 yp 0 sleeps/s
+4,9475,172329702696,-;virtpc: producer stops
+4,9476,172329795719,-;virtpc: set Wp=2215ns
+4,9477,172329795721,-;virtpc: set Wc=2000ns
+4,9478,172329795722,-;virtpc: set Yp=5000ns
+4,9479,172329795722,-;virtpc: set Yc=5000ns
+4,9480,172329795723,-;virtpc: set D=60ns
+4,9481,172334795714,-;PC: 1010 np 2214 wp 0 yp 0 sleeps/s
+4,9482,172339795708,-;PC: 1021 np 2214 wp 0 yp 0 sleeps/s
+4,9483,172344795701,-;PC: 1008 np 2214 wp 0 yp 0 sleeps/s
+4,9484,172349795693,-;PC: 1009 np 2214 wp 0 yp 0 sleeps/s
+4,9485,172354795686,-;PC: 1008 np 2214 wp 0 yp 0 sleeps/s
+4,9486,172359795677,-;PC: 1021 np 2214 wp 0 yp 0 sleeps/s
+4,9487,172364795669,-;PC: 1008 np 2214 wp 0 yp 0 sleeps/s
+4,9488,172369795662,-;PC: 1008 np 2214 wp 0 yp 0 sleeps/s
+4,9489,172374795656,-;PC: 1006 np 2214 wp 0 yp 0 sleeps/s
+4,9490,172379795650,-;PC: 1021 np 2214 wp 0 yp 0 sleeps/s
+4,9491,172384795642,-;PC: 1008 np 2214 wp 0 yp 0 sleeps/s
+4,9492,172389510025,-;virtpc: producer stops
+4,9493,172389602809,-;virtpc: set Wp=2224ns
+4,9494,172389602811,-;virtpc: set Wc=2000ns
+4,9495,172389602811,-;virtpc: set Yp=5000ns
+4,9496,172389602812,-;virtpc: set Yc=5000ns
+4,9497,172389602813,-;virtpc: set D=60ns
+4,9498,172394602805,-;PC: 1036 np 2223 wp 0 yp 0 sleeps/s
+4,9499,172399602798,-;PC: 1036 np 2223 wp 0 yp 0 sleeps/s
+4,9500,172404602791,-;PC: 1042 np 2223 wp 0 yp 0 sleeps/s
+4,9501,172409602785,-;PC: 1036 np 2223 wp 0 yp 0 sleeps/s
+4,9502,172414602777,-;PC: 1036 np 2223 wp 0 yp 0 sleeps/s
+4,9503,172419602771,-;PC: 1045 np 2223 wp 0 yp 0 sleeps/s
+4,9504,172424602764,-;PC: 1041 np 2223 wp 0 yp 0 sleeps/s
+4,9505,172429602757,-;PC: 1038 np 2223 wp 0 yp 0 sleeps/s
+4,9506,172434602750,-;PC: 1037 np 2223 wp 0 yp 0 sleeps/s
+4,9507,172439602745,-;PC: 1038 np 2223 wp 0 yp 0 sleeps/s
+4,9508,172444602739,-;PC: 1042 np 2223 wp 0 yp 0 sleeps/s
+4,9509,172449317116,-;virtpc: producer stops
+4,9510,172449410129,-;virtpc: set Wp=2232ns
+4,9511,172449410131,-;virtpc: set Wc=2000ns
+4,9512,172449410131,-;virtpc: set Yp=5000ns
+4,9513,172449410132,-;virtpc: set Yc=5000ns
+4,9514,172449410133,-;virtpc: set D=60ns
+4,9515,172454410127,-;PC: 1096 np 2231 wp 0 yp 0 sleeps/s
+4,9516,172459410122,-;PC: 1095 np 2231 wp 0 yp 0 sleeps/s
+4,9517,172464410114,-;PC: 1098 np 2231 wp 0 yp 0 sleeps/s
+4,9518,172469410108,-;PC: 1096 np 2231 wp 0 yp 0 sleeps/s
+4,9519,172474410102,-;PC: 1094 np 2231 wp 0 yp 0 sleeps/s
+4,9520,172479410094,-;PC: 1095 np 2231 wp 0 yp 0 sleeps/s
+4,9521,172484410089,-;PC: 1096 np 2231 wp 0 yp 0 sleeps/s
+4,9522,172489410083,-;PC: 1099 np 2231 wp 0 yp 0 sleeps/s
+4,9523,172494410077,-;PC: 1094 np 2231 wp 0 yp 0 sleeps/s
+4,9524,172499410071,-;PC: 1094 np 2231 wp 0 yp 0 sleeps/s
+4,9525,172504410066,-;PC: 1096 np 2231 wp 0 yp 0 sleeps/s
+4,9526,172509124437,-;virtpc: producer stops
+4,9527,172509217232,-;virtpc: set Wp=2241ns
+4,9528,172509217234,-;virtpc: set Wc=2000ns
+4,9529,172509217234,-;virtpc: set Yp=5000ns
+4,9530,172509217235,-;virtpc: set Yc=5000ns
+4,9531,172509217236,-;virtpc: set D=60ns
+4,9532,172514217226,-;PC: 1123 np 2240 wp 0 yp 0 sleeps/s
+4,9533,172519217218,-;PC: 1115 np 2240 wp 0 yp 0 sleeps/s
+4,9534,172524217210,-;PC: 1122 np 2240 wp 0 yp 0 sleeps/s
+4,9535,172529217201,-;PC: 1122 np 2240 wp 0 yp 0 sleeps/s
+4,9536,172534217193,-;PC: 1122 np 2240 wp 0 yp 0 sleeps/s
+4,9537,172539217186,-;PC: 1118 np 2240 wp 0 yp 0 sleeps/s
+4,9538,172544217179,-;PC: 1123 np 2240 wp 0 yp 0 sleeps/s
+4,9539,172549217171,-;PC: 1127 np 2240 wp 0 yp 0 sleeps/s
+4,9540,172554217163,-;PC: 1129 np 2240 wp 0 yp 0 sleeps/s
+4,9541,172559217158,-;PC: 1122 np 2240 wp 0 yp 0 sleeps/s
+4,9542,172564217150,-;PC: 1121 np 2240 wp 0 yp 0 sleeps/s
+4,9543,172568931539,-;virtpc: producer stops
+4,9544,172569024514,-;virtpc: set Wp=2249ns
+4,9545,172569024516,-;virtpc: set Wc=2000ns
+4,9546,172569024516,-;virtpc: set Yp=5000ns
+4,9547,172569024517,-;virtpc: set Yc=5000ns
+4,9548,172569024517,-;virtpc: set D=60ns
+4,9549,172574024509,-;PC: 1134 np 2248 wp 0 yp 0 sleeps/s
+4,9550,172579024503,-;PC: 1134 np 2248 wp 0 yp 0 sleeps/s
+4,9551,172584024496,-;PC: 1134 np 2248 wp 0 yp 0 sleeps/s
+4,9552,172589024490,-;PC: 1134 np 2248 wp 0 yp 0 sleeps/s
+4,9553,172594024484,-;PC: 1137 np 2248 wp 0 yp 0 sleeps/s
+4,9554,172599024478,-;PC: 1135 np 2248 wp 0 yp 0 sleeps/s
+4,9555,172604024471,-;PC: 1135 np 2248 wp 0 yp 0 sleeps/s
+4,9556,172609024465,-;PC: 1134 np 2248 wp 0 yp 0 sleeps/s
+4,9557,172614024460,-;PC: 1136 np 2248 wp 0 yp 0 sleeps/s
+4,9558,172619024453,-;PC: 1139 np 2248 wp 0 yp 0 sleeps/s
+4,9559,172624024447,-;PC: 1135 np 2248 wp 0 yp 0 sleeps/s
+4,9560,172628738822,-;virtpc: producer stops
+4,9561,172628831666,-;virtpc: set Wp=2258ns
+4,9562,172628831669,-;virtpc: set Wc=2000ns
+4,9563,172628831669,-;virtpc: set Yp=5000ns
+4,9564,172628831670,-;virtpc: set Yc=5000ns
+4,9565,172628831670,-;virtpc: set D=60ns
+4,9566,172633831662,-;PC: 1148 np 2257 wp 0 yp 0 sleeps/s
+4,9567,172638831655,-;PC: 1148 np 2257 wp 0 yp 0 sleeps/s
+4,9568,172643831649,-;PC: 1150 np 2257 wp 0 yp 0 sleeps/s
+4,9569,172648831643,-;PC: 1151 np 2257 wp 0 yp 0 sleeps/s
+4,9570,172653831636,-;PC: 1148 np 2257 wp 0 yp 0 sleeps/s
+4,9571,172658831630,-;PC: 1148 np 2257 wp 0 yp 0 sleeps/s
+4,9572,172663831622,-;PC: 1148 np 2257 wp 0 yp 0 sleeps/s
+4,9573,172668831615,-;PC: 1149 np 2257 wp 0 yp 0 sleeps/s
+4,9574,172673831608,-;PC: 1151 np 2257 wp 0 yp 0 sleeps/s
+4,9575,172678831601,-;PC: 1146 np 2257 wp 0 yp 0 sleeps/s
+4,9576,172683831593,-;PC: 1146 np 2257 wp 0 yp 0 sleeps/s
+4,9577,172688545974,-;virtpc: producer stops
+4,9578,172688638977,-;virtpc: set Wp=2266ns
+4,9579,172688638979,-;virtpc: set Wc=2000ns
+4,9580,172688638980,-;virtpc: set Yp=5000ns
+4,9581,172688638980,-;virtpc: set Yc=5000ns
+4,9582,172688638981,-;virtpc: set D=60ns
+4,9583,172693638973,-;PC: 1140 np 2265 wp 0 yp 0 sleeps/s
+4,9584,172698638968,-;PC: 1139 np 2265 wp 0 yp 0 sleeps/s
+4,9585,172703638962,-;PC: 1141 np 2265 wp 0 yp 0 sleeps/s
+4,9586,172708638956,-;PC: 1143 np 2265 wp 0 yp 0 sleeps/s
+4,9587,172713638949,-;PC: 1143 np 2265 wp 0 yp 0 sleeps/s
+4,9588,172718638941,-;PC: 1143 np 2265 wp 0 yp 0 sleeps/s
+4,9589,172723638934,-;PC: 1137 np 2265 wp 0 yp 0 sleeps/s
+4,9590,172728638926,-;PC: 1143 np 2265 wp 0 yp 0 sleeps/s
+4,9591,172733638920,-;PC: 1142 np 2265 wp 0 yp 0 sleeps/s
+4,9592,172738638914,-;PC: 1142 np 2265 wp 0 yp 0 sleeps/s
+4,9593,172743638907,-;PC: 1144 np 2265 wp 0 yp 0 sleeps/s
+4,9594,172748353284,-;virtpc: producer stops
+4,9595,172748446077,-;virtpc: set Wp=2275ns
+4,9596,172748446078,-;virtpc: set Wc=2000ns
+4,9597,172748446079,-;virtpc: set Yp=5000ns
+4,9598,172748446080,-;virtpc: set Yc=5000ns
+4,9599,172748446080,-;virtpc: set D=60ns
+4,9600,172753446074,-;PC: 1152 np 2274 wp 0 yp 0 sleeps/s
+4,9601,172758446069,-;PC: 1149 np 2274 wp 0 yp 0 sleeps/s
+4,9602,172763446064,-;PC: 1152 np 2274 wp 0 yp 0 sleeps/s
+4,9603,172768446059,-;PC: 1145 np 2274 wp 0 yp 0 sleeps/s
+4,9604,172773446054,-;PC: 1150 np 2274 wp 0 yp 0 sleeps/s
+4,9605,172778446048,-;PC: 1152 np 2274 wp 0 yp 0 sleeps/s
+4,9606,172783446042,-;PC: 1150 np 2274 wp 0 yp 0 sleeps/s
+4,9607,172788446035,-;PC: 1148 np 2274 wp 0 yp 0 sleeps/s
+4,9608,172793446029,-;PC: 1146 np 2274 wp 0 yp 0 sleeps/s
+4,9609,172798446022,-;PC: 1148 np 2274 wp 0 yp 0 sleeps/s
+4,9610,172803446015,-;PC: 1148 np 2274 wp 0 yp 0 sleeps/s
+4,9611,172808160384,-;virtpc: producer stops
+4,9612,172808253411,-;virtpc: set Wp=2283ns
+4,9613,172808253413,-;virtpc: set Wc=2000ns
+4,9614,172808253414,-;virtpc: set Yp=5000ns
+4,9615,172808253415,-;virtpc: set Yc=5000ns
+4,9616,172808253415,-;virtpc: set D=60ns
+4,9617,172813253408,-;PC: 1144 np 2282 wp 0 yp 0 sleeps/s
+4,9618,172818253401,-;PC: 1140 np 2282 wp 0 yp 0 sleeps/s
+4,9619,172823253394,-;PC: 1140 np 2282 wp 0 yp 0 sleeps/s
+4,9620,172828253389,-;PC: 1139 np 2282 wp 0 yp 0 sleeps/s
+4,9621,172833253382,-;PC: 1139 np 2282 wp 0 yp 0 sleeps/s
+4,9622,172838253377,-;PC: 1140 np 2282 wp 0 yp 0 sleeps/s
+4,9623,172843253371,-;PC: 1140 np 2282 wp 0 yp 0 sleeps/s
+4,9624,172848253365,-;PC: 1144 np 2282 wp 0 yp 0 sleeps/s
+4,9625,172853253359,-;PC: 1135 np 2282 wp 0 yp 0 sleeps/s
+4,9626,172858253352,-;PC: 1138 np 2282 wp 0 yp 0 sleeps/s
+4,9627,172863253345,-;PC: 1138 np 2282 wp 0 yp 0 sleeps/s
+4,9628,172867967718,-;virtpc: producer stops
+4,9629,172868060937,-;virtpc: set Wp=2292ns
+4,9630,172868060939,-;virtpc: set Wc=2000ns
+4,9631,172868060939,-;virtpc: set Yp=5000ns
+4,9632,172868060940,-;virtpc: set Yc=5000ns
+4,9633,172868060941,-;virtpc: set D=60ns
+4,9634,172873060934,-;PC: 1138 np 2291 wp 0 yp 0 sleeps/s
+4,9635,172878060927,-;PC: 1139 np 2291 wp 0 yp 0 sleeps/s
+4,9636,172883060921,-;PC: 1138 np 2291 wp 0 yp 0 sleeps/s
+4,9637,172888060914,-;PC: 1136 np 2291 wp 0 yp 0 sleeps/s
+4,9638,172893060907,-;PC: 1138 np 2291 wp 0 yp 0 sleeps/s
+4,9639,172898060900,-;PC: 1139 np 2291 wp 0 yp 0 sleeps/s
+4,9640,172903060892,-;PC: 1136 np 2291 wp 0 yp 0 sleeps/s
+4,9641,172908060886,-;PC: 1140 np 2291 wp 0 yp 0 sleeps/s
+4,9642,172913060879,-;PC: 1137 np 2291 wp 0 yp 0 sleeps/s
+4,9643,172918060871,-;PC: 1143 np 2291 wp 0 yp 0 sleeps/s
+4,9644,172923060866,-;PC: 1136 np 2291 wp 0 yp 0 sleeps/s
+4,9645,172927775245,-;virtpc: producer stops
+4,9646,172927869516,-;virtpc: set Wp=2301ns
+4,9647,172927869517,-;virtpc: set Wc=2000ns
+4,9648,172927869518,-;virtpc: set Yp=5000ns
+4,9649,172927869519,-;virtpc: set Yc=5000ns
+4,9650,172927869519,-;virtpc: set D=60ns
+4,9651,172932869510,-;PC: 1142 np 2300 wp 0 yp 0 sleeps/s
+4,9652,172937869501,-;PC: 1142 np 2300 wp 0 yp 0 sleeps/s
+4,9653,172942869493,-;PC: 1140 np 2300 wp 0 yp 0 sleeps/s
+4,9654,172947869485,-;PC: 1139 np 2300 wp 0 yp 0 sleeps/s
+4,9655,172952869476,-;PC: 1140 np 2300 wp 0 yp 0 sleeps/s
+4,9656,172957869468,-;PC: 1136 np 2300 wp 0 yp 0 sleeps/s
+4,9657,172962869459,-;PC: 1139 np 2300 wp 0 yp 0 sleeps/s
+4,9658,172967869449,-;PC: 1136 np 2300 wp 0 yp 0 sleeps/s
+4,9659,172972869440,-;PC: 1137 np 2300 wp 0 yp 0 sleeps/s
+4,9660,172977869430,-;PC: 1138 np 2300 wp 0 yp 0 sleeps/s
+4,9661,172982869421,-;PC: 1139 np 2300 wp 0 yp 0 sleeps/s
+4,9662,172987583822,-;virtpc: producer stops
+4,9663,172987676634,-;virtpc: set Wp=2310ns
+4,9664,172987676636,-;virtpc: set Wc=2000ns
+4,9665,172987676637,-;virtpc: set Yp=5000ns
+4,9666,172987676637,-;virtpc: set Yc=5000ns
+4,9667,172987676638,-;virtpc: set D=60ns
+4,9668,172992676631,-;PC: 1138 np 2309 wp 0 yp 0 sleeps/s
+4,9669,172997676625,-;PC: 1140 np 2309 wp 0 yp 0 sleeps/s
+4,9670,173002676617,-;PC: 1140 np 2309 wp 0 yp 0 sleeps/s
+4,9671,173007676609,-;PC: 1140 np 2309 wp 0 yp 0 sleeps/s
+4,9672,173012676602,-;PC: 1141 np 2309 wp 0 yp 0 sleeps/s
+4,9673,173017676593,-;PC: 1142 np 2309 wp 0 yp 0 sleeps/s
+4,9674,173022676586,-;PC: 1139 np 2309 wp 0 yp 0 sleeps/s
+4,9675,173027676580,-;PC: 1138 np 2309 wp 0 yp 0 sleeps/s
+4,9676,173032676574,-;PC: 1140 np 2309 wp 0 yp 0 sleeps/s
+4,9677,173037676568,-;PC: 1141 np 2309 wp 0 yp 0 sleeps/s
+4,9678,173042676560,-;PC: 1144 np 2309 wp 0 yp 0 sleeps/s
+4,9679,173047390943,-;virtpc: producer stops
+4,9680,173047483953,-;virtpc: set Wp=2318ns
+4,9681,173047483955,-;virtpc: set Wc=2000ns
+4,9682,173047483956,-;virtpc: set Yp=5000ns
+4,9683,173047483956,-;virtpc: set Yc=5000ns
+4,9684,173047483957,-;virtpc: set D=60ns
+4,9685,173052483949,-;PC: 1138 np 2317 wp 0 yp 0 sleeps/s
+4,9686,173057483943,-;PC: 1151 np 2317 wp 0 yp 0 sleeps/s
+4,9687,173062483940,-;PC: 1140 np 2317 wp 0 yp 0 sleeps/s
+4,9688,173067483933,-;PC: 1139 np 2317 wp 0 yp 0 sleeps/s
+4,9689,173072483929,-;PC: 1135 np 2317 wp 0 yp 0 sleeps/s
+4,9690,173077483922,-;PC: 1129 np 2317 wp 0 yp 0 sleeps/s
+4,9691,173082483916,-;PC: 1139 np 2317 wp 0 yp 0 sleeps/s
+4,9692,173087483911,-;PC: 1139 np 2317 wp 0 yp 0 sleeps/s
+4,9693,173092483905,-;PC: 1134 np 2317 wp 0 yp 0 sleeps/s
+4,9694,173097483899,-;PC: 1127 np 2317 wp 0 yp 0 sleeps/s
+4,9695,173102483892,-;PC: 1137 np 2317 wp 0 yp 0 sleeps/s
+4,9696,173107198262,-;virtpc: producer stops
+4,9697,173107291076,-;virtpc: set Wp=2327ns
+4,9698,173107291078,-;virtpc: set Wc=2000ns
+4,9699,173107291079,-;virtpc: set Yp=5000ns
+4,9700,173107291079,-;virtpc: set Yc=5000ns
+4,9701,173107291080,-;virtpc: set D=60ns
+4,9702,173112291070,-;PC: 1133 np 2326 wp 0 yp 0 sleeps/s
+4,9703,173117291063,-;PC: 1138 np 2326 wp 0 yp 0 sleeps/s
+4,9704,173122291056,-;PC: 1132 np 2326 wp 0 yp 0 sleeps/s
+4,9705,173127291048,-;PC: 1139 np 2326 wp 0 yp 0 sleeps/s
+4,9706,173132291039,-;PC: 1135 np 2326 wp 0 yp 0 sleeps/s
+4,9707,173137291033,-;PC: 1132 np 2326 wp 0 yp 0 sleeps/s
+4,9708,173142291025,-;PC: 1138 np 2326 wp 0 yp 0 sleeps/s
+4,9709,173147291017,-;PC: 1138 np 2326 wp 0 yp 0 sleeps/s
+4,9710,173152291011,-;PC: 1132 np 2326 wp 0 yp 0 sleeps/s
+4,9711,173157291004,-;PC: 1140 np 2326 wp 0 yp 0 sleeps/s
+4,9712,173162290996,-;PC: 1140 np 2326 wp 0 yp 0 sleeps/s
+4,9713,173167005384,-;virtpc: producer stops
+4,9714,173167098486,-;virtpc: set Wp=2336ns
+4,9715,173167098488,-;virtpc: set Wc=2000ns
+4,9716,173167098488,-;virtpc: set Yp=5000ns
+4,9717,173167098489,-;virtpc: set Yc=5000ns
+4,9718,173167098490,-;virtpc: set D=60ns
+4,9719,173172098484,-;PC: 1136 np 2335 wp 0 yp 0 sleeps/s
+4,9720,173177098477,-;PC: 1137 np 2335 wp 0 yp 0 sleeps/s
+4,9721,173182098470,-;PC: 1137 np 2335 wp 0 yp 0 sleeps/s
+4,9722,173187098465,-;PC: 1140 np 2335 wp 0 yp 0 sleeps/s
+4,9723,173192098461,-;PC: 1135 np 2335 wp 0 yp 0 sleeps/s
+4,9724,173197098454,-;PC: 1139 np 2335 wp 0 yp 0 sleeps/s
+4,9725,173202098448,-;PC: 1138 np 2335 wp 0 yp 0 sleeps/s
+4,9726,173207098441,-;PC: 1144 np 2335 wp 0 yp 0 sleeps/s
+4,9727,173212098436,-;PC: 1121 np 2335 wp 0 yp 0 sleeps/s
+4,9728,173217098429,-;PC: 1138 np 2335 wp 0 yp 0 sleeps/s
+4,9729,173222098424,-;PC: 1138 np 2335 wp 0 yp 0 sleeps/s
+4,9730,173226812792,-;virtpc: producer stops
+4,9731,173226905595,-;virtpc: set Wp=2345ns
+4,9732,173226905597,-;virtpc: set Wc=2000ns
+4,9733,173226905597,-;virtpc: set Yp=5000ns
+4,9734,173226905598,-;virtpc: set Yc=5000ns
+4,9735,173226905599,-;virtpc: set D=60ns
+4,9736,173231905593,-;PC: 1134 np 2344 wp 0 yp 0 sleeps/s
+4,9737,173236905586,-;PC: 1139 np 2344 wp 0 yp 0 sleeps/s
+4,9738,173241905581,-;PC: 1138 np 2344 wp 0 yp 0 sleeps/s
+4,9739,173246905574,-;PC: 1136 np 2344 wp 0 yp 0 sleeps/s
+4,9740,173251905568,-;PC: 1133 np 2344 wp 0 yp 0 sleeps/s
+4,9741,173256905561,-;PC: 1138 np 2344 wp 0 yp 0 sleeps/s
+4,9742,173261905555,-;PC: 1138 np 2344 wp 0 yp 0 sleeps/s
+4,9743,173266905549,-;PC: 1139 np 2344 wp 0 yp 0 sleeps/s
+4,9744,173271905542,-;PC: 1134 np 2344 wp 0 yp 0 sleeps/s
+4,9745,173276905536,-;PC: 1138 np 2344 wp 0 yp 0 sleeps/s
+4,9746,173281905530,-;PC: 1141 np 2344 wp 0 yp 0 sleeps/s
+4,9747,173286619904,-;virtpc: producer stops
+4,9748,173286712916,-;virtpc: set Wp=2354ns
+4,9749,173286712918,-;virtpc: set Wc=2000ns
+4,9750,173286712918,-;virtpc: set Yp=5000ns
+4,9751,173286712919,-;virtpc: set Yc=5000ns
+4,9752,173286712920,-;virtpc: set D=60ns
+4,9753,173291712913,-;PC: 1130 np 2353 wp 0 yp 0 sleeps/s
+4,9754,173296712907,-;PC: 1136 np 2353 wp 0 yp 0 sleeps/s
+4,9755,173301712903,-;PC: 1136 np 2353 wp 0 yp 0 sleeps/s
+4,9756,173306712898,-;PC: 1137 np 2353 wp 0 yp 0 sleeps/s
+4,9757,173311712894,-;PC: 1119 np 2353 wp 0 yp 0 sleeps/s
+4,9758,173316712887,-;PC: 1136 np 2353 wp 0 yp 0 sleeps/s
+4,9759,173321712882,-;PC: 1136 np 2353 wp 0 yp 0 sleeps/s
+4,9760,173326712875,-;PC: 1134 np 2353 wp 0 yp 0 sleeps/s
+4,9761,173331712869,-;PC: 1130 np 2353 wp 0 yp 0 sleeps/s
+4,9762,173336712863,-;PC: 1131 np 2353 wp 0 yp 0 sleeps/s
+4,9763,173341712857,-;PC: 1138 np 2353 wp 0 yp 0 sleeps/s
+4,9764,173346427224,-;virtpc: producer stops
+4,9765,173346520155,-;virtpc: set Wp=2363ns
+4,9766,173346520157,-;virtpc: set Wc=2000ns
+4,9767,173346520158,-;virtpc: set Yp=5000ns
+4,9768,173346520158,-;virtpc: set Yc=5000ns
+4,9769,173346520159,-;virtpc: set D=60ns
+4,9770,173351520152,-;PC: 1127 np 2362 wp 0 yp 0 sleeps/s
+4,9771,173356520148,-;PC: 1126 np 2362 wp 0 yp 0 sleeps/s
+4,9772,173361520141,-;PC: 1124 np 2362 wp 0 yp 0 sleeps/s
+4,9773,173366520136,-;PC: 1134 np 2362 wp 0 yp 0 sleeps/s
+4,9774,173371520131,-;PC: 1130 np 2362 wp 0 yp 0 sleeps/s
+4,9775,173376520124,-;PC: 1132 np 2362 wp 0 yp 0 sleeps/s
+4,9776,173381520117,-;PC: 1134 np 2362 wp 0 yp 0 sleeps/s
+4,9777,173386520111,-;PC: 1122 np 2362 wp 0 yp 0 sleeps/s
+4,9778,173391520105,-;PC: 1130 np 2362 wp 0 yp 0 sleeps/s
+4,9779,173396520099,-;PC: 1121 np 2362 wp 0 yp 0 sleeps/s
+4,9780,173401520093,-;PC: 1129 np 2362 wp 0 yp 0 sleeps/s
+4,9781,173406234463,-;virtpc: producer stops
+4,9782,173406327456,-;virtpc: set Wp=2372ns
+4,9783,173406327457,-;virtpc: set Wc=2000ns
+4,9784,173406327458,-;virtpc: set Yp=5000ns
+4,9785,173406327459,-;virtpc: set Yc=5000ns
+4,9786,173406327459,-;virtpc: set D=60ns
+4,9787,173411327452,-;PC: 1127 np 2371 wp 0 yp 0 sleeps/s
+4,9788,173416327445,-;PC: 1118 np 2371 wp 0 yp 0 sleeps/s
+4,9789,173421327439,-;PC: 1118 np 2371 wp 0 yp 0 sleeps/s
+4,9790,173426327433,-;PC: 1117 np 2371 wp 0 yp 0 sleeps/s
+4,9791,173431327426,-;PC: 1117 np 2371 wp 0 yp 0 sleeps/s
+4,9792,173436327419,-;PC: 1120 np 2371 wp 0 yp 0 sleeps/s
+4,9793,173441327412,-;PC: 1118 np 2371 wp 0 yp 0 sleeps/s
+4,9794,173446327405,-;PC: 1124 np 2371 wp 0 yp 0 sleeps/s
+4,9795,173451327398,-;PC: 1121 np 2371 wp 0 yp 0 sleeps/s
+4,9796,173456327389,-;PC: 1125 np 2371 wp 0 yp 0 sleeps/s
+4,9797,173461327381,-;PC: 1124 np 2371 wp 0 yp 0 sleeps/s
+4,9798,173466041762,-;virtpc: producer stops
+4,9799,173466134565,-;virtpc: set Wp=2381ns
+4,9800,173466134567,-;virtpc: set Wc=2000ns
+4,9801,173466134567,-;virtpc: set Yp=5000ns
+4,9802,173466134568,-;virtpc: set Yc=5000ns
+4,9803,173466134569,-;virtpc: set D=60ns
+4,9804,173471134561,-;PC: 1108 np 2380 wp 0 yp 0 sleeps/s
+4,9805,173476134597,-;PC: 1112 np 2380 wp 0 yp 0 sleeps/s
+4,9806,173481134591,-;PC: 1115 np 2380 wp 0 yp 0 sleeps/s
+4,9807,173486134586,-;PC: 1113 np 2380 wp 0 yp 0 sleeps/s
+4,9808,173491134616,-;PC: 1114 np 2380 wp 0 yp 0 sleeps/s
+4,9809,173496134610,-;PC: 1112 np 2380 wp 0 yp 0 sleeps/s
+4,9810,173501134602,-;PC: 1113 np 2380 wp 0 yp 0 sleeps/s
+4,9811,173506134615,-;PC: 1112 np 2380 wp 0 yp 0 sleeps/s
+4,9812,173511134608,-;PC: 1113 np 2380 wp 0 yp 0 sleeps/s
+4,9813,173516134602,-;PC: 1113 np 2380 wp 0 yp 0 sleeps/s
+4,9814,173521134613,-;PC: 1108 np 2380 wp 0 yp 0 sleeps/s
+4,9815,173525848871,-;virtpc: producer stops
+4,9816,173525941891,-;virtpc: set Wp=2390ns
+4,9817,173525941893,-;virtpc: set Wc=2000ns
+4,9818,173525941894,-;virtpc: set Yp=5000ns
+4,9819,173525941894,-;virtpc: set Yc=5000ns
+4,9820,173525941895,-;virtpc: set D=60ns
+4,9821,173530941888,-;PC: 1099 np 2389 wp 0 yp 0 sleeps/s
+4,9822,173535941883,-;PC: 1106 np 2389 wp 0 yp 0 sleeps/s
+4,9823,173540941875,-;PC: 1109 np 2389 wp 0 yp 0 sleeps/s
+4,9824,173545941868,-;PC: 1103 np 2389 wp 0 yp 0 sleeps/s
+4,9825,173550941861,-;PC: 1103 np 2389 wp 0 yp 0 sleeps/s
+4,9826,173555941854,-;PC: 1102 np 2389 wp 0 yp 0 sleeps/s
+4,9827,173560941848,-;PC: 1100 np 2389 wp 0 yp 0 sleeps/s
+4,9828,173565941842,-;PC: 1102 np 2389 wp 0 yp 0 sleeps/s
+4,9829,173570941835,-;PC: 1104 np 2389 wp 0 yp 0 sleeps/s
+4,9830,173575941828,-;PC: 1102 np 2389 wp 0 yp 0 sleeps/s
+4,9831,173580941822,-;PC: 1105 np 2389 wp 0 yp 0 sleeps/s
+4,9832,173585656198,-;virtpc: producer stops
+4,9833,173585749026,-;virtpc: set Wp=2399ns
+4,9834,173585749028,-;virtpc: set Wc=2000ns
+4,9835,173585749029,-;virtpc: set Yp=5000ns
+4,9836,173585749029,-;virtpc: set Yc=5000ns
+4,9837,173585749030,-;virtpc: set D=60ns
+4,9838,173590749023,-;PC: 1084 np 2398 wp 0 yp 0 sleeps/s
+4,9839,173595749017,-;PC: 1081 np 2398 wp 0 yp 0 sleeps/s
+4,9840,173600749012,-;PC: 1086 np 2398 wp 0 yp 0 sleeps/s
+4,9841,173605749007,-;PC: 1087 np 2398 wp 0 yp 0 sleeps/s
+4,9842,173610749000,-;PC: 1084 np 2398 wp 0 yp 0 sleeps/s
+4,9843,173615748993,-;PC: 1090 np 2398 wp 0 yp 0 sleeps/s
+4,9844,173620748986,-;PC: 1090 np 2398 wp 0 yp 0 sleeps/s
+4,9845,173625748980,-;PC: 1088 np 2398 wp 0 yp 0 sleeps/s
+4,9846,173630748974,-;PC: 1084 np 2398 wp 0 yp 0 sleeps/s
+4,9847,173635748968,-;PC: 1087 np 2398 wp 0 yp 0 sleeps/s
+4,9848,173640748962,-;PC: 1084 np 2398 wp 0 yp 0 sleeps/s
+4,9849,173645463335,-;virtpc: producer stops
+4,9850,173645556337,-;virtpc: set Wp=2408ns
+4,9851,173645556339,-;virtpc: set Wc=2000ns
+4,9852,173645556339,-;virtpc: set Yp=5000ns
+4,9853,173645556340,-;virtpc: set Yc=5000ns
+4,9854,173645556341,-;virtpc: set D=60ns
+4,9855,173650556335,-;PC: 1059 np 2407 wp 0 yp 0 sleeps/s
+4,9856,173655556328,-;PC: 1060 np 2407 wp 0 yp 0 sleeps/s
+4,9857,173660556321,-;PC: 1060 np 2407 wp 0 yp 0 sleeps/s
+4,9858,173665556316,-;PC: 1050 np 2407 wp 0 yp 0 sleeps/s
+4,9859,173670556310,-;PC: 1056 np 2407 wp 0 yp 0 sleeps/s
+4,9860,173675556304,-;PC: 1048 np 2407 wp 0 yp 0 sleeps/s
+4,9861,173680556296,-;PC: 1051 np 2407 wp 0 yp 0 sleeps/s
+4,9862,173685556288,-;PC: 1049 np 2407 wp 0 yp 0 sleeps/s
+4,9863,173690556281,-;PC: 1048 np 2407 wp 0 yp 0 sleeps/s
+4,9864,173695556273,-;PC: 1054 np 2407 wp 0 yp 0 sleeps/s
+4,9865,173700556266,-;PC: 1056 np 2407 wp 0 yp 0 sleeps/s
+4,9866,173705270643,-;virtpc: producer stops
+4,9867,173705363527,-;virtpc: set Wp=2417ns
+4,9868,173705363529,-;virtpc: set Wc=2000ns
+4,9869,173705363530,-;virtpc: set Yp=5000ns
+4,9870,173705363530,-;virtpc: set Yc=5000ns
+4,9871,173705363531,-;virtpc: set D=60ns
+4,9872,173710363525,-;PC: 1022 np 2416 wp 0 yp 0 sleeps/s
+4,9873,173715363519,-;PC: 1017 np 2416 wp 0 yp 0 sleeps/s
+4,9874,173720363570,-;PC: 1020 np 2416 wp 0 yp 0 sleeps/s
+4,9875,173725363565,-;PC: 1016 np 2416 wp 0 yp 0 sleeps/s
+4,9876,173730363577,-;PC: 1010 np 2416 wp 0 yp 0 sleeps/s
+4,9877,173735363571,-;PC: 1023 np 2416 wp 0 yp 0 sleeps/s
+4,9878,173740363565,-;PC: 1023 np 2416 wp 0 yp 0 sleeps/s
+4,9879,173745363572,-;PC: 1016 np 2416 wp 0 yp 0 sleeps/s
+4,9880,173750363567,-;PC: 1019 np 2416 wp 0 yp 0 sleeps/s
+4,9881,173755363562,-;PC: 1020 np 2416 wp 0 yp 0 sleeps/s
+4,9882,173760363571,-;PC: 1018 np 2416 wp 0 yp 0 sleeps/s
+4,9883,173765077834,-;virtpc: producer stops
+4,9884,173765170810,-;virtpc: set Wp=2426ns
+4,9885,173765170812,-;virtpc: set Wc=2000ns
+4,9886,173765170813,-;virtpc: set Yp=5000ns
+4,9887,173765170813,-;virtpc: set Yc=5000ns
+4,9888,173765170814,-;virtpc: set D=60ns
+4,9889,173770170808,-;PC: 1004 np 2425 wp 0 yp 0 sleeps/s
+4,9890,173775170800,-;PC: 1012 np 2425 wp 0 yp 0 sleeps/s
+4,9891,173780170792,-;PC: 1015 np 2425 wp 0 yp 0 sleeps/s
+4,9892,173785170786,-;PC: 1006 np 2425 wp 0 yp 0 sleeps/s
+4,9893,173790170778,-;PC: 1011 np 2425 wp 0 yp 0 sleeps/s
+4,9894,173795170771,-;PC: 1021 np 2425 wp 0 yp 0 sleeps/s
+4,9895,173800170765,-;PC: 1010 np 2425 wp 0 yp 0 sleeps/s
+4,9896,173805170759,-;PC: 1005 np 2425 wp 0 yp 0 sleeps/s
+4,9897,173810170751,-;PC: 1012 np 2425 wp 0 yp 0 sleeps/s
+4,9898,173815170744,-;PC: 1012 np 2425 wp 0 yp 0 sleeps/s
+4,9899,173820170737,-;PC: 1008 np 2425 wp 0 yp 0 sleeps/s
+4,9900,173824885116,-;virtpc: producer stops
+4,9901,173824977911,-;virtpc: set Wp=2436ns
+4,9902,173824977913,-;virtpc: set Wc=2000ns
+4,9903,173824977913,-;virtpc: set Yp=5000ns
+4,9904,173824977914,-;virtpc: set Yc=5000ns
+4,9905,173824977915,-;virtpc: set D=60ns
+4,9906,173829977908,-;PC: 1009 np 2435 wp 0 yp 0 sleeps/s
+4,9907,173834977902,-;PC: 1008 np 2435 wp 0 yp 0 sleeps/s
+4,9908,173839977894,-;PC: 1014 np 2435 wp 0 yp 0 sleeps/s
+4,9909,173844977889,-;PC: 1018 np 2435 wp 0 yp 0 sleeps/s
+4,9910,173849977883,-;PC: 1018 np 2435 wp 0 yp 0 sleeps/s
+4,9911,173854977875,-;PC: 1006 np 2435 wp 0 yp 0 sleeps/s
+4,9912,173859977867,-;PC: 1009 np 2435 wp 0 yp 0 sleeps/s
+4,9913,173864977859,-;PC: 1025 np 2435 wp 0 yp 0 sleeps/s
+4,9914,173869977853,-;PC: 1006 np 2435 wp 0 yp 0 sleeps/s
+4,9915,173874977846,-;PC: 1019 np 2435 wp 0 yp 0 sleeps/s
+4,9916,173879977839,-;PC: 1023 np 2435 wp 0 yp 0 sleeps/s
+4,9917,173884692217,-;virtpc: producer stops
+4,9918,173884785327,-;virtpc: set Wp=2445ns
+4,9919,173884785329,-;virtpc: set Wc=2000ns
+4,9920,173884785330,-;virtpc: set Yp=5000ns
+4,9921,173884785331,-;virtpc: set Yc=5000ns
+4,9922,173884785331,-;virtpc: set D=60ns
+4,9923,173889785324,-;PC: 1028 np 2444 wp 0 yp 0 sleeps/s
+4,9924,173894785315,-;PC: 1027 np 2444 wp 0 yp 0 sleeps/s
+4,9925,173899785309,-;PC: 1030 np 2444 wp 0 yp 0 sleeps/s
+4,9926,173904785302,-;PC: 1033 np 2444 wp 0 yp 0 sleeps/s
+4,9927,173909785296,-;PC: 1028 np 2444 wp 0 yp 0 sleeps/s
+4,9928,173914785289,-;PC: 1029 np 2444 wp 0 yp 0 sleeps/s
+4,9929,173919785282,-;PC: 1030 np 2444 wp 0 yp 0 sleeps/s
+4,9930,173924785277,-;PC: 1027 np 2444 wp 0 yp 0 sleeps/s
+4,9931,173929785270,-;PC: 1028 np 2444 wp 0 yp 0 sleeps/s
+4,9932,173934785263,-;PC: 1028 np 2444 wp 0 yp 0 sleeps/s
+4,9933,173939785258,-;PC: 1029 np 2444 wp 0 yp 0 sleeps/s
+4,9934,173944499634,-;virtpc: producer stops
+4,9935,173944592423,-;virtpc: set Wp=2454ns
+4,9936,173944592425,-;virtpc: set Wc=2000ns
+4,9937,173944592426,-;virtpc: set Yp=5000ns
+4,9938,173944592427,-;virtpc: set Yc=5000ns
+4,9939,173944592427,-;virtpc: set D=60ns
+4,9940,173949592420,-;PC: 1064 np 2453 wp 0 yp 0 sleeps/s
+4,9941,173954592414,-;PC: 1067 np 2453 wp 0 yp 0 sleeps/s
+4,9942,173959592407,-;PC: 1067 np 2453 wp 0 yp 0 sleeps/s
+4,9943,173964592401,-;PC: 1066 np 2453 wp 0 yp 0 sleeps/s
+4,9944,173969592395,-;PC: 1066 np 2453 wp 0 yp 0 sleeps/s
+4,9945,173974592387,-;PC: 1066 np 2453 wp 0 yp 0 sleeps/s
+4,9946,173979592381,-;PC: 1068 np 2453 wp 0 yp 0 sleeps/s
+4,9947,173984592375,-;PC: 1067 np 2453 wp 0 yp 0 sleeps/s
+4,9948,173989592368,-;PC: 1068 np 2453 wp 0 yp 0 sleeps/s
+4,9949,173994592362,-;PC: 1066 np 2453 wp 0 yp 0 sleeps/s
+4,9950,173999592354,-;PC: 1066 np 2453 wp 0 yp 0 sleeps/s
+4,9951,174004306731,-;virtpc: producer stops
+4,9952,174004399765,-;virtpc: set Wp=2463ns
+4,9953,174004399767,-;virtpc: set Wc=2000ns
+4,9954,174004399767,-;virtpc: set Yp=5000ns
+4,9955,174004399768,-;virtpc: set Yc=5000ns
+4,9956,174004399769,-;virtpc: set D=60ns
+4,9957,174009399761,-;PC: 1091 np 2462 wp 0 yp 0 sleeps/s
+4,9958,174014399756,-;PC: 1092 np 2462 wp 0 yp 0 sleeps/s
+4,9959,174019399751,-;PC: 1100 np 2462 wp 0 yp 0 sleeps/s
+4,9960,174024399745,-;PC: 1094 np 2462 wp 0 yp 0 sleeps/s
+4,9961,174029399737,-;PC: 1092 np 2462 wp 0 yp 0 sleeps/s
+4,9962,174034399729,-;PC: 1092 np 2462 wp 0 yp 0 sleeps/s
+4,9963,174039399722,-;PC: 1093 np 2462 wp 0 yp 0 sleeps/s
+4,9964,174044399715,-;PC: 1093 np 2462 wp 0 yp 0 sleeps/s
+4,9965,174049399708,-;PC: 1092 np 2462 wp 0 yp 0 sleeps/s
+4,9966,174054399703,-;PC: 1091 np 2462 wp 0 yp 0 sleeps/s
+4,9967,174059399698,-;PC: 1092 np 2462 wp 0 yp 0 sleeps/s
+4,9968,174064114071,-;virtpc: producer stops
+4,9969,174064206915,-;virtpc: set Wp=2473ns
+4,9970,174064206917,-;virtpc: set Wc=2000ns
+4,9971,174064206918,-;virtpc: set Yp=5000ns
+4,9972,174064206919,-;virtpc: set Yc=5000ns
+4,9973,174064206919,-;virtpc: set D=60ns
+4,9974,174069206911,-;PC: 1110 np 2472 wp 0 yp 0 sleeps/s
+4,9975,174074206902,-;PC: 1108 np 2472 wp 0 yp 0 sleeps/s
+4,9976,174079206893,-;PC: 1108 np 2472 wp 0 yp 0 sleeps/s
+4,9977,174084206886,-;PC: 1108 np 2472 wp 0 yp 0 sleeps/s
+4,9978,174089206877,-;PC: 1110 np 2472 wp 0 yp 0 sleeps/s
+4,9979,174094206870,-;PC: 1108 np 2472 wp 0 yp 0 sleeps/s
+4,9980,174099206864,-;PC: 1106 np 2472 wp 0 yp 0 sleeps/s
+4,9981,174104206857,-;PC: 1110 np 2472 wp 0 yp 0 sleeps/s
+4,9982,174109206849,-;PC: 1107 np 2472 wp 0 yp 0 sleeps/s
+4,9983,174114206843,-;PC: 1108 np 2472 wp 0 yp 0 sleeps/s
+4,9984,174119206834,-;PC: 1107 np 2472 wp 0 yp 0 sleeps/s
+4,9985,174123921224,-;virtpc: producer stops
+4,9986,174124014219,-;virtpc: set Wp=2482ns
+4,9987,174124014221,-;virtpc: set Wc=2000ns
+4,9988,174124014222,-;virtpc: set Yp=5000ns
+4,9989,174124014222,-;virtpc: set Yc=5000ns
+4,9990,174124014223,-;virtpc: set D=60ns
+4,9991,174129014214,-;PC: 1112 np 2481 wp 0 yp 0 sleeps/s
+4,9992,174134014207,-;PC: 1113 np 2481 wp 0 yp 0 sleeps/s
+4,9993,174139014200,-;PC: 1112 np 2481 wp 0 yp 0 sleeps/s
+4,9994,174144014193,-;PC: 1112 np 2481 wp 0 yp 0 sleeps/s
+4,9995,174149014187,-;PC: 1112 np 2481 wp 0 yp 0 sleeps/s
+4,9996,174154014179,-;PC: 1112 np 2481 wp 0 yp 0 sleeps/s
+4,9997,174159014173,-;PC: 1112 np 2481 wp 0 yp 0 sleeps/s
+4,9998,174164014165,-;PC: 1113 np 2481 wp 0 yp 0 sleeps/s
+4,9999,174169014157,-;PC: 1113 np 2481 wp 0 yp 0 sleeps/s
+4,10000,174174014151,-;PC: 1112 np 2481 wp 0 yp 0 sleeps/s
+4,10001,174179014145,-;PC: 1111 np 2481 wp 0 yp 0 sleeps/s
+4,10002,174183728527,-;virtpc: producer stops
+4,10003,174183821346,-;virtpc: set Wp=2492ns
+4,10004,174183821348,-;virtpc: set Wc=2000ns
+4,10005,174183821348,-;virtpc: set Yp=5000ns
+4,10006,174183821349,-;virtpc: set Yc=5000ns
+4,10007,174183821350,-;virtpc: set D=60ns
+4,10008,174188821343,-;PC: 1114 np 2491 wp 0 yp 0 sleeps/s
+4,10009,174193821337,-;PC: 1113 np 2491 wp 0 yp 0 sleeps/s
+4,10010,174198821330,-;PC: 1114 np 2491 wp 0 yp 0 sleeps/s
+4,10011,174203821324,-;PC: 1114 np 2491 wp 0 yp 0 sleeps/s
+4,10012,174208821317,-;PC: 1114 np 2491 wp 0 yp 0 sleeps/s
+4,10013,174213821349,-;PC: 1121 np 2491 wp 0 yp 0 sleeps/s
+4,10014,174218821343,-;PC: 1113 np 2491 wp 0 yp 0 sleeps/s
+4,10015,174223821335,-;PC: 1113 np 2491 wp 0 yp 0 sleeps/s
+4,10016,174228821328,-;PC: 1112 np 2491 wp 0 yp 0 sleeps/s
+4,10017,174233821320,-;PC: 1113 np 2491 wp 0 yp 0 sleeps/s
+4,10018,174238821315,-;PC: 1114 np 2491 wp 0 yp 0 sleeps/s
+4,10019,174243535652,-;virtpc: producer stops
+4,10020,174243628707,-;virtpc: set Wp=2501ns
+4,10021,174243628709,-;virtpc: set Wc=2000ns
+4,10022,174243628710,-;virtpc: set Yp=5000ns
+4,10023,174243628710,-;virtpc: set Yc=5000ns
+4,10024,174243628711,-;virtpc: set D=60ns
+4,10025,174248628703,-;PC: 1115 np 2500 wp 0 yp 0 sleeps/s
+4,10026,174253628697,-;PC: 1114 np 2500 wp 0 yp 0 sleeps/s
+4,10027,174258628689,-;PC: 1115 np 2500 wp 0 yp 0 sleeps/s
+4,10028,174263628682,-;PC: 1114 np 2500 wp 0 yp 0 sleeps/s
+4,10029,174268628677,-;PC: 1115 np 2500 wp 0 yp 0 sleeps/s
+4,10030,174273628670,-;PC: 1116 np 2500 wp 0 yp 0 sleeps/s
+4,10031,174278628664,-;PC: 1116 np 2500 wp 0 yp 0 sleeps/s
+4,10032,174283628656,-;PC: 1116 np 2500 wp 0 yp 0 sleeps/s
+4,10033,174288628650,-;PC: 1117 np 2500 wp 0 yp 0 sleeps/s
+4,10034,174293628644,-;PC: 1115 np 2500 wp 0 yp 0 sleeps/s
+4,10035,174298628639,-;PC: 1115 np 2500 wp 0 yp 0 sleeps/s
+4,10036,174303343015,-;virtpc: producer stops
+4,10037,174303435824,-;virtpc: set Wp=2511ns
+4,10038,174303435826,-;virtpc: set Wc=2000ns
+4,10039,174303435826,-;virtpc: set Yp=5000ns
+4,10040,174303435827,-;virtpc: set Yc=5000ns
+4,10041,174303435828,-;virtpc: set D=60ns
+4,10042,174308435820,-;PC: 1114 np 2510 wp 0 yp 0 sleeps/s
+4,10043,174313435815,-;PC: 1116 np 2510 wp 0 yp 0 sleeps/s
+4,10044,174318435810,-;PC: 1122 np 2510 wp 0 yp 0 sleeps/s
+4,10045,174323435806,-;PC: 1114 np 2510 wp 0 yp 0 sleeps/s
+4,10046,174328435800,-;PC: 1113 np 2510 wp 0 yp 0 sleeps/s
+4,10047,174333435795,-;PC: 1113 np 2510 wp 0 yp 0 sleeps/s
+4,10048,174338435798,-;PC: 1116 np 2510 wp 0 yp 0 sleeps/s
+4,10049,174343435791,-;PC: 1113 np 2510 wp 0 yp 0 sleeps/s
+4,10050,174348435792,-;PC: 1114 np 2510 wp 0 yp 0 sleeps/s
+4,10051,174353435795,-;PC: 1112 np 2510 wp 0 yp 0 sleeps/s
+4,10052,174358435794,-;PC: 1113 np 2510 wp 0 yp 0 sleeps/s
+4,10053,174363150131,-;virtpc: producer stops
+4,10054,174363243117,-;virtpc: set Wp=2520ns
+4,10055,174363243119,-;virtpc: set Wc=2000ns
+4,10056,174363243120,-;virtpc: set Yp=5000ns
+4,10057,174363243121,-;virtpc: set Yc=5000ns
+4,10058,174363243121,-;virtpc: set D=60ns
+4,10059,174368243116,-;PC: 1112 np 2519 wp 0 yp 0 sleeps/s
+4,10060,174373243110,-;PC: 1115 np 2519 wp 0 yp 0 sleeps/s
+4,10061,174378243105,-;PC: 1116 np 2519 wp 0 yp 0 sleeps/s
+4,10062,174383243099,-;PC: 1114 np 2519 wp 0 yp 0 sleeps/s
+4,10063,174388243094,-;PC: 1114 np 2519 wp 0 yp 0 sleeps/s
+4,10064,174393243087,-;PC: 1118 np 2519 wp 0 yp 0 sleeps/s
+4,10065,174398243080,-;PC: 1114 np 2519 wp 0 yp 0 sleeps/s
+4,10066,174403243073,-;PC: 1114 np 2519 wp 0 yp 0 sleeps/s
+4,10067,174408243066,-;PC: 1113 np 2519 wp 0 yp 0 sleeps/s
+4,10068,174413243060,-;PC: 1113 np 2519 wp 0 yp 0 sleeps/s
+4,10069,174418243054,-;PC: 1114 np 2519 wp 0 yp 0 sleeps/s
+4,10070,174422957425,-;virtpc: producer stops
+4,10071,174423050276,-;virtpc: set Wp=2530ns
+4,10072,174423050278,-;virtpc: set Wc=2000ns
+4,10073,174423050279,-;virtpc: set Yp=5000ns
+4,10074,174423050279,-;virtpc: set Yc=5000ns
+4,10075,174423050280,-;virtpc: set D=60ns
+4,10076,174428050270,-;PC: 1115 np 2529 wp 0 yp 0 sleeps/s
+4,10077,174433050263,-;PC: 1115 np 2529 wp 0 yp 0 sleeps/s
+4,10078,174438050253,-;PC: 1113 np 2529 wp 0 yp 0 sleeps/s
+4,10079,174443050245,-;PC: 1113 np 2529 wp 0 yp 0 sleeps/s
+4,10080,174448050236,-;PC: 1114 np 2529 wp 0 yp 0 sleeps/s
+4,10081,174453050228,-;PC: 1114 np 2529 wp 0 yp 0 sleeps/s
+4,10082,174458050220,-;PC: 1116 np 2529 wp 0 yp 0 sleeps/s
+4,10083,174463050210,-;PC: 1115 np 2529 wp 0 yp 0 sleeps/s
+4,10084,174468050201,-;PC: 1114 np 2529 wp 0 yp 0 sleeps/s
+4,10085,174473050191,-;PC: 1114 np 2529 wp 0 yp 0 sleeps/s
+4,10086,174478050184,-;PC: 1113 np 2529 wp 0 yp 0 sleeps/s
+4,10087,174482764583,-;virtpc: producer stops
+4,10088,174482857559,-;virtpc: set Wp=2539ns
+4,10089,174482857561,-;virtpc: set Wc=2000ns
+4,10090,174482857562,-;virtpc: set Yp=5000ns
+4,10091,174482857563,-;virtpc: set Yc=5000ns
+4,10092,174482857563,-;virtpc: set D=60ns
+4,10093,174487857556,-;PC: 1112 np 2538 wp 0 yp 0 sleeps/s
+4,10094,174492857549,-;PC: 1122 np 2538 wp 0 yp 0 sleeps/s
+4,10095,174497857542,-;PC: 1115 np 2538 wp 0 yp 0 sleeps/s
+4,10096,174502857534,-;PC: 1117 np 2538 wp 0 yp 0 sleeps/s
+4,10097,174507857526,-;PC: 1116 np 2538 wp 0 yp 0 sleeps/s
+4,10098,174512857518,-;PC: 1116 np 2538 wp 0 yp 0 sleeps/s
+4,10099,174517857510,-;PC: 1114 np 2538 wp 0 yp 0 sleeps/s
+4,10100,174522857504,-;PC: 1113 np 2538 wp 0 yp 0 sleeps/s
+4,10101,174527857498,-;PC: 1114 np 2538 wp 0 yp 0 sleeps/s
+4,10102,174532857493,-;PC: 1116 np 2538 wp 0 yp 0 sleeps/s
+4,10103,174537857485,-;PC: 1115 np 2538 wp 0 yp 0 sleeps/s
+4,10104,174542571866,-;virtpc: producer stops
+4,10105,174542664707,-;virtpc: set Wp=2549ns
+4,10106,174542664709,-;virtpc: set Wc=2000ns
+4,10107,174542664710,-;virtpc: set Yp=5000ns
+4,10108,174542664710,-;virtpc: set Yc=5000ns
+4,10109,174542664711,-;virtpc: set D=60ns
+4,10110,174547664705,-;PC: 1116 np 2548 wp 0 yp 0 sleeps/s
+4,10111,174552664701,-;PC: 1114 np 2548 wp 0 yp 0 sleeps/s
+4,10112,174557664694,-;PC: 1115 np 2548 wp 0 yp 0 sleeps/s
+4,10113,174562664688,-;PC: 1114 np 2548 wp 0 yp 0 sleeps/s
+4,10114,174567664683,-;PC: 1117 np 2548 wp 0 yp 0 sleeps/s
+4,10115,174572664678,-;PC: 1114 np 2548 wp 0 yp 0 sleeps/s
+4,10116,174577664670,-;PC: 1114 np 2548 wp 0 yp 0 sleeps/s
+4,10117,174582664666,-;PC: 1113 np 2548 wp 0 yp 0 sleeps/s
+4,10118,174587664659,-;PC: 1114 np 2548 wp 0 yp 0 sleeps/s
+4,10119,174592664652,-;PC: 1113 np 2548 wp 0 yp 0 sleeps/s
+4,10120,174597664647,-;PC: 1115 np 2548 wp 0 yp 0 sleeps/s
+4,10121,174602379016,-;virtpc: producer stops
+4,10122,174602472001,-;virtpc: set Wp=2559ns
+4,10123,174602472002,-;virtpc: set Wc=2000ns
+4,10124,174602472003,-;virtpc: set Yp=5000ns
+4,10125,174602472004,-;virtpc: set Yc=5000ns
+4,10126,174602472004,-;virtpc: set D=60ns
+4,10127,174607471995,-;PC: 1114 np 2558 wp 0 yp 0 sleeps/s
+4,10128,174612471989,-;PC: 1115 np 2558 wp 0 yp 0 sleeps/s
+4,10129,174617471980,-;PC: 1115 np 2558 wp 0 yp 0 sleeps/s
+4,10130,174622471975,-;PC: 1114 np 2558 wp 0 yp 0 sleeps/s
+4,10131,174627471967,-;PC: 1115 np 2558 wp 0 yp 0 sleeps/s
+4,10132,174632471961,-;PC: 1127 np 2558 wp 0 yp 0 sleeps/s
+4,10133,174637471955,-;PC: 1121 np 2558 wp 0 yp 0 sleeps/s
+4,10134,174642471946,-;PC: 1120 np 2558 wp 0 yp 0 sleeps/s
+4,10135,174647471940,-;PC: 1122 np 2558 wp 0 yp 0 sleeps/s
+4,10136,174652471934,-;PC: 1120 np 2558 wp 0 yp 0 sleeps/s
+4,10137,174657471926,-;PC: 1114 np 2558 wp 0 yp 0 sleeps/s
+4,10138,174662186308,-;virtpc: producer stops
+4,10139,174662279303,-;virtpc: set Wp=2568ns
+4,10140,174662279305,-;virtpc: set Wc=2000ns
+4,10141,174662279305,-;virtpc: set Yp=5000ns
+4,10142,174662279306,-;virtpc: set Yc=5000ns
+4,10143,174662279306,-;virtpc: set D=60ns
+4,10144,174667279300,-;PC: 1114 np 2567 wp 0 yp 0 sleeps/s
+4,10145,174672279295,-;PC: 1114 np 2567 wp 0 yp 0 sleeps/s
+4,10146,174677279290,-;PC: 1115 np 2567 wp 0 yp 0 sleeps/s
+4,10147,174682279286,-;PC: 1115 np 2567 wp 0 yp 0 sleeps/s
+4,10148,174687279281,-;PC: 1114 np 2567 wp 0 yp 0 sleeps/s
+4,10149,174692279274,-;PC: 1114 np 2567 wp 0 yp 0 sleeps/s
+4,10150,174697279266,-;PC: 1113 np 2567 wp 0 yp 0 sleeps/s
+4,10151,174702279260,-;PC: 1114 np 2567 wp 0 yp 0 sleeps/s
+4,10152,174707279254,-;PC: 1115 np 2567 wp 0 yp 0 sleeps/s
+4,10153,174712279247,-;PC: 1114 np 2567 wp 0 yp 0 sleeps/s
+4,10154,174717279241,-;PC: 1118 np 2567 wp 0 yp 0 sleeps/s
+4,10155,174721993609,-;virtpc: producer stops
+4,10156,174722086584,-;virtpc: set Wp=2578ns
+4,10157,174722086586,-;virtpc: set Wc=2000ns
+4,10158,174722086587,-;virtpc: set Yp=5000ns
+4,10159,174722086587,-;virtpc: set Yc=5000ns
+4,10160,174722086588,-;virtpc: set D=60ns
+4,10161,174727086580,-;PC: 1118 np 2577 wp 0 yp 0 sleeps/s
+4,10162,174732086573,-;PC: 1116 np 2577 wp 0 yp 0 sleeps/s
+4,10163,174737086566,-;PC: 1114 np 2577 wp 0 yp 0 sleeps/s
+4,10164,174742086558,-;PC: 1113 np 2577 wp 0 yp 0 sleeps/s
+4,10165,174747086550,-;PC: 1113 np 2577 wp 0 yp 0 sleeps/s
+4,10166,174752086544,-;PC: 1113 np 2577 wp 0 yp 0 sleeps/s
+4,10167,174757086537,-;PC: 1112 np 2577 wp 0 yp 0 sleeps/s
+4,10168,174762086530,-;PC: 1112 np 2577 wp 0 yp 0 sleeps/s
+4,10169,174767086524,-;PC: 1112 np 2577 wp 0 yp 0 sleeps/s
+4,10170,174772086519,-;PC: 1112 np 2577 wp 0 yp 0 sleeps/s
+4,10171,174777086515,-;PC: 1112 np 2577 wp 0 yp 0 sleeps/s
+4,10172,174781800890,-;virtpc: producer stops
+4,10173,174781893723,-;virtpc: set Wp=2588ns
+4,10174,174781893725,-;virtpc: set Wc=2000ns
+4,10175,174781893725,-;virtpc: set Yp=5000ns
+4,10176,174781893726,-;virtpc: set Yc=5000ns
+4,10177,174781893727,-;virtpc: set D=60ns
+4,10178,174786893719,-;PC: 1112 np 2587 wp 0 yp 0 sleeps/s
+4,10179,174791893711,-;PC: 1112 np 2587 wp 0 yp 0 sleeps/s
+4,10180,174796893705,-;PC: 1113 np 2587 wp 0 yp 0 sleeps/s
+4,10181,174801893697,-;PC: 1113 np 2587 wp 0 yp 0 sleeps/s
+4,10182,174806893688,-;PC: 1116 np 2587 wp 0 yp 0 sleeps/s
+4,10183,174811893680,-;PC: 1117 np 2587 wp 0 yp 0 sleeps/s
+4,10184,174816893673,-;PC: 1116 np 2587 wp 0 yp 0 sleeps/s
+4,10185,174821893664,-;PC: 1115 np 2587 wp 0 yp 0 sleeps/s
+4,10186,174826893657,-;PC: 1114 np 2587 wp 0 yp 0 sleeps/s
+4,10187,174831893651,-;PC: 1114 np 2587 wp 0 yp 0 sleeps/s
+4,10188,174836893643,-;PC: 1114 np 2587 wp 0 yp 0 sleeps/s
+4,10189,174841608029,-;virtpc: producer stops
+4,10190,174841701305,-;virtpc: set Wp=2598ns
+4,10191,174841701307,-;virtpc: set Wc=2000ns
+4,10192,174841701308,-;virtpc: set Yp=5000ns
+4,10193,174841701308,-;virtpc: set Yc=5000ns
+4,10194,174841701309,-;virtpc: set D=60ns
+4,10195,174846701300,-;PC: 1115 np 2597 wp 0 yp 0 sleeps/s
+4,10196,174851701295,-;PC: 1115 np 2597 wp 0 yp 0 sleeps/s
+4,10197,174856701290,-;PC: 1115 np 2597 wp 0 yp 0 sleeps/s
+4,10198,174861701284,-;PC: 1116 np 2597 wp 0 yp 0 sleeps/s
+4,10199,174866701275,-;PC: 1115 np 2597 wp 0 yp 0 sleeps/s
+4,10200,174871701268,-;PC: 1112 np 2597 wp 0 yp 0 sleeps/s
+4,10201,174876701261,-;PC: 1117 np 2597 wp 0 yp 0 sleeps/s
+4,10202,174881701255,-;PC: 1115 np 2597 wp 0 yp 0 sleeps/s
+4,10203,174886701248,-;PC: 1114 np 2597 wp 0 yp 0 sleeps/s
+4,10204,174891701240,-;PC: 1113 np 2597 wp 0 yp 0 sleeps/s
+4,10205,174896701233,-;PC: 1112 np 2597 wp 0 yp 0 sleeps/s
+4,10206,174901415611,-;virtpc: producer stops
+4,10207,174901508394,-;virtpc: set Wp=2608ns
+4,10208,174901508396,-;virtpc: set Wc=2000ns
+4,10209,174901508397,-;virtpc: set Yp=5000ns
+4,10210,174901508397,-;virtpc: set Yc=5000ns
+4,10211,174901508398,-;virtpc: set D=60ns
+4,10212,174906508390,-;PC: 1115 np 2607 wp 0 yp 0 sleeps/s
+4,10213,174911508385,-;PC: 1122 np 2607 wp 0 yp 0 sleeps/s
+4,10214,174916508378,-;PC: 1113 np 2607 wp 0 yp 0 sleeps/s
+4,10215,174921508370,-;PC: 1113 np 2607 wp 0 yp 0 sleeps/s
+4,10216,174926508363,-;PC: 1114 np 2607 wp 0 yp 0 sleeps/s
+4,10217,174931508356,-;PC: 1113 np 2607 wp 0 yp 0 sleeps/s
+4,10218,174936508348,-;PC: 1113 np 2607 wp 0 yp 0 sleeps/s
+4,10219,174941508342,-;PC: 1114 np 2607 wp 0 yp 0 sleeps/s
+4,10220,174946508335,-;PC: 1113 np 2607 wp 0 yp 0 sleeps/s
+4,10221,174951508328,-;PC: 1118 np 2607 wp 0 yp 0 sleeps/s
+4,10222,174956508324,-;PC: 1117 np 2607 wp 0 yp 0 sleeps/s
+4,10223,174961222700,-;virtpc: producer stops
+4,10224,174961315803,-;virtpc: set Wp=2618ns
+4,10225,174961315805,-;virtpc: set Wc=2000ns
+4,10226,174961315806,-;virtpc: set Yp=5000ns
+4,10227,174961315806,-;virtpc: set Yc=5000ns
+4,10228,174961315807,-;virtpc: set D=60ns
+4,10229,174966315800,-;PC: 1114 np 2617 wp 0 yp 0 sleeps/s
+4,10230,174971315795,-;PC: 1113 np 2617 wp 0 yp 0 sleeps/s
+4,10231,174976315791,-;PC: 1113 np 2617 wp 0 yp 0 sleeps/s
+4,10232,174981315784,-;PC: 1113 np 2617 wp 0 yp 0 sleeps/s
+4,10233,174986315779,-;PC: 1117 np 2617 wp 0 yp 0 sleeps/s
+4,10234,174991315775,-;PC: 1113 np 2617 wp 0 yp 0 sleeps/s
+4,10235,174996315769,-;PC: 1112 np 2617 wp 0 yp 0 sleeps/s
+4,10236,175001315763,-;PC: 1111 np 2617 wp 0 yp 0 sleeps/s
+4,10237,175006315757,-;PC: 1113 np 2617 wp 0 yp 0 sleeps/s
+4,10238,175011315750,-;PC: 1112 np 2617 wp 0 yp 0 sleeps/s
+4,10239,175016315746,-;PC: 1111 np 2617 wp 0 yp 0 sleeps/s
+4,10240,175021030110,-;virtpc: producer stops
+4,10241,175021122946,-;virtpc: set Wp=2628ns
+4,10242,175021122947,-;virtpc: set Wc=2000ns
+4,10243,175021122948,-;virtpc: set Yp=5000ns
+4,10244,175021122949,-;virtpc: set Yc=5000ns
+4,10245,175021122949,-;virtpc: set D=60ns
+4,10246,175026122943,-;PC: 1112 np 2627 wp 0 yp 0 sleeps/s
+4,10247,175031122935,-;PC: 1111 np 2627 wp 0 yp 0 sleeps/s
+4,10248,175036122929,-;PC: 1112 np 2627 wp 0 yp 0 sleeps/s
+4,10249,175041122922,-;PC: 1112 np 2627 wp 0 yp 0 sleeps/s
+4,10250,175046122916,-;PC: 1112 np 2627 wp 0 yp 0 sleeps/s
+4,10251,175051122908,-;PC: 1111 np 2627 wp 0 yp 0 sleeps/s
+4,10252,175056122900,-;PC: 1115 np 2627 wp 0 yp 0 sleeps/s
+4,10253,175061122895,-;PC: 1112 np 2627 wp 0 yp 0 sleeps/s
+4,10254,175066122889,-;PC: 1112 np 2627 wp 0 yp 0 sleeps/s
+4,10255,175071122883,-;PC: 1112 np 2627 wp 0 yp 0 sleeps/s
+4,10256,175076122876,-;PC: 1113 np 2627 wp 0 yp 0 sleeps/s
+4,10257,175080837252,-;virtpc: producer stops
+4,10258,175080930237,-;virtpc: set Wp=2638ns
+4,10259,175080930239,-;virtpc: set Wc=2000ns
+4,10260,175080930240,-;virtpc: set Yp=5000ns
+4,10261,175080930240,-;virtpc: set Yc=5000ns
+4,10262,175080930241,-;virtpc: set D=60ns
+4,10263,175085930235,-;PC: 1113 np 2637 wp 0 yp 0 sleeps/s
+4,10264,175090930231,-;PC: 1112 np 2637 wp 0 yp 0 sleeps/s
+4,10265,175095930224,-;PC: 1112 np 2637 wp 0 yp 0 sleeps/s
+4,10266,175100930218,-;PC: 1114 np 2637 wp 0 yp 0 sleeps/s
+4,10267,175105930213,-;PC: 1112 np 2637 wp 0 yp 0 sleeps/s
+4,10268,175110930208,-;PC: 1113 np 2637 wp 0 yp 0 sleeps/s
+4,10269,175115930202,-;PC: 1113 np 2637 wp 0 yp 0 sleeps/s
+4,10270,175120930195,-;PC: 1112 np 2637 wp 0 yp 0 sleeps/s
+4,10271,175125930188,-;PC: 1112 np 2637 wp 0 yp 0 sleeps/s
+4,10272,175130930181,-;PC: 1112 np 2637 wp 0 yp 0 sleeps/s
+4,10273,175135930177,-;PC: 1110 np 2637 wp 0 yp 0 sleeps/s
+4,10274,175140644543,-;virtpc: producer stops
+4,10275,175140737396,-;virtpc: set Wp=2648ns
+4,10276,175140737398,-;virtpc: set Wc=2000ns
+4,10277,175140737399,-;virtpc: set Yp=5000ns
+4,10278,175140737399,-;virtpc: set Yc=5000ns
+4,10279,175140737400,-;virtpc: set D=60ns
+4,10280,175145737392,-;PC: 1113 np 2647 wp 0 yp 0 sleeps/s
+4,10281,175150737385,-;PC: 1115 np 2647 wp 0 yp 0 sleeps/s
+4,10282,175155737379,-;PC: 1116 np 2647 wp 0 yp 0 sleeps/s
+4,10283,175160737373,-;PC: 1114 np 2647 wp 0 yp 0 sleeps/s
+4,10284,175165737367,-;PC: 1111 np 2647 wp 0 yp 0 sleeps/s
+4,10285,175170737360,-;PC: 1112 np 2647 wp 0 yp 0 sleeps/s
+4,10286,175175737355,-;PC: 1112 np 2647 wp 0 yp 0 sleeps/s
+4,10287,175180737347,-;PC: 1112 np 2647 wp 0 yp 0 sleeps/s
+4,10288,175185737342,-;PC: 1112 np 2647 wp 0 yp 0 sleeps/s
+4,10289,175190737337,-;PC: 1114 np 2647 wp 0 yp 0 sleeps/s
+4,10290,175195737333,-;PC: 1113 np 2647 wp 0 yp 0 sleeps/s
+4,10291,175200451704,-;virtpc: producer stops
+4,10292,175200544716,-;virtpc: set Wp=2658ns
+4,10293,175200544718,-;virtpc: set Wc=2000ns
+4,10294,175200544718,-;virtpc: set Yp=5000ns
+4,10295,175200544719,-;virtpc: set Yc=5000ns
+4,10296,175200544719,-;virtpc: set D=60ns
+4,10297,175205544713,-;PC: 1118 np 2657 wp 0 yp 0 sleeps/s
+4,10298,175210544708,-;PC: 1116 np 2657 wp 0 yp 0 sleeps/s
+4,10299,175215544701,-;PC: 1115 np 2657 wp 0 yp 0 sleeps/s
+4,10300,175220544697,-;PC: 1114 np 2657 wp 0 yp 0 sleeps/s
+4,10301,175225544692,-;PC: 1118 np 2657 wp 0 yp 0 sleeps/s
+4,10302,175230544685,-;PC: 1115 np 2657 wp 0 yp 0 sleeps/s
+4,10303,175235544681,-;PC: 1114 np 2657 wp 0 yp 0 sleeps/s
+4,10304,175240544675,-;PC: 1115 np 2657 wp 0 yp 0 sleeps/s
+4,10305,175245544670,-;PC: 1115 np 2657 wp 0 yp 0 sleeps/s
+4,10306,175250544664,-;PC: 1114 np 2657 wp 0 yp 0 sleeps/s
+4,10307,175255544657,-;PC: 1114 np 2657 wp 0 yp 0 sleeps/s
+4,10308,175260259022,-;virtpc: producer stops
+4,10309,175260351837,-;virtpc: set Wp=2668ns
+4,10310,175260351839,-;virtpc: set Wc=2000ns
+4,10311,175260351839,-;virtpc: set Yp=5000ns
+4,10312,175260351840,-;virtpc: set Yc=5000ns
+4,10313,175260351841,-;virtpc: set D=60ns
+4,10314,175265351830,-;PC: 1113 np 2667 wp 0 yp 0 sleeps/s
+4,10315,175270351823,-;PC: 1118 np 2667 wp 0 yp 0 sleeps/s
+4,10316,175275351815,-;PC: 1115 np 2667 wp 0 yp 0 sleeps/s
+4,10317,175280351806,-;PC: 1114 np 2667 wp 0 yp 0 sleeps/s
+4,10318,175285351798,-;PC: 1115 np 2667 wp 0 yp 0 sleeps/s
+4,10319,175290351791,-;PC: 1114 np 2667 wp 0 yp 0 sleeps/s
+4,10320,175295351782,-;PC: 1115 np 2667 wp 0 yp 0 sleeps/s
+4,10321,175300351774,-;PC: 1112 np 2667 wp 0 yp 0 sleeps/s
+4,10322,175305351767,-;PC: 1113 np 2667 wp 0 yp 0 sleeps/s
+4,10323,175310351762,-;PC: 1117 np 2667 wp 0 yp 0 sleeps/s
+4,10324,175315351753,-;PC: 1114 np 2667 wp 0 yp 0 sleeps/s
+4,10325,175320066144,-;virtpc: producer stops
+4,10326,175320159106,-;virtpc: set Wp=2678ns
+4,10327,175320159107,-;virtpc: set Wc=2000ns
+4,10328,175320159108,-;virtpc: set Yp=5000ns
+4,10329,175320159109,-;virtpc: set Yc=5000ns
+4,10330,175320159109,-;virtpc: set D=60ns
+4,10331,175325159103,-;PC: 1114 np 2677 wp 0 yp 0 sleeps/s
+4,10332,175330159096,-;PC: 1112 np 2677 wp 0 yp 0 sleeps/s
+4,10333,175335159088,-;PC: 1112 np 2677 wp 0 yp 0 sleeps/s
+4,10334,175340159081,-;PC: 1112 np 2677 wp 0 yp 0 sleeps/s
+4,10335,175345159072,-;PC: 1114 np 2677 wp 0 yp 0 sleeps/s
+4,10336,175350159066,-;PC: 1114 np 2677 wp 0 yp 0 sleeps/s
+4,10337,175355159060,-;PC: 1113 np 2677 wp 0 yp 0 sleeps/s
+4,10338,175360159053,-;PC: 1114 np 2677 wp 0 yp 0 sleeps/s
+4,10339,175365159045,-;PC: 1112 np 2677 wp 0 yp 0 sleeps/s
+4,10340,175370159036,-;PC: 1115 np 2677 wp 0 yp 0 sleeps/s
+4,10341,175375159027,-;PC: 1113 np 2677 wp 0 yp 0 sleeps/s
+4,10342,175379873414,-;virtpc: producer stops
+4,10343,175379966198,-;virtpc: set Wp=2688ns
+4,10344,175379966200,-;virtpc: set Wc=2000ns
+4,10345,175379966201,-;virtpc: set Yp=5000ns
+4,10346,175379966201,-;virtpc: set Yc=5000ns
+4,10347,175379966202,-;virtpc: set D=60ns
+4,10348,175384966193,-;PC: 1113 np 2687 wp 0 yp 0 sleeps/s
+4,10349,175389966187,-;PC: 1112 np 2687 wp 0 yp 0 sleeps/s
+4,10350,175394966180,-;PC: 1113 np 2687 wp 0 yp 0 sleeps/s
+4,10351,175399966175,-;PC: 1112 np 2687 wp 0 yp 0 sleeps/s
+4,10352,175404966166,-;PC: 1120 np 2687 wp 0 yp 0 sleeps/s
+4,10353,175409966159,-;PC: 1114 np 2687 wp 0 yp 0 sleeps/s
+4,10354,175414966152,-;PC: 1112 np 2687 wp 0 yp 0 sleeps/s
+4,10355,175419966145,-;PC: 1112 np 2687 wp 0 yp 0 sleeps/s
+4,10356,175424966139,-;PC: 1113 np 2687 wp 0 yp 0 sleeps/s
+4,10357,175429966132,-;PC: 1111 np 2687 wp 0 yp 0 sleeps/s
+4,10358,175434966126,-;PC: 1112 np 2687 wp 0 yp 0 sleeps/s
+4,10359,175439680506,-;virtpc: producer stops
+4,10360,175439773557,-;virtpc: set Wp=2698ns
+4,10361,175439773559,-;virtpc: set Wc=2000ns
+4,10362,175439773559,-;virtpc: set Yp=5000ns
+4,10363,175439773560,-;virtpc: set Yc=5000ns
+4,10364,175439773561,-;virtpc: set D=60ns
+4,10365,175444773553,-;PC: 1112 np 2697 wp 0 yp 0 sleeps/s
+4,10366,175449773545,-;PC: 1110 np 2697 wp 0 yp 0 sleeps/s
+4,10367,175454773538,-;PC: 1115 np 2697 wp 0 yp 0 sleeps/s
+4,10368,175459773530,-;PC: 1112 np 2697 wp 0 yp 0 sleeps/s
+4,10369,175464773523,-;PC: 1112 np 2697 wp 0 yp 0 sleeps/s
+4,10370,175469773515,-;PC: 1113 np 2697 wp 0 yp 0 sleeps/s
+4,10371,175474773507,-;PC: 1114 np 2697 wp 0 yp 0 sleeps/s
+4,10372,175479773501,-;PC: 1112 np 2697 wp 0 yp 0 sleeps/s
+4,10373,175484773493,-;PC: 1112 np 2697 wp 0 yp 0 sleeps/s
+4,10374,175489773485,-;PC: 1114 np 2697 wp 0 yp 0 sleeps/s
+4,10375,175494773477,-;PC: 1113 np 2697 wp 0 yp 0 sleeps/s
+4,10376,175499487865,-;virtpc: producer stops
+4,10377,175499580698,-;virtpc: set Wp=2708ns
+4,10378,175499580700,-;virtpc: set Wc=2000ns
+4,10379,175499580701,-;virtpc: set Yp=5000ns
+4,10380,175499580701,-;virtpc: set Yc=5000ns
+4,10381,175499580702,-;virtpc: set D=60ns
+4,10382,175504580695,-;PC: 1114 np 2707 wp 0 yp 0 sleeps/s
+4,10383,175509580688,-;PC: 1113 np 2707 wp 0 yp 0 sleeps/s
+4,10384,175514580682,-;PC: 1113 np 2707 wp 0 yp 0 sleeps/s
+4,10385,175519580675,-;PC: 1112 np 2707 wp 0 yp 0 sleeps/s
+4,10386,175524580667,-;PC: 1114 np 2707 wp 0 yp 0 sleeps/s
+4,10387,175529580660,-;PC: 1111 np 2707 wp 0 yp 0 sleeps/s
+4,10388,175534580653,-;PC: 1113 np 2707 wp 0 yp 0 sleeps/s
+4,10389,175539580648,-;PC: 1112 np 2707 wp 0 yp 0 sleeps/s
+4,10390,175544580640,-;PC: 1112 np 2707 wp 0 yp 0 sleeps/s
+4,10391,175549580632,-;PC: 1113 np 2707 wp 0 yp 0 sleeps/s
+4,10392,175554580624,-;PC: 1111 np 2707 wp 0 yp 0 sleeps/s
+4,10393,175559295004,-;virtpc: producer stops
+4,10394,175559388007,-;virtpc: set Wp=2719ns
+4,10395,175559388009,-;virtpc: set Wc=2000ns
+4,10396,175559388010,-;virtpc: set Yp=5000ns
+4,10397,175559388011,-;virtpc: set Yc=5000ns
+4,10398,175559388011,-;virtpc: set D=60ns
+4,10399,175564388003,-;PC: 1113 np 2718 wp 0 yp 0 sleeps/s
+4,10400,175569387996,-;PC: 1113 np 2718 wp 0 yp 0 sleeps/s
+4,10401,175574387990,-;PC: 1115 np 2718 wp 0 yp 0 sleeps/s
+4,10402,175579387985,-;PC: 1116 np 2718 wp 0 yp 0 sleeps/s
+4,10403,175584387977,-;PC: 1119 np 2718 wp 0 yp 0 sleeps/s
+4,10404,175589387971,-;PC: 1115 np 2718 wp 0 yp 0 sleeps/s
+4,10405,175594387965,-;PC: 1113 np 2718 wp 0 yp 0 sleeps/s
+4,10406,175599387958,-;PC: 1113 np 2718 wp 0 yp 0 sleeps/s
+4,10407,175604387951,-;PC: 1114 np 2718 wp 0 yp 0 sleeps/s
+4,10408,175609387945,-;PC: 1114 np 2718 wp 0 yp 0 sleeps/s
+4,10409,175614387939,-;PC: 1114 np 2718 wp 0 yp 0 sleeps/s
+4,10410,175619102315,-;virtpc: producer stops
+4,10411,175619195113,-;virtpc: set Wp=2729ns
+4,10412,175619195115,-;virtpc: set Wc=2000ns
+4,10413,175619195115,-;virtpc: set Yp=5000ns
+4,10414,175619195116,-;virtpc: set Yc=5000ns
+4,10415,175619195117,-;virtpc: set D=60ns
+4,10416,175624195110,-;PC: 1113 np 2728 wp 0 yp 0 sleeps/s
+4,10417,175629195104,-;PC: 1114 np 2728 wp 0 yp 0 sleeps/s
+4,10418,175634195099,-;PC: 1114 np 2728 wp 0 yp 0 sleeps/s
+4,10419,175639195094,-;PC: 1113 np 2728 wp 0 yp 0 sleeps/s
+4,10420,175644195085,-;PC: 1112 np 2728 wp 0 yp 0 sleeps/s
+4,10421,175649195078,-;PC: 1116 np 2728 wp 0 yp 0 sleeps/s
+4,10422,175654195071,-;PC: 1114 np 2728 wp 0 yp 0 sleeps/s
+4,10423,175659195063,-;PC: 1114 np 2728 wp 0 yp 0 sleeps/s
+4,10424,175664195057,-;PC: 1115 np 2728 wp 0 yp 0 sleeps/s
+4,10425,175669195052,-;PC: 1114 np 2728 wp 0 yp 0 sleeps/s
+4,10426,175674195044,-;PC: 1112 np 2728 wp 0 yp 0 sleeps/s
+4,10427,175678909421,-;virtpc: producer stops
+4,10428,175679002441,-;virtpc: set Wp=2739ns
+4,10429,175679002443,-;virtpc: set Wc=2000ns
+4,10430,175679002443,-;virtpc: set Yp=5000ns
+4,10431,175679002444,-;virtpc: set Yc=5000ns
+4,10432,175679002445,-;virtpc: set D=60ns
+4,10433,175684002438,-;PC: 1112 np 2738 wp 0 yp 0 sleeps/s
+4,10434,175689002430,-;PC: 1113 np 2738 wp 0 yp 0 sleeps/s
+4,10435,175694002423,-;PC: 1114 np 2738 wp 0 yp 0 sleeps/s
+4,10436,175699002416,-;PC: 1112 np 2738 wp 0 yp 0 sleeps/s
+4,10437,175704002411,-;PC: 1111 np 2738 wp 0 yp 0 sleeps/s
+4,10438,175709002403,-;PC: 1112 np 2738 wp 0 yp 0 sleeps/s
+4,10439,175714002397,-;PC: 1112 np 2738 wp 0 yp 0 sleeps/s
+4,10440,175719002390,-;PC: 1111 np 2738 wp 0 yp 0 sleeps/s
+4,10441,175724002382,-;PC: 1114 np 2738 wp 0 yp 0 sleeps/s
+4,10442,175729002376,-;PC: 1112 np 2738 wp 0 yp 0 sleeps/s
+4,10443,175734002368,-;PC: 1112 np 2738 wp 0 yp 0 sleeps/s
+4,10444,175738716748,-;virtpc: producer stops
+4,10445,175738809539,-;virtpc: set Wp=2750ns
+4,10446,175738809541,-;virtpc: set Wc=2000ns
+4,10447,175738809542,-;virtpc: set Yp=5000ns
+4,10448,175738809543,-;virtpc: set Yc=5000ns
+4,10449,175738809543,-;virtpc: set D=60ns
+4,10450,175743809535,-;PC: 1112 np 2749 wp 0 yp 0 sleeps/s
+4,10451,175748809528,-;PC: 1111 np 2749 wp 0 yp 0 sleeps/s
+4,10452,175753809521,-;PC: 1112 np 2749 wp 0 yp 0 sleeps/s
+4,10453,175758809513,-;PC: 1112 np 2749 wp 0 yp 0 sleeps/s
+4,10454,175763809505,-;PC: 1112 np 2749 wp 0 yp 0 sleeps/s
+4,10455,175768809497,-;PC: 1112 np 2749 wp 0 yp 0 sleeps/s
+4,10456,175773809488,-;PC: 1114 np 2749 wp 0 yp 0 sleeps/s
+4,10457,175778809479,-;PC: 1114 np 2749 wp 0 yp 0 sleeps/s
+4,10458,175783809471,-;PC: 1114 np 2749 wp 0 yp 0 sleeps/s
+4,10459,175788809461,-;PC: 1113 np 2749 wp 0 yp 0 sleeps/s
+4,10460,175793809453,-;PC: 1116 np 2749 wp 0 yp 0 sleeps/s
+4,10461,175798523848,-;virtpc: producer stops
+4,10462,175798616838,-;virtpc: set Wp=2760ns
+4,10463,175798616840,-;virtpc: set Wc=2000ns
+4,10464,175798616841,-;virtpc: set Yp=5000ns
+4,10465,175798616842,-;virtpc: set Yc=5000ns
+4,10466,175798616842,-;virtpc: set D=60ns
+4,10467,175803616834,-;PC: 1113 np 2759 wp 0 yp 0 sleeps/s
+4,10468,175808616825,-;PC: 1114 np 2759 wp 0 yp 0 sleeps/s
+4,10469,175813616818,-;PC: 1120 np 2759 wp 0 yp 0 sleeps/s
+4,10470,175818616813,-;PC: 1113 np 2759 wp 0 yp 0 sleeps/s
+4,10471,175823616806,-;PC: 1112 np 2759 wp 0 yp 0 sleeps/s
+4,10472,175828616797,-;PC: 1115 np 2759 wp 0 yp 0 sleeps/s
+4,10473,175833616789,-;PC: 1114 np 2759 wp 0 yp 0 sleeps/s
+4,10474,175838616784,-;PC: 1114 np 2759 wp 0 yp 0 sleeps/s
+4,10475,175843616776,-;PC: 1113 np 2759 wp 0 yp 0 sleeps/s
+4,10476,175848616770,-;PC: 1114 np 2759 wp 0 yp 0 sleeps/s
+4,10477,175853616762,-;PC: 1113 np 2759 wp 0 yp 0 sleeps/s
+4,10478,175858331146,-;virtpc: producer stops
+4,10479,175858423927,-;virtpc: set Wp=2771ns
+4,10480,175858423929,-;virtpc: set Wc=2000ns
+4,10481,175858423930,-;virtpc: set Yp=5000ns
+4,10482,175858423931,-;virtpc: set Yc=5000ns
+4,10483,175858423931,-;virtpc: set D=60ns
+4,10484,175863423923,-;PC: 1114 np 2770 wp 0 yp 0 sleeps/s
+4,10485,175868423918,-;PC: 1111 np 2770 wp 0 yp 0 sleeps/s
+4,10486,175873423911,-;PC: 1112 np 2770 wp 0 yp 0 sleeps/s
+4,10487,175878423903,-;PC: 1111 np 2770 wp 0 yp 0 sleeps/s
+4,10488,175883423896,-;PC: 1112 np 2770 wp 0 yp 0 sleeps/s
+4,10489,175888423889,-;PC: 1114 np 2770 wp 0 yp 0 sleeps/s
+4,10490,175893423883,-;PC: 1112 np 2770 wp 0 yp 0 sleeps/s
+4,10491,175898423877,-;PC: 1112 np 2770 wp 0 yp 0 sleeps/s
+4,10492,175903423869,-;PC: 1112 np 2770 wp 0 yp 0 sleeps/s
+4,10493,175908423861,-;PC: 1113 np 2770 wp 0 yp 0 sleeps/s
+4,10494,175913423855,-;PC: 1111 np 2770 wp 0 yp 0 sleeps/s
+4,10495,175918138236,-;virtpc: producer stops
+4,10496,175918231238,-;virtpc: set Wp=2781ns
+4,10497,175918231240,-;virtpc: set Wc=2000ns
+4,10498,175918231241,-;virtpc: set Yp=5000ns
+4,10499,175918231241,-;virtpc: set Yc=5000ns
+4,10500,175918231242,-;virtpc: set D=60ns
+4,10501,175923231234,-;PC: 1112 np 2780 wp 0 yp 0 sleeps/s
+4,10502,175928231225,-;PC: 1113 np 2780 wp 0 yp 0 sleeps/s
+4,10503,175933231218,-;PC: 1111 np 2780 wp 0 yp 0 sleeps/s
+4,10504,175938231211,-;PC: 1111 np 2780 wp 0 yp 0 sleeps/s
+4,10505,175943231204,-;PC: 1111 np 2780 wp 0 yp 0 sleeps/s
+4,10506,175948231198,-;PC: 1118 np 2780 wp 0 yp 0 sleeps/s
+4,10507,175953231189,-;PC: 1112 np 2780 wp 0 yp 0 sleeps/s
+4,10508,175958231181,-;PC: 1112 np 2780 wp 0 yp 0 sleeps/s
+4,10509,175963231174,-;PC: 1113 np 2780 wp 0 yp 0 sleeps/s
+4,10510,175968231167,-;PC: 1114 np 2780 wp 0 yp 0 sleeps/s
+4,10511,175973231157,-;PC: 1113 np 2780 wp 0 yp 0 sleeps/s
+4,10512,175977945545,-;virtpc: producer stops
+4,10513,175978038311,-;virtpc: set Wp=2792ns
+4,10514,175978038312,-;virtpc: set Wc=2000ns
+4,10515,175978038313,-;virtpc: set Yp=5000ns
+4,10516,175978038314,-;virtpc: set Yc=5000ns
+4,10517,175978038314,-;virtpc: set D=60ns
+4,10518,175983038306,-;PC: 1110 np 2791 wp 0 yp 0 sleeps/s
+4,10519,175988038298,-;PC: 1106 np 2791 wp 0 yp 0 sleeps/s
+4,10520,175993038292,-;PC: 1111 np 2791 wp 0 yp 0 sleeps/s
+4,10521,175998038287,-;PC: 1112 np 2791 wp 0 yp 0 sleeps/s
+4,10522,176003038281,-;PC: 1119 np 2791 wp 0 yp 0 sleeps/s
+4,10523,176008038276,-;PC: 1111 np 2791 wp 0 yp 0 sleeps/s
+4,10524,176013038268,-;PC: 1111 np 2791 wp 0 yp 0 sleeps/s
+4,10525,176018038261,-;PC: 1110 np 2791 wp 0 yp 0 sleeps/s
+4,10526,176023038253,-;PC: 1110 np 2791 wp 0 yp 0 sleeps/s
+4,10527,176028038245,-;PC: 1111 np 2791 wp 0 yp 0 sleeps/s
+4,10528,176033038238,-;PC: 1110 np 2791 wp 0 yp 0 sleeps/s
+4,10529,176037752617,-;virtpc: producer stops
+4,10530,176037845646,-;virtpc: set Wp=2803ns
+4,10531,176037845648,-;virtpc: set Wc=2000ns
+4,10532,176037845649,-;virtpc: set Yp=5000ns
+4,10533,176037845649,-;virtpc: set Yc=5000ns
+4,10534,176037845650,-;virtpc: set D=60ns
+4,10535,176042845641,-;PC: 1112 np 2802 wp 0 yp 0 sleeps/s
+4,10536,176047845634,-;PC: 1111 np 2802 wp 0 yp 0 sleeps/s
+4,10537,176052845628,-;PC: 1111 np 2802 wp 0 yp 0 sleeps/s
+4,10538,176057845621,-;PC: 1112 np 2802 wp 0 yp 0 sleeps/s
+4,10539,176062845615,-;PC: 1114 np 2802 wp 0 yp 0 sleeps/s
+4,10540,176067845607,-;PC: 1115 np 2802 wp 0 yp 0 sleeps/s
+4,10541,176072845599,-;PC: 1119 np 2802 wp 0 yp 0 sleeps/s
+4,10542,176077845593,-;PC: 1117 np 2802 wp 0 yp 0 sleeps/s
+4,10543,176082845588,-;PC: 1115 np 2802 wp 0 yp 0 sleeps/s
+4,10544,176087845583,-;PC: 1115 np 2802 wp 0 yp 0 sleeps/s
+4,10545,176092845577,-;PC: 1114 np 2802 wp 0 yp 0 sleeps/s
+4,10546,176097559952,-;virtpc: producer stops
+4,10547,176097652827,-;virtpc: set Wp=2813ns
+4,10548,176097652829,-;virtpc: set Wc=2000ns
+4,10549,176097652829,-;virtpc: set Yp=5000ns
+4,10550,176097652830,-;virtpc: set Yc=5000ns
+4,10551,176097652831,-;virtpc: set D=60ns
+4,10552,176102652825,-;PC: 1122 np 2812 wp 0 yp 0 sleeps/s
+4,10553,176107652820,-;PC: 1111 np 2812 wp 0 yp 0 sleeps/s
+4,10554,176112652814,-;PC: 1111 np 2812 wp 0 yp 0 sleeps/s
+4,10555,176117652807,-;PC: 1107 np 2812 wp 0 yp 0 sleeps/s
+4,10556,176122652801,-;PC: 1115 np 2812 wp 0 yp 0 sleeps/s
+4,10557,176127652794,-;PC: 1113 np 2812 wp 0 yp 0 sleeps/s
+4,10558,176132652786,-;PC: 1112 np 2812 wp 0 yp 0 sleeps/s
+4,10559,176137652780,-;PC: 1112 np 2812 wp 0 yp 0 sleeps/s
+4,10560,176142652772,-;PC: 1111 np 2812 wp 0 yp 0 sleeps/s
+4,10561,176147652764,-;PC: 1111 np 2812 wp 0 yp 0 sleeps/s
+4,10562,176152652758,-;PC: 1110 np 2812 wp 0 yp 0 sleeps/s
+4,10563,176157367136,-;virtpc: producer stops
+4,10564,176157460196,-;virtpc: set Wp=2824ns
+4,10565,176157460199,-;virtpc: set Wc=2000ns
+4,10566,176157460199,-;virtpc: set Yp=5000ns
+4,10567,176157460200,-;virtpc: set Yc=5000ns
+4,10568,176157460200,-;virtpc: set D=60ns
+4,10569,176162460192,-;PC: 1110 np 2823 wp 0 yp 0 sleeps/s
+4,10570,176167460186,-;PC: 1110 np 2823 wp 0 yp 0 sleeps/s
+4,10571,176172460178,-;PC: 1117 np 2823 wp 0 yp 0 sleeps/s
+4,10572,176177460170,-;PC: 1110 np 2823 wp 0 yp 0 sleeps/s
+4,10573,176182460164,-;PC: 1113 np 2823 wp 0 yp 0 sleeps/s
+4,10574,176187460156,-;PC: 1113 np 2823 wp 0 yp 0 sleeps/s
+4,10575,176192460149,-;PC: 1113 np 2823 wp 0 yp 0 sleeps/s
+4,10576,176197460143,-;PC: 1112 np 2823 wp 0 yp 0 sleeps/s
+4,10577,176202460137,-;PC: 1111 np 2823 wp 0 yp 0 sleeps/s
+4,10578,176207460128,-;PC: 1111 np 2823 wp 0 yp 0 sleeps/s
+4,10579,176212460122,-;PC: 1110 np 2823 wp 0 yp 0 sleeps/s
+4,10580,176217174503,-;virtpc: producer stops
+4,10581,176217267297,-;virtpc: set Wp=2835ns
+4,10582,176217267299,-;virtpc: set Wc=2000ns
+4,10583,176217267299,-;virtpc: set Yp=5000ns
+4,10584,176217267300,-;virtpc: set Yc=5000ns
+4,10585,176217267301,-;virtpc: set D=60ns
+4,10586,176222267291,-;PC: 1112 np 2834 wp 0 yp 0 sleeps/s
+4,10587,176227267283,-;PC: 1111 np 2834 wp 0 yp 0 sleeps/s
+4,10588,176232267277,-;PC: 1112 np 2834 wp 0 yp 0 sleeps/s
+4,10589,176237267270,-;PC: 1111 np 2834 wp 0 yp 0 sleeps/s
+4,10590,176242267262,-;PC: 1114 np 2834 wp 0 yp 0 sleeps/s
+4,10591,176247267256,-;PC: 1115 np 2834 wp 0 yp 0 sleeps/s
+4,10592,176252267248,-;PC: 1116 np 2834 wp 0 yp 0 sleeps/s
+4,10593,176257267240,-;PC: 1114 np 2834 wp 0 yp 0 sleeps/s
+4,10594,176262267234,-;PC: 1118 np 2834 wp 0 yp 0 sleeps/s
+4,10595,176267267226,-;PC: 1114 np 2834 wp 0 yp 0 sleeps/s
+4,10596,176272267220,-;PC: 1115 np 2834 wp 0 yp 0 sleeps/s
+4,10597,176276981606,-;virtpc: producer stops
+4,10598,176277074579,-;virtpc: set Wp=2845ns
+4,10599,176277074581,-;virtpc: set Wc=2000ns
+4,10600,176277074582,-;virtpc: set Yp=5000ns
+4,10601,176277074583,-;virtpc: set Yc=5000ns
+4,10602,176277074583,-;virtpc: set D=60ns
+4,10603,176282074575,-;PC: 1114 np 2844 wp 0 yp 0 sleeps/s
+4,10604,176287074567,-;PC: 1111 np 2844 wp 0 yp 0 sleeps/s
+4,10605,176292074561,-;PC: 1113 np 2844 wp 0 yp 0 sleeps/s
+4,10606,176297074552,-;PC: 1114 np 2844 wp 0 yp 0 sleeps/s
+4,10607,176302074545,-;PC: 1112 np 2844 wp 0 yp 0 sleeps/s
+4,10608,176307074537,-;PC: 1113 np 2844 wp 0 yp 0 sleeps/s
+4,10609,176312074530,-;PC: 1112 np 2844 wp 0 yp 0 sleeps/s
+4,10610,176317074522,-;PC: 1113 np 2844 wp 0 yp 0 sleeps/s
+4,10611,176322074516,-;PC: 1112 np 2844 wp 0 yp 0 sleeps/s
+4,10612,176327074509,-;PC: 1114 np 2844 wp 0 yp 0 sleeps/s
+4,10613,176332074502,-;PC: 1113 np 2844 wp 0 yp 0 sleeps/s
+4,10614,176336788886,-;virtpc: producer stops
+4,10615,176336881698,-;virtpc: set Wp=2856ns
+4,10616,176336881700,-;virtpc: set Wc=2000ns
+4,10617,176336881700,-;virtpc: set Yp=5000ns
+4,10618,176336881701,-;virtpc: set Yc=5000ns
+4,10619,176336881702,-;virtpc: set D=60ns
+4,10620,176341881694,-;PC: 1112 np 2855 wp 0 yp 0 sleeps/s
+4,10621,176346881685,-;PC: 1112 np 2855 wp 0 yp 0 sleeps/s
+4,10622,176351881677,-;PC: 1116 np 2855 wp 0 yp 0 sleeps/s
+4,10623,176356881669,-;PC: 1114 np 2855 wp 0 yp 0 sleeps/s
+4,10624,176361881661,-;PC: 1112 np 2855 wp 0 yp 0 sleeps/s
+4,10625,176366881654,-;PC: 1113 np 2855 wp 0 yp 0 sleeps/s
+4,10626,176371881646,-;PC: 1112 np 2855 wp 0 yp 0 sleeps/s
+4,10627,176376881638,-;PC: 1112 np 2855 wp 0 yp 0 sleeps/s
+4,10628,176381881633,-;PC: 1113 np 2855 wp 0 yp 0 sleeps/s
+4,10629,176386881625,-;PC: 1113 np 2855 wp 0 yp 0 sleeps/s
+4,10630,176391881618,-;PC: 1114 np 2855 wp 0 yp 0 sleeps/s
+4,10631,176396598737,-;virtpc: producer stops
+4,10632,176396697182,-;virtpc: set Wp=2867ns
+4,10633,176396697185,-;virtpc: set Wc=2000ns
+4,10634,176396697185,-;virtpc: set Yp=5000ns
+4,10635,176396697186,-;virtpc: set Yc=5000ns
+4,10636,176396697187,-;virtpc: set D=60ns
+4,10637,176401697180,-;PC: 1114 np 2866 wp 0 yp 0 sleeps/s
+4,10638,176406697173,-;PC: 1114 np 2866 wp 0 yp 0 sleeps/s
+4,10639,176411697165,-;PC: 1112 np 2866 wp 0 yp 0 sleeps/s
+4,10640,176416697160,-;PC: 1112 np 2866 wp 0 yp 0 sleeps/s
+4,10641,176421697153,-;PC: 1111 np 2866 wp 0 yp 0 sleeps/s
+4,10642,176426697145,-;PC: 1113 np 2866 wp 0 yp 0 sleeps/s
+4,10643,176431697138,-;PC: 1114 np 2866 wp 0 yp 0 sleeps/s
+4,10644,176436697132,-;PC: 1112 np 2866 wp 0 yp 0 sleeps/s
+4,10645,176441697124,-;PC: 1112 np 2866 wp 0 yp 0 sleeps/s
+4,10646,176446697118,-;PC: 1114 np 2866 wp 0 yp 0 sleeps/s
+4,10647,176451697113,-;PC: 1113 np 2866 wp 0 yp 0 sleeps/s
+4,10648,176456411491,-;virtpc: producer stops
+4,10649,176456504331,-;virtpc: set Wp=2878ns
+4,10650,176456504333,-;virtpc: set Wc=2000ns
+4,10651,176456504334,-;virtpc: set Yp=5000ns
+4,10652,176456504335,-;virtpc: set Yc=5000ns
+4,10653,176456504335,-;virtpc: set D=60ns
+4,10654,176461504329,-;PC: 1112 np 2877 wp 0 yp 0 sleeps/s
+4,10655,176466504325,-;PC: 1112 np 2877 wp 0 yp 0 sleeps/s
+4,10656,176471504320,-;PC: 1113 np 2877 wp 0 yp 0 sleeps/s
+4,10657,176476504315,-;PC: 1111 np 2877 wp 0 yp 0 sleeps/s
+4,10658,176481504309,-;PC: 1114 np 2877 wp 0 yp 0 sleeps/s
+4,10659,176486504303,-;PC: 1113 np 2877 wp 0 yp 0 sleeps/s
+4,10660,176491504299,-;PC: 1112 np 2877 wp 0 yp 0 sleeps/s
+4,10661,176496504292,-;PC: 1112 np 2877 wp 0 yp 0 sleeps/s
+4,10662,176501504287,-;PC: 1113 np 2877 wp 0 yp 0 sleeps/s
+4,10663,176506504282,-;PC: 1112 np 2877 wp 0 yp 0 sleeps/s
+4,10664,176511504274,-;PC: 1113 np 2877 wp 0 yp 0 sleeps/s
+4,10665,176516218639,-;virtpc: producer stops
+4,10666,176516311605,-;virtpc: set Wp=2889ns
+4,10667,176516311607,-;virtpc: set Wc=2000ns
+4,10668,176516311608,-;virtpc: set Yp=5000ns
+4,10669,176516311608,-;virtpc: set Yc=5000ns
+4,10670,176516311609,-;virtpc: set D=60ns
+4,10671,176521311599,-;PC: 1110 np 2888 wp 0 yp 0 sleeps/s
+4,10672,176526311593,-;PC: 1112 np 2888 wp 0 yp 0 sleeps/s
+4,10673,176531311588,-;PC: 1121 np 2888 wp 0 yp 0 sleeps/s
+4,10674,176536311580,-;PC: 1111 np 2888 wp 0 yp 0 sleeps/s
+4,10675,176541311573,-;PC: 1112 np 2888 wp 0 yp 0 sleeps/s
+4,10676,176546311567,-;PC: 1112 np 2888 wp 0 yp 0 sleeps/s
+4,10677,176551311559,-;PC: 1114 np 2888 wp 0 yp 0 sleeps/s
+4,10678,176556311553,-;PC: 1112 np 2888 wp 0 yp 0 sleeps/s
+4,10679,176561311544,-;PC: 1112 np 2888 wp 0 yp 0 sleeps/s
+4,10680,176566311538,-;PC: 1111 np 2888 wp 0 yp 0 sleeps/s
+4,10681,176571311530,-;PC: 1112 np 2888 wp 0 yp 0 sleeps/s
+4,10682,176576025913,-;virtpc: producer stops
+4,10683,176576120036,-;virtpc: set Wp=2900ns
+4,10684,176576120038,-;virtpc: set Wc=2000ns
+4,10685,176576120039,-;virtpc: set Yp=5000ns
+4,10686,176576120039,-;virtpc: set Yc=5000ns
+4,10687,176576120040,-;virtpc: set D=60ns
+4,10688,176581120035,-;PC: 1112 np 2899 wp 0 yp 0 sleeps/s
+4,10689,176586120028,-;PC: 1114 np 2899 wp 0 yp 0 sleeps/s
+4,10690,176591120022,-;PC: 1113 np 2899 wp 0 yp 0 sleeps/s
+4,10691,176596120018,-;PC: 1112 np 2899 wp 0 yp 0 sleeps/s
+4,10692,176601120012,-;PC: 1112 np 2899 wp 0 yp 0 sleeps/s
+4,10693,176606120008,-;PC: 1113 np 2899 wp 0 yp 0 sleeps/s
+4,10694,176611120003,-;PC: 1112 np 2899 wp 0 yp 0 sleeps/s
+4,10695,176616119997,-;PC: 1113 np 2899 wp 0 yp 0 sleeps/s
+4,10696,176621119991,-;PC: 1113 np 2899 wp 0 yp 0 sleeps/s
+4,10697,176626119983,-;PC: 1113 np 2899 wp 0 yp 0 sleeps/s
+4,10698,176631119977,-;PC: 1114 np 2899 wp 0 yp 0 sleeps/s
+4,10699,176635834344,-;virtpc: producer stops
+4,10700,176635927378,-;virtpc: set Wp=2911ns
+4,10701,176635927380,-;virtpc: set Wc=2000ns
+4,10702,176635927381,-;virtpc: set Yp=5000ns
+4,10703,176635927382,-;virtpc: set Yc=5000ns
+4,10704,176635927382,-;virtpc: set D=60ns
+4,10705,176640927376,-;PC: 1110 np 2910 wp 0 yp 0 sleeps/s
+4,10706,176645927369,-;PC: 1112 np 2910 wp 0 yp 0 sleeps/s
+4,10707,176650927363,-;PC: 1112 np 2910 wp 0 yp 0 sleeps/s
+4,10708,176655927355,-;PC: 1114 np 2910 wp 0 yp 0 sleeps/s
+4,10709,176660927351,-;PC: 1112 np 2910 wp 0 yp 0 sleeps/s
+4,10710,176665927346,-;PC: 1112 np 2910 wp 0 yp 0 sleeps/s
+4,10711,176670927340,-;PC: 1115 np 2910 wp 0 yp 0 sleeps/s
+4,10712,176675927334,-;PC: 1113 np 2910 wp 0 yp 0 sleeps/s
+4,10713,176680927328,-;PC: 1112 np 2910 wp 0 yp 0 sleeps/s
+4,10714,176685927320,-;PC: 1111 np 2910 wp 0 yp 0 sleeps/s
+4,10715,176690927316,-;PC: 1112 np 2910 wp 0 yp 0 sleeps/s
+4,10716,176695641684,-;virtpc: producer stops
