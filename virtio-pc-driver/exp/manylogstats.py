@@ -74,7 +74,7 @@ def load_producer_stats(args, x):
 
             continue
 
-        m = re.search(r'(\d+) np (\d+) wp(?: (\d+) yp (\d+) sleeps/s)', line)
+        m = re.search(r'(\d+) np (\d+) wp(?: (\d+) yp (\d+) sleeps/s)?', line)
         if m == None:
             continue
 
@@ -87,7 +87,7 @@ def load_producer_stats(args, x):
         if m.group(3):
             x['yp'][v].append(int(m.group(3)))
             x['psleeps'][v].append(int(m.group(4)))
-        else:
+        else: # should be temporary
             x['yp'][v].append(0)
             x['psleeps'][v].append(0)
     fin.close()
@@ -166,7 +166,7 @@ while 1:
 
         continue
 
-    m = re.search(r'(\d+) items/s (\d+) kicks/s (\d+) sleeps/s (\d+) intrs/s (\d+) sc (\d+) spkicks/s (\d+) wc (\d+) nc (\d+) latency (\d+) yc', line)
+    m = re.search(r'(\d+) items/s (\d+) kicks/s (\d+) sleeps/s (\d+) intrs/s (\d+) sc (\d+) spkicks/s (\d+) wc(?: (\d+) nc (\d+) latency (\d+) yc)?', line)
     if m == None:
         continue
 
@@ -181,9 +181,14 @@ while 1:
     x['sc'][v].append(int(m.group(5)))
     x['spkicks'][v].append(int(m.group(6)))
     x['wc'][v].append(int(m.group(7)))
-    x['nc'][v].append(int(m.group(8)))
-    x['latency'][v].append(int(m.group(9)))
-    x['yc'][v].append(int(m.group(10)))
+    if m.group(8):
+        x['nc'][v].append(int(m.group(8)))
+        x['latency'][v].append(int(m.group(9)))
+        x['yc'][v].append(int(m.group(10)))
+    else: # should be temporary
+        x['nc'][v].append(0)
+        x['latency'][v].append(0)
+        x['yc'][v].append(0)
 
 fin.close()
 
