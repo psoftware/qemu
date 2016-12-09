@@ -7,18 +7,19 @@ import numpy
 import math
 
 
-def b_model_notif(Wp, Wc, Sp, Sc):
+def b_model_notif(Wp, Wc, Sp, Sc, L):
     if Wp == Wc:
         return 0
     if Wp < Wc:
-        return math.floor(Sp/(Wc-Wp)) + 1
+        kC = L * 3/4
+        return math.floor((Sp + (kC-1) * Wp)/(Wc-Wp)) + kC
     return math.floor(Sc/(Wp-Wc)) + 1
 
 
-def T_model_notif(Wp, Wc, Sp, Sc, Np, Nc):
+def T_model_notif(Wp, Wc, Sp, Sc, Np, Nc, L):
     if Wp == Wc:
         return Wp
-    b = b_model_notif(Wp, Wc, Sp, Sc)
+    b = b_model_notif(Wp, Wc, Sp, Sc, L)
     if Wp < Wc:
         return Wc + Nc/b
     return Wp + Np/b
@@ -233,9 +234,9 @@ for v in sorted(x['items']):
 
     if args.varname in ['Wp', 'Wc']:
         # notification tests
-        t_model = T_model_notif(wx, woth, args.sp, sc, np, args.nc)
+        t_model = T_model_notif(wx, woth, args.sp, sc, np, args.nc, args.queue_length)
         t_batch = T_batch_notif(wx, woth, np, args.nc, b_meas_spurious)
-        b_model = b_model_notif(wx, woth, args.sp, sc)
+        b_model = b_model_notif(wx, woth, args.sp, sc, args.queue_length)
     else:
         # sleeping tests
         t_model = t_batch = T_model_sleep(yc, yc, wx, woth, args.queue_length)
