@@ -117,7 +117,7 @@ argparser.add_argument('--nc',
                        default = 800)
 argparser.add_argument('-l', '--queue-length',
                        help = "Queue length, used just for sleep tests", type=int,
-                       default = 256)
+                       default = 512)
 argparser.add_argument('-G', '--guest-log',
                        help = "guest log file to extract np and wp", type=str)
 argparser.add_argument('--varname', type=str, default='Wp',
