@@ -1,3 +1,4 @@
+# Taken with idle=halt and halt_poll_ns=400us
 4,3698,24279220695,-;virtpc: set Wp=1999ns
 4,3699,24284220834,-;PC: 497764 items/s 456 kicks/s 0 sleeps/s 773 intrs/s 778 latency 4 spkicks/s 2000 wc
 4,3700,24289220973,-;PC: 497395 items/s 600 kicks/s 0 sleeps/s 7 intrs/s 774 latency 8 spkicks/s 1999 wc

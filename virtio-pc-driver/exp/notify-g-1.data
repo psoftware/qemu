@@ -1,3 +1,4 @@
+# Taken with idle=halt and halt_poll_ns=400us
 4,490,369049637,-;virtpc: set Wp=2000ns
 4,491,369049639,-;virtpc: set Wc=2000ns
 4,492,369049640,-;virtpc: set Yp=5000ns
