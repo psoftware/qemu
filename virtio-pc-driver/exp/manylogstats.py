@@ -130,7 +130,7 @@ x = dict()
 x['items'] = dict()
 x['kicks'] = dict()
 x['spkicks'] = dict()
-x['sleeps'] = dict()
+x['csleeps'] = dict()
 x['intrs'] = dict()
 x['sc'] = dict()
 x['wc'] = dict()
@@ -155,7 +155,7 @@ while 1:
         x['items'][v] = []
         x['kicks'][v] = []
         x['spkicks'][v] = []
-        x['sleeps'][v] = []
+        x['csleeps'][v] = []
         x['intrs'][v] = []
         x['sc'][v] = []
         x['wc'][v] = []
@@ -176,7 +176,7 @@ while 1:
 
     x['items'][v].append(int(m.group(1)))
     x['kicks'][v].append(int(m.group(2)))
-    x['sleeps'][v].append(int(m.group(3)))
+    x['csleeps'][v].append(int(m.group(3)))
     x['intrs'][v].append(int(m.group(4)))
     x['sc'][v].append(int(m.group(5)))
     x['spkicks'][v].append(int(m.group(6)))
@@ -229,8 +229,10 @@ for v in sorted(x['items']):
         denom = max(numpy.mean(x['kicks'][v]), numpy.mean(x['intrs'][v]))
         denom_s = max(numpy.mean(x['kicks'][v]) + numpy.mean(x['spkicks'][v]), numpy.mean(x['intrs'][v]))
     else:
-        # sleeping tests
-        denom = denom_s = numpy.mean(x['sleeps'][v])
+        # sleeping tests; we compute batch taking into account the sum of
+        # consumer and producer sleep count. In sFC and sFP, only one
+        # sleep count is non-null, but this is not true for LS regimes
+        denom = denom_s = numpy.mean(x['csleeps'][v]) + numpy.mean(x['psleeps'][v])
 
     b_meas = numpy.mean(x['items'][v])/denom # not taking into account spurious kicks
     b_meas_spurious = numpy.mean(x['items'][v])/denom_s # taking into account spurious kicks
@@ -257,7 +259,7 @@ for v in sorted(x['items']):
                                     numpy.mean(x['items'][v]),
                                     numpy.mean(x['kicks'][v]),
                                     numpy.mean(x['spkicks'][v]),
-                                    numpy.mean(x['sleeps'][v]),
+                                    numpy.mean(x['csleeps'][v]),
                                     numpy.mean(x['intrs'][v]),
                                     numpy.mean(x['sc'][v]),
                                     np,
