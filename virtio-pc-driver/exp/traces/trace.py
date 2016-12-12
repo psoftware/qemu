@@ -139,17 +139,32 @@ pkt_first = min(g['id'][0], h['id'][0])
 
 print("First ts: %d, first pkt: %d" % (t_first, pkt_first))
 
-# Build producer events
+# Apply offsets to producer trace
 g_i = 1
 g['ts'][0] -= t_first
 g['id'][0] -= pkt_first
 while g_i < g_max:
     g['ts'][g_i] = (g['ts'][g_i] - t_first) * 10 / 35
+    g['id'][g_i] -= pkt_first
+    g_i += 1
 
+
+# Apply offsets to consumer trace
+h_i = 1
+h['ts'][0] -= t_first
+h['id'][0] -= pkt_first
+while h_i < h_max:
+    h['ts'][h_i] = (h['ts'][h_i] - t_first) * 10 / 35
+    h['id'][h_i] -= pkt_first
+    h_i += 1
+
+
+# Build producer events
+g_i = 1
+while g_i < g_max:
     ts_start = g['ts'][g_i-1]
     t_len = g['ts'][g_i] - g['ts'][g_i-1]
 
-    g['id'][g_i] -= pkt_first
     if ts_start > 0 and t_len > 0:
         if g['type'][g_i] == 1: # PKPUB
             p_events.append((ts_start, g['id'][g_i], t_len))
@@ -160,20 +175,15 @@ while g_i < g_max:
 
     g_i += 1
 
-deltas = []
 
 # Build consumer events
+deltas = []
 h_i = 1
-h['ts'][0] -= t_first
-h['id'][0] -= pkt_first
 g_i = 0
 while h_i < h_max:
-    h['ts'][h_i] = (h['ts'][h_i] - t_first) * 10 / 35
-
     ts_start = h['ts'][h_i-1]
     t_len = h['ts'][h_i] - h['ts'][h_i-1]
 
-    h['id'][h_i] -= pkt_first
     if ts_start > 0 and t_len > 0:
         if h['type'][h_i] == 5: # CSTOPS
             if h['type'][h_i-1] == 2:
@@ -203,6 +213,7 @@ while h_i < h_max:
                                        c_events[-1][2]))
 
     h_i += 1
+
 
 #for d in deltas:
 #    print("%6.0f %6.0f" % d)
