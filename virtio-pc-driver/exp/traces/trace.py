@@ -132,6 +132,8 @@ nps = []
 wps = []
 scs = []
 wcs = []
+ncs = []
+sps = []
 
 # Compute normalization offsets
 t_first = max(g['ts'][0], h['ts'][0])
@@ -160,16 +162,41 @@ while h_i < h_max:
 
 
 # Build producer events
+p_deltas = []
 g_i = 1
+h_i = 0
 while g_i < g_max:
     ts_start = g['ts'][g_i-1]
     t_len = g['ts'][g_i] - g['ts'][g_i-1]
 
     if ts_start > 0 and t_len > 0:
-        if g['type'][g_i] == 1: # PKPUB
+        if g['type'][g_i] == 6: # PSTOPS
+            if g['type'][g_i-1] == 1:
+                p_events.append((ts_start, g['id'][g_i-1], t_len))
+                wps.append(t_len)
+            else: # double PSTOPS --> dry run
+                p_events.append((ts_start, 'd', t_len))
+
+        elif g['type'][g_i] == 1: # PKPUB
             p_events.append((ts_start, g['id'][g_i], t_len))
             wps.append(t_len)
-        elif g['type'][g_i] == 3: # NOTIFY DONE
+            if g['type'][g_i-1] == 4: # match with a C_NOTIFY_DONE event
+                ts_start = -1
+                n_start = -1
+                while h_i < h_max and h['ts'][h_i] < g['ts'][g_i]:
+                    if h_i > 0 and h['type'][h_i] == 4:
+                        n_start = h['ts'][h_i-1]
+                        ts_start = h['ts'][h_i]
+                    h_i += 1
+                t_len = g['ts'][g_i] - ts_start
+                if ts_start >= 0 and t_len > 0:
+                    p_events.append((ts_start, 's', t_len))
+                    sps.append(t_len)
+                    if len(p_events) >= 2:
+                        p_deltas.append((n_start - (p_events[-2][0] + p_events[-2][2]),
+                                       p_events[-1][2]))
+
+        elif g['type'][g_i] == 3: # P_NOTIFY_DONE
             p_events.append((ts_start, 'n', t_len))
             nps.append(t_len)
 
@@ -177,7 +204,7 @@ while g_i < g_max:
 
 
 # Build consumer events
-deltas = []
+c_deltas = []
 h_i = 1
 g_i = 0
 while h_i < h_max:
@@ -196,7 +223,7 @@ while h_i < h_max:
             if h['type'][h_i-1] == 2:
                 c_events.append((ts_start, h['id'][h_i-1], t_len))
                 wcs.append(t_len)
-            else: # match with a NOTIFY DONE event
+            else: # match with a P_NOTIFY_DONE event
                 ts_start = -1
                 n_start = -1
                 while g_i < g_max and g['ts'][g_i] < h['ts'][h_i]:
@@ -209,13 +236,17 @@ while h_i < h_max:
                     c_events.append((ts_start, 's', t_len))
                     scs.append(t_len)
                     if len(c_events) >= 2:
-                        deltas.append((n_start - (c_events[-2][0] + c_events[-2][2]),
+                        c_deltas.append((n_start - (c_events[-2][0] + c_events[-2][2]),
                                        c_events[-1][2]))
+
+        elif h['type'][h_i] == 4: # C_NOTIFY_DONE
+            c_events.append((ts_start, 'n', t_len))
+            ncs.append(t_len)
 
     h_i += 1
 
 
-#for d in deltas:
+#for d in c_deltas:
 #    print("%6.0f %6.0f" % d)
 #quit()
 
