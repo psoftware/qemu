@@ -192,7 +192,7 @@ while 1:
 
 fin.close()
 
-print("%7s %7s %7s %9s %9s %9s %7s %7s %9s %9s %9s %9s %9s %7s %7s %9s %8s" % (args.varname + 'n', 'Wp', 'Wc', 'Tavg', 'Tmodel', 'Tbatch', 'batch', 'Bmodel', 'items', 'kicks', 'spkicks', 'csleeps', 'intrs', 'Sc', 'Np', 'latency', 'Yc'))
+print("%7s %7s %7s %7s %7s %7s %7s %7s %9s %9s %9s %9s %9s %6s %7s %9s %8s" % (args.varname + 'n', 'Wp', 'Wc', 'Tavg', 'Tmodel', 'Tbatch', 'batch', 'Bmodel', 'items', 'kicks', 'spkicks', 'csleeps', 'intrs', 'Sc', 'Np', 'latency', 'Yc'))
 
 for v in sorted(x['items']):
     if len(x['items'][v]) == 0:
@@ -249,7 +249,7 @@ for v in sorted(x['items']):
         t_model = t_batch = T_model_sleep(yc, yc, wx, woth, args.queue_length)
         b_model = b_model_sleep(yc, yc, wx, woth, args.queue_length)
 
-    print("%7.0f %7.0f %7.0f %9.0f %9.0f %9.0f %7.1f %7.1f %9.0f %9.0f %9.0f %9.0f %9.0f %7.0f %7.0f %9.0f %8.0f" % (v, wx,
+    print("%7.0f %7.0f %7.0f %7.0f %7.0f %7.0f %7.1f %7.1f %9.0f %9.0f %9.0f %9.0f %9.0f %6.0f %7.0f %9.0f %8.0f" % (v, wx,
                                     numpy.mean(x['wc'][v]),
                                     1000000000/numpy.mean(x['items'][v]),
                                     t_model,
