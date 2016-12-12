@@ -105,16 +105,16 @@ argparser.add_argument('-H', '--host-log',
                        required = True)
 argparser.add_argument('--sc',
                        help = "sc", type=int,
-                       default = -1)
+                       default = 422)
 argparser.add_argument('--np',
                        help = "np", type=int,
-                       default = 1080)
+                       default = 1100)
 argparser.add_argument('--sp',
                        help = "sc", type=int,
-                       default = 7600)
+                       default = 29000)
 argparser.add_argument('--nc',
-                       help = "np", type=int,
-                       default = 800)
+                       help = "nc", type=int,
+                       default = 583)
 argparser.add_argument('-l', '--queue-length',
                        help = "Queue length, used just for sleep tests", type=int,
                        default = 512)
@@ -201,8 +201,12 @@ for v in sorted(x['items']):
 
     woth = numpy.mean(x['wc'][v])
 
+    nc = args.nc
+    if v in x['nc'] and numpy.mean(x['nc'][v]) > 0:
+        nc = numpy.mean(x['nc'][v])
+
     sc = args.sc
-    if args.sc < 0:
+    if v in x['sc'] and  numpy.mean(x['sc'][v]) > 0:
         sc = numpy.mean(x['sc'][v])
 
     wx = v
@@ -241,8 +245,8 @@ for v in sorted(x['items']):
 
     if args.varname in ['Wp', 'Wc']:
         # notification tests
-        t_model = T_model_notif(wx, woth, args.sp, sc, np, args.nc, args.queue_length)
-        t_batch = T_batch_notif(wx, woth, np, args.nc, b_meas_spurious)
+        t_model = T_model_notif(wx, woth, args.sp, sc, np, nc, args.queue_length)
+        t_batch = T_batch_notif(wx, woth, np, nc, b_meas_spurious)
         b_model = b_model_notif(wx, woth, args.sp, sc, args.queue_length)
     else:
         # sleeping tests
