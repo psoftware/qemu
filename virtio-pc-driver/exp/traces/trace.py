@@ -7,6 +7,17 @@ import numpy
 import math
 from matplotlib import pyplot as plt
 
+def mymean(x):
+    if len(x) == 0:
+        return 0
+    return numpy.mean(x)
+
+
+def mystd(x):
+    if len(x) == 0:
+        return 0
+    return numpy.std(x)
+
 
 def dump(prod_events, cons_events):
     from matplotlib import pyplot as plt
@@ -180,21 +191,22 @@ while g_i < g_max:
         elif g['type'][g_i] == 1: # PKPUB
             p_events.append((ts_start, g['id'][g_i], t_len))
             wps.append(t_len)
-            if g['type'][g_i-1] != 1: # match with a C_NOTIFY_DONE event
-                ts_start = -1
-                n_start = -1
-                while h_i < h_max and h['ts'][h_i] < g['ts'][g_i]:
-                    if h_i > 0 and h['type'][h_i] == 4:
-                        n_start = h['ts'][h_i-1]
-                        ts_start = h['ts'][h_i]
-                    h_i += 1
-                t_len = g['ts'][g_i] - ts_start
-                if ts_start >= 0 and t_len > 0:
-                    p_events.append((ts_start, 's', t_len))
-                    sps.append(t_len)
-                    if len(p_events) >= 2:
-                        p_deltas.append((n_start - (p_events[-2][0] + p_events[-2][2]),
-                                       p_events[-1][2]))
+
+        elif g['type'][g_i] == 7:  # match with a C_NOTIFY_DONE event
+            ts_start = -1
+            n_start = -1
+            while h_i < h_max and h['ts'][h_i] < g['ts'][g_i]:
+                if h_i > 0 and h['type'][h_i] == 4:
+                    n_start = h['ts'][h_i-1]
+                    ts_start = h['ts'][h_i]
+                h_i += 1
+            t_len = g['ts'][g_i] - ts_start
+            if ts_start >= 0 and t_len > 0:
+                p_events.append((ts_start, 's', t_len))
+                sps.append(t_len)
+                if len(p_events) >= 2:
+                    p_deltas.append((n_start - (p_events[-2][0] + p_events[-2][2]),
+                                   p_events[-1][2]))
 
         elif g['type'][g_i] == 3: # P_NOTIFY_DONE
             p_events.append((ts_start, 'n', t_len))
@@ -270,9 +282,20 @@ if args.skip > 0 and args.skip < 95:
     p_events = p_events_new
 
 
-print("averages: Wc %5.1f+/-%5.2f Sc %5.1f+/-%5.2f Wp %5.1f+/-%5.2f Np %5.1f+/-%5.2f" % (
-                numpy.mean(wcs), numpy.std(wcs), numpy.mean(scs), numpy.std(scs),
-                numpy.mean(wps), numpy.std(wps), numpy.mean(nps), numpy.std(nps)))
+print("averages:\n"\
+        "Wp %5.1f+/-%5.2f\n"\
+        "Wc %5.1f+/-%5.2f\n"\
+        "Np %5.1f+/-%5.2f\n"\
+        "Sc %5.1f+/-%5.2f\n"\
+        "Nc %5.1f+/-%5.2f\n"\
+        "Sp %5.1f+/-%5.2f\n"\
+             % (mymean(wps), mystd(wps),
+                mymean(wcs), mystd(wcs),
+                mymean(nps), mystd(nps),
+                mymean(scs), mystd(scs),
+                mymean(ncs), mystd(ncs),
+                mymean(sps), mystd(sps),
+                ))
 
 # compute consumer batches
 if False:
