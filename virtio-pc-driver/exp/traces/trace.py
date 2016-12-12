@@ -180,7 +180,7 @@ while g_i < g_max:
         elif g['type'][g_i] == 1: # PKPUB
             p_events.append((ts_start, g['id'][g_i], t_len))
             wps.append(t_len)
-            if g['type'][g_i-1] == 4: # match with a C_NOTIFY_DONE event
+            if g['type'][g_i-1] != 1: # match with a C_NOTIFY_DONE event
                 ts_start = -1
                 n_start = -1
                 while h_i < h_max and h['ts'][h_i] < g['ts'][g_i]:

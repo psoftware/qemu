@@ -292,8 +292,6 @@ produce(struct virtpc_info *vi)
                     vi->yp_cnt ++;
                 } while (vq->num_free < THR);
 
-                next = tsb + vi->wp;
-
             } else {
                 set_current_state(TASK_INTERRUPTIBLE);
                 if (!virtqueue_enable_cb_delayed(vq)) {
@@ -314,9 +312,14 @@ produce(struct virtpc_info *vi)
                     }
 
                     tsb = rdtsc();
-                    next = tsb + vi->wp;
                 }
             }
+
+            next = tsb + vi->wp;
+            events[event_idx].ts = tsb;
+            events[event_idx].id = pkt_idx;
+            events[event_idx].type = VIRTIOPC_P_STARTS;
+            VIRTIOPC_EVNEXT(event_idx);
         }
 
         pkt_idx ++;
