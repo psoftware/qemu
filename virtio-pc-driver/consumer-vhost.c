@@ -288,6 +288,10 @@ retry:
              * reset next to correctly emulate the consumption of the
              * next item. */
             next = tsa + pc->wc;
+            events[event_idx].ts = tsc;
+            events[event_idx].id = pkt_idx;
+            events[event_idx].type = VIRTIOPC_C_NOTIFY_START;
+            VIRTIOPC_EVNEXT(event_idx);
             events[event_idx].ts = tsa;
             events[event_idx].id = pkt_idx;
             events[event_idx].type = VIRTIOPC_C_NOTIFY_DONE;

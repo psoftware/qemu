@@ -235,7 +235,7 @@ while h_i < h_max:
             if h['type'][h_i-1] == 2:
                 c_events.append((ts_start, h['id'][h_i-1], t_len))
                 wcs.append(t_len)
-            else: # match with a P_NOTIFY_DONE event
+            elif h['type'][h_i-1] == 5: # match with a P_NOTIFY_DONE event
                 ts_start = -1
                 n_start = -1
                 while g_i < g_max and g['ts'][g_i] < h['ts'][h_i]:
@@ -254,6 +254,10 @@ while h_i < h_max:
         elif h['type'][h_i] == 4: # C_NOTIFY_DONE
             c_events.append((ts_start, 'n', t_len))
             ncs.append(t_len)
+
+        elif h['type'][h_i] == 8: # C_NOTIFY_START
+            c_events.append((ts_start, h['id'][h_i-1], t_len))
+            wcs.append(t_len)
 
     h_i += 1
 
