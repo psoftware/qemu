@@ -228,8 +228,9 @@ if args.skip > 0 and args.skip < 95:
     p_events = p_events_new
 
 
-print("averages: Wc %5.1f Sc %5.1f Wp %5.1f Np %5.1f" % (numpy.mean(wcs),
-                numpy.mean(scs), numpy.mean(wps), numpy.mean(nps)))
+print("averages: Wc %5.1f+/-%5.2f Sc %5.1f+/-%5.2f Wp %5.1f+/-%5.2f Np %5.1f+/-%5.2f" % (
+                numpy.mean(wcs), numpy.std(wcs), numpy.mean(scs), numpy.std(scs),
+                numpy.mean(wps), numpy.std(wps), numpy.mean(nps), numpy.std(nps)))
 
 # compute consumer batches
 if False:
