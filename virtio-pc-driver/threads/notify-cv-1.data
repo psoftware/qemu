@@ -1,3 +1,4 @@
+# Taken with idle=halt
      Wp      Wc      Yp      Yc       L    items/s pnotifs/s cnotifs/s pstarts/s cstarts/s psleeps/s csleeps/s
   220.9  2000.0    5000    5000     512     499520         0      1154      1154         0         0         0
   226.0  2000.0    5000    5000     512     499484         0      1151      1151         0         0         0
