@@ -19,7 +19,7 @@
 
 static long tscofs = 0;
 module_param(tscofs, long, 0644);
-#define LATENCY_95TH
+//#define LATENCY_95TH
 
 #define VHOST_PC_FEATURES   VHOST_FEATURES
 
