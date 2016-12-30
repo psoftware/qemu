@@ -61,4 +61,6 @@ PTNetmapState *get_ptnetmap(NetClientState *nc);
 
 int ptnetmap_memdev_create(void *mem_ptr, struct netmap_pools_info *pi);
 
+#undef PTNET_DEBUG /* enable to add debug logs for ptnetmap netif and memdev */
+
 #endif /* PTNETMAP_H */

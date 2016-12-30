@@ -29,13 +29,12 @@
 #include "qemu/osdep.h"
 #include "hw/net/ptnetmap.h"
 
-#define PTNET_DEBUG
 #ifdef PTNET_DEBUG
 #define DBG(fmt, ...) do { \
         fprintf(stderr, "ptnet-mdev: " fmt "\n", ## __VA_ARGS__); \
     } while (0)
 #else
-#define DBG(what, fmt, ...) do {} while (0)
+#define DBG(fmt, ...) do {} while (0)
 #endif
 
 static uint64_t

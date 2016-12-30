@@ -33,13 +33,12 @@
 #include "net/netmap_virt.h"
 #include "include/hw/net/ptnetmap.h"
 
-#undef PTNET_DEBUG
 #ifdef PTNET_DEBUG
 #define DBG(fmt, ...) do { \
         fprintf(stderr, "ptnet-if: " fmt "\n", ## __VA_ARGS__); \
     } while (0)
 #else
-#define DBG(what, fmt, ...) do {} while (0)
+#define DBG(fmt, ...) do {} while (0)
 #endif
 
 static const char *regnames[] = {
