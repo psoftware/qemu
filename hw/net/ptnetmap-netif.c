@@ -33,7 +33,7 @@
 #include "net/netmap_virt.h"
 #include "include/hw/net/ptnetmap.h"
 
-#define PTNET_DEBUG
+#undef PTNET_DEBUG
 #ifdef PTNET_DEBUG
 #define DBG(fmt, ...) do { \
         fprintf(stderr, "ptnet-if: " fmt "\n", ## __VA_ARGS__); \
@@ -341,7 +341,6 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 {
     PtNetState *s = opaque;
     unsigned int index;
-    const char *regname = "";
 
     if (!s->ptbe) {
         printf("Invalid I/O write, backend does not support passthrough\n");
@@ -360,7 +359,6 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     }
 
     assert(index < REGNAMES_LEN);
-    regname = regnames[index];
 
     switch (addr) {
         case PTNET_IO_PTFEAT:
@@ -391,7 +389,7 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
             break;
     }
 
-    DBG("I/O write to %s, val=0x%08" PRIx64, regname, val);
+    DBG("I/O write to %s, val=0x%08" PRIx64, regnames[index], val);
 }
 
 static uint64_t
@@ -399,7 +397,6 @@ ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
 {
     PtNetState *s = opaque;
     unsigned int index;
-    const char *regname = "";
 
     addr = addr & PTNET_IO_MASK;
     index = addr >> 2;
@@ -412,7 +409,6 @@ ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
     }
 
     assert(index < REGNAMES_LEN);
-    regname = regnames[index];
 
     switch (addr) {
         case PTNET_IO_NIFP_OFS:
@@ -429,7 +425,7 @@ ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
             s->ioregs[index] = ptnetmap_get_hostmemid(s->ptbe);
     }
 
-    DBG("I/O read from %s, val=0x%08x", regname, s->ioregs[index]);
+    DBG("I/O read from %s, val=0x%08x", regnames[index], s->ioregs[index]);
 
     return s->ioregs[index];
 }
@@ -444,25 +440,10 @@ static const MemoryRegionOps ptnet_io_ops = {
     },
 };
 
-static void ptnet_pre_save(void *opaque)
-{
-    PtNetState *s = opaque;
-    DBG("%s(%p)", __func__, s);
-}
-
-static int ptnet_post_load(void *opaque, int version_id)
-{
-    PtNetState *s = opaque;
-    DBG("%s(%p)", __func__, s);
-    return 0;
-}
-
 static const VMStateDescription vmstate_ptnet = {
     .name = "ptnet",
     .version_id = 1,
     .minimum_version_id = 1,
-    .pre_save = ptnet_pre_save,
-    .post_load = ptnet_post_load,
     .fields = (VMStateField[]) {
         VMSTATE_PCI_DEVICE(pci_device, PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_PTFEAT >> 2], PtNetState),
@@ -493,13 +474,11 @@ static NetClientInfo net_ptnet_info = {
 static void ptnet_write_config(PCIDevice *pci_dev, uint32_t address,
                                 uint32_t val, int len)
 {
-    PtNetState *s = PTNET(pci_dev);
-
     pci_default_write_config(pci_dev, address, val, len);
 
     if (range_covers_byte(address, len, PCI_COMMAND) &&
         (pci_dev->config[PCI_COMMAND] & PCI_COMMAND_MASTER)) {
-        DBG("%s(%p)", __func__, s);
+        DBG("%s(%p)", __func__, PTNET(pci_dev));
     }
 }
 
