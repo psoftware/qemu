@@ -255,6 +255,7 @@ static const TCGTargetOpDef tcg_target_op_defs[] = {
     { INDEX_op_bswap32_i32, { R, R } },
 #endif
 
+    { INDEX_op_mb, { } },
     { -1 },
 };
 
@@ -800,6 +801,8 @@ static void tcg_out_op(TCGContext *s, TCGOpcode opc, const TCGArg *args,
         }
         tcg_out_i(s, *args++);
         break;
+    case INDEX_op_mb:
+        break;
     case INDEX_op_mov_i32:  /* Always emitted via tcg_out_mov.  */
     case INDEX_op_mov_i64:
     case INDEX_op_movi_i32: /* Always emitted via tcg_out_movi.  */
@@ -832,6 +835,12 @@ static void tcg_out_st(TCGContext *s, TCGType type, TCGReg arg, TCGReg arg1,
 #endif
     }
     old_code_ptr[1] = s->code_ptr - old_code_ptr;
+}
+
+static inline bool tcg_out_sti(TCGContext *s, TCGType type, TCGArg val,
+                               TCGReg base, intptr_t ofs)
+{
+    return false;
 }
 
 /* Test if a constant matches the constraint. */

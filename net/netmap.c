@@ -461,7 +461,7 @@ static void netmap_set_offload(NetClientState *nc, int csum, int tso4, int tso6,
 
 /* NetClientInfo methods */
 static NetClientInfo net_netmap_info = {
-    .type = NET_CLIENT_OPTIONS_KIND_NETMAP,
+    .type = NET_CLIENT_DRIVER_NETMAP,
     .size = sizeof(NetmapState),
     .receive = netmap_receive,
     .receive_iov = netmap_receive_iov,
@@ -488,7 +488,7 @@ get_ptnetmap(NetClientState *nc)
     struct nmreq req;
     int err;
 
-    if (nc->info->type != NET_CLIENT_OPTIONS_KIND_NETMAP
+    if (nc->info->type != NET_CLIENT_DRIVER_NETMAP
                             || !(s->nmd->req.nr_flags & NR_PTNETMAP_HOST)) {
         return NULL;
     }
@@ -613,10 +613,10 @@ ptnetmap_delete(PTNetmapState *ptn)
  *
  * ... -net netmap,ifname="..."
  */
-int net_init_netmap(const NetClientOptions *opts,
+int net_init_netmap(const Netdev *netdev,
                     const char *name, NetClientState *peer, Error **errp)
 {
-    const NetdevNetmapOptions *netmap_opts = opts->u.netmap.data;
+    const NetdevNetmapOptions *netmap_opts = &netdev->u.netmap;
     struct nm_desc *nmd;
     NetClientState *nc;
     Error *err = NULL;

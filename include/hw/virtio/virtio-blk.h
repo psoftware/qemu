@@ -11,8 +11,8 @@
  *
  */
 
-#ifndef _QEMU_VIRTIO_BLK_H
-#define _QEMU_VIRTIO_BLK_H
+#ifndef QEMU_VIRTIO_BLK_H
+#define QEMU_VIRTIO_BLK_H
 
 #include "standard-headers/linux/virtio_blk.h"
 #include "hw/virtio/virtio.h"
@@ -79,14 +79,6 @@ typedef struct MultiReqBuffer {
     unsigned int num_reqs;
     bool is_write;
 } MultiReqBuffer;
-
-void virtio_blk_init_request(VirtIOBlock *s, VirtQueue *vq,
-                             VirtIOBlockReq *req);
-void virtio_blk_free_request(VirtIOBlockReq *req);
-
-void virtio_blk_handle_request(VirtIOBlockReq *req, MultiReqBuffer *mrb);
-
-void virtio_blk_submit_multireq(BlockBackend *blk, MultiReqBuffer *mrb);
 
 void virtio_blk_handle_vq(VirtIOBlock *s, VirtQueue *vq);
 

@@ -686,6 +686,18 @@ static inline void tcg_out_pushi(TCGContext *s, tcg_target_long val)
     }
 }
 
+static inline void tcg_out_mb(TCGContext *s, TCGArg a0)
+{
+    /* Given the strength of x86 memory ordering, we only need care for
+       store-load ordering.  Experimentally, "lock orl $0,0(%esp)" is
+       faster than "mfence", so don't bother with the sse insn.  */
+    if (a0 & TCG_MO_ST_LD) {
+        tcg_out8(s, 0xf0);
+        tcg_out_modrm_offset(s, OPC_ARITH_EvIb, ARITH_OR, TCG_REG_ESP, 0);
+        tcg_out8(s, 0);
+    }
+}
+
 static inline void tcg_out_push(TCGContext *s, int reg)
 {
     tcg_out_opc(s, OPC_PUSH_r32 + LOWREGMASK(reg), 0, reg, 0);
@@ -710,12 +722,19 @@ static inline void tcg_out_st(TCGContext *s, TCGType type, TCGReg arg,
     tcg_out_modrm_offset(s, opc, arg, arg1, arg2);
 }
 
-static inline void tcg_out_sti(TCGContext *s, TCGType type, TCGReg base,
-                               tcg_target_long ofs, tcg_target_long val)
+static bool tcg_out_sti(TCGContext *s, TCGType type, TCGArg val,
+                        TCGReg base, intptr_t ofs)
 {
-    int opc = OPC_MOVL_EvIz + (type == TCG_TYPE_I64 ? P_REXW : 0);
-    tcg_out_modrm_offset(s, opc, 0, base, ofs);
+    int rexw = 0;
+    if (TCG_TARGET_REG_BITS == 64 && type == TCG_TYPE_I64) {
+        if (val != (int32_t)val) {
+            return false;
+        }
+        rexw = P_REXW;
+    }
+    tcg_out_modrm_offset(s, OPC_MOVL_EvIz | rexw, 0, base, ofs);
     tcg_out32(s, val);
+    return true;
 }
 
 static void tcg_out_shifti(TCGContext *s, int subopc, int reg, int count)
@@ -1195,8 +1214,11 @@ static inline void tcg_out_tlb_load(TCGContext *s, TCGReg addrlo, TCGReg addrhi,
     TCGType ttype = TCG_TYPE_I32;
     TCGType tlbtype = TCG_TYPE_I32;
     int trexw = 0, hrexw = 0, tlbrexw = 0;
-    int s_mask = (1 << (opc & MO_SIZE)) - 1;
-    bool aligned = (opc & MO_AMASK) == MO_ALIGN || s_mask == 0;
+    unsigned a_bits = get_alignment_bits(opc);
+    unsigned s_bits = opc & MO_SIZE;
+    unsigned a_mask = (1 << a_bits) - 1;
+    unsigned s_mask = (1 << s_bits) - 1;
+    target_ulong tlb_mask;
 
     if (TCG_TARGET_REG_BITS == 64) {
         if (TARGET_LONG_BITS == 64) {
@@ -1213,19 +1235,20 @@ static inline void tcg_out_tlb_load(TCGContext *s, TCGReg addrlo, TCGReg addrhi,
     }
 
     tcg_out_mov(s, tlbtype, r0, addrlo);
-    if (aligned) {
+    /* If the required alignment is at least as large as the access, simply
+       copy the address and mask.  For lesser alignments, check that we don't
+       cross pages for the complete access.  */
+    if (a_bits >= s_bits) {
         tcg_out_mov(s, ttype, r1, addrlo);
     } else {
-        /* For unaligned access check that we don't cross pages using
-           the page address of the last byte.  */
-        tcg_out_modrm_offset(s, OPC_LEA + trexw, r1, addrlo, s_mask);
+        tcg_out_modrm_offset(s, OPC_LEA + trexw, r1, addrlo, s_mask - a_mask);
     }
+    tlb_mask = (target_ulong)TARGET_PAGE_MASK | a_mask;
 
     tcg_out_shifti(s, SHIFT_SHR + tlbrexw, r0,
                    TARGET_PAGE_BITS - CPU_TLB_ENTRY_BITS);
 
-    tgen_arithi(s, ARITH_AND + trexw, r1,
-                TARGET_PAGE_MASK | (aligned ? s_mask : 0), 0);
+    tgen_arithi(s, ARITH_AND + trexw, r1, tlb_mask, 0);
     tgen_arithi(s, ARITH_AND + tlbrexw, r0,
                 (CPU_TLB_SIZE - 1) << CPU_TLB_ENTRY_BITS, 0);
 
@@ -1321,10 +1344,10 @@ static void tcg_out_qemu_ld_slow_path(TCGContext *s, TCGLabelQemuLdst *l)
             ofs += 4;
         }
 
-        tcg_out_sti(s, TCG_TYPE_I32, TCG_REG_ESP, ofs, oi);
+        tcg_out_sti(s, TCG_TYPE_I32, oi, TCG_REG_ESP, ofs);
         ofs += 4;
 
-        tcg_out_sti(s, TCG_TYPE_PTR, TCG_REG_ESP, ofs, (uintptr_t)l->raddr);
+        tcg_out_sti(s, TCG_TYPE_PTR, (uintptr_t)l->raddr, TCG_REG_ESP, ofs);
     } else {
         tcg_out_mov(s, TCG_TYPE_PTR, tcg_target_call_iarg_regs[0], TCG_AREG0);
         /* The second argument is already loaded with addrlo.  */
@@ -1413,7 +1436,7 @@ static void tcg_out_qemu_st_slow_path(TCGContext *s, TCGLabelQemuLdst *l)
             ofs += 4;
         }
 
-        tcg_out_sti(s, TCG_TYPE_I32, TCG_REG_ESP, ofs, oi);
+        tcg_out_sti(s, TCG_TYPE_I32, oi, TCG_REG_ESP, ofs);
         ofs += 4;
 
         retaddr = TCG_REG_EAX;
@@ -2120,6 +2143,9 @@ static inline void tcg_out_op(TCGContext *s, TCGOpcode opc,
         }
         break;
 
+    case INDEX_op_mb:
+        tcg_out_mb(s, args[0]);
+        break;
     case INDEX_op_mov_i32:  /* Always emitted via tcg_out_mov.  */
     case INDEX_op_mov_i64:
     case INDEX_op_movi_i32: /* Always emitted via tcg_out_movi.  */
@@ -2184,6 +2210,8 @@ static const TCGTargetOpDef x86_op_defs[] = {
     { INDEX_op_muls2_i32, { "a", "d", "a", "r" } },
     { INDEX_op_add2_i32, { "r", "r", "0", "1", "ri", "ri" } },
     { INDEX_op_sub2_i32, { "r", "r", "0", "1", "ri", "ri" } },
+
+    { INDEX_op_mb, { } },
 
 #if TCG_TARGET_REG_BITS == 32
     { INDEX_op_brcond2_i32, { "r", "r", "ri", "ri" } },

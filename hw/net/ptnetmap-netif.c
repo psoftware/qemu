@@ -131,7 +131,6 @@ ptnet_guest_notifier_init(PtNetState *s, EventNotifier *e, unsigned int vector)
 {
     /* Initialize an eventfd. */
     int ret = event_notifier_init(e, 0);
-    MSIMessage msg;
 
     if (ret) {
         printf("%s: guest notifier initialization failed\n", __func__);
@@ -142,11 +141,9 @@ ptnet_guest_notifier_init(PtNetState *s, EventNotifier *e, unsigned int vector)
 
     msix_vector_use(PCI_DEVICE(s), vector);
 
-    /* Read the MSI-X message prepared by the guest and use it
-     * to setup KVM irqfd, using the eventfd initialized
+    /* Setup KVM irqfd, using an MSI-X entry and the eventfd initialize
      * above. */
-    msg = msix_get_message(PCI_DEVICE(s), vector);
-    s->virqs[vector] = kvm_irqchip_add_msi_route(kvm_state, msg,
+    s->virqs[vector] = kvm_irqchip_add_msi_route(kvm_state, vector,
                                                  PCI_DEVICE(s));
     if (s->virqs[vector] < 0) {
         printf("%s: kvm_irqchip_add_msi_route() failed: %d\n", __func__,
@@ -488,7 +485,7 @@ static const VMStateDescription vmstate_ptnet = {
 /* PCI interface */
 
 static NetClientInfo net_ptnet_info = {
-    .type = NET_CLIENT_OPTIONS_KIND_NIC,
+    .type = NET_CLIENT_DRIVER_NIC,
     .size = sizeof(NICState),
     .receive = ptnet_receive,
 };

@@ -151,14 +151,12 @@ static void z2_lcd_cs(void *opaque, int line, int level)
     z2_lcd->selected = !level;
 }
 
-static int zipit_lcd_init(SSISlave *dev)
+static void zipit_lcd_realize(SSISlave *dev, Error **errp)
 {
     ZipitLCD *z = FROM_SSI_SLAVE(ZipitLCD, dev);
     z->selected = 0;
     z->enabled = 0;
     z->pos = 0;
-
-    return 0;
 }
 
 static VMStateDescription vmstate_zipit_lcd_state = {
@@ -181,7 +179,7 @@ static void zipit_lcd_class_init(ObjectClass *klass, void *data)
     DeviceClass *dc = DEVICE_CLASS(klass);
     SSISlaveClass *k = SSI_SLAVE_CLASS(klass);
 
-    k->init = zipit_lcd_init;
+    k->realize = zipit_lcd_realize;
     k->transfer = zipit_lcd_transfer;
     dc->vmsd = &vmstate_zipit_lcd_state;
 }
@@ -265,12 +263,6 @@ static int aer915_recv(I2CSlave *slave)
     return retval;
 }
 
-static int aer915_init(I2CSlave *i2c)
-{
-    /* Nothing to do.  */
-    return 0;
-}
-
 static VMStateDescription vmstate_aer915_state = {
     .name = "aer915",
     .version_id = 1,
@@ -287,7 +279,6 @@ static void aer915_class_init(ObjectClass *klass, void *data)
     DeviceClass *dc = DEVICE_CLASS(klass);
     I2CSlaveClass *k = I2C_SLAVE_CLASS(klass);
 
-    k->init = aer915_init;
     k->event = aer915_event;
     k->recv = aer915_recv;
     k->send = aer915_send;

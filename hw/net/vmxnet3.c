@@ -283,8 +283,6 @@ typedef struct {
 
         /* Whether MSI-X support was installed successfully */
         bool msix_used;
-        /* Whether MSI support was installed successfully */
-        bool msi_used;
         hwaddr drv_shmem;
         hwaddr temp_shared_guest_driver_memory;
 
@@ -366,7 +364,7 @@ static bool _vmxnet3_assert_interrupt_line(VMXNET3State *s, uint32_t int_idx)
         msix_notify(d, int_idx);
         return false;
     }
-    if (s->msi_used && msi_enabled(d)) {
+    if (msi_enabled(d)) {
         VMW_IRPRN("Sending MSI notification for vector %u", int_idx);
         msi_notify(d, int_idx);
         return false;
@@ -390,7 +388,7 @@ static void _vmxnet3_deassert_interrupt_line(VMXNET3State *s, int lidx)
      * This function should never be called for MSI(X) interrupts
      * because deassertion never required for message interrupts
      */
-    assert(!s->msi_used || !msi_enabled(d));
+    assert(!msi_enabled(d));
 
     VMW_IRPRN("Deasserting line for interrupt %u", lidx);
     pci_irq_deassert(d);
@@ -427,7 +425,7 @@ static void vmxnet3_trigger_interrupt(VMXNET3State *s, int lidx)
         goto do_automask;
     }
 
-    if (s->msi_used && msi_enabled(d) && s->auto_int_masking) {
+    if (msi_enabled(d) && s->auto_int_masking) {
         goto do_automask;
     }
 
@@ -533,6 +531,7 @@ static void vmxnet3_complete_packet(VMXNET3State *s, int qidx, uint32_t tx_ridx)
 
     VMXNET3_RING_DUMP(VMW_RIPRN, "TXC", qidx, &s->txq_descr[qidx].comp_ring);
 
+    memset(&txcq_descr, 0, sizeof(txcq_descr));
     txcq_descr.txdIdx = tx_ridx;
     txcq_descr.gen = vmxnet3_ring_curr_gen(&s->txq_descr[qidx].comp_ring);
 
@@ -1169,6 +1168,10 @@ vmxnet3_io_bar0_write(void *opaque, hwaddr addr,
 {
     VMXNET3State *s = opaque;
 
+    if (!s->device_active) {
+        return;
+    }
+
     if (VMW_IS_MULTIREG_ADDR(addr, VMXNET3_REG_TXPROD,
                         VMXNET3_DEVICE_MAX_TX_QUEUES, VMXNET3_REG_ALIGN)) {
         int tx_queue_idx =
@@ -1425,8 +1428,8 @@ static void vmxnet3_update_features(VMXNET3State *s)
 
 static bool vmxnet3_verify_intx(VMXNET3State *s, int intx)
 {
-    return s->msix_used || s->msi_used || (intx ==
-           (pci_get_byte(s->parent_obj.config + PCI_INTERRUPT_PIN) - 1));
+    return s->msix_used || msi_enabled(PCI_DEVICE(s))
+        || intx == pci_get_byte(s->parent_obj.config + PCI_INTERRUPT_PIN) - 1;
 }
 
 static void vmxnet3_validate_interrupt_idx(bool is_msix, int idx)
@@ -2089,7 +2092,7 @@ static void vmxnet3_set_link_status(NetClientState *nc)
 }
 
 static NetClientInfo net_vmxnet3_info = {
-        .type = NET_CLIENT_OPTIONS_KIND_NIC,
+        .type = NET_CLIENT_DRIVER_NIC,
         .size = sizeof(NICState),
         .receive = vmxnet3_receive,
         .link_status_changed = vmxnet3_set_link_status,
@@ -2216,35 +2219,12 @@ vmxnet3_cleanup_msix(VMXNET3State *s)
     }
 }
 
-#define VMXNET3_USE_64BIT         (true)
-#define VMXNET3_PER_VECTOR_MASK   (false)
-
-static bool
-vmxnet3_init_msi(VMXNET3State *s)
-{
-    PCIDevice *d = PCI_DEVICE(s);
-    int res;
-
-    res = msi_init(d, VMXNET3_MSI_OFFSET(s), VMXNET3_MAX_NMSIX_INTRS,
-                   VMXNET3_USE_64BIT, VMXNET3_PER_VECTOR_MASK);
-    if (0 > res) {
-        VMW_WRPRN("Failed to initialize MSI, error %d", res);
-        s->msi_used = false;
-    } else {
-        s->msi_used = true;
-    }
-
-    return s->msi_used;
-}
-
 static void
 vmxnet3_cleanup_msi(VMXNET3State *s)
 {
     PCIDevice *d = PCI_DEVICE(s);
 
-    if (s->msi_used) {
-        msi_uninit(d);
-    }
+    msi_uninit(d);
 }
 
 static void
@@ -2298,10 +2278,15 @@ static uint64_t vmxnet3_device_serial_num(VMXNET3State *s)
     return dsn_payload;
 }
 
+
+#define VMXNET3_USE_64BIT         (true)
+#define VMXNET3_PER_VECTOR_MASK   (false)
+
 static void vmxnet3_pci_realize(PCIDevice *pci_dev, Error **errp)
 {
     DeviceState *dev = DEVICE(pci_dev);
     VMXNET3State *s = VMXNET3(pci_dev);
+    int ret;
 
     VMW_CBPRN("Starting init...");
 
@@ -2325,12 +2310,14 @@ static void vmxnet3_pci_realize(PCIDevice *pci_dev, Error **errp)
     /* Interrupt pin A */
     pci_dev->config[PCI_INTERRUPT_PIN] = 0x01;
 
+    ret = msi_init(pci_dev, VMXNET3_MSI_OFFSET(s), VMXNET3_MAX_NMSIX_INTRS,
+                   VMXNET3_USE_64BIT, VMXNET3_PER_VECTOR_MASK, NULL);
+    /* Any error other than -ENOTSUP(board's MSI support is broken)
+     * is a programming error. Fall back to INTx silently on -ENOTSUP */
+    assert(!ret || ret == -ENOTSUP);
+
     if (!vmxnet3_init_msix(s)) {
         VMW_WRPRN("Failed to initialize MSI-X, configuration is inconsistent.");
-    }
-
-    if (!vmxnet3_init_msi(s)) {
-        VMW_WRPRN("Failed to initialize MSI, configuration is inconsistent.");
     }
 
     vmxnet3_net_init(s);
@@ -2719,6 +2706,7 @@ static void vmxnet3_class_init(ObjectClass *class, void *data)
     c->vendor_id = PCI_VENDOR_ID_VMWARE;
     c->device_id = PCI_DEVICE_ID_VMWARE_VMXNET3;
     c->revision = PCI_DEVICE_ID_VMWARE_VMXNET3_REVISION;
+    c->romfile = "efi-vmxnet3.rom";
     c->class_id = PCI_CLASS_NETWORK_ETHERNET;
     c->subsystem_vendor_id = PCI_VENDOR_ID_VMWARE;
     c->subsystem_id = PCI_DEVICE_ID_VMWARE_VMXNET3;

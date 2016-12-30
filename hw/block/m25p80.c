@@ -28,6 +28,7 @@
 #include "hw/ssi/ssi.h"
 #include "qemu/bitops.h"
 #include "qemu/log.h"
+#include "qapi/error.h"
 
 #ifndef M25P80_ERR_DEBUG
 #define M25P80_ERR_DEBUG 0
@@ -148,6 +149,7 @@ typedef struct FlashPartInfo {
 */
 
 #define SPANSION_CONTINUOUS_READ_MODE_CMD_LEN 1
+#define WINBOND_CONTINUOUS_READ_MODE_CMD_LEN 1
 
 static const FlashPartInfo known_devices[] = {
     /* Atmel -- some are (confusingly) marketed as "DataFlash" */
@@ -201,6 +203,7 @@ static const FlashPartInfo known_devices[] = {
     { INFO("mx25l25655e", 0xc22619,      0,  64 << 10, 512, 0) },
     { INFO("mx66u51235f", 0xc2253a,      0,  64 << 10, 1024, ER_4K | ER_32K) },
     { INFO("mx66u1g45g",  0xc2253b,      0,  64 << 10, 2048, ER_4K | ER_32K) },
+    { INFO("mx66l1g45g",  0xc2201b,      0,  64 << 10, 2048, ER_4K | ER_32K) },
 
     /* Micron */
     { INFO("n25q032a11",  0x20bb16,      0,  64 << 10,  64, ER_4K) },
@@ -389,7 +392,7 @@ typedef struct Flash {
     uint32_t pos;
     uint8_t needed_bytes;
     uint8_t cmd_in_progress;
-    uint64_t cur_addr;
+    uint32_t cur_addr;
     uint32_t nonvolatile_cfg;
     /* Configuration register for Macronix */
     uint32_t volatile_cfg;
@@ -446,6 +449,11 @@ static inline Manufacturer get_man(Flash *s)
 
 static void blk_sync_complete(void *opaque, int ret)
 {
+    QEMUIOVector *iov = opaque;
+
+    qemu_iovec_destroy(iov);
+    g_free(iov);
+
     /* do nothing. Masters do not directly interact with the backing store,
      * only the working copy so no mutexing required.
      */
@@ -453,31 +461,33 @@ static void blk_sync_complete(void *opaque, int ret)
 
 static void flash_sync_page(Flash *s, int page)
 {
-    QEMUIOVector iov;
+    QEMUIOVector *iov;
 
     if (!s->blk || blk_is_read_only(s->blk)) {
         return;
     }
 
-    qemu_iovec_init(&iov, 1);
-    qemu_iovec_add(&iov, s->storage + page * s->pi->page_size,
+    iov = g_new(QEMUIOVector, 1);
+    qemu_iovec_init(iov, 1);
+    qemu_iovec_add(iov, s->storage + page * s->pi->page_size,
                    s->pi->page_size);
-    blk_aio_pwritev(s->blk, page * s->pi->page_size, &iov, 0,
-                    blk_sync_complete, NULL);
+    blk_aio_pwritev(s->blk, page * s->pi->page_size, iov, 0,
+                    blk_sync_complete, iov);
 }
 
 static inline void flash_sync_area(Flash *s, int64_t off, int64_t len)
 {
-    QEMUIOVector iov;
+    QEMUIOVector *iov;
 
     if (!s->blk || blk_is_read_only(s->blk)) {
         return;
     }
 
     assert(!(len % BDRV_SECTOR_SIZE));
-    qemu_iovec_init(&iov, 1);
-    qemu_iovec_add(&iov, s->storage + off, len);
-    blk_aio_pwritev(s->blk, off, &iov, 0, blk_sync_complete, NULL);
+    iov = g_new(QEMUIOVector, 1);
+    qemu_iovec_init(iov, 1);
+    qemu_iovec_add(iov, s->storage + off, len);
+    blk_aio_pwritev(s->blk, off, iov, 0, blk_sync_complete, iov);
 }
 
 static void flash_erase(Flash *s, int offset, FlashCMD cmd)
@@ -530,9 +540,9 @@ static inline void flash_sync_dirty(Flash *s, int64_t newpage)
 }
 
 static inline
-void flash_write8(Flash *s, uint64_t addr, uint8_t data)
+void flash_write8(Flash *s, uint32_t addr, uint8_t data)
 {
-    int64_t page = addr / s->pi->page_size;
+    uint32_t page = addr / s->pi->page_size;
     uint8_t prev = s->storage[s->cur_addr];
 
     if (!s->write_enable) {
@@ -540,7 +550,7 @@ void flash_write8(Flash *s, uint64_t addr, uint8_t data)
     }
 
     if ((prev ^ data) & data) {
-        DB_PRINT_L(1, "programming zero to one! addr=%" PRIx64 "  %" PRIx8
+        DB_PRINT_L(1, "programming zero to one! addr=%" PRIx32 "  %" PRIx8
                    " -> %" PRIx8 "\n", addr, prev, data);
     }
 
@@ -581,18 +591,16 @@ static inline int get_addr_length(Flash *s)
 
 static void complete_collecting_data(Flash *s)
 {
-    int i;
+    int i, n;
 
-    s->cur_addr = 0;
-
-    for (i = 0; i < get_addr_length(s); ++i) {
+    n = get_addr_length(s);
+    s->cur_addr = (n == 3 ? s->ear : 0);
+    for (i = 0; i < n; ++i) {
         s->cur_addr <<= 8;
         s->cur_addr |= s->data[i];
     }
 
-    if (get_addr_length(s) == 3) {
-        s->cur_addr += s->ear * MAX_3BYTES_SIZE;
-    }
+    s->cur_addr &= s->size - 1;
 
     s->state = STATE_IDLE;
 
@@ -771,7 +779,7 @@ static void decode_dio_read_cmd(Flash *s)
     /* Dummy cycles modeled with bytes writes instead of bits */
     switch (get_man(s)) {
     case MAN_WINBOND:
-        s->needed_bytes += 8;
+        s->needed_bytes += WINBOND_CONTINUOUS_READ_MODE_CMD_LEN;
         break;
     case MAN_SPANSION:
         s->needed_bytes += SPANSION_CONTINUOUS_READ_MODE_CMD_LEN;
@@ -810,7 +818,8 @@ static void decode_qio_read_cmd(Flash *s)
     /* Dummy cycles modeled with bytes writes instead of bits */
     switch (get_man(s)) {
     case MAN_WINBOND:
-        s->needed_bytes += 8;
+        s->needed_bytes += WINBOND_CONTINUOUS_READ_MODE_CMD_LEN;
+        s->needed_bytes += 4;
         break;
     case MAN_SPANSION:
         s->needed_bytes += SPANSION_CONTINUOUS_READ_MODE_CMD_LEN;
@@ -1091,17 +1100,17 @@ static uint32_t m25p80_transfer8(SSISlave *ss, uint32_t tx)
     switch (s->state) {
 
     case STATE_PAGE_PROGRAM:
-        DB_PRINT_L(1, "page program cur_addr=%#" PRIx64 " data=%" PRIx8 "\n",
+        DB_PRINT_L(1, "page program cur_addr=%#" PRIx32 " data=%" PRIx8 "\n",
                    s->cur_addr, (uint8_t)tx);
         flash_write8(s, s->cur_addr, (uint8_t)tx);
-        s->cur_addr++;
+        s->cur_addr = (s->cur_addr + 1) & (s->size - 1);
         break;
 
     case STATE_READ:
         r = s->storage[s->cur_addr];
-        DB_PRINT_L(1, "READ 0x%" PRIx64 "=%" PRIx8 "\n", s->cur_addr,
+        DB_PRINT_L(1, "READ 0x%" PRIx32 "=%" PRIx8 "\n", s->cur_addr,
                    (uint8_t)r);
-        s->cur_addr = (s->cur_addr + 1) % s->size;
+        s->cur_addr = (s->cur_addr + 1) & (s->size - 1);
         break;
 
     case STATE_COLLECTING_DATA:
@@ -1132,9 +1141,8 @@ static uint32_t m25p80_transfer8(SSISlave *ss, uint32_t tx)
     return r;
 }
 
-static int m25p80_init(SSISlave *ss)
+static void m25p80_realize(SSISlave *ss, Error **errp)
 {
-    DriveInfo *dinfo;
     Flash *s = M25P80(ss);
     M25P80Class *mc = M25P80_GET_CLASS(s);
 
@@ -1143,28 +1151,19 @@ static int m25p80_init(SSISlave *ss)
     s->size = s->pi->sector_size * s->pi->n_sectors;
     s->dirty_page = -1;
 
-    /* FIXME use a qdev drive property instead of drive_get_next() */
-    dinfo = drive_get_next(IF_MTD);
-
-    if (dinfo) {
+    if (s->blk) {
         DB_PRINT_L(0, "Binding to IF_MTD drive\n");
-        s->blk = blk_by_legacy_dinfo(dinfo);
-        blk_attach_dev_nofail(s->blk, s);
-
         s->storage = blk_blockalign(s->blk, s->size);
 
-        /* FIXME: Move to late init */
         if (blk_pread(s->blk, 0, s->storage, s->size) != s->size) {
-            fprintf(stderr, "Failed to initialize SPI flash!\n");
-            return 1;
+            error_setg(errp, "failed to read the initial flash content");
+            return;
         }
     } else {
         DB_PRINT_L(0, "No BDRV - binding to RAM\n");
         s->storage = blk_blockalign(NULL, s->size);
         memset(s->storage, 0xFF, s->size);
     }
-
-    return 0;
 }
 
 static void m25p80_reset(DeviceState *d)
@@ -1186,13 +1185,14 @@ static Property m25p80_properties[] = {
     DEFINE_PROP_UINT8("spansion-cr2nv", Flash, spansion_cr2nv, 0x8),
     DEFINE_PROP_UINT8("spansion-cr3nv", Flash, spansion_cr3nv, 0x2),
     DEFINE_PROP_UINT8("spansion-cr4nv", Flash, spansion_cr4nv, 0x10),
+    DEFINE_PROP_DRIVE("drive", Flash, blk),
     DEFINE_PROP_END_OF_LIST(),
 };
 
 static const VMStateDescription vmstate_m25p80 = {
-    .name = "xilinx_spi",
-    .version_id = 3,
-    .minimum_version_id = 1,
+    .name = "m25p80",
+    .version_id = 0,
+    .minimum_version_id = 0,
     .pre_save = m25p80_pre_save,
     .fields = (VMStateField[]) {
         VMSTATE_UINT8(state, Flash),
@@ -1201,19 +1201,19 @@ static const VMStateDescription vmstate_m25p80 = {
         VMSTATE_UINT32(pos, Flash),
         VMSTATE_UINT8(needed_bytes, Flash),
         VMSTATE_UINT8(cmd_in_progress, Flash),
-        VMSTATE_UINT64(cur_addr, Flash),
+        VMSTATE_UINT32(cur_addr, Flash),
         VMSTATE_BOOL(write_enable, Flash),
-        VMSTATE_BOOL_V(reset_enable, Flash, 2),
-        VMSTATE_UINT8_V(ear, Flash, 2),
-        VMSTATE_BOOL_V(four_bytes_address_mode, Flash, 2),
-        VMSTATE_UINT32_V(nonvolatile_cfg, Flash, 2),
-        VMSTATE_UINT32_V(volatile_cfg, Flash, 2),
-        VMSTATE_UINT32_V(enh_volatile_cfg, Flash, 2),
-        VMSTATE_BOOL_V(quad_enable, Flash, 3),
-        VMSTATE_UINT8_V(spansion_cr1nv, Flash, 3),
-        VMSTATE_UINT8_V(spansion_cr2nv, Flash, 3),
-        VMSTATE_UINT8_V(spansion_cr3nv, Flash, 3),
-        VMSTATE_UINT8_V(spansion_cr4nv, Flash, 3),
+        VMSTATE_BOOL(reset_enable, Flash),
+        VMSTATE_UINT8(ear, Flash),
+        VMSTATE_BOOL(four_bytes_address_mode, Flash),
+        VMSTATE_UINT32(nonvolatile_cfg, Flash),
+        VMSTATE_UINT32(volatile_cfg, Flash),
+        VMSTATE_UINT32(enh_volatile_cfg, Flash),
+        VMSTATE_BOOL(quad_enable, Flash),
+        VMSTATE_UINT8(spansion_cr1nv, Flash),
+        VMSTATE_UINT8(spansion_cr2nv, Flash),
+        VMSTATE_UINT8(spansion_cr3nv, Flash),
+        VMSTATE_UINT8(spansion_cr4nv, Flash),
         VMSTATE_END_OF_LIST()
     }
 };
@@ -1224,7 +1224,7 @@ static void m25p80_class_init(ObjectClass *klass, void *data)
     SSISlaveClass *k = SSI_SLAVE_CLASS(klass);
     M25P80Class *mc = M25P80_CLASS(klass);
 
-    k->init = m25p80_init;
+    k->realize = m25p80_realize;
     k->transfer = m25p80_transfer8;
     k->set_cs = m25p80_cs;
     k->cs_polarity = SSI_CS_LOW;

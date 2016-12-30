@@ -32,15 +32,22 @@ int qemu_loglevel;
 static int log_append = 0;
 static GArray *debug_regions;
 
-void qemu_log(const char *fmt, ...)
+/* Return the number of characters emitted.  */
+int qemu_log(const char *fmt, ...)
 {
-    va_list ap;
-
-    va_start(ap, fmt);
+    int ret = 0;
     if (qemu_logfile) {
-        vfprintf(qemu_logfile, fmt, ap);
+        va_list ap;
+        va_start(ap, fmt);
+        ret = vfprintf(qemu_logfile, fmt, ap);
+        va_end(ap);
+
+        /* Don't pass back error results.  */
+        if (ret < 0) {
+            ret = 0;
+        }
     }
-    va_end(ap);
+    return ret;
 }
 
 static bool log_uses_own_buffers;
@@ -131,8 +138,8 @@ bool qemu_log_in_addr_range(uint64_t addr)
     if (debug_regions) {
         int i = 0;
         for (i = 0; i < debug_regions->len; i++) {
-            struct Range *range = &g_array_index(debug_regions, Range, i);
-            if (addr >= range->begin && addr <= range->end) {
+            Range *range = &g_array_index(debug_regions, Range, i);
+            if (range_contains(range, addr)) {
                 return true;
             }
         }
@@ -158,7 +165,7 @@ void qemu_set_dfilter_ranges(const char *filter_spec, Error **errp)
     for (i = 0; ranges[i]; i++) {
         const char *r = ranges[i];
         const char *range_op, *r2, *e;
-        uint64_t r1val, r2val;
+        uint64_t r1val, r2val, lob, upb;
         struct Range range;
 
         range_op = strstr(r, "-");
@@ -187,27 +194,28 @@ void qemu_set_dfilter_ranges(const char *filter_spec, Error **errp)
                        (int)(r2 - range_op), range_op);
             goto out;
         }
-        if (r2val == 0) {
-            error_setg(errp, "Invalid range");
-            goto out;
-        }
 
         switch (*range_op) {
         case '+':
-            range.begin = r1val;
-            range.end = r1val + (r2val - 1);
+            lob = r1val;
+            upb = r1val + r2val - 1;
             break;
         case '-':
-            range.end = r1val;
-            range.begin = r1val - (r2val - 1);
+            upb = r1val;
+            lob = r1val - (r2val - 1);
             break;
         case '.':
-            range.begin = r1val;
-            range.end = r2val;
+            lob = r1val;
+            upb = r2val;
             break;
         default:
             g_assert_not_reached();
         }
+        if (lob > upb) {
+            error_setg(errp, "Invalid range");
+            goto out;
+        }
+        range_set_bounds(&range, lob, upb);
         g_array_append_val(debug_regions, range);
     }
 out:
@@ -239,8 +247,9 @@ const QEMULogItem qemu_log_items[] = {
     { CPU_LOG_TB_OP, "op",
       "show micro ops for each compiled TB" },
     { CPU_LOG_TB_OP_OPT, "op_opt",
-      "show micro ops (x86 only: before eflags optimization) and\n"
-      "after liveness analysis" },
+      "show micro ops after optimization" },
+    { CPU_LOG_TB_OP_IND, "op_ind",
+      "show micro ops before indirect lowering" },
     { CPU_LOG_INT, "int",
       "show interrupts/exceptions in short format" },
     { CPU_LOG_EXEC, "exec",
@@ -266,53 +275,42 @@ const QEMULogItem qemu_log_items[] = {
     { 0, NULL, NULL },
 };
 
-static int cmp1(const char *s1, int n, const char *s2)
-{
-    if (strlen(s2) != n) {
-        return 0;
-    }
-    return memcmp(s1, s2, n) == 0;
-}
-
 /* takes a comma separated list of log masks. Return 0 if error. */
 int qemu_str_to_log_mask(const char *str)
 {
     const QEMULogItem *item;
-    int mask;
-    const char *p, *p1;
+    int mask = 0;
+    char **parts = g_strsplit(str, ",", 0);
+    char **tmp;
 
-    p = str;
-    mask = 0;
-    for (;;) {
-        p1 = strchr(p, ',');
-        if (!p1) {
-            p1 = p + strlen(p);
-        }
-        if (cmp1(p,p1-p,"all")) {
+    for (tmp = parts; tmp && *tmp; tmp++) {
+        if (g_str_equal(*tmp, "all")) {
             for (item = qemu_log_items; item->mask != 0; item++) {
                 mask |= item->mask;
             }
 #ifdef CONFIG_TRACE_LOG
-        } else if (strncmp(p, "trace:", 6) == 0 && p + 6 != p1) {
-            trace_enable_events(p + 6);
+        } else if (g_str_has_prefix(*tmp, "trace:") && (*tmp)[6] != '\0') {
+            trace_enable_events((*tmp) + 6);
             mask |= LOG_TRACE;
 #endif
         } else {
             for (item = qemu_log_items; item->mask != 0; item++) {
-                if (cmp1(p, p1 - p, item->name)) {
+                if (g_str_equal(*tmp, item->name)) {
                     goto found;
                 }
             }
-            return 0;
+            goto error;
         found:
             mask |= item->mask;
         }
-        if (*p1 != ',') {
-            break;
-        }
-        p = p1 + 1;
     }
+
+    g_strfreev(parts);
     return mask;
+
+ error:
+    g_strfreev(parts);
+    return 0;
 }
 
 void qemu_print_log_usage(FILE *f)

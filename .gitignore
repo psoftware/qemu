@@ -39,9 +39,7 @@
 /qmp-introspect.[ch]
 /qmp-marshal.c
 /qemu-doc.html
-/qemu-tech.html
 /qemu-doc.info
-/qemu-tech.info
 /qemu-img
 /qemu-nbd
 /qemu-options.def
@@ -53,7 +51,9 @@
 /qemu-bridge-helper
 /qemu-monitor.texi
 /qemu-monitor-info.texi
-/qmp-commands.txt
+/qemu-version.h
+/qemu-version.h.tmp
+/module_block.h
 /vscclient
 /fsdev/virtfs-proxy-helper
 *.[1-9]
@@ -82,10 +82,6 @@
 *.d
 !/scripts/qemu-guest-agent/fsfreeze-hook.d
 *.o
-*.lo
-*.la
-*.pc
-.libs
 .sdk
 *.gcda
 *.gcno
@@ -95,6 +91,10 @@
 /pc-bios/optionrom/linuxboot.bin
 /pc-bios/optionrom/linuxboot.raw
 /pc-bios/optionrom/linuxboot.img
+/pc-bios/optionrom/linuxboot_dma.asm
+/pc-bios/optionrom/linuxboot_dma.bin
+/pc-bios/optionrom/linuxboot_dma.raw
+/pc-bios/optionrom/linuxboot_dma.img
 /pc-bios/optionrom/multiboot.asm
 /pc-bios/optionrom/multiboot.bin
 /pc-bios/optionrom/multiboot.raw

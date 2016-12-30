@@ -1843,12 +1843,13 @@ static void pci_nic_uninit(PCIDevice *pci_dev)
     EEPRO100State *s = DO_UPCAST(EEPRO100State, dev, pci_dev);
 
     vmstate_unregister(&pci_dev->qdev, s->vmstate, s);
+    g_free(s->vmstate);
     eeprom93xx_free(&pci_dev->qdev, s->eeprom);
     qemu_del_nic(s->nic);
 }
 
 static NetClientInfo net_eepro100_info = {
-    .type = NET_CLIENT_OPTIONS_KIND_NIC,
+    .type = NET_CLIENT_DRIVER_NIC,
     .size = sizeof(NICState),
     .receive = nic_receive,
 };

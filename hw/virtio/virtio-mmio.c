@@ -89,37 +89,12 @@ typedef struct {
     uint32_t guest_page_shift;
     /* virtio-bus */
     VirtioBusState bus;
-    bool ioeventfd_disabled;
-    bool ioeventfd_started;
+    bool format_transport_address;
 } VirtIOMMIOProxy;
 
-static bool virtio_mmio_ioeventfd_started(DeviceState *d)
+static bool virtio_mmio_ioeventfd_enabled(DeviceState *d)
 {
-    VirtIOMMIOProxy *proxy = VIRTIO_MMIO(d);
-
-    return proxy->ioeventfd_started;
-}
-
-static void virtio_mmio_ioeventfd_set_started(DeviceState *d, bool started,
-                                              bool err)
-{
-    VirtIOMMIOProxy *proxy = VIRTIO_MMIO(d);
-
-    proxy->ioeventfd_started = started;
-}
-
-static bool virtio_mmio_ioeventfd_disabled(DeviceState *d)
-{
-    VirtIOMMIOProxy *proxy = VIRTIO_MMIO(d);
-
-    return !kvm_eventfds_enabled() || proxy->ioeventfd_disabled;
-}
-
-static void virtio_mmio_ioeventfd_set_disabled(DeviceState *d, bool disabled)
-{
-    VirtIOMMIOProxy *proxy = VIRTIO_MMIO(d);
-
-    proxy->ioeventfd_disabled = disabled;
+    return kvm_eventfds_enabled();
 }
 
 static int virtio_mmio_ioeventfd_assign(DeviceState *d,
@@ -216,7 +191,7 @@ static uint64_t virtio_mmio_read(void *opaque, hwaddr offset, unsigned size)
         return virtio_queue_get_addr(vdev, vdev->queue_sel)
             >> proxy->guest_page_shift;
     case VIRTIO_MMIO_INTERRUPTSTATUS:
-        return vdev->isr;
+        return atomic_read(&vdev->isr);
     case VIRTIO_MMIO_STATUS:
         return vdev->status;
     case VIRTIO_MMIO_HOSTFEATURESSEL:
@@ -324,7 +299,7 @@ static void virtio_mmio_write(void *opaque, hwaddr offset, uint64_t value,
         }
         break;
     case VIRTIO_MMIO_INTERRUPTACK:
-        vdev->isr &= ~value;
+        atomic_and(&vdev->isr, ~value);
         virtio_update_irq(vdev);
         break;
     case VIRTIO_MMIO_STATUS:
@@ -372,7 +347,7 @@ static void virtio_mmio_update_irq(DeviceState *opaque, uint16_t vector)
     if (!vdev) {
         return;
     }
-    level = (vdev->isr != 0);
+    level = (atomic_read(&vdev->isr) != 0);
     DPRINTF("virtio_mmio setting IRQ %d\n", level);
     qemu_set_irq(proxy->irq, level);
 }
@@ -469,6 +444,12 @@ assign_error:
 
 /* virtio-mmio device */
 
+static Property virtio_mmio_properties[] = {
+    DEFINE_PROP_BOOL("format_transport_address", VirtIOMMIOProxy,
+                     format_transport_address, true),
+    DEFINE_PROP_END_OF_LIST(),
+};
+
 static void virtio_mmio_realizefn(DeviceState *d, Error **errp)
 {
     VirtIOMMIOProxy *proxy = VIRTIO_MMIO(d);
@@ -489,6 +470,7 @@ static void virtio_mmio_class_init(ObjectClass *klass, void *data)
     dc->realize = virtio_mmio_realizefn;
     dc->reset = virtio_mmio_reset;
     set_bit(DEVICE_CATEGORY_MISC, dc->categories);
+    dc->props = virtio_mmio_properties;
 }
 
 static const TypeInfo virtio_mmio_info = {
@@ -500,6 +482,46 @@ static const TypeInfo virtio_mmio_info = {
 
 /* virtio-mmio-bus. */
 
+static char *virtio_mmio_bus_get_dev_path(DeviceState *dev)
+{
+    BusState *virtio_mmio_bus;
+    VirtIOMMIOProxy *virtio_mmio_proxy;
+    char *proxy_path;
+    SysBusDevice *proxy_sbd;
+    char *path;
+
+    virtio_mmio_bus = qdev_get_parent_bus(dev);
+    virtio_mmio_proxy = VIRTIO_MMIO(virtio_mmio_bus->parent);
+    proxy_path = qdev_get_dev_path(DEVICE(virtio_mmio_proxy));
+
+    /*
+     * If @format_transport_address is false, then we just perform the same as
+     * virtio_bus_get_dev_path(): we delegate the address formatting for the
+     * device on the virtio-mmio bus to the bus that the virtio-mmio proxy
+     * (i.e., the device that implements the virtio-mmio bus) resides on. In
+     * this case the base address of the virtio-mmio transport will be
+     * invisible.
+     */
+    if (!virtio_mmio_proxy->format_transport_address) {
+        return proxy_path;
+    }
+
+    /* Otherwise, we append the base address of the transport. */
+    proxy_sbd = SYS_BUS_DEVICE(virtio_mmio_proxy);
+    assert(proxy_sbd->num_mmio == 1);
+    assert(proxy_sbd->mmio[0].memory == &virtio_mmio_proxy->iomem);
+
+    if (proxy_path) {
+        path = g_strdup_printf("%s/virtio-mmio@" TARGET_FMT_plx, proxy_path,
+                               proxy_sbd->mmio[0].addr);
+    } else {
+        path = g_strdup_printf("virtio-mmio@" TARGET_FMT_plx,
+                               proxy_sbd->mmio[0].addr);
+    }
+    g_free(proxy_path);
+    return path;
+}
+
 static void virtio_mmio_bus_class_init(ObjectClass *klass, void *data)
 {
     BusClass *bus_class = BUS_CLASS(klass);
@@ -509,13 +531,11 @@ static void virtio_mmio_bus_class_init(ObjectClass *klass, void *data)
     k->save_config = virtio_mmio_save_config;
     k->load_config = virtio_mmio_load_config;
     k->set_guest_notifiers = virtio_mmio_set_guest_notifiers;
-    k->ioeventfd_started = virtio_mmio_ioeventfd_started;
-    k->ioeventfd_set_started = virtio_mmio_ioeventfd_set_started;
-    k->ioeventfd_disabled = virtio_mmio_ioeventfd_disabled;
-    k->ioeventfd_set_disabled = virtio_mmio_ioeventfd_set_disabled;
+    k->ioeventfd_enabled = virtio_mmio_ioeventfd_enabled;
     k->ioeventfd_assign = virtio_mmio_ioeventfd_assign;
     k->has_variable_vring_alignment = true;
     bus_class->max_dev = 1;
+    bus_class->get_dev_path = virtio_mmio_bus_get_dev_path;
 }
 
 static const TypeInfo virtio_mmio_bus_info = {

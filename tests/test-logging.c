@@ -25,6 +25,7 @@
  */
 
 #include "qemu/osdep.h"
+#include <glib/gstdio.h>
 
 #include "qemu-common.h"
 #include "qapi/error.h"
@@ -68,6 +69,17 @@ static void test_parse_range(void)
     g_assert(qemu_log_in_addr_range(0x2050));
     g_assert(qemu_log_in_addr_range(0x3050));
 
+    qemu_set_dfilter_ranges("0xffffffffffffffff-1", &error_abort);
+    g_assert(qemu_log_in_addr_range(UINT64_MAX));
+    g_assert_false(qemu_log_in_addr_range(UINT64_MAX - 1));
+
+    qemu_set_dfilter_ranges("0..0xffffffffffffffff", &err);
+    g_assert(qemu_log_in_addr_range(0));
+    g_assert(qemu_log_in_addr_range(UINT64_MAX));
+ 
+    qemu_set_dfilter_ranges("2..1", &err);
+    error_free_or_abort(&err);
+
     qemu_set_dfilter_ranges("0x1000+onehundred", &err);
     error_free_or_abort(&err);
 
@@ -75,24 +87,57 @@ static void test_parse_range(void)
     error_free_or_abort(&err);
 }
 
-static void test_parse_path(void)
+static void set_log_path_tmp(char const *dir, char const *tpl, Error **errp)
 {
+    gchar *file_path = g_build_filename(dir, tpl, NULL);
+
+    qemu_set_log_filename(file_path, errp);
+    g_free(file_path);
+}
+
+static void test_parse_path(gconstpointer data)
+{
+    gchar const *tmp_path = data;
     Error *err = NULL;
 
-    qemu_set_log_filename("/tmp/qemu.log", &error_abort);
-    qemu_set_log_filename("/tmp/qemu-%d.log", &error_abort);
-    qemu_set_log_filename("/tmp/qemu.log.%d", &error_abort);
+    set_log_path_tmp(tmp_path, "qemu.log", &error_abort);
+    set_log_path_tmp(tmp_path, "qemu-%d.log", &error_abort);
+    set_log_path_tmp(tmp_path, "qemu.log.%d", &error_abort);
 
-    qemu_set_log_filename("/tmp/qemu-%d%d.log", &err);
+    set_log_path_tmp(tmp_path, "qemu-%d%d.log", &err);
     error_free_or_abort(&err);
+}
+
+/* Remove a directory and all its entries (non-recursive). */
+static void rmdir_full(gchar const *root)
+{
+    GDir *root_gdir = g_dir_open(root, 0, NULL);
+    gchar const *entry_name;
+
+    g_assert_nonnull(root_gdir);
+    while ((entry_name = g_dir_read_name(root_gdir)) != NULL) {
+        gchar *entry_path = g_build_filename(root, entry_name, NULL);
+        g_assert(g_remove(entry_path) == 0);
+        g_free(entry_path);
+    }
+    g_dir_close(root_gdir);
+    g_assert(g_rmdir(root) == 0);
 }
 
 int main(int argc, char **argv)
 {
+    gchar *tmp_path = g_dir_make_tmp("qemu-test-logging.XXXXXX", NULL);
+    int rc;
+
     g_test_init(&argc, &argv, NULL);
+    g_assert_nonnull(tmp_path);
 
     g_test_add_func("/logging/parse_range", test_parse_range);
-    g_test_add_func("/logging/parse_path", test_parse_path);
+    g_test_add_data_func("/logging/parse_path", tmp_path, test_parse_path);
 
-    return g_test_run();
+    rc = g_test_run();
+
+    rmdir_full(tmp_path);
+    g_free(tmp_path);
+    return rc;
 }

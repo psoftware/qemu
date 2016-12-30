@@ -217,6 +217,7 @@ typedef struct DisplayChangeListenerOps {
 
     void (*dpy_gl_scanout)(DisplayChangeListener *dcl,
                            uint32_t backing_id, bool backing_y_0_top,
+                           uint32_t backing_width, uint32_t backing_height,
                            uint32_t x, uint32_t y, uint32_t w, uint32_t h);
     void (*dpy_gl_update)(DisplayChangeListener *dcl,
                           uint32_t x, uint32_t y, uint32_t w, uint32_t h);
@@ -285,6 +286,7 @@ bool dpy_gfx_check_format(QemuConsole *con,
 
 void dpy_gl_scanout(QemuConsole *con,
                     uint32_t backing_id, bool backing_y_0_top,
+                    uint32_t backing_width, uint32_t backing_height,
                     uint32_t x, uint32_t y, uint32_t w, uint32_t h);
 void dpy_gl_update(QemuConsole *con,
                    uint32_t x, uint32_t y, uint32_t w, uint32_t h);
@@ -385,6 +387,7 @@ QemuConsole *qemu_console_lookup_by_device_name(const char *device_id,
 bool qemu_console_is_visible(QemuConsole *con);
 bool qemu_console_is_graphic(QemuConsole *con);
 bool qemu_console_is_fixedsize(QemuConsole *con);
+bool qemu_console_is_gl_blocked(QemuConsole *con);
 char *qemu_console_get_label(QemuConsole *con);
 int qemu_console_get_index(QemuConsole *con);
 uint32_t qemu_console_get_head(QemuConsole *con);
@@ -392,9 +395,7 @@ QemuUIInfo *qemu_console_get_ui_info(QemuConsole *con);
 int qemu_console_get_width(QemuConsole *con, int fallback);
 int qemu_console_get_height(QemuConsole *con, int fallback);
 
-void text_consoles_set_display(DisplayState *ds);
 void console_select(unsigned int index);
-void console_color_init(DisplayState *ds);
 void qemu_console_resize(QemuConsole *con, int width, int height);
 void qemu_console_copy(QemuConsole *con, int src_x, int src_y,
                        int dst_x, int dst_y, int w, int h);

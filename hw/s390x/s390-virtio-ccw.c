@@ -27,9 +27,10 @@
 #include "hw/compat.h"
 #include "ipl.h"
 #include "hw/s390x/s390-virtio-ccw.h"
+#include "hw/s390x/css-bridge.h"
 
 static const char *const reset_dev_types[] = {
-    "virtual-css-bridge",
+    TYPE_VIRTUAL_CSS_BRIDGE,
     "s390-sclp-event-facility",
     "s390-flic",
     "diag288",
@@ -192,6 +193,7 @@ static void ccw_machine_class_init(ObjectClass *oc, void *data)
     S390CcwMachineClass *s390mc = S390_MACHINE_CLASS(mc);
 
     s390mc->ri_allowed = true;
+    s390mc->cpu_model_allowed = true;
     mc->init = ccw_init;
     mc->reset = s390_machine_reset;
     mc->hot_add_cpu = s390_hot_add_cpu;
@@ -248,8 +250,26 @@ bool ri_allowed(void)
 
             return s390mc->ri_allowed;
         }
+        /*
+         * Make sure the "none" machine can have ri, otherwise it won't * be
+         * unlocked in KVM and therefore the host CPU model might be wrong.
+         */
+        return true;
     }
     return 0;
+}
+
+bool cpu_model_allowed(void)
+{
+    MachineClass *mc = MACHINE_GET_CLASS(qdev_get_machine());
+    if (object_class_dynamic_cast(OBJECT_CLASS(mc),
+                                  TYPE_S390_CCW_MACHINE)) {
+        S390CcwMachineClass *s390mc = S390_MACHINE_CLASS(mc);
+
+        return s390mc->cpu_model_allowed;
+    }
+    /* allow CPU model qmp queries with the "none" machine */
+    return true;
 }
 
 static inline void s390_machine_initfn(Object *obj)
@@ -315,11 +335,19 @@ static const TypeInfo ccw_machine_info = {
     }                                                                         \
     type_init(ccw_machine_register_##suffix)
 
+#define CCW_COMPAT_2_7 \
+        HW_COMPAT_2_7
+
 #define CCW_COMPAT_2_6 \
+        CCW_COMPAT_2_7 \
         HW_COMPAT_2_6 \
         {\
             .driver   = TYPE_S390_IPL,\
             .property = "iplbext_migration",\
+            .value    = "off",\
+        }, {\
+            .driver   = TYPE_VIRTUAL_CSS_BRIDGE,\
+            .property = "css_dev_path",\
             .value    = "off",\
         },
 
@@ -367,14 +395,29 @@ static const TypeInfo ccw_machine_info = {
             .value    = "0",\
         },
 
+static void ccw_machine_2_8_instance_options(MachineState *machine)
+{
+}
+
+static void ccw_machine_2_8_class_options(MachineClass *mc)
+{
+}
+DEFINE_CCW_MACHINE(2_8, "2.8", true);
+
 static void ccw_machine_2_7_instance_options(MachineState *machine)
 {
+    ccw_machine_2_8_instance_options(machine);
 }
 
 static void ccw_machine_2_7_class_options(MachineClass *mc)
 {
+    S390CcwMachineClass *s390mc = S390_MACHINE_CLASS(mc);
+
+    s390mc->cpu_model_allowed = false;
+    ccw_machine_2_8_class_options(mc);
+    SET_MACHINE_COMPAT(mc, CCW_COMPAT_2_7);
 }
-DEFINE_CCW_MACHINE(2_7, "2.7", true);
+DEFINE_CCW_MACHINE(2_7, "2.7", false);
 
 static void ccw_machine_2_6_instance_options(MachineState *machine)
 {

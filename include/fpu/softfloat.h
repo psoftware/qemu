@@ -198,7 +198,7 @@ enum {
 typedef struct float_status {
     signed char float_detect_tininess;
     signed char float_rounding_mode;
-    signed char float_exception_flags;
+    uint8_t     float_exception_flags;
     signed char floatx80_rounding_precision;
     /* should denormalised results go to zero and set the inexact flag? */
     flag flush_to_zero;
@@ -274,7 +274,7 @@ static inline flag get_default_nan_mode(float_status *status)
 | Routine to raise any or all of the software IEC/IEEE floating-point
 | exception flags.
 *----------------------------------------------------------------------------*/
-void float_raise(int8_t flags, float_status *status);
+void float_raise(uint8_t flags, float_status *status);
 
 /*----------------------------------------------------------------------------
 | If `a' is denormal and we are in flush-to-zero mode then set the
@@ -658,6 +658,21 @@ static inline int floatx80_is_any_nan(floatx80 a)
     return ((a.high & 0x7fff) == 0x7fff) && (a.low<<1);
 }
 
+/*----------------------------------------------------------------------------
+| Return whether the given value is an invalid floatx80 encoding.
+| Invalid floatx80 encodings arise when the integer bit is not set, but
+| the exponent is not zero. The only times the integer bit is permitted to
+| be zero is in subnormal numbers and the value zero.
+| This includes what the Intel software developer's manual calls pseudo-NaNs,
+| pseudo-infinities and un-normal numbers. It does not include
+| pseudo-denormals, which must still be correctly handled as inputs even
+| if they are never generated as outputs.
+*----------------------------------------------------------------------------*/
+static inline bool floatx80_invalid_encoding(floatx80 a)
+{
+    return (a.low & (1ULL << 63)) == 0 && (a.high & 0x7FFF) != 0;
+}
+
 #define floatx80_zero make_floatx80(0x0000, 0x0000000000000000LL)
 #define floatx80_one make_floatx80(0x3fff, 0x8000000000000000LL)
 #define floatx80_ln2 make_floatx80(0x3ffe, 0xb17217f7d1cf79acLL)
@@ -751,4 +766,4 @@ static inline int float128_is_any_nan(float128 a)
 *----------------------------------------------------------------------------*/
 float128 float128_default_nan(float_status *status);
 
-#endif /* !SOFTFLOAT_H */
+#endif /* SOFTFLOAT_H */

@@ -1,6 +1,7 @@
 /* headers to use the BSD sockets */
-#ifndef QEMU_SOCKET_H
-#define QEMU_SOCKET_H
+
+#ifndef QEMU_SOCKETS_H
+#define QEMU_SOCKETS_H
 
 #ifdef _WIN32
 
@@ -32,20 +33,14 @@ int socket_set_fast_reuse(int fd);
 typedef void NonBlockingConnectHandler(int fd, Error *err, void *opaque);
 
 InetSocketAddress *inet_parse(const char *str, Error **errp);
-int inet_listen(const char *str, char *ostr, int olen,
-                int socktype, int port_offset, Error **errp);
 int inet_connect(const char *str, Error **errp);
-int inet_nonblocking_connect(const char *str,
-                             NonBlockingConnectHandler *callback,
-                             void *opaque, Error **errp);
+int inet_connect_saddr(InetSocketAddress *saddr, Error **errp,
+                       NonBlockingConnectHandler *callback, void *opaque);
 
 NetworkAddressFamily inet_netfamily(int family);
 
 int unix_listen(const char *path, char *ostr, int olen, Error **errp);
 int unix_connect(const char *path, Error **errp);
-int unix_nonblocking_connect(const char *str,
-                             NonBlockingConnectHandler *callback,
-                             void *opaque, Error **errp);
 
 SocketAddress *socket_parse(const char *str, Error **errp);
 int socket_connect(SocketAddress *addr, Error **errp,
@@ -107,10 +102,6 @@ SocketAddress *socket_local_address(int fd, Error **errp);
  */
 SocketAddress *socket_remote_address(int fd, Error **errp);
 
-
-void qapi_copy_SocketAddress(SocketAddress **p_dest,
-                             SocketAddress *src);
-
 /**
  * socket_address_to_string:
  * @addr: the socket address struct
@@ -125,4 +116,5 @@ void qapi_copy_SocketAddress(SocketAddress **p_dest,
  * Returns: the socket address in string format, or NULL on error
  */
 char *socket_address_to_string(struct SocketAddress *addr, Error **errp);
-#endif /* QEMU_SOCKET_H */
+
+#endif /* QEMU_SOCKETS_H */

@@ -98,6 +98,7 @@ static void nvdimm_realize(PCDIMMDevice *dimm, Error **errp)
                    "small to contain nvdimm label (0x%" PRIx64 ") and "
                    "aligned PMEM (0x%" PRIx64 ")",
                    path, memory_region_size(mr), nvdimm->label_size, align);
+        g_free(path);
         return;
     }
 
@@ -147,12 +148,8 @@ static MemoryRegion *nvdimm_get_vmstate_memory_region(PCDIMMDevice *dimm)
 
 static void nvdimm_class_init(ObjectClass *oc, void *data)
 {
-    DeviceClass *dc = DEVICE_CLASS(oc);
     PCDIMMDeviceClass *ddc = PC_DIMM_CLASS(oc);
     NVDIMMClass *nvc = NVDIMM_CLASS(oc);
-
-    /* nvdimm hotplug has not been supported yet. */
-    dc->hotpluggable = false;
 
     ddc->realize = nvdimm_realize;
     ddc->get_memory_region = nvdimm_get_memory_region;

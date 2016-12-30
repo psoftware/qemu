@@ -6,8 +6,8 @@
  * only files in hw/ide/ are supposed to include this file.
  * non-internal declarations are in hw/ide.h
  */
-#include <hw/ide.h>
-#include <hw/isa/isa.h>
+#include "hw/ide.h"
+#include "hw/isa/isa.h"
 #include "sysemu/dma.h"
 #include "sysemu/sysemu.h"
 #include "hw/block/block.h"
@@ -480,6 +480,9 @@ struct IDEBus {
     uint8_t retry_unit;
     int64_t retry_sector_num;
     uint32_t retry_nsector;
+    PortioList portio_list;
+    PortioList portio2_list;
+    VMChangeStateEntry *vmstate;
 };
 
 #define TYPE_IDE_DEVICE "ide-device"
