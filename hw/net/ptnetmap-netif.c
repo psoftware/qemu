@@ -113,7 +113,7 @@ ptnet_host_notifier_init(PtNetState *s, EventNotifier *e, hwaddr ofs)
         printf("%s: host notifier initialization failed\n", __func__);
         return;
     }
-    event_notifier_set_handler(e, true, NULL);
+    event_notifier_set_handler(e, NULL);
     memory_region_add_eventfd(&s->io, ofs, 4, false, 0, e);
 
 }
@@ -136,7 +136,7 @@ ptnet_guest_notifier_init(PtNetState *s, EventNotifier *e, unsigned int vector)
         return;
     }
 
-    event_notifier_set_handler(e, false, NULL);
+    event_notifier_set_handler(e, NULL);
 
     msix_vector_use(PCI_DEVICE(s), vector);
 
@@ -529,7 +529,8 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     ptnet_get_netmap_if(s);
 
     /* Allocate a PCI bar to manage MSI-X information for this device. */
-    if (msix_init_exclusive_bar(pci_dev, s->num_rings, PTNETMAP_MSIX_PCI_BAR)) {
+    if (msix_init_exclusive_bar(pci_dev, s->num_rings,
+                                PTNETMAP_MSIX_PCI_BAR, NULL)) {
         printf("[ERR] Failed to intialize MSI-X BAR\n");
     }
 
