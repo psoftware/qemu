@@ -32,7 +32,7 @@
 #include "qemu/error-report.h"
 #include "qemu/timer.h"
 #include "sysemu/sysemu.h"
-#include "sysemu/kvm.h"
+#include "sysemu/hw_accel.h"
 #include "hw/hw.h"
 #include "sysemu/device_tree.h"
 #include "qapi/qmp/qjson.h"
@@ -197,7 +197,7 @@ void kvm_s390_cmma_reset(void)
         .attr = KVM_S390_VM_MEM_CLR_CMMA,
     };
 
-    if (!mem_path || !kvm_s390_cmma_available()) {
+    if (mem_path || !kvm_s390_cmma_available()) {
         return;
     }
 
@@ -291,6 +291,11 @@ int kvm_arch_init(MachineState *ms, KVMState *s)
 
     qemu_mutex_init(&qemu_sigp_mutex);
 
+    return 0;
+}
+
+int kvm_arch_irqchip_create(MachineState *ms, KVMState *s)
+{
     return 0;
 }
 
@@ -2301,7 +2306,7 @@ int kvm_arch_fixup_msi_route(struct kvm_irq_routing_entry *route,
     uint32_t idx = data >> ZPCI_MSI_VEC_BITS;
     uint32_t vec = data & ZPCI_MSI_VEC_MASK;
 
-    pbdev = s390_pci_find_dev_by_idx(idx);
+    pbdev = s390_pci_find_dev_by_idx(s390_get_phb(), idx);
     if (!pbdev) {
         DPRINTF("add_msi_route no dev\n");
         return -ENODEV;

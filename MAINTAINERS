@@ -132,6 +132,12 @@ F: include/hw/cris/
 F: tests/tcg/cris/
 F: disas/cris.c
 
+HPPA (PA-RISC)
+M: Richard Henderson <rth@twiddle.net>
+S: Maintained
+F: target/hppa/
+F: disas/hppa.c
+
 LM32
 M: Michael Walle <michael@walle.cc>
 S: Maintained
@@ -180,6 +186,14 @@ F: target/moxie/
 F: disas/moxie.c
 F: hw/moxie/
 F: default-configs/moxie-softmmu.mak
+
+NiosII
+M: Chris Wulff <crwulff@gmail.com>
+M: Marek Vasut <marex@denx.de>
+S: Maintained
+F: target/nios2/
+F: hw/nios2/
+F: disas/nios2.c
 
 OpenRISC
 M: Jia Liu <proljc@gmail.com>
@@ -309,7 +323,7 @@ Guest CPU Cores (Xen):
 X86
 M: Stefano Stabellini <sstabellini@kernel.org>
 M: Anthony Perard <anthony.perard@citrix.com>
-L: xen-devel@lists.xensource.com
+L: xen-devel@lists.xenproject.org
 S: Supported
 F: xen-*
 F: */xen*
@@ -657,10 +671,13 @@ F: hw/misc/macio/
 F: hw/intc/heathrow_pic.c
 
 PReP
+M: Hervé Poussineau <hpoussin@reactos.org>
 L: qemu-devel@nongnu.org
 L: qemu-ppc@nongnu.org
-S: Odd Fixes
+S: Maintained
 F: hw/ppc/prep.c
+F: hw/ppc/prep_systemio.c
+F: hw/ppc/rs6000_mc.c
 F: hw/pci-host/prep.[hc]
 F: hw/isa/pc87312.[hc]
 F: pc-bios/ppc_rom.bin
@@ -813,6 +830,7 @@ M: Eduardo Habkost <ehabkost@redhat.com>
 M: Marcel Apfelbaum <marcel@redhat.com>
 S: Supported
 F: hw/core/machine.c
+F: hw/core/null-machine.c
 F: include/hw/boards.h
 
 Xtensa Machines
@@ -1179,8 +1197,9 @@ T: git git://github.com/jnsnow/qemu.git bitmaps
 
 Character device backends
 M: Paolo Bonzini <pbonzini@redhat.com>
+M: Marc-André Lureau <marcandre.lureau@redhat.com>
 S: Maintained
-F: qemu-char.c
+F: chardev/
 F: backends/msmouse.c
 F: backends/testdev.c
 
@@ -1413,6 +1432,7 @@ F: scripts/checkpatch.pl
 Migration
 M: Juan Quintela <quintela@redhat.com>
 M: Amit Shah <amit.shah@redhat.com>
+M: Dr. David Alan Gilbert <dgilbert@redhat.com>
 S: Maintained
 F: include/migration/
 F: migration/
@@ -1501,6 +1521,7 @@ M: Riku Voipio <riku.voipio@iki.fi>
 S: Maintained
 F: thunk.c
 F: user-exec.c
+F: user-exec-stub.c
 
 BSD user
 S: Orphan
@@ -1625,6 +1646,7 @@ M: Peter Lieven <pl@kamp.de>
 L: qemu-block@nongnu.org
 S: Supported
 F: block/iscsi.c
+F: block/iscsi-opts.c
 
 NFS
 M: Jeff Cody <jcody@redhat.com>

@@ -26,7 +26,7 @@ void kvmppc_enable_logical_ci_hcalls(void);
 void kvmppc_enable_set_mode_hcall(void);
 void kvmppc_enable_clear_ref_mod_hcalls(void);
 void kvmppc_set_papr(PowerPCCPU *cpu);
-int kvmppc_set_compat(PowerPCCPU *cpu, uint32_t cpu_version);
+int kvmppc_set_compat(PowerPCCPU *cpu, uint32_t compat_pvr);
 void kvmppc_set_mpic_proxy(PowerPCCPU *cpu, int mpic_proxy);
 int kvmppc_smt_threads(void);
 int kvmppc_clear_tsr_bits(PowerPCCPU *cpu, uint32_t tsr_bits);
@@ -123,7 +123,7 @@ static inline void kvmppc_set_papr(PowerPCCPU *cpu)
 {
 }
 
-static inline int kvmppc_set_compat(PowerPCCPU *cpu, uint32_t cpu_version)
+static inline int kvmppc_set_compat(PowerPCCPU *cpu, uint32_t compat_pvr)
 {
     return 0;
 }
@@ -314,17 +314,5 @@ static inline void kvmppc_icbi_range(PowerPCCPU *cpu, uint8_t *addr, int len)
 }
 
 #endif  /* CONFIG_KVM */
-
-#ifndef KVM_INTERRUPT_SET
-#define KVM_INTERRUPT_SET -1
-#endif
-
-#ifndef KVM_INTERRUPT_UNSET
-#define KVM_INTERRUPT_UNSET -2
-#endif
-
-#ifndef KVM_INTERRUPT_SET_LEVEL
-#define KVM_INTERRUPT_SET_LEVEL -3
-#endif
 
 #endif /* KVM_PPC_H */
