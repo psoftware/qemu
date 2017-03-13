@@ -97,6 +97,9 @@ static gboolean tcp_chr_accept(QIOChannel *chan,
                                GIOCondition cond,
                                void *opaque);
 
+static int tcp_chr_read_poll(void *opaque);
+static void tcp_chr_disconnect(Chardev *chr);
+
 /* Called with chr_write_lock held.  */
 static int tcp_chr_write(Chardev *chr, const uint8_t *buf, int len)
 {
@@ -112,6 +115,13 @@ static int tcp_chr_write(Chardev *chr, const uint8_t *buf, int len)
             g_free(s->write_msgfds);
             s->write_msgfds = 0;
             s->write_msgfds_num = 0;
+        }
+
+        if (ret < 0 && errno != EAGAIN) {
+            if (tcp_chr_read_poll(chr) <= 0) {
+                tcp_chr_disconnect(chr);
+                return len;
+            } /* else let the read handler finish it properly */
         }
 
         return ret;
@@ -318,7 +328,7 @@ static void tcp_chr_free_connection(Chardev *chr)
     }
 
     tcp_set_msgfds(chr, NULL, 0);
-    remove_fd_in_watch(chr);
+    remove_fd_in_watch(chr, NULL);
     object_unref(OBJECT(s->sioc));
     s->sioc = NULL;
     object_unref(OBJECT(s->ioc));
@@ -488,7 +498,7 @@ static void tcp_chr_update_read_handler(Chardev *chr,
         return;
     }
 
-    remove_fd_in_watch(chr);
+    remove_fd_in_watch(chr, NULL);
     if (s->ioc) {
         chr->fd_in_tag = io_add_watch_poll(chr, s->ioc,
                                            tcp_chr_read_poll,

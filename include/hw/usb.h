@@ -135,6 +135,8 @@
 #define USB_REQ_GET_INTERFACE		0x0A
 #define USB_REQ_SET_INTERFACE		0x0B
 #define USB_REQ_SYNCH_FRAME		0x0C
+#define USB_REQ_SET_SEL                 0x30
+#define USB_REQ_SET_ISOCH_DELAY         0x31
 
 #define USB_DEVICE_SELF_POWERED		0
 #define USB_DEVICE_REMOTE_WAKEUP	1
@@ -287,11 +289,6 @@ typedef struct USBDeviceClass {
      * Called when a packet is canceled.
      */
     void (*cancel_packet)(USBDevice *dev, USBPacket *p);
-
-    /*
-     * Called when device is destroyed.
-     */
-    void (*handle_destroy)(USBDevice *dev);
 
     /*
      * Attach the device

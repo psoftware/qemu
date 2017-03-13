@@ -129,7 +129,7 @@ static int char_pty_chr_write(Chardev *chr, const uint8_t *buf, int len)
         /* guest sends data, check for (re-)connect */
         pty_chr_update_read_handler_locked(chr);
         if (!s->connected) {
-            return 0;
+            return len;
         }
     }
     return io_channel_send(s->ioc, buf, len);
@@ -199,7 +199,7 @@ static void pty_chr_state(Chardev *chr, int connected)
             g_source_remove(s->open_tag);
             s->open_tag = 0;
         }
-        remove_fd_in_watch(chr);
+        remove_fd_in_watch(chr, NULL);
         s->connected = 0;
         /* (re-)connect poll interval for idle guests: once per second.
          * We check more frequently in case the guests sends data to
