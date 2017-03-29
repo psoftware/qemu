@@ -12,6 +12,7 @@
  */
 
 #include "qemu/osdep.h"
+#include "qemu/cutils.h"
 #include "trace.h"
 #include "block/blockjob_int.h"
 #include "block/block_int.h"
@@ -573,7 +574,8 @@ static void mirror_exit(BlockJob *job, void *opaque)
      * valid. Also give up permissions on mirror_top_bs->backing, which might
      * block the removal. */
     block_job_remove_all_bdrv(job);
-    bdrv_child_set_perm(mirror_top_bs->backing, 0, BLK_PERM_ALL);
+    bdrv_child_try_set_perm(mirror_top_bs->backing, 0, BLK_PERM_ALL,
+                            &error_abort);
     bdrv_replace_node(mirror_top_bs, backing_bs(mirror_top_bs), &error_abort);
 
     /* We just changed the BDS the job BB refers to (with either or both of the
@@ -632,7 +634,8 @@ static int coroutine_fn mirror_dirty_init(MirrorBlockJob *s)
             }
 
             if (s->in_flight >= MAX_IN_FLIGHT) {
-                trace_mirror_yield(s, s->in_flight, s->buf_free_count, -1);
+                trace_mirror_yield(s, UINT64_MAX, s->buf_free_count,
+                                   s->in_flight);
                 mirror_wait_for_io(s);
                 continue;
             }
@@ -807,7 +810,7 @@ static void coroutine_fn mirror_run(void *opaque)
             s->common.iostatus == BLOCK_DEVICE_IO_STATUS_OK) {
             if (s->in_flight >= MAX_IN_FLIGHT || s->buf_free_count == 0 ||
                 (cnt == 0 && s->in_flight > 0)) {
-                trace_mirror_yield(s, s->in_flight, s->buf_free_count, cnt);
+                trace_mirror_yield(s, cnt, s->buf_free_count, s->in_flight);
                 mirror_wait_for_io(s);
                 continue;
             } else if (cnt != 0) {
@@ -1060,6 +1063,13 @@ static int coroutine_fn bdrv_mirror_top_pdiscard(BlockDriverState *bs,
     return bdrv_co_pdiscard(bs->backing->bs, offset, count);
 }
 
+static void bdrv_mirror_top_refresh_filename(BlockDriverState *bs, QDict *opts)
+{
+    bdrv_refresh_filename(bs->backing->bs);
+    pstrcpy(bs->exact_filename, sizeof(bs->exact_filename),
+            bs->backing->bs->filename);
+}
+
 static void bdrv_mirror_top_close(BlockDriverState *bs)
 {
 }
@@ -1088,6 +1098,7 @@ static BlockDriver bdrv_mirror_top = {
     .bdrv_co_pdiscard           = bdrv_mirror_top_pdiscard,
     .bdrv_co_flush              = bdrv_mirror_top_flush,
     .bdrv_co_get_block_status   = bdrv_mirror_top_get_block_status,
+    .bdrv_refresh_filename      = bdrv_mirror_top_refresh_filename,
     .bdrv_close                 = bdrv_mirror_top_close,
     .bdrv_child_perm            = bdrv_mirror_top_child_perm,
 };
@@ -1236,7 +1247,8 @@ fail:
         block_job_unref(&s->common);
     }
 
-    bdrv_child_set_perm(mirror_top_bs->backing, 0, BLK_PERM_ALL);
+    bdrv_child_try_set_perm(mirror_top_bs->backing, 0, BLK_PERM_ALL,
+                            &error_abort);
     bdrv_replace_node(mirror_top_bs, backing_bs(mirror_top_bs), &error_abort);
 }
 

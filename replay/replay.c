@@ -16,12 +16,13 @@
 #include "replay-internal.h"
 #include "qemu/timer.h"
 #include "qemu/main-loop.h"
+#include "sysemu/cpus.h"
 #include "sysemu/sysemu.h"
 #include "qemu/error-report.h"
 
 /* Current version of the replay mechanism.
    Increase it when file format changes. */
-#define REPLAY_VERSION              0xe02005
+#define REPLAY_VERSION              0xe02006
 /* Size of replay log header */
 #define HEADER_SIZE                 (sizeof(uint32_t) + sizeof(uint64_t))
 

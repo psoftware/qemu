@@ -1,5 +1,5 @@
 common-obj-$(CONFIG_DP8393X) += dp8393x.o
-common-obj-$(CONFIG_XEN_BACKEND) += xen_nic.o
+common-obj-$(CONFIG_XEN) += xen_nic.o
 
 obj-$(CONFIG_NETMAP_PASSTHROUGH) += ptnetmap-memdev.o ptnetmap-netif.o
 

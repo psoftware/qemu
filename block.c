@@ -1393,6 +1393,11 @@ static int bdrv_fill_options(QDict **options, const char *filename,
     return 0;
 }
 
+static int bdrv_child_check_perm(BdrvChild *c, uint64_t perm, uint64_t shared,
+                                 GSList *ignore_children, Error **errp);
+static void bdrv_child_abort_perm_update(BdrvChild *c);
+static void bdrv_child_set_perm(BdrvChild *c, uint64_t perm, uint64_t shared);
+
 /*
  * Check whether permissions on this node can be changed in a way that
  * @cumulative_perms and @cumulative_shared_perms are the new cumulative
@@ -1615,8 +1620,8 @@ static int bdrv_check_update_perm(BlockDriverState *bs, uint64_t new_used_perm,
 
 /* Needs to be followed by a call to either bdrv_child_set_perm() or
  * bdrv_child_abort_perm_update(). */
-int bdrv_child_check_perm(BdrvChild *c, uint64_t perm, uint64_t shared,
-                          GSList *ignore_children, Error **errp)
+static int bdrv_child_check_perm(BdrvChild *c, uint64_t perm, uint64_t shared,
+                                 GSList *ignore_children, Error **errp)
 {
     int ret;
 
@@ -1627,7 +1632,7 @@ int bdrv_child_check_perm(BdrvChild *c, uint64_t perm, uint64_t shared,
     return ret;
 }
 
-void bdrv_child_set_perm(BdrvChild *c, uint64_t perm, uint64_t shared)
+static void bdrv_child_set_perm(BdrvChild *c, uint64_t perm, uint64_t shared)
 {
     uint64_t cumulative_perms, cumulative_shared_perms;
 
@@ -1639,7 +1644,7 @@ void bdrv_child_set_perm(BdrvChild *c, uint64_t perm, uint64_t shared)
     bdrv_set_perm(c->bs, cumulative_perms, cumulative_shared_perms);
 }
 
-void bdrv_child_abort_perm_update(BdrvChild *c)
+static void bdrv_child_abort_perm_update(BdrvChild *c)
 {
     bdrv_abort_perm_update(c->bs);
 }
@@ -1756,8 +1761,18 @@ static void bdrv_replace_child_noperm(BdrvChild *child,
     }
 }
 
-static void bdrv_replace_child(BdrvChild *child, BlockDriverState *new_bs,
-                               bool check_new_perm)
+/*
+ * Updates @child to change its reference to point to @new_bs, including
+ * checking and applying the necessary permisson updates both to the old node
+ * and to @new_bs.
+ *
+ * NULL is passed as @new_bs for removing the reference before freeing @child.
+ *
+ * If @new_bs is not NULL, bdrv_check_perm() must be called beforehand, as this
+ * function uses bdrv_set_perm() to update the permissions according to the new
+ * reference that @new_bs gets.
+ */
+static void bdrv_replace_child(BdrvChild *child, BlockDriverState *new_bs)
 {
     BlockDriverState *old_bs = child->bs;
     uint64_t perm, shared_perm;
@@ -1775,9 +1790,6 @@ static void bdrv_replace_child(BdrvChild *child, BlockDriverState *new_bs,
 
     if (new_bs) {
         bdrv_get_cumulative_perm(new_bs, &perm, &shared_perm);
-        if (check_new_perm) {
-            bdrv_check_perm(new_bs, perm, shared_perm, NULL, &error_abort);
-        }
         bdrv_set_perm(new_bs, perm, shared_perm);
     }
 }
@@ -1808,7 +1820,7 @@ BdrvChild *bdrv_root_attach_child(BlockDriverState *child_bs,
     };
 
     /* This performs the matching bdrv_set_perm() for the above check. */
-    bdrv_replace_child(child, child_bs, false);
+    bdrv_replace_child(child, child_bs);
 
     return child;
 }
@@ -1845,7 +1857,7 @@ static void bdrv_detach_child(BdrvChild *child)
         child->next.le_prev = NULL;
     }
 
-    bdrv_replace_child(child, NULL, false);
+    bdrv_replace_child(child, NULL);
 
     g_free(child->name);
     g_free(child);
@@ -1930,6 +1942,8 @@ void bdrv_set_backing_hd(BlockDriverState *bs, BlockDriverState *backing_hd,
     if (!bs->backing) {
         bdrv_unref(backing_hd);
     }
+
+    bdrv_refresh_filename(bs);
 
 out:
     bdrv_refresh_limits(bs, NULL);
@@ -2016,6 +2030,7 @@ int bdrv_open_backing_file(BlockDriverState *bs, QDict *parent_options,
     bdrv_set_backing_hd(bs, backing_hd, &local_err);
     bdrv_unref(backing_hd);
     if (local_err) {
+        error_propagate(errp, local_err);
         ret = -EINVAL;
         goto free_exit;
     }
@@ -4335,7 +4350,14 @@ void bdrv_attach_aio_context(BlockDriverState *bs,
 
 void bdrv_set_aio_context(BlockDriverState *bs, AioContext *new_context)
 {
+    AioContext *ctx;
+
     bdrv_drain(bs); /* ensure there are no in-flight requests */
+
+    ctx = bdrv_get_aio_context(bs);
+    while (aio_poll(ctx, false)) {
+        /* wait for all bottom halves to execute */
+    }
 
     bdrv_detach_aio_context(bs);
 

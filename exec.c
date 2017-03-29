@@ -43,6 +43,7 @@
 #include "exec/ioport.h"
 #include "sysemu/dma.h"
 #include "sysemu/numa.h"
+#include "sysemu/hw_accel.h"
 #include "exec/address-spaces.h"
 #include "sysemu/xen-mapcache.h"
 #include "trace-root.h"
@@ -1467,7 +1468,7 @@ static void *file_ram_alloc(RAMBlock *block,
     }
 
     if (mem_prealloc) {
-        os_mem_prealloc(fd, area, memory, errp);
+        os_mem_prealloc(fd, area, memory, smp_cpus, errp);
         if (errp && *errp) {
             goto error;
         }
@@ -1558,6 +1559,11 @@ static void qemu_ram_setup_dump(void *addr, ram_addr_t size)
 const char *qemu_ram_get_idstr(RAMBlock *rb)
 {
     return rb->idstr;
+}
+
+bool qemu_ram_is_shared(RAMBlock *rb)
+{
+    return rb->flags & RAM_SHARED;
 }
 
 /* Called with iothread lock held.  */
@@ -3309,6 +3315,7 @@ int cpu_memory_rw_debug(CPUState *cpu, target_ulong addr,
     hwaddr phys_addr;
     target_ulong page;
 
+    cpu_synchronize_state(cpu);
     while (len > 0) {
         int asidx;
         MemTxAttrs attrs;

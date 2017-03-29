@@ -2047,7 +2047,9 @@ static void block_dirty_bitmap_clear_abort(BlkActionState *common)
     BlockDirtyBitmapState *state = DO_UPCAST(BlockDirtyBitmapState,
                                              common, common);
 
-    bdrv_undo_clear_dirty_bitmap(state->bitmap, state->backup);
+    if (state->backup) {
+        bdrv_undo_clear_dirty_bitmap(state->bitmap, state->backup);
+    }
 }
 
 static void block_dirty_bitmap_clear_commit(BlkActionState *common)
@@ -2833,7 +2835,7 @@ void hmp_drive_del(Monitor *mon, const QDict *qdict)
 
     bs = bdrv_find_node(id);
     if (bs) {
-        qmp_x_blockdev_del(id, &local_err);
+        qmp_blockdev_del(id, &local_err);
         if (local_err) {
             error_report_err(local_err);
         }
@@ -3898,7 +3900,7 @@ fail:
     visit_free(v);
 }
 
-void qmp_x_blockdev_del(const char *node_name, Error **errp)
+void qmp_blockdev_del(const char *node_name, Error **errp)
 {
     AioContext *aio_context;
     BlockDriverState *bs;

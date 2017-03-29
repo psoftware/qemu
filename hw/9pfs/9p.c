@@ -1550,6 +1550,10 @@ static void coroutine_fn v9fs_lcreate(void *opaque)
         err = -ENOENT;
         goto out_nofid;
     }
+    if (fidp->fid_type != P9_FID_NONE) {
+        err = -EINVAL;
+        goto out;
+    }
 
     flags = get_dotl_openflags(pdu->s, flags);
     err = v9fs_co_open2(pdu, fidp, &name, gid,
@@ -2153,6 +2157,10 @@ static void coroutine_fn v9fs_create(void *opaque)
         err = -EINVAL;
         goto out_nofid;
     }
+    if (fidp->fid_type != P9_FID_NONE) {
+        err = -EINVAL;
+        goto out;
+    }
     if (perm & P9_STAT_MODE_DIR) {
         err = v9fs_co_mkdir(pdu, fidp, &name, perm & 0777,
                             fidp->uid, -1, &stbuf);
@@ -2353,7 +2361,7 @@ static void coroutine_fn v9fs_flush(void *opaque)
     ssize_t err;
     int16_t tag;
     size_t offset = 7;
-    V9fsPDU *cancel_pdu;
+    V9fsPDU *cancel_pdu = NULL;
     V9fsPDU *pdu = opaque;
     V9fsState *s = pdu->s;
 
@@ -2364,9 +2372,13 @@ static void coroutine_fn v9fs_flush(void *opaque)
     }
     trace_v9fs_flush(pdu->tag, pdu->id, tag);
 
-    QLIST_FOREACH(cancel_pdu, &s->active_list, next) {
-        if (cancel_pdu->tag == tag) {
-            break;
+    if (pdu->tag == tag) {
+        error_report("Warning: the guest sent a self-referencing 9P flush request");
+    } else {
+        QLIST_FOREACH(cancel_pdu, &s->active_list, next) {
+            if (cancel_pdu->tag == tag) {
+                break;
+            }
         }
     }
     if (cancel_pdu) {

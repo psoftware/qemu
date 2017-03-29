@@ -3096,6 +3096,11 @@ static void spapr_machine_class_init(ObjectClass *oc, void *data)
     xic->ics_resend = spapr_ics_resend;
     xic->icp_get = spapr_icp_get;
     ispc->print_info = spapr_pic_print_info;
+    /* Force NUMA node memory size to be a multiple of
+     * SPAPR_MEMORY_BLOCK_SIZE (256M) since that's the granularity
+     * in which LMBs are represented and hot-added
+     */
+    mc->numa_mem_align_shift = 28;
 }
 
 static const TypeInfo spapr_machine_info = {
@@ -3163,8 +3168,13 @@ DEFINE_SPAPR_MACHINE(2_9, "2.9", true);
 /*
  * pseries-2.8
  */
-#define SPAPR_COMPAT_2_8                            \
-    HW_COMPAT_2_8
+#define SPAPR_COMPAT_2_8                                        \
+    HW_COMPAT_2_8                                               \
+    {                                                           \
+        .driver   = TYPE_SPAPR_PCI_HOST_BRIDGE,                 \
+        .property = "pcie-extended-configuration-space",        \
+        .value    = "off",                                      \
+    },
 
 static void spapr_machine_2_8_instance_options(MachineState *machine)
 {
@@ -3175,6 +3185,7 @@ static void spapr_machine_2_8_class_options(MachineClass *mc)
 {
     spapr_machine_2_9_class_options(mc);
     SET_MACHINE_COMPAT(mc, SPAPR_COMPAT_2_8);
+    mc->numa_mem_align_shift = 23;
 }
 
 DEFINE_SPAPR_MACHINE(2_8, "2.8", false);

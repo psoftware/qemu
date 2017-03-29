@@ -276,6 +276,8 @@ static int mig_save_device_bulk(QEMUFile *f, BlkMigDevState *bmds)
     if (bmds->shared_base) {
         qemu_mutex_lock_iothread();
         aio_context_acquire(blk_get_aio_context(bb));
+        /* Skip unallocated sectors; intentionally treats failure as
+         * an allocated sector */
         while (cur_sector < total_sectors &&
                !bdrv_is_allocated(blk_bs(bb), cur_sector,
                                   MAX_IS_ALLOCATED_SEARCH, &nr_sectors)) {
@@ -574,6 +576,9 @@ static int mig_save_device_dirty(QEMUFile *f, BlkMigDevState *bmds,
             }
 
             bdrv_reset_dirty_bitmap(bmds->dirty_bitmap, sector, nr_sectors);
+            sector += nr_sectors;
+            bmds->cur_dirty = sector;
+
             break;
         }
         sector += BDRV_SECTORS_PER_DIRTY_CHUNK;
