@@ -153,7 +153,7 @@ void virtio_bus_get_vdev_config(VirtioBusState *bus, uint8_t *config)
     assert(vdev != NULL);
     k = VIRTIO_DEVICE_GET_CLASS(vdev);
     if (k->get_config != NULL) {
-        k->get_config(vdev, 0, config);
+        k->get_config(vdev, config);
     }
 }
 
@@ -166,7 +166,7 @@ void virtio_bus_set_vdev_config(VirtioBusState *bus, uint8_t *config)
     assert(vdev != NULL);
     k = VIRTIO_DEVICE_GET_CLASS(vdev);
     if (k->set_config != NULL) {
-        k->set_config(vdev, 0, config);
+        k->set_config(vdev, config);
     }
 }
 

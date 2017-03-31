@@ -163,7 +163,7 @@ static uint64_t vhost_scsi_get_features(VirtIODevice *vdev,
     return vhost_get_features(&s->dev, kernel_feature_bits, features);
 }
 
-static void vhost_scsi_set_config(VirtIODevice *vdev, uint32_t addr,
+static void vhost_scsi_set_config(VirtIODevice *vdev,
                                   const uint8_t *config)
 {
     VirtIOSCSIConfig *scsiconf = (VirtIOSCSIConfig *)config;

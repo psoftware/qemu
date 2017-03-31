@@ -304,7 +304,7 @@ out:
     }
 }
 
-static void virtio_balloon_get_config(VirtIODevice *vdev, uint32_t addr, uint8_t *config_data)
+static void virtio_balloon_get_config(VirtIODevice *vdev, uint8_t *config_data)
 {
     VirtIOBalloon *dev = VIRTIO_BALLOON(vdev);
     struct virtio_balloon_config config;
@@ -349,7 +349,7 @@ static ram_addr_t get_current_ram_size(void)
     return size;
 }
 
-static void virtio_balloon_set_config(VirtIODevice *vdev, uint32_t addr,
+static void virtio_balloon_set_config(VirtIODevice *vdev,
                                       const uint8_t *config_data)
 {
     VirtIOBalloon *dev = VIRTIO_BALLOON(vdev);

@@ -636,7 +636,7 @@ static void virtio_scsi_handle_cmd(VirtIODevice *vdev, VirtQueue *vq)
     virtio_scsi_release(s);
 }
 
-static void virtio_scsi_get_config(VirtIODevice *vdev, uint32_t addr,
+static void virtio_scsi_get_config(VirtIODevice *vdev,
                                    uint8_t *config)
 {
     VirtIOSCSIConfig *scsiconf = (VirtIOSCSIConfig *)config;
@@ -654,7 +654,7 @@ static void virtio_scsi_get_config(VirtIODevice *vdev, uint32_t addr,
     virtio_stl_p(vdev, &scsiconf->max_lun, VIRTIO_SCSI_MAX_LUN);
 }
 
-static void virtio_scsi_set_config(VirtIODevice *vdev, uint32_t addr,
+static void virtio_scsi_set_config(VirtIODevice *vdev,
                                    const uint8_t *config)
 {
     VirtIOSCSIConfig *scsiconf = (VirtIOSCSIConfig *)config;

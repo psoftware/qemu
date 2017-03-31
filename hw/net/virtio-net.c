@@ -76,9 +76,7 @@ static int vq2q(int queue_index)
  * - we could suppress RX interrupt if we were so inclined.
  */
 
-static void virtio_net_get_config(VirtIODevice *vdev,
-                                  uint32_t addr,
-                                  uint8_t *config)
+static void virtio_net_get_config(VirtIODevice *vdev, uint8_t *config)
 {
     VirtIONet *n = VIRTIO_NET(vdev);
     struct virtio_net_config netcfg;
@@ -90,9 +88,7 @@ static void virtio_net_get_config(VirtIODevice *vdev,
     memcpy(config, &netcfg, n->config_size);
 }
 
-static void virtio_net_set_config(VirtIODevice *vdev,
-                                  uint32_t addr,
-                                  const uint8_t *config)
+static void virtio_net_set_config(VirtIODevice *vdev, const uint8_t *config)
 {
     VirtIONet *n = VIRTIO_NET(vdev);
     struct virtio_net_config netcfg = {};

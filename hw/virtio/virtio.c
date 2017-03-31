@@ -1234,7 +1234,7 @@ uint32_t virtio_config_readb(VirtIODevice *vdev, uint32_t addr)
         return (uint32_t)-1;
     }
 
-    k->get_config(vdev, addr, vdev->config);
+    k->get_config(vdev, vdev->config);
 
     val = ldub_p(vdev->config + addr);
     return val;
@@ -1249,7 +1249,7 @@ uint32_t virtio_config_readw(VirtIODevice *vdev, uint32_t addr)
         return (uint32_t)-1;
     }
 
-    k->get_config(vdev, addr, vdev->config);
+    k->get_config(vdev, vdev->config);
 
     val = lduw_p(vdev->config + addr);
     return val;
@@ -1264,7 +1264,7 @@ uint32_t virtio_config_readl(VirtIODevice *vdev, uint32_t addr)
         return (uint32_t)-1;
     }
 
-    k->get_config(vdev, addr, vdev->config);
+    k->get_config(vdev, vdev->config);
 
     val = ldl_p(vdev->config + addr);
     return val;
@@ -1282,7 +1282,7 @@ void virtio_config_writeb(VirtIODevice *vdev, uint32_t addr, uint32_t data)
     stb_p(vdev->config + addr, val);
 
     if (k->set_config) {
-        k->set_config(vdev, addr, vdev->config);
+        k->set_config(vdev, vdev->config);
     }
 }
 
@@ -1298,7 +1298,7 @@ void virtio_config_writew(VirtIODevice *vdev, uint32_t addr, uint32_t data)
     stw_p(vdev->config + addr, val);
 
     if (k->set_config) {
-        k->set_config(vdev, addr, vdev->config);
+        k->set_config(vdev, vdev->config);
     }
 }
 
@@ -1314,7 +1314,7 @@ void virtio_config_writel(VirtIODevice *vdev, uint32_t addr, uint32_t data)
     stl_p(vdev->config + addr, val);
 
     if (k->set_config) {
-        k->set_config(vdev, addr, vdev->config);
+        k->set_config(vdev, vdev->config);
     }
 }
 
@@ -1327,7 +1327,7 @@ uint32_t virtio_config_modern_readb(VirtIODevice *vdev, uint32_t addr)
         return (uint32_t)-1;
     }
 
-    k->get_config(vdev, addr, vdev->config);
+    k->get_config(vdev, vdev->config);
 
     val = ldub_p(vdev->config + addr);
     return val;
@@ -1342,7 +1342,7 @@ uint32_t virtio_config_modern_readw(VirtIODevice *vdev, uint32_t addr)
         return (uint32_t)-1;
     }
 
-    k->get_config(vdev, addr, vdev->config);
+    k->get_config(vdev, vdev->config);
 
     val = lduw_le_p(vdev->config + addr);
     return val;
@@ -1357,7 +1357,7 @@ uint32_t virtio_config_modern_readl(VirtIODevice *vdev, uint32_t addr)
         return (uint32_t)-1;
     }
 
-    k->get_config(vdev, addr, vdev->config);
+    k->get_config(vdev, vdev->config);
 
     val = ldl_le_p(vdev->config + addr);
     return val;
@@ -1376,7 +1376,7 @@ void virtio_config_modern_writeb(VirtIODevice *vdev,
     stb_p(vdev->config + addr, val);
 
     if (k->set_config) {
-        k->set_config(vdev, addr, vdev->config);
+        k->set_config(vdev, vdev->config);
     }
 }
 
@@ -1393,7 +1393,7 @@ void virtio_config_modern_writew(VirtIODevice *vdev,
     stw_le_p(vdev->config + addr, val);
 
     if (k->set_config) {
-        k->set_config(vdev, addr, vdev->config);
+        k->set_config(vdev, vdev->config);
     }
 }
 
@@ -1410,7 +1410,7 @@ void virtio_config_modern_writel(VirtIODevice *vdev,
     stl_le_p(vdev->config + addr, val);
 
     if (k->set_config) {
-        k->set_config(vdev, addr, vdev->config);
+        k->set_config(vdev, vdev->config);
     }
 }
 

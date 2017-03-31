@@ -157,7 +157,7 @@ void virtio_input_idstr_config(VirtIOInput *vinput,
     virtio_input_add_config(vinput, &id);
 }
 
-static void virtio_input_get_config(VirtIODevice *vdev, uint32_t addr, uint8_t *config_data)
+static void virtio_input_get_config(VirtIODevice *vdev, uint8_t *config_data)
 {
     VirtIOInput *vinput = VIRTIO_INPUT(vdev);
     virtio_input_config *config;
@@ -171,7 +171,7 @@ static void virtio_input_get_config(VirtIODevice *vdev, uint32_t addr, uint8_t *
     }
 }
 
-static void virtio_input_set_config(VirtIODevice *vdev, uint32_t addr,
+static void virtio_input_set_config(VirtIODevice *vdev,
                                     const uint8_t *config_data)
 {
     VirtIOInput *vinput = VIRTIO_INPUT(vdev);

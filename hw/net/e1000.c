@@ -134,7 +134,7 @@ typedef struct E1000BaseClass {
     uint16_t phy_id2;
 } E1000BaseClass;
 
-#define TYPE_E1000_BASE "ptnetmap-netif"
+#define TYPE_E1000_BASE "e1000-base"
 
 #define E1000(obj) \
     OBJECT_CHECK(E1000State, (obj), TYPE_E1000_BASE)
