@@ -637,6 +637,7 @@ int net_init_netmap(const Netdev *netdev,
     s->vnet_hdr_len = 0;
     pstrcpy(s->ifname, sizeof(s->ifname), netmap_opts->ifname);
     QTAILQ_INSERT_TAIL(&netmap_clients, s, next);
+    netmap_read_poll(s, true); /* Initially only poll for reads. */
 #ifdef CONFIG_NETMAP_PASSTHROUGH
     if (netmap_opts->passthrough) {
         s->ptnetmap.netmap = s;
@@ -647,9 +648,9 @@ int net_init_netmap(const Netdev *netdev,
         if (netmap_has_vnet_hdr_len(nc, sizeof(struct virtio_net_hdr_v1))) {
             s->ptnetmap.features |= PTNETMAP_F_VNET_HDR;
         }
+        netmap_read_poll(s, false); /* avoid QEMU spinning on netmap fd */
     }
 #endif /* CONFIG_NETMAP_PASSTHROUGH */
-    netmap_read_poll(s, true); /* Initially only poll for reads. */
 
 
     return 0;
