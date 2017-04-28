@@ -595,7 +595,7 @@ static int connect_to_sdog(BDRVSheepdogState *s, Error **errp)
 {
     int fd;
 
-    fd = socket_connect(s->addr, errp, NULL, NULL);
+    fd = socket_connect(s->addr, NULL, NULL, errp);
 
     if (s->addr->type == SOCKET_ADDRESS_KIND_INET && fd >= 0) {
         int ret = socket_set_nodelay(fd);
@@ -736,7 +736,7 @@ static int do_req(int sockfd, BlockDriverState *bs, SheepdogReq *hdr,
     } else {
         co = qemu_coroutine_create(do_co_req, &srco);
         if (bs) {
-            qemu_coroutine_enter(co);
+            bdrv_coroutine_enter(bs, co);
             BDRV_POLL_WHILE(bs, !srco.finished);
         } else {
             qemu_coroutine_enter(co);
@@ -942,7 +942,7 @@ static void co_read_response(void *opaque)
         s->co_recv = qemu_coroutine_create(aio_read_response, opaque);
     }
 
-    aio_co_wake(s->co_recv);
+    aio_co_enter(s->aio_context, s->co_recv);
 }
 
 static void co_write_request(void *opaque)

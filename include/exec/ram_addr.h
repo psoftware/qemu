@@ -53,7 +53,7 @@ static inline void *ramblock_ptr(RAMBlock *block, ram_addr_t offset)
 }
 
 long qemu_getrampagesize(void);
-ram_addr_t last_ram_offset(void);
+unsigned long last_ram_page(void);
 RAMBlock *qemu_ram_alloc_from_file(ram_addr_t size, MemoryRegion *mr,
                                    bool share, const char *mem_path,
                                    Error **errp);
@@ -260,7 +260,7 @@ static inline void cpu_physical_memory_set_dirty_range(ram_addr_t start,
 
     rcu_read_unlock();
 
-    xen_modified_memory(start, length);
+    xen_hvm_modified_memory(start, length);
 }
 
 #if !defined(_WIN32)
@@ -314,7 +314,7 @@ static inline void cpu_physical_memory_set_dirty_lebitmap(unsigned long *bitmap,
 
         rcu_read_unlock();
 
-        xen_modified_memory(start, pages << TARGET_PAGE_BITS);
+        xen_hvm_modified_memory(start, pages << TARGET_PAGE_BITS);
     } else {
         uint8_t clients = tcg_enabled() ? DIRTY_CLIENTS_ALL : DIRTY_CLIENTS_NOCODE;
         /*
@@ -343,6 +343,13 @@ bool cpu_physical_memory_test_and_clear_dirty(ram_addr_t start,
                                               ram_addr_t length,
                                               unsigned client);
 
+DirtyBitmapSnapshot *cpu_physical_memory_snapshot_and_clear_dirty
+    (ram_addr_t start, ram_addr_t length, unsigned client);
+
+bool cpu_physical_memory_snapshot_get_dirty(DirtyBitmapSnapshot *snap,
+                                            ram_addr_t start,
+                                            ram_addr_t length);
+
 static inline void cpu_physical_memory_clear_dirty_range(ram_addr_t start,
                                                          ram_addr_t length)
 {
@@ -354,11 +361,13 @@ static inline void cpu_physical_memory_clear_dirty_range(ram_addr_t start,
 
 static inline
 uint64_t cpu_physical_memory_sync_dirty_bitmap(unsigned long *dest,
+                                               RAMBlock *rb,
                                                ram_addr_t start,
                                                ram_addr_t length,
-                                               int64_t *real_dirty_pages)
+                                               uint64_t *real_dirty_pages)
 {
     ram_addr_t addr;
+    start = rb->offset + start;
     unsigned long page = BIT_WORD(start >> TARGET_PAGE_BITS);
     uint64_t num_dirty = 0;
 
@@ -411,7 +420,5 @@ uint64_t cpu_physical_memory_sync_dirty_bitmap(unsigned long *dest,
 
     return num_dirty;
 }
-
-void migration_bitmap_extend(ram_addr_t old, ram_addr_t new);
 #endif
 #endif

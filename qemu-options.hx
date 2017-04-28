@@ -425,7 +425,7 @@ possible drivers and properties, use @code{-device help} and
 @code{-device @var{driver},help}.
 
 Some drivers are:
-@item -device ipmi-bmc-sim,id=@var{id}[,slave_addr=@var{val}]
+@item -device ipmi-bmc-sim,id=@var{id}[,slave_addr=@var{val}][,sdrfile=@var{file}][,furareasize=@var{val}][,furdatafile=@var{file}]
 
 Add an IPMI BMC.  This is a simulation of a hardware management
 interface processor that normally sits on a system.  It provides
@@ -436,6 +436,19 @@ The IPMI slave address to use for the BMC.  The default is 0x20.
 This address is the BMC's address on the I2C network of management
 controllers.  If you don't know what this means, it is safe to ignore
 it.
+
+@table @option
+@item bmc=@var{id}
+The BMC to connect to, one of ipmi-bmc-sim or ipmi-bmc-extern above.
+@item slave_addr=@var{val}
+Define slave address to use for the BMC.  The default is 0x20.
+@item sdrfile=@var{file}
+file containing raw Sensor Data Records (SDR) data. The default is none.
+@item fruareasize=@var{val}
+size of a Field Replaceable Unit (FRU) area.  The default is 1024.
+@item frudatafile=@var{file}
+file containing raw Field Replaceable Unit (FRU) inventory data. The default is none.
+@end table
 
 @item -device ipmi-bmc-extern,id=@var{id},chardev=@var{id}[,slave_addr=@var{val}]
 
@@ -635,6 +648,30 @@ file sectors into the image file.
 conversion of plain zero writes by the OS to driver specific optimized
 zero write commands. You may even choose "unmap" if @var{discard} is set
 to "unmap" to allow a zero write to be converted to an UNMAP operation.
+@item bps=@var{b},bps_rd=@var{r},bps_wr=@var{w}
+Specify bandwidth throttling limits in bytes per second, either for all request
+types or for reads or writes only.  Small values can lead to timeouts or hangs
+inside the guest.  A safe minimum for disks is 2 MB/s.
+@item bps_max=@var{bm},bps_rd_max=@var{rm},bps_wr_max=@var{wm}
+Specify bursts in bytes per second, either for all request types or for reads
+or writes only.  Bursts allow the guest I/O to spike above the limit
+temporarily.
+@item iops=@var{i},iops_rd=@var{r},iops_wr=@var{w}
+Specify request rate limits in requests per second, either for all request
+types or for reads or writes only.
+@item iops_max=@var{bm},iops_rd_max=@var{rm},iops_wr_max=@var{wm}
+Specify bursts in requests per second, either for all request types or for reads
+or writes only.  Bursts allow the guest I/O to spike above the limit
+temporarily.
+@item iops_size=@var{is}
+Let every @var{is} bytes of a request count as a new request for iops
+throttling purposes.  Use this option to prevent guests from circumventing iops
+limits by sending fewer but larger requests.
+@item group=@var{g}
+Join a throttling quota group with given name @var{g}.  All drives that are
+members of the same group are accounted for together.  Use this option to
+prevent guests from circumventing throttling limits by using many small disks
+instead of a single larger disk.
 @end table
 
 By default, the @option{cache=writeback} mode is used. It will report data
@@ -3354,6 +3391,11 @@ DEF("xen-attach", 0, QEMU_OPTION_xen_attach,
     "-xen-attach     attach to existing xen domain\n"
     "                xend will use this when starting QEMU\n",
     QEMU_ARCH_ALL)
+DEF("xen-domid-restrict", 0, QEMU_OPTION_xen_domid_restrict,
+    "-xen-domid-restrict     restrict set of available xen operations\n"
+    "                        to specified domain id. (Does not affect\n"
+    "                        xenpv machine type).\n",
+    QEMU_ARCH_ALL)
 STEXI
 @item -xen-domid @var{id}
 @findex -xen-domid
@@ -3366,6 +3408,8 @@ Warning: should not be used when xend is in use (XEN only).
 @findex -xen-attach
 Attach to existing xen domain.
 xend will use this when starting QEMU (XEN only).
+@findex -xen-domid-restrict
+Restrict set of available xen operations to specified domain id (XEN only).
 ETEXI
 
 DEF("no-reboot", 0, QEMU_OPTION_no_reboot, \

@@ -233,7 +233,32 @@ static int colo_packet_compare_tcp(Packet *spkt, Packet *ppkt)
         spkt->ip->ip_sum = ppkt->ip->ip_sum;
     }
 
-    if (ptcp->th_sum == stcp->th_sum) {
+    /*
+     * Check tcp header length for tcp option field.
+     * th_off > 5 means this tcp packet have options field.
+     * The tcp options maybe always different.
+     * for example:
+     * From RFC 7323.
+     * TCP Timestamps option (TSopt):
+     * Kind: 8
+     *
+     * Length: 10 bytes
+     *
+     *    +-------+-------+---------------------+---------------------+
+     *    |Kind=8 |  10   |   TS Value (TSval)  |TS Echo Reply (TSecr)|
+     *    +-------+-------+---------------------+---------------------+
+     *       1       1              4                     4
+     *
+     * In this case the primary guest's timestamp always different with
+     * the secondary guest's timestamp. COLO just focus on payload,
+     * so we just need skip this field.
+     */
+    if (ptcp->th_off > 5) {
+        ptrdiff_t tcp_offset;
+        tcp_offset = ppkt->transport_header - (uint8_t *)ppkt->data
+                     + (ptcp->th_off * 4);
+        res = colo_packet_compare_common(ppkt, spkt, tcp_offset);
+    } else if (ptcp->th_sum == stcp->th_sum) {
         res = colo_packet_compare_common(ppkt, spkt, ETH_HLEN);
     } else {
         res = -1;
@@ -372,10 +397,9 @@ static int colo_old_packet_check_one(Packet *pkt, int64_t *check_time)
     }
 }
 
-static void colo_old_packet_check_one_conn(void *opaque,
-                                           void *user_data)
+static int colo_old_packet_check_one_conn(Connection *conn,
+                                          void *user_data)
 {
-    Connection *conn = opaque;
     GList *result = NULL;
     int64_t check_time = REGULAR_PACKET_CHECK_MS;
 
@@ -386,7 +410,10 @@ static void colo_old_packet_check_one_conn(void *opaque,
     if (result) {
         /* do checkpoint will flush old packet */
         /* TODO: colo_notify_checkpoint();*/
+        return 0;
     }
+
+    return 1;
 }
 
 /*
@@ -398,7 +425,12 @@ static void colo_old_packet_check(void *opaque)
 {
     CompareState *s = opaque;
 
-    g_queue_foreach(&s->conn_list, colo_old_packet_check_one_conn, NULL);
+    /*
+     * If we find one old packet, stop finding job and notify
+     * COLO frame do checkpoint.
+     */
+    g_queue_find_custom(&s->conn_list, NULL,
+                        (GCompareFunc)colo_old_packet_check_one_conn);
 }
 
 /*

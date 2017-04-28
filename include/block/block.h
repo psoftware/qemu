@@ -381,12 +381,13 @@ void bdrv_drain_all(void);
 
 #define BDRV_POLL_WHILE(bs, cond) ({                       \
     bool waited_ = false;                                  \
+    bool busy_ = true;                                     \
     BlockDriverState *bs_ = (bs);                          \
     AioContext *ctx_ = bdrv_get_aio_context(bs_);          \
     if (aio_context_in_iothread(ctx_)) {                   \
-        while ((cond)) {                                   \
-            aio_poll(ctx_, true);                          \
-            waited_ = true;                                \
+        while ((cond) || busy_) {                          \
+            busy_ = aio_poll(ctx_, (cond));                \
+            waited_ |= !!(cond) | busy_;                   \
         }                                                  \
     } else {                                               \
         assert(qemu_get_current_aio_context() ==           \
@@ -398,11 +399,16 @@ void bdrv_drain_all(void);
          */                                                \
         assert(!bs_->wakeup);                              \
         bs_->wakeup = true;                                \
-        while ((cond)) {                                   \
-            aio_context_release(ctx_);                     \
-            aio_poll(qemu_get_aio_context(), true);        \
-            aio_context_acquire(ctx_);                     \
-            waited_ = true;                                \
+        while (busy_) {                                    \
+            if ((cond)) {                                  \
+                waited_ = busy_ = true;                    \
+                aio_context_release(ctx_);                 \
+                aio_poll(qemu_get_aio_context(), true);    \
+                aio_context_acquire(ctx_);                 \
+            } else {                                       \
+                busy_ = aio_poll(ctx_, false);             \
+                waited_ |= busy_;                          \
+            }                                              \
         }                                                  \
         bs_->wakeup = false;                               \
     }                                                      \
@@ -428,6 +434,8 @@ int bdrv_is_allocated_above(BlockDriverState *top, BlockDriverState *base,
                             int64_t sector_num, int nb_sectors, int *pnum);
 
 bool bdrv_is_read_only(BlockDriverState *bs);
+int bdrv_can_set_read_only(BlockDriverState *bs, bool read_only, Error **errp);
+int bdrv_set_read_only(BlockDriverState *bs, bool read_only, Error **errp);
 bool bdrv_is_sg(BlockDriverState *bs);
 bool bdrv_is_inserted(BlockDriverState *bs);
 int bdrv_media_changed(BlockDriverState *bs);
@@ -503,7 +511,7 @@ int bdrv_load_vmstate(BlockDriverState *bs, uint8_t *buf,
 void bdrv_img_create(const char *filename, const char *fmt,
                      const char *base_filename, const char *base_fmt,
                      char *options, uint64_t img_size, int flags,
-                     Error **errp, bool quiet);
+                     bool quiet, Error **errp);
 
 /* Returns the alignment in bytes that is required so that no bounce buffer
  * is required throughout the stack */
@@ -558,6 +566,11 @@ bool bdrv_debug_is_suspended(BlockDriverState *bs, const char *tag);
 AioContext *bdrv_get_aio_context(BlockDriverState *bs);
 
 /**
+ * Transfer control to @co in the aio context of @bs
+ */
+void bdrv_coroutine_enter(BlockDriverState *bs, Coroutine *co);
+
+/**
  * bdrv_set_aio_context:
  *
  * Changes the #AioContext used for fd handlers, timers, and BHs by this
@@ -571,6 +584,22 @@ int bdrv_probe_geometry(BlockDriverState *bs, HDGeometry *geo);
 
 void bdrv_io_plug(BlockDriverState *bs);
 void bdrv_io_unplug(BlockDriverState *bs);
+
+/**
+ * bdrv_parent_drained_begin:
+ *
+ * Begin a quiesced section of all users of @bs. This is part of
+ * bdrv_drained_begin.
+ */
+void bdrv_parent_drained_begin(BlockDriverState *bs);
+
+/**
+ * bdrv_parent_drained_end:
+ *
+ * End a quiesced section of all users of @bs. This is part of
+ * bdrv_drained_end.
+ */
+void bdrv_parent_drained_end(BlockDriverState *bs);
 
 /**
  * bdrv_drained_begin:
