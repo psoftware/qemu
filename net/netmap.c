@@ -520,14 +520,20 @@ ptnetmap_ack_features(PTNetmapState *ptn, uint32_t wanted_features)
 int
 ptnetmap_get_netmap_if(PTNetmapState *ptn, NetmapIf *nif)
 {
-    NetmapState *s = ptn->netmap;
+    NetmapState *s;
 
-    memset(nif, 0, sizeof(*nif));
+    if (!ptn) {
+        error_report("Cannot get netmap info on a backend which "
+                     "is not netmap");
+        return EINVAL;
+    }
 
+    s = ptn->netmap;
     if (s->nmd == NULL) {
         return EINVAL;
     }
 
+    memset(nif, 0, sizeof(*nif));
     nif->nifp_offset = s->nmd->req.nr_offset;
     nif->num_tx_rings = s->nmd->req.nr_tx_rings;
     nif->num_rx_rings = s->nmd->req.nr_rx_rings;
