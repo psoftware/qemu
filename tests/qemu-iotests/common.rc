@@ -92,6 +92,7 @@ else
         TEST_IMG=$IMGPROTO:$TEST_DIR/t.$IMGFMT
     fi
 fi
+ORIG_TEST_IMG="$TEST_IMG"
 
 _optstr_add()
 {
@@ -106,6 +107,9 @@ _set_default_imgopts()
 {
     if [ "$IMGFMT" == "qcow2" ] && ! (echo "$IMGOPTS" | grep "compat=" > /dev/null); then
         IMGOPTS=$(_optstr_add "$IMGOPTS" "compat=1.1")
+    fi
+    if [ "$IMGFMT" == "luks" ] && ! (echo "$IMGOPTS" | grep "iter-time=" > /dev/null); then
+        IMGOPTS=$(_optstr_add "$IMGOPTS" "iter-time=10")
     fi
 }
 
@@ -171,7 +175,9 @@ _make_test_img()
 
     # Start an NBD server on the image file, which is what we'll be talking to
     if [ $IMGPROTO = "nbd" ]; then
-        eval "$QEMU_NBD -v -t -b 127.0.0.1 -p 10810 -f $IMGFMT  $TEST_IMG_FILE >/dev/null &"
+        # Pass a sufficiently high number to -e that should be enough for all
+        # tests
+        eval "$QEMU_NBD -v -t -b 127.0.0.1 -p 10810 -f $IMGFMT -e 42  $TEST_IMG_FILE >/dev/null &"
         sleep 1 # FIXME: qemu-nbd needs to be listening before we continue
     fi
 
@@ -223,6 +229,8 @@ _cleanup_test_img()
             if [ -n "$SAMPLE_IMG_FILE" ]
             then
                 rm -f "$TEST_DIR/$SAMPLE_IMG_FILE"
+                SAMPLE_IMG_FILE=
+                TEST_IMG="$ORIG_TEST_IMG"
             fi
             ;;
 

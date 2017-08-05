@@ -29,6 +29,7 @@
 #define XICS_H
 
 #include "hw/qdev.h"
+#include "target/ppc/cpu-qom.h"
 
 #define XICS_IPI        0x2
 #define XICS_BUID       0x1
@@ -46,7 +47,6 @@ typedef struct ICSStateClass ICSStateClass;
 typedef struct ICSState ICSState;
 typedef struct ICSIRQState ICSIRQState;
 typedef struct XICSFabric XICSFabric;
-typedef struct PowerPCCPU PowerPCCPU;
 
 #define TYPE_ICP "icp"
 #define ICP(obj) OBJECT_CHECK(ICPState, (obj), TYPE_ICP)
@@ -65,10 +65,10 @@ typedef struct PowerPCCPU PowerPCCPU;
 struct ICPStateClass {
     DeviceClass parent_class;
 
-    void (*realize)(DeviceState *dev, Error **errp);
-    void (*pre_save)(ICPState *s);
-    int (*post_load)(ICPState *s, int version_id);
-    void (*cpu_setup)(ICPState *icp, PowerPCCPU *cpu);
+    void (*realize)(ICPState *icp, Error **errp);
+    void (*pre_save)(ICPState *icp);
+    int (*post_load)(ICPState *icp, int version_id);
+    void (*reset)(ICPState *icp);
 };
 
 struct ICPState {
@@ -81,10 +81,12 @@ struct ICPState {
     uint8_t pending_priority;
     uint8_t mfrr;
     qemu_irq output;
-    bool cap_irq_xics_enabled;
 
     XICSFabric *xics;
 };
+
+#define ICP_PROP_XICS "xics"
+#define ICP_PROP_CPU "cpu"
 
 struct PnvICPState {
     ICPState parent_obj;
@@ -111,7 +113,7 @@ struct PnvICPState {
 struct ICSStateClass {
     DeviceClass parent_class;
 
-    void (*realize)(DeviceState *dev, Error **errp);
+    void (*realize)(ICSState *s, Error **errp);
     void (*pre_save)(ICSState *s);
     int (*post_load)(ICSState *s, int version_id);
     void (*reject)(ICSState *s, uint32_t irq);
@@ -130,6 +132,8 @@ struct ICSState {
     XICSFabric *xics;
 };
 
+#define ICS_PROP_XICS "xics"
+
 static inline bool ics_valid_irq(ICSState *ics, uint32_t nr)
 {
     return (ics->offset != 0) && (nr >= ics->offset)
@@ -144,6 +148,8 @@ struct ICSIRQState {
 #define XICS_STATUS_SENT               0x2
 #define XICS_STATUS_REJECTED           0x4
 #define XICS_STATUS_MASKED_PENDING     0x8
+#define XICS_STATUS_PRESENTED          0x10
+#define XICS_STATUS_QUEUED             0x20
     uint8_t status;
 /* (flags & XICS_FLAGS_IRQ_MASK) == 0 means the interrupt is not allocated */
 #define XICS_FLAGS_IRQ_LSI             0x1
@@ -181,8 +187,6 @@ void spapr_dt_xics(int nr_servers, void *fdt, uint32_t phandle);
 
 qemu_irq xics_get_qirq(XICSFabric *xi, int irq);
 ICPState *xics_icp_get(XICSFabric *xi, int server);
-void xics_cpu_setup(XICSFabric *xi, PowerPCCPU *cpu, ICPState *icp);
-void xics_cpu_destroy(XICSFabric *xi, PowerPCCPU *cpu);
 
 /* Internal XICS interfaces */
 void icp_set_cppr(ICPState *icp, uint8_t cppr);
@@ -204,6 +208,6 @@ void icp_resend(ICPState *ss);
 typedef struct sPAPRMachineState sPAPRMachineState;
 
 int xics_kvm_init(sPAPRMachineState *spapr, Error **errp);
-int xics_spapr_init(sPAPRMachineState *spapr, Error **errp);
+void xics_spapr_init(sPAPRMachineState *spapr);
 
 #endif /* XICS_H */

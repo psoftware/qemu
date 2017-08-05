@@ -124,6 +124,11 @@ typedef struct {
     uint8_t id;
     uint16_t tag_le;
 } QEMU_PACKED P9MsgHeader;
+/* According to the specification, 9p messages start with a 7-byte header.
+ * Since most of the code uses this header size in literal form, we must be
+ * sure this is indeed the case.
+ */
+QEMU_BUILD_BUG_ON(sizeof(P9MsgHeader) != 7);
 
 struct V9fsPDU
 {
@@ -347,7 +352,7 @@ ssize_t pdu_marshal(V9fsPDU *pdu, size_t offset, const char *fmt, ...);
 ssize_t pdu_unmarshal(V9fsPDU *pdu, size_t offset, const char *fmt, ...);
 V9fsPDU *pdu_alloc(V9fsState *s);
 void pdu_free(V9fsPDU *pdu);
-void pdu_submit(V9fsPDU *pdu);
+void pdu_submit(V9fsPDU *pdu, P9MsgHeader *hdr);
 void v9fs_reset(V9fsState *s);
 
 struct V9fsTransport {
@@ -358,7 +363,7 @@ struct V9fsTransport {
     void        (*init_in_iov_from_pdu)(V9fsPDU *pdu, struct iovec **piov,
                                         unsigned int *pniov, size_t size);
     void        (*init_out_iov_from_pdu)(V9fsPDU *pdu, struct iovec **piov,
-                                         unsigned int *pniov);
+                                         unsigned int *pniov, size_t size);
     void        (*push_and_notify)(V9fsPDU *pdu);
 };
 

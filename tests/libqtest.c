@@ -160,7 +160,10 @@ QTestState *qtest_init_without_qmp_handshake(const char *extra_args)
     const char *qemu_binary;
 
     qemu_binary = getenv("QTEST_QEMU_BINARY");
-    g_assert(qemu_binary != NULL);
+    if (!qemu_binary) {
+        fprintf(stderr, "Environment variable QTEST_QEMU_BINARY required\n");
+        exit(1);
+    }
 
     s = g_malloc(sizeof(*s));
 
@@ -445,6 +448,14 @@ void qmp_fd_sendv(int fd, const char *fmt, va_list ap)
 {
     va_list ap_copy;
     QObject *qobj;
+
+    /* qobject_from_jsonv() silently eats leading 0xff as invalid
+     * JSON, but we want to test sending them over the wire to force
+     * resyncs */
+    if (*fmt == '\377') {
+        socket_send(fd, fmt, 1);
+        fmt++;
+    }
 
     /* Going through qobject ensures we escape strings properly.
      * This seemingly unnecessary copy is required in case va_list

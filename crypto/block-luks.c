@@ -473,9 +473,9 @@ qcrypto_block_luks_load_key(QCryptoBlock *block,
      * then encrypted.
      */
     rv = readfunc(block,
-                  opaque,
                   slot->key_offset * QCRYPTO_BLOCK_LUKS_SECTOR_SIZE,
                   splitkey, splitkeylen,
+                  opaque,
                   errp);
     if (rv < 0) {
         goto cleanup;
@@ -638,6 +638,7 @@ qcrypto_block_luks_find_key(QCryptoBlock *block,
 static int
 qcrypto_block_luks_open(QCryptoBlock *block,
                         QCryptoBlockOpenOptions *options,
+                        const char *optprefix,
                         QCryptoBlockReadFunc readfunc,
                         void *opaque,
                         unsigned int flags,
@@ -661,7 +662,8 @@ qcrypto_block_luks_open(QCryptoBlock *block,
 
     if (!(flags & QCRYPTO_BLOCK_OPEN_NO_IO)) {
         if (!options->u.luks.key_secret) {
-            error_setg(errp, "Parameter 'key-secret' is required for cipher");
+            error_setg(errp, "Parameter '%skey-secret' is required for cipher",
+                       optprefix ? optprefix : "");
             return -1;
         }
         password = qcrypto_secret_lookup_as_utf8(
@@ -676,9 +678,10 @@ qcrypto_block_luks_open(QCryptoBlock *block,
 
     /* Read the entire LUKS header, minus the key material from
      * the underlying device */
-    rv = readfunc(block, opaque, 0,
+    rv = readfunc(block, 0,
                   (uint8_t *)&luks->header,
                   sizeof(luks->header),
+                  opaque,
                   errp);
     if (rv < 0) {
         ret = rv;
@@ -884,6 +887,7 @@ qcrypto_block_luks_uuid_gen(uint8_t *uuidstr)
 static int
 qcrypto_block_luks_create(QCryptoBlock *block,
                           QCryptoBlockCreateOptions *options,
+                          const char *optprefix,
                           QCryptoBlockInitFunc initfunc,
                           QCryptoBlockWriteFunc writefunc,
                           void *opaque,
@@ -936,7 +940,8 @@ qcrypto_block_luks_create(QCryptoBlock *block,
      * be silently ignored, for compatibility with dm-crypt */
 
     if (!options->u.luks.key_secret) {
-        error_setg(errp, "Parameter 'key-secret' is required for cipher");
+        error_setg(errp, "Parameter '%skey-secret' is required for cipher",
+                   optprefix ? optprefix : "");
         return -1;
     }
     password = qcrypto_secret_lookup_as_utf8(luks_opts.key_secret, errp);
@@ -1245,7 +1250,7 @@ qcrypto_block_luks_create(QCryptoBlock *block,
         QCRYPTO_BLOCK_LUKS_SECTOR_SIZE;
 
     /* Reserve header space to match payload offset */
-    initfunc(block, opaque, block->payload_offset, &local_err);
+    initfunc(block, block->payload_offset, opaque, &local_err);
     if (local_err) {
         error_propagate(errp, local_err);
         goto error;
@@ -1267,9 +1272,10 @@ qcrypto_block_luks_create(QCryptoBlock *block,
 
 
     /* Write out the partition header and key slot headers */
-    writefunc(block, opaque, 0,
+    writefunc(block, 0,
               (const uint8_t *)&luks->header,
               sizeof(luks->header),
+              opaque,
               &local_err);
 
     /* Delay checking local_err until we've byte-swapped */
@@ -1295,10 +1301,11 @@ qcrypto_block_luks_create(QCryptoBlock *block,
 
     /* Write out the master key material, starting at the
      * sector immediately following the partition header. */
-    if (writefunc(block, opaque,
+    if (writefunc(block,
                   luks->header.key_slots[0].key_offset *
                   QCRYPTO_BLOCK_LUKS_SECTOR_SIZE,
                   splitkey, splitkeylen,
+                  opaque,
                   errp) != splitkeylen) {
         goto error;
     }

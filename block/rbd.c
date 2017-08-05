@@ -154,20 +154,20 @@ static void qemu_rbd_parse_filename(const char *filename, QDict *options,
         goto done;
     }
     qemu_rbd_unescape(found_str);
-    qdict_put(options, "pool", qstring_from_str(found_str));
+    qdict_put_str(options, "pool", found_str);
 
     if (strchr(p, '@')) {
         found_str = qemu_rbd_next_tok(p, '@', &p);
         qemu_rbd_unescape(found_str);
-        qdict_put(options, "image", qstring_from_str(found_str));
+        qdict_put_str(options, "image", found_str);
 
         found_str = qemu_rbd_next_tok(p, ':', &p);
         qemu_rbd_unescape(found_str);
-        qdict_put(options, "snapshot", qstring_from_str(found_str));
+        qdict_put_str(options, "snapshot", found_str);
     } else {
         found_str = qemu_rbd_next_tok(p, ':', &p);
         qemu_rbd_unescape(found_str);
-        qdict_put(options, "image", qstring_from_str(found_str));
+        qdict_put_str(options, "image", found_str);
     }
     if (!p) {
         goto done;
@@ -189,9 +189,9 @@ static void qemu_rbd_parse_filename(const char *filename, QDict *options,
         qemu_rbd_unescape(value);
 
         if (!strcmp(name, "conf")) {
-            qdict_put(options, "conf", qstring_from_str(value));
+            qdict_put_str(options, "conf", value);
         } else if (!strcmp(name, "id")) {
-            qdict_put(options, "user" , qstring_from_str(value));
+            qdict_put_str(options, "user", value);
         } else {
             /*
              * We pass these internally to qemu_rbd_set_keypairs(), so
@@ -204,8 +204,8 @@ static void qemu_rbd_parse_filename(const char *filename, QDict *options,
             if (!keypairs) {
                 keypairs = qlist_new();
             }
-            qlist_append(keypairs, qstring_from_str(name));
-            qlist_append(keypairs, qstring_from_str(value));
+            qlist_append_str(keypairs, name);
+            qlist_append_str(keypairs, value);
         }
     }
 
@@ -339,6 +339,10 @@ static QemuOptsList runtime_opts = {
             .name = "=keyvalue-pairs",
             .type = QEMU_OPT_STRING,
             .help = "Legacy rados key/value option parameters",
+        },
+        {
+            .name = "filename",
+            .type = QEMU_OPT_STRING,
         },
         { /* end of list */ }
     },
@@ -541,11 +545,26 @@ static int qemu_rbd_open(BlockDriverState *bs, QDict *options, int flags,
 {
     BDRVRBDState *s = bs->opaque;
     const char *pool, *snap, *conf, *user, *image_name, *keypairs;
-    const char *secretid;
+    const char *secretid, *filename;
     QemuOpts *opts;
     Error *local_err = NULL;
     char *mon_host = NULL;
     int r;
+
+    /* If we are given a filename, parse the filename, with precedence given to
+     * filename encoded options */
+    filename = qdict_get_try_str(options, "filename");
+    if (filename) {
+        warn_report("'filename' option specified. "
+                    "This is an unsupported option, and may be deprecated "
+                    "in the future");
+        qemu_rbd_parse_filename(filename, options, &local_err);
+        if (local_err) {
+            r = -EINVAL;
+            error_propagate(errp, local_err);
+            goto exit;
+        }
+    }
 
     opts = qemu_opts_create(&runtime_opts, NULL, 0, &error_abort);
     qemu_opts_absorb_qdict(opts, options, &local_err);
@@ -665,6 +684,7 @@ failed_shutdown:
 failed_opts:
     qemu_opts_del(opts);
     g_free(mon_host);
+exit:
     return r;
 }
 
@@ -916,13 +936,21 @@ static int64_t qemu_rbd_getlength(BlockDriverState *bs)
     return info.size;
 }
 
-static int qemu_rbd_truncate(BlockDriverState *bs, int64_t offset)
+static int qemu_rbd_truncate(BlockDriverState *bs, int64_t offset,
+                             PreallocMode prealloc, Error **errp)
 {
     BDRVRBDState *s = bs->opaque;
     int r;
 
+    if (prealloc != PREALLOC_MODE_OFF) {
+        error_setg(errp, "Unsupported preallocation mode '%s'",
+                   PreallocMode_lookup[prealloc]);
+        return -ENOTSUP;
+    }
+
     r = rbd_resize(s->image, offset);
     if (r < 0) {
+        error_setg_errno(errp, -r, "Failed to resize file");
         return r;
     }
 
@@ -1044,11 +1072,11 @@ static int qemu_rbd_snap_list(BlockDriverState *bs,
 #ifdef LIBRBD_SUPPORTS_DISCARD
 static BlockAIOCB *qemu_rbd_aio_pdiscard(BlockDriverState *bs,
                                          int64_t offset,
-                                         int count,
+                                         int bytes,
                                          BlockCompletionFunc *cb,
                                          void *opaque)
 {
-    return rbd_start_aio(bs, offset, NULL, count, cb, opaque,
+    return rbd_start_aio(bs, offset, NULL, bytes, cb, opaque,
                          RBD_AIO_DISCARD);
 }
 #endif
