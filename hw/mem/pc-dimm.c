@@ -159,6 +159,11 @@ uint64_t pc_existing_dimms_capacity(Error **errp)
     return cap.size;
 }
 
+uint64_t get_plugged_memory_size(void)
+{
+    return pc_existing_dimms_capacity(&error_abort);
+}
+
 int qmp_pc_dimm_device_list(Object *obj, void *opaque)
 {
     MemoryDeviceInfoList ***prev = opaque;
@@ -363,7 +368,10 @@ static void pc_dimm_get_size(Object *obj, Visitor *v, const char *name,
     PCDIMMDevice *dimm = PC_DIMM(obj);
     PCDIMMDeviceClass *ddc = PC_DIMM_GET_CLASS(obj);
 
-    mr = ddc->get_memory_region(dimm);
+    mr = ddc->get_memory_region(dimm, errp);
+    if (!mr) {
+        return;
+    }
     value = memory_region_size(mr);
 
     visit_type_uint64(v, name, &value, errp);
@@ -411,9 +419,14 @@ static void pc_dimm_unrealize(DeviceState *dev, Error **errp)
     host_memory_backend_set_mapped(dimm->hostmem, false);
 }
 
-static MemoryRegion *pc_dimm_get_memory_region(PCDIMMDevice *dimm)
+static MemoryRegion *pc_dimm_get_memory_region(PCDIMMDevice *dimm, Error **errp)
 {
-    return host_memory_backend_get_memory(dimm->hostmem, &error_abort);
+    if (!dimm->hostmem) {
+        error_setg(errp, "'" PC_DIMM_MEMDEV_PROP "' property must be set");
+        return NULL;
+    }
+
+    return host_memory_backend_get_memory(dimm->hostmem, errp);
 }
 
 static MemoryRegion *pc_dimm_get_vmstate_memory_region(PCDIMMDevice *dimm)

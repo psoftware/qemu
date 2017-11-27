@@ -1008,13 +1008,6 @@ static int vhdx_open(BlockDriverState *bs, QDict *options, int flags,
         goto fail;
     }
 
-    if (flags & BDRV_O_RDWR) {
-        ret = vhdx_update_headers(bs, s, false, NULL);
-        if (ret < 0) {
-            goto fail;
-        }
-    }
-
     /* TODO: differencing files */
 
     return 0;
@@ -1166,10 +1159,20 @@ exit:
 static int vhdx_allocate_block(BlockDriverState *bs, BDRVVHDXState *s,
                                     uint64_t *new_offset)
 {
-    *new_offset = bdrv_getlength(bs->file->bs);
+    int64_t current_len;
+
+    current_len = bdrv_getlength(bs->file->bs);
+    if (current_len < 0) {
+        return current_len;
+    }
+
+    *new_offset = current_len;
 
     /* per the spec, the address for a block is in units of 1MB */
     *new_offset = ROUND_UP(*new_offset, 1024 * 1024);
+    if (*new_offset > INT64_MAX) {
+        return -EINVAL;
+    }
 
     return bdrv_truncate(bs->file, *new_offset + s->block_size,
                          PREALLOC_MODE_OFF, NULL);

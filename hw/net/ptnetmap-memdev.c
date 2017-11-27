@@ -273,6 +273,11 @@ static const TypeInfo ptnetmap_memdev_info = {
     .parent        = TYPE_PCI_DEVICE,
     .instance_size = sizeof(PTNetmapMemDevState),
     .class_init    = ptnetmap_memdev_class_init,
+    .interfaces = (InterfaceInfo[]) {
+        { INTERFACE_PCIE_DEVICE },
+        { INTERFACE_CONVENTIONAL_PCI_DEVICE },
+        { }
+    },
 };
 
 static void ptnetmap_memdev_register_types(void)

@@ -34,7 +34,6 @@
 #include "qemu/log.h"
 #include "qemu/systemd.h"
 #include "block/snapshot.h"
-#include "qapi/util.h"
 #include "qapi/qmp/qstring.h"
 #include "qom/object_interfaces.h"
 #include "io/channel-socket.h"
@@ -123,7 +122,7 @@ static void usage(const char *name)
 "      --detect-zeroes=MODE  set detect-zeroes mode (off, on, unmap)\n"
 "      --image-opts          treat FILE as a full set of image options\n"
 "\n"
-"Report bugs to <qemu-devel@nongnu.org>\n"
+QEMU_HELP_BOTTOM "\n"
     , name, NBD_DEFAULT_PORT, "DEVICE");
 }
 
@@ -639,9 +638,8 @@ int main(int argc, char **argv)
             break;
         case QEMU_NBD_OPT_DETECT_ZEROES:
             detect_zeroes =
-                qapi_enum_parse(BlockdevDetectZeroesOptions_lookup,
+                qapi_enum_parse(&BlockdevDetectZeroesOptions_lookup,
                                 optarg,
-                                BLOCKDEV_DETECT_ZEROES_OPTIONS__MAX,
                                 BLOCKDEV_DETECT_ZEROES_OPTIONS_OFF,
                                 &local_err);
             if (local_err) {

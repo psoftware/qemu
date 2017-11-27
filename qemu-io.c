@@ -26,6 +26,7 @@
 #include "block/block_int.h"
 #include "trace/control.h"
 #include "crypto/init.h"
+#include "qemu-version.h"
 
 #define CMD_NOFILE_OK   0x01
 
@@ -101,6 +102,7 @@ static void open_help(void)
 " Opens a file for subsequent use by all of the other qemu-io commands.\n"
 " -r, -- open file read-only\n"
 " -s, -- use snapshot file\n"
+" -C, -- use copy-on-read\n"
 " -n, -- disable host cache, short for -t none\n"
 " -U, -- force shared permissions\n"
 " -k, -- use kernel AIO implementation (on Linux only)\n"
@@ -119,7 +121,7 @@ static const cmdinfo_t open_cmd = {
     .argmin     = 1,
     .argmax     = -1,
     .flags      = CMD_NOFILE_OK,
-    .args       = "[-rsnkU] [-t cache] [-d discard] [-o options] [path]",
+    .args       = "[-rsCnkU] [-t cache] [-d discard] [-o options] [path]",
     .oneline    = "open the file specified by path",
     .help       = open_help,
 };
@@ -144,7 +146,7 @@ static int open_f(BlockBackend *blk, int argc, char **argv)
     QDict *opts;
     bool force_share = false;
 
-    while ((c = getopt(argc, argv, "snro:kt:d:U")) != -1) {
+    while ((c = getopt(argc, argv, "snCro:kt:d:U")) != -1) {
         switch (c) {
         case 's':
             flags |= BDRV_O_SNAPSHOT;
@@ -152,6 +154,9 @@ static int open_f(BlockBackend *blk, int argc, char **argv)
         case 'n':
             flags |= BDRV_O_NOCACHE;
             writethrough = false;
+            break;
+        case 'C':
+            flags |= BDRV_O_COPY_ON_READ;
             break;
         case 'r':
             readonly = 1;
@@ -250,6 +255,7 @@ static void usage(const char *name)
 "  -r, --read-only      export read-only\n"
 "  -s, --snapshot       use snapshot file\n"
 "  -n, --nocache        disable host cache, short for -t none\n"
+"  -C, --copy-on-read   enable copy-on-read\n"
 "  -m, --misalign       misalign allocations for O_DIRECT\n"
 "  -k, --native-aio     use kernel AIO implementation (on Linux only)\n"
 "  -t, --cache=MODE     use the given cache mode for the image\n"
@@ -261,8 +267,9 @@ static void usage(const char *name)
 "  -h, --help           display this help and exit\n"
 "  -V, --version        output version information and exit\n"
 "\n"
-"See '%s -c help' for information on available commands."
-"\n",
+"See '%s -c help' for information on available commands.\n"
+"\n"
+QEMU_HELP_BOTTOM "\n",
     name, name);
 }
 
@@ -437,7 +444,7 @@ static QemuOptsList file_opts = {
 int main(int argc, char **argv)
 {
     int readonly = 0;
-    const char *sopt = "hVc:d:f:rsnmkt:T:U";
+    const char *sopt = "hVc:d:f:rsnCmkt:T:U";
     const struct option lopt[] = {
         { "help", no_argument, NULL, 'h' },
         { "version", no_argument, NULL, 'V' },
@@ -446,6 +453,7 @@ int main(int argc, char **argv)
         { "read-only", no_argument, NULL, 'r' },
         { "snapshot", no_argument, NULL, 's' },
         { "nocache", no_argument, NULL, 'n' },
+        { "copy-on-read", no_argument, NULL, 'C' },
         { "misalign", no_argument, NULL, 'm' },
         { "native-aio", no_argument, NULL, 'k' },
         { "discard", required_argument, NULL, 'd' },
@@ -490,6 +498,9 @@ int main(int argc, char **argv)
             flags |= BDRV_O_NOCACHE;
             writethrough = false;
             break;
+        case 'C':
+            flags |= BDRV_O_COPY_ON_READ;
+            break;
         case 'd':
             if (bdrv_parse_discard_flags(optarg, &flags) < 0) {
                 error_report("Invalid discard option: %s", optarg);
@@ -522,7 +533,8 @@ int main(int argc, char **argv)
             trace_file = trace_opt_parse(optarg);
             break;
         case 'V':
-            printf("%s version %s\n", progname, QEMU_VERSION);
+            printf("%s version " QEMU_VERSION QEMU_PKGVERSION "\n"
+                   QEMU_COPYRIGHT "\n", progname);
             exit(0);
         case 'h':
             usage(progname);

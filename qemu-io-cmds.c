@@ -1769,10 +1769,6 @@ static int alloc_f(BlockBackend *blk, int argc, char **argv)
     if (offset < 0) {
         print_cvtnum_err(offset, argv[1]);
         return 0;
-    } else if (!QEMU_IS_ALIGNED(offset, BDRV_SECTOR_SIZE)) {
-        printf("%" PRId64 " is not a sector-aligned value for 'offset'\n",
-               offset);
-        return 0;
     }
 
     if (argc == 3) {
@@ -1780,18 +1776,9 @@ static int alloc_f(BlockBackend *blk, int argc, char **argv)
         if (count < 0) {
             print_cvtnum_err(count, argv[2]);
             return 0;
-        } else if (count > INT_MAX * BDRV_SECTOR_SIZE) {
-            printf("length argument cannot exceed %llu, given %s\n",
-                   INT_MAX * BDRV_SECTOR_SIZE, argv[2]);
-            return 0;
         }
     } else {
         count = BDRV_SECTOR_SIZE;
-    }
-    if (!QEMU_IS_ALIGNED(count, BDRV_SECTOR_SIZE)) {
-        printf("%" PRId64 " is not a sector-aligned value for 'count'\n",
-               count);
-        return 0;
     }
 
     remaining = count;
@@ -1920,6 +1907,7 @@ static void reopen_help(void)
 " 'reopen -o lazy-refcounts=on' - activates lazy refcount writeback on a qcow2 image\n"
 "\n"
 " -r, -- Reopen the image read-only\n"
+" -w, -- Reopen the image read-write\n"
 " -c, -- Change the cache mode to the given value\n"
 " -o, -- Changes block driver options (cf. 'open' command)\n"
 "\n");
@@ -1942,7 +1930,7 @@ static const cmdinfo_t reopen_cmd = {
        .argmin         = 0,
        .argmax         = -1,
        .cfunc          = reopen_f,
-       .args           = "[-r] [-c cache] [-o options]",
+       .args           = "[(-r|-w)] [-c cache] [-o options]",
        .oneline        = "reopens an image with new options",
        .help           = reopen_help,
 };
@@ -1955,11 +1943,12 @@ static int reopen_f(BlockBackend *blk, int argc, char **argv)
     int c;
     int flags = bs->open_flags;
     bool writethrough = !blk_enable_write_cache(blk);
+    bool has_rw_option = false;
 
     BlockReopenQueue *brq;
     Error *local_err = NULL;
 
-    while ((c = getopt(argc, argv, "c:o:r")) != -1) {
+    while ((c = getopt(argc, argv, "c:o:rw")) != -1) {
         switch (c) {
         case 'c':
             if (bdrv_parse_cache_mode(optarg, &flags, &writethrough) < 0) {
@@ -1974,7 +1963,20 @@ static int reopen_f(BlockBackend *blk, int argc, char **argv)
             }
             break;
         case 'r':
+            if (has_rw_option) {
+                error_report("Only one -r/-w option may be given");
+                return 0;
+            }
             flags &= ~BDRV_O_RDWR;
+            has_rw_option = true;
+            break;
+        case 'w':
+            if (has_rw_option) {
+                error_report("Only one -r/-w option may be given");
+                return 0;
+            }
+            flags |= BDRV_O_RDWR;
+            has_rw_option = true;
             break;
         default:
             qemu_opts_reset(&reopen_opts);
@@ -1993,6 +1995,18 @@ static int reopen_f(BlockBackend *blk, int argc, char **argv)
         error_report("Cannot change cache.writeback: Device attached");
         qemu_opts_reset(&reopen_opts);
         return 0;
+    }
+
+    if (!(flags & BDRV_O_RDWR)) {
+        uint64_t orig_perm, orig_shared_perm;
+
+        bdrv_drain(bs);
+
+        blk_get_perm(blk, &orig_perm, &orig_shared_perm);
+        blk_set_perm(blk,
+                     orig_perm & ~(BLK_PERM_WRITE | BLK_PERM_WRITE_UNCHANGED),
+                     orig_shared_perm,
+                     &error_abort);
     }
 
     qopts = qemu_opts_find(&reopen_opts, NULL);

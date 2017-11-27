@@ -620,6 +620,11 @@ static const TypeInfo ptnet_info = {
     .instance_size = sizeof(PtNetState),
     .instance_init = ptnet_instance_init,
     .class_init    = ptnet_class_init,
+    .interfaces = (InterfaceInfo[]) {
+        { INTERFACE_PCIE_DEVICE },
+        { INTERFACE_CONVENTIONAL_PCI_DEVICE },
+        { }
+    },
 };
 
 static void ptnet_register_types(void)

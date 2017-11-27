@@ -785,8 +785,7 @@ static coroutine_fn int quorum_co_flush(BlockDriverState *bs)
     for (i = 0; i < s->num_children; i++) {
         result = bdrv_co_flush(s->children[i]->bs);
         if (result) {
-            quorum_report_bad(QUORUM_OP_TYPE_FLUSH, 0,
-                              bdrv_getlength(s->children[i]->bs),
+            quorum_report_bad(QUORUM_OP_TYPE_FLUSH, 0, 0,
                               s->children[i]->bs->node_name, result);
             result_value.l = result;
             quorum_count_vote(&error_votes, &result_value, i);
@@ -868,30 +867,13 @@ static QemuOptsList quorum_runtime_opts = {
     },
 };
 
-static int parse_read_pattern(const char *opt)
-{
-    int i;
-
-    if (!opt) {
-        /* Set quorum as default */
-        return QUORUM_READ_PATTERN_QUORUM;
-    }
-
-    for (i = 0; i < QUORUM_READ_PATTERN__MAX; i++) {
-        if (!strcmp(opt, QuorumReadPattern_lookup[i])) {
-            return i;
-        }
-    }
-
-    return -EINVAL;
-}
-
 static int quorum_open(BlockDriverState *bs, QDict *options, int flags,
                        Error **errp)
 {
     BDRVQuorumState *s = bs->opaque;
     Error *local_err = NULL;
     QemuOpts *opts = NULL;
+    const char *pattern_str;
     bool *opened;
     int i;
     int ret = 0;
@@ -926,7 +908,13 @@ static int quorum_open(BlockDriverState *bs, QDict *options, int flags,
         goto exit;
     }
 
-    ret = parse_read_pattern(qemu_opt_get(opts, QUORUM_OPT_READ_PATTERN));
+    pattern_str = qemu_opt_get(opts, QUORUM_OPT_READ_PATTERN);
+    if (!pattern_str) {
+        ret = QUORUM_READ_PATTERN_QUORUM;
+    } else {
+        ret = qapi_enum_parse(&QuorumReadPattern_lookup, pattern_str,
+                              -EINVAL, NULL);
+    }
     if (ret < 0) {
         error_setg(&local_err, "Please set read-pattern as fifo or quorum");
         goto exit;

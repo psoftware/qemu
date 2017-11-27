@@ -442,27 +442,26 @@ void spapr_drc_reset(sPAPRDRConnector *drc)
     if (drc->dev) {
         /* A device present at reset is ready to go, same as coldplugged */
         drc->state = drck->ready_state;
+        /*
+         * Ensure that we are able to send the FDT fragment again
+         * via configure-connector call if the guest requests.
+         */
+        drc->ccs_offset = drc->fdt_start_offset;
+        drc->ccs_depth = 0;
     } else {
         drc->state = drck->empty_state;
+        drc->ccs_offset = -1;
+        drc->ccs_depth = -1;
     }
-
-    drc->ccs_offset = -1;
-    drc->ccs_depth = -1;
 }
 
-static void drc_reset(void *opaque)
-{
-    spapr_drc_reset(SPAPR_DR_CONNECTOR(opaque));
-}
-
-static bool spapr_drc_needed(void *opaque)
+bool spapr_drc_needed(void *opaque)
 {
     sPAPRDRConnector *drc = (sPAPRDRConnector *)opaque;
     sPAPRDRConnectorClass *drck = SPAPR_DR_CONNECTOR_GET_CLASS(drc);
-    sPAPRDREntitySense value = drck->dr_entity_sense(drc);
 
     /* If no dev is plugged in there is no need to migrate the DRC state */
-    if (value != SPAPR_DR_ENTITY_SENSE_PRESENT) {
+    if (!drc->dev) {
         return false;
     }
 
@@ -488,7 +487,7 @@ static void realize(DeviceState *d, Error **errp)
 {
     sPAPRDRConnector *drc = SPAPR_DR_CONNECTOR(d);
     Object *root_container;
-    char link_name[256];
+    gchar *link_name;
     gchar *child_name;
     Error *err = NULL;
 
@@ -501,19 +500,19 @@ static void realize(DeviceState *d, Error **errp)
      * existing in the composition tree
      */
     root_container = container_get(object_get_root(), DRC_CONTAINER_PATH);
-    snprintf(link_name, sizeof(link_name), "%x", spapr_drc_index(drc));
+    link_name = g_strdup_printf("%x", spapr_drc_index(drc));
     child_name = object_get_canonical_path_component(OBJECT(drc));
     trace_spapr_drc_realize_child(spapr_drc_index(drc), child_name);
     object_property_add_alias(root_container, link_name,
                               drc->owner, child_name, &err);
     g_free(child_name);
+    g_free(link_name);
     if (err) {
         error_propagate(errp, err);
         return;
     }
     vmstate_register(DEVICE(drc), spapr_drc_index(drc), &vmstate_spapr_drc,
                      drc);
-    qemu_register_reset(drc_reset, drc);
     trace_spapr_drc_realize_complete(spapr_drc_index(drc));
 }
 
@@ -521,14 +520,14 @@ static void unrealize(DeviceState *d, Error **errp)
 {
     sPAPRDRConnector *drc = SPAPR_DR_CONNECTOR(d);
     Object *root_container;
-    char name[256];
+    gchar *name;
 
     trace_spapr_drc_unrealize(spapr_drc_index(drc));
-    qemu_unregister_reset(drc_reset, drc);
     vmstate_unregister(DEVICE(drc), &vmstate_spapr_drc, drc);
     root_container = container_get(object_get_root(), DRC_CONTAINER_PATH);
-    snprintf(name, sizeof(name), "%x", spapr_drc_index(drc));
+    name = g_strdup_printf("%x", spapr_drc_index(drc));
     object_property_del(root_container, name, errp);
+    g_free(name);
 }
 
 sPAPRDRConnector *spapr_dr_connector_new(Object *owner, const char *type,
@@ -541,7 +540,8 @@ sPAPRDRConnector *spapr_dr_connector_new(Object *owner, const char *type,
     drc->owner = owner;
     prop_name = g_strdup_printf("dr-connector[%"PRIu32"]",
                                 spapr_drc_index(drc));
-    object_property_add_child(owner, prop_name, OBJECT(drc), NULL);
+    object_property_add_child(owner, prop_name, OBJECT(drc), &error_abort);
+    object_unref(OBJECT(drc));
     object_property_set_bool(OBJECT(drc), true, "realized", NULL);
     g_free(prop_name);
 
@@ -624,12 +624,28 @@ static void realize_physical(DeviceState *d, Error **errp)
     qemu_register_reset(drc_physical_reset, drcp);
 }
 
+static void unrealize_physical(DeviceState *d, Error **errp)
+{
+    sPAPRDRCPhysical *drcp = SPAPR_DRC_PHYSICAL(d);
+    Error *local_err = NULL;
+
+    unrealize(d, &local_err);
+    if (local_err) {
+        error_propagate(errp, local_err);
+        return;
+    }
+
+    vmstate_unregister(DEVICE(drcp), &vmstate_spapr_drc_physical, drcp);
+    qemu_unregister_reset(drc_physical_reset, drcp);
+}
+
 static void spapr_drc_physical_class_init(ObjectClass *k, void *data)
 {
     DeviceClass *dk = DEVICE_CLASS(k);
     sPAPRDRConnectorClass *drck = SPAPR_DR_CONNECTOR_CLASS(k);
 
     dk->realize = realize_physical;
+    dk->unrealize = unrealize_physical;
     drck->dr_entity_sense = physical_entity_sense;
     drck->isolate = drc_isolate_physical;
     drck->unisolate = drc_unisolate_physical;
@@ -726,10 +742,11 @@ static const TypeInfo spapr_drc_lmb_info = {
 sPAPRDRConnector *spapr_drc_by_index(uint32_t index)
 {
     Object *obj;
-    char name[256];
+    gchar *name;
 
-    snprintf(name, sizeof(name), "%s/%x", DRC_CONTAINER_PATH, index);
+    name = g_strdup_printf("%s/%x", DRC_CONTAINER_PATH, index);
     obj = object_resolve_path(name, NULL);
+    g_free(name);
 
     return !obj ? NULL : SPAPR_DR_CONNECTOR(obj);
 }
@@ -1071,8 +1088,14 @@ static void rtas_ibm_configure_connector(PowerPCCPU *cpu,
     }
 
     if ((drc->state != SPAPR_DRC_STATE_LOGICAL_UNISOLATE)
-        && (drc->state != SPAPR_DRC_STATE_PHYSICAL_UNISOLATE)) {
-        /* Need to unisolate the device before configuring */
+        && (drc->state != SPAPR_DRC_STATE_PHYSICAL_UNISOLATE)
+        && (drc->state != SPAPR_DRC_STATE_LOGICAL_CONFIGURED)
+        && (drc->state != SPAPR_DRC_STATE_PHYSICAL_CONFIGURED)) {
+        /*
+         * Need to unisolate the device before configuring
+         * or it should already be in configured state to
+         * allow configure-connector be called repeatedly.
+         */
         rc = SPAPR_DR_CC_RESPONSE_NOT_CONFIGURABLE;
         goto out;
     }
@@ -1108,8 +1131,13 @@ static void rtas_ibm_configure_connector(PowerPCCPU *cpu,
                 /* done sending the device tree, move to configured state */
                 trace_spapr_drc_set_configured(drc_index);
                 drc->state = drck->ready_state;
-                drc->ccs_offset = -1;
-                drc->ccs_depth = -1;
+                /*
+                 * Ensure that we are able to send the FDT fragment
+                 * again via configure-connector call if the guest requests.
+                 */
+                drc->ccs_offset = drc->fdt_start_offset;
+                drc->ccs_depth = 0;
+                fdt_offset_next = drc->fdt_start_offset;
                 resp = SPAPR_DR_CC_RESPONSE_SUCCESS;
             } else {
                 resp = SPAPR_DR_CC_RESPONSE_PREV_PARENT;
