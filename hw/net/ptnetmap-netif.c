@@ -59,7 +59,7 @@ static const char *regnames[] = {
     "HOSTMEMID",
 };
 
-#define REGNAMES_LEN  (sizeof(regnames)/(sizeof(regnames[0])))
+#define REGNAMES_LEN  (sizeof(regnames) / (sizeof(regnames[0])))
 
 typedef struct PtNetState_st {
     PCIDevice pci_device; /* Private field. */
@@ -148,7 +148,8 @@ ptnet_guest_notifier_init(PtNetState *s, EventNotifier *e, unsigned int vector)
     ret = kvm_irqchip_add_irqfd_notifier_gsi(kvm_state, e, NULL,
                                              s->virqs[vector]);
     if (ret) {
-        error_report("kvm_irqchip_add_irqfd_notifier_gsi() failed: %s", strerror(-ret));
+        error_report("kvm_irqchip_add_irqfd_notifier_gsi() failed: %s",
+                     strerror(-ret));
         goto err_add_irqfd;
     }
 
@@ -175,7 +176,8 @@ ptnet_guest_notifier_fini(PtNetState *s, EventNotifier *e, unsigned int vector)
     ret = kvm_irqchip_remove_irqfd_notifier_gsi(kvm_state, e,
                                                 s->virqs[vector]);
     if (ret) {
-        error_report("kvm_irqchip_remove_irqfd_notifier_gsi() failed: %s", strerror(-ret));
+        error_report("kvm_irqchip_remove_irqfd_notifier_gsi() failed: %s",
+                     strerror(-ret));
     }
     kvm_irqchip_release_virq(kvm_state, s->virqs[vector]);
     s->virqs[vector] = -1;
@@ -190,7 +192,7 @@ ptnet_guest_notifiers_init(PtNetState *s)
 
     msix_unuse_all_vectors(PCI_DEVICE(s));
 
-    for (i = 0; i < s->num_rings; i++, vec ++) {
+    for (i = 0; i < s->num_rings; i++, vec++) {
         int ret = ptnet_guest_notifier_init(s, s->guest_notifiers + i, vec);
 
         if (ret) {
@@ -207,7 +209,7 @@ ptnet_guest_notifiers_fini(PtNetState *s)
     unsigned int vec = 0;
     int i;
 
-    for (i = 0; i < s->num_rings; i++, vec ++) {
+    for (i = 0; i < s->num_rings; i++, vec++) {
         ptnet_guest_notifier_fini(s, s->guest_notifiers + i, vec);
     }
 
@@ -256,7 +258,7 @@ ptnet_ptctl_create(PtNetState *s)
 
     if (s->csb == NULL) {
         DBG("CSB not set, can't create ptnetmap worker");
-        return ENXIO;
+        return -ENXIO;
     }
 
     /* Guest must haave allocated MSI-X now, we can setup
@@ -273,7 +275,7 @@ ptnet_ptctl_create(PtNetState *s)
     cfg->ptrings = s->csb;
     cfgentry = (struct ptnetmap_cfgentry_qemu *)(cfg + 1);
 
-    for (i = 0; i < s->num_rings; i++, cfgentry ++) {
+    for (i = 0; i < s->num_rings; i++, cfgentry++) {
         cfgentry->ioeventfd = event_notifier_get_fd(s->host_notifiers + i);
         cfgentry->irqfd = event_notifier_get_fd(s->guest_notifiers + i);
     }
@@ -297,23 +299,23 @@ ptnet_ptctl_delete(PtNetState *s)
 static int
 ptnet_ptctl(PtNetState *s, uint64_t cmd)
 {
-    int ret = EINVAL;
+    int ret = -EINVAL;
 
     switch (cmd) {
-        case PTNETMAP_PTCTL_CREATE:
-            /* React to guest REGIF operation. */
-            ret = ptnet_ptctl_create(s);
-            break;
+    case PTNETMAP_PTCTL_CREATE:
+        /* React to guest REGIF operation. */
+        ret = ptnet_ptctl_create(s);
+        break;
 
-        case PTNETMAP_PTCTL_DELETE:
-            /* React to guest UNREGIF operation. */
-            ret = ptnet_ptctl_delete(s);
-            break;
-        default:
-            break;
+    case PTNETMAP_PTCTL_DELETE:
+        /* React to guest UNREGIF operation. */
+        ret = ptnet_ptctl_delete(s);
+        break;
+    default:
+        break;
     }
 
-    s->ioregs[PTNET_IO_PTCTL >> 2] = ret;
+    s->ioregs[PTNET_IO_PTCTL >> 2] = -ret;
 
     return ret;
 }
@@ -359,30 +361,30 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     assert(index < REGNAMES_LEN);
 
     switch (addr) {
-        case PTNET_IO_PTFEAT:
-            val = ptnetmap_ack_features(s->ptbe, val);
+    case PTNET_IO_PTFEAT:
+        val = ptnetmap_ack_features(s->ptbe, val);
+        s->ioregs[index] = val;
+        break;
+
+    case PTNET_IO_PTCTL:
+        ptnet_ptctl(s, val);
+        break;
+
+    case PTNET_IO_CSBBAH:
+        s->ioregs[index] = val;
+        break;
+
+    case PTNET_IO_CSBBAL:
+        s->ioregs[index] = val;
+        ptnet_csb_mapping(s);
+        break;
+
+    case PTNET_IO_VNET_HDR_LEN:
+        qemu_set_vnet_hdr_len(qemu_get_queue(s->nic)->peer, val);
+        if (qemu_has_vnet_hdr_len(qemu_get_queue(s->nic)->peer, val)) {
             s->ioregs[index] = val;
-            break;
-
-        case PTNET_IO_PTCTL:
-            ptnet_ptctl(s, val);
-            break;
-
-        case PTNET_IO_CSBBAH:
-            s->ioregs[index] = val;
-            break;
-
-        case PTNET_IO_CSBBAL:
-            s->ioregs[index] = val;
-            ptnet_csb_mapping(s);
-            break;
-
-	case PTNET_IO_VNET_HDR_LEN:
-            qemu_set_vnet_hdr_len(qemu_get_queue(s->nic)->peer, val);
-            if (qemu_has_vnet_hdr_len(qemu_get_queue(s->nic)->peer, val)) {
-                s->ioregs[index] = val;
-            }
-            break;
+        }
+        break;
     }
 
     DBG("I/O write to %s, val=0x%08" PRIx64, regnames[index], val);
@@ -407,18 +409,18 @@ ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
     assert(index < REGNAMES_LEN);
 
     switch (addr) {
-        case PTNET_IO_NIFP_OFS:
-        case PTNET_IO_NUM_TX_RINGS:
-        case PTNET_IO_NUM_RX_RINGS:
-        case PTNET_IO_NUM_TX_SLOTS:
-        case PTNET_IO_NUM_RX_SLOTS:
-            /* Fill in device registers with information about nifp_offset,
-             * num_*x_rings, and num_*x_slots. */
-            ptnet_get_netmap_if(s);
-            break;
+    case PTNET_IO_NIFP_OFS:
+    case PTNET_IO_NUM_TX_RINGS:
+    case PTNET_IO_NUM_RX_RINGS:
+    case PTNET_IO_NUM_TX_SLOTS:
+    case PTNET_IO_NUM_RX_SLOTS:
+        /* Fill in device registers with information about nifp_offset,
+         * num_*x_rings, and num_*x_slots. */
+        ptnet_get_netmap_if(s);
+        break;
 
-        case PTNET_IO_HOSTMEMID:
-            s->ioregs[index] = ptnetmap_get_hostmemid(s->ptbe);
+    case PTNET_IO_HOSTMEMID:
+        s->ioregs[index] = ptnetmap_get_hostmemid(s->ptbe);
     }
 
     DBG("I/O read from %s, val=0x%08x", regnames[index], s->ioregs[index]);

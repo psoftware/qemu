@@ -519,10 +519,6 @@ ptnetmap_get_netmap_if(PTNetmapState *ptn, NetmapIf *nif)
     }
 
     s = ptn->netmap;
-    if (s->nmd == NULL) {
-        return -1;
-    }
-
     memset(nif, 0, sizeof(*nif));
     nif->nifp_offset = s->nmd->req.nr_offset;
     nif->num_tx_rings = s->nmd->req.nr_tx_rings;
@@ -537,10 +533,6 @@ int
 ptnetmap_get_hostmemid(PTNetmapState *ptn)
 {
     NetmapState *s = ptn->netmap;
-
-    if (s->nmd == NULL) {
-        return EINVAL;
-    }
 
     return s->memid;
 }
@@ -569,7 +561,7 @@ ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *cfg)
         error_report("Unable to execute NETMAP_PT_HOST_CREATE on %s: %s",
                      s->ifname, strerror(errno));
         netmap_poll(&s->nc, true);
-        return err;
+        return -errno;
     }
 
     ptn->running = true;
@@ -595,6 +587,7 @@ ptnetmap_delete(PTNetmapState *ptn)
     if (err) {
         error_report("Unable to execute NETMAP_PT_HOST_DELETE on %s: %s",
                 s->ifname, strerror(errno));
+        err = -errno;
     }
 
     /* Restore QEMU polling. */

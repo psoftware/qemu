@@ -66,9 +66,10 @@ typedef struct PTNetmapMemDevState {
     QTAILQ_ENTRY(PTNetmapMemDevState) next;
 } PTNetmapMemDevState;
 
-static QTAILQ_HEAD(, PTNetmapMemDevState) ptn_memdevs = QTAILQ_HEAD_INITIALIZER(ptn_memdevs);
+static QTAILQ_HEAD(, PTNetmapMemDevState) ptn_memdevs =
+                        QTAILQ_HEAD_INITIALIZER(ptn_memdevs);
 
-#define TYPE_PTNETMAP_MEMDEV	PTNETMAP_MEMDEV_NAME
+#define TYPE_PTNETMAP_MEMDEV    PTNETMAP_MEMDEV_NAME
 
 #define PTNETMAP_MEMDEV(obj) \
     OBJECT_CHECK(PTNetmapMemDevState, (obj), TYPE_PTNETMAP_MEMDEV)
@@ -87,45 +88,45 @@ ptnetmap_memdev_io_read(void *opaque, hwaddr addr, unsigned size)
     uint64_t ret = 0;
 
     switch (addr) {
-        case PTNET_MDEV_IO_MEMSIZE_LO:
-            ret = memd->pi.memsize & 0xffffffff;
-            break;
-        case PTNET_MDEV_IO_MEMSIZE_HI:
-            ret = memd->pi.memsize >> 32;
-            break;
-        case PTNET_MDEV_IO_MEMID:
-            ret = memd->pi.memid;
-            break;
-        case PTNET_MDEV_IO_IF_POOL_OFS:
-            ret = memd->pi.if_pool_offset;
-            break;
-        case PTNET_MDEV_IO_IF_POOL_OBJNUM:
-            ret = memd->pi.if_pool_objtotal;
-            break;
-        case PTNET_MDEV_IO_IF_POOL_OBJSZ:
-            ret = memd->pi.if_pool_objsize;
-            break;
-        case PTNET_MDEV_IO_RING_POOL_OFS:
-            ret = memd->pi.ring_pool_offset;
-            break;
-        case PTNET_MDEV_IO_RING_POOL_OBJNUM:
-            ret = memd->pi.ring_pool_objtotal;
-            break;
-        case PTNET_MDEV_IO_RING_POOL_OBJSZ:
-            ret = memd->pi.ring_pool_objsize;
-            break;
-        case PTNET_MDEV_IO_BUF_POOL_OFS:
-            ret = memd->pi.buf_pool_offset;
-            break;
-        case PTNET_MDEV_IO_BUF_POOL_OBJNUM:
-            ret = memd->pi.buf_pool_objtotal;
-            break;
-        case PTNET_MDEV_IO_BUF_POOL_OBJSZ:
-            ret = memd->pi.buf_pool_objsize;
-            break;
-        default:
-            DBG("invalid I/O read [addr 0x%lx]", addr);
-            return 0;
+    case PTNET_MDEV_IO_MEMSIZE_LO:
+        ret = memd->pi.memsize & 0xffffffff;
+        break;
+    case PTNET_MDEV_IO_MEMSIZE_HI:
+        ret = memd->pi.memsize >> 32;
+        break;
+    case PTNET_MDEV_IO_MEMID:
+        ret = memd->pi.memid;
+        break;
+    case PTNET_MDEV_IO_IF_POOL_OFS:
+        ret = memd->pi.if_pool_offset;
+        break;
+    case PTNET_MDEV_IO_IF_POOL_OBJNUM:
+        ret = memd->pi.if_pool_objtotal;
+        break;
+    case PTNET_MDEV_IO_IF_POOL_OBJSZ:
+        ret = memd->pi.if_pool_objsize;
+        break;
+    case PTNET_MDEV_IO_RING_POOL_OFS:
+        ret = memd->pi.ring_pool_offset;
+        break;
+    case PTNET_MDEV_IO_RING_POOL_OBJNUM:
+        ret = memd->pi.ring_pool_objtotal;
+        break;
+    case PTNET_MDEV_IO_RING_POOL_OBJSZ:
+        ret = memd->pi.ring_pool_objsize;
+        break;
+    case PTNET_MDEV_IO_BUF_POOL_OFS:
+        ret = memd->pi.buf_pool_offset;
+        break;
+    case PTNET_MDEV_IO_BUF_POOL_OBJNUM:
+        ret = memd->pi.buf_pool_objtotal;
+        break;
+    case PTNET_MDEV_IO_BUF_POOL_OBJSZ:
+        ret = memd->pi.buf_pool_objsize;
+        break;
+    default:
+        DBG("invalid I/O read [addr 0x%lx]", addr);
+        return 0;
     }
 
     DBG("I/O read: addr 0x%lx, val 0x%lx", addr, ret);
@@ -169,7 +170,7 @@ ptnetmap_memdev_init(PCIDevice *dev)
                            "ptnetmap-mem-bar", size);
         memory_region_init_ram_ptr(&memd->mem_ram, OBJECT(memd),
                                    "ptnetmap-mem-ram", memd->pi.memsize,
-				   memd->mem_ptr);
+                                   memd->mem_ptr);
         memory_region_add_subregion(&memd->mem_bar, 0, &memd->mem_ram);
         vmstate_register_ram(&memd->mem_ram, DEVICE(memd));
         pci_register_bar(dev, PTNETMAP_MEM_PCI_BAR,
