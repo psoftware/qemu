@@ -26,7 +26,6 @@
 #include "qapi/error.h"
 #include "qemu/sockets.h"
 #include "qemu/main-loop.h"
-#include "qapi/clone-visitor.h"
 #include "qapi/qobject-input-visitor.h"
 #include "qapi/qobject-output-visitor.h"
 #include "qapi-visit.h"
@@ -1079,6 +1078,9 @@ void socket_listen_cleanup(int fd, Error **errp)
     SocketAddress *addr;
 
     addr = socket_local_address(fd, errp);
+    if (!addr) {
+        return;
+    }
 
     if (addr->type == SOCKET_ADDRESS_TYPE_UNIX
         && addr->u.q_unix.path) {
