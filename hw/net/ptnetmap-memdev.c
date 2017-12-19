@@ -25,6 +25,7 @@
 #include "qemu/osdep.h"
 #include "hw/hw.h"
 #include "hw/pci/pci.h"
+#include "qemu/error-report.h"
 #include "qemu/event_notifier.h"
 #include "qemu/osdep.h"
 #include "hw/net/ptnetmap.h"
@@ -161,7 +162,7 @@ ptnetmap_memdev_init(PCIDevice *dev)
     /* init PCI_BAR to map netmap memory into the guest */
     if (memd->mem_ptr) {
         size = upper_pow2(memd->pi.memsize);
-        DBG("map BAR size %lx (%lu MiB)", size, size >> 20);
+        DBG("Netmap memory mapped, size %lx (%lu MiB)", size, size >> 20);
 
         memory_region_init(&memd->mem_bar, OBJECT(memd),
                            "ptnetmap-mem-bar", size);
@@ -177,7 +178,7 @@ ptnetmap_memdev_init(PCIDevice *dev)
     }
 
     QTAILQ_INSERT_TAIL(&ptn_memdevs, memd, next);
-    DBG("new instance initialized");
+    DBG("New instance initialized");
 
     return 0;
 }
@@ -188,7 +189,7 @@ ptnetmap_memdev_uninit(PCIDevice *dev)
     PTNetmapMemDevState *memd = PTNETMAP_MEMDEV(dev);
 
     QTAILQ_REMOVE(&ptn_memdevs, memd, next);
-    DBG("new instance uninitialized");
+    DBG("Instance uninitialized");
 }
 
  /*
@@ -216,8 +217,6 @@ ptnetmap_memdev_create(void *mem_ptr, struct netmap_pools_info *pi)
     PCIDevice *dev;
     PCIBus *bus;
 
-    DBG("creating new instance");
-
     if (ptnetmap_memdev_find(pi->memid)) {
         DBG("memdev instance for mem-id %d already exists", pi->memid);
         return 0;
@@ -226,7 +225,7 @@ ptnetmap_memdev_create(void *mem_ptr, struct netmap_pools_info *pi)
     bus = pci_find_primary_bus();
 
     if (bus == NULL) {
-        DBG("unable to find PCI BUS");
+        error_report("Unable to find PCI bus");
         return -1;
     }
 
@@ -241,7 +240,7 @@ ptnetmap_memdev_create(void *mem_ptr, struct netmap_pools_info *pi)
     /* Initialize the new device. */
     qdev_init_nofail(&dev->qdev);
 
-    DBG("created new instance");
+    DBG("New instance created");
 
     return 0;
 }
