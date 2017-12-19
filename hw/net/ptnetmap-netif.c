@@ -467,17 +467,6 @@ static NetClientInfo net_ptnet_info = {
     .receive = ptnet_receive,
 };
 
-static void ptnet_write_config(PCIDevice *pci_dev, uint32_t address,
-                                uint32_t val, int len)
-{
-    pci_default_write_config(pci_dev, address, val, len);
-
-    if (range_covers_byte(address, len, PCI_COMMAND) &&
-        (pci_dev->config[PCI_COMMAND] & PCI_COMMAND_MASTER)) {
-        DBG("%s(%p)", __func__, PTNET(pci_dev));
-    }
-}
-
 static void
 pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 {
@@ -488,7 +477,6 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     uint8_t *pci_conf;
     int i;
 
-    pci_dev->config_write = ptnet_write_config;
     pci_conf = pci_dev->config;
     pci_conf[PCI_CACHE_LINE_SIZE] = 0x10;
     pci_conf[PCI_INTERRUPT_PIN] = 1; /* interrupt pin A */
