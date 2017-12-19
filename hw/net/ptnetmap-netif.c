@@ -25,8 +25,10 @@
 #include "net/net.h"
 #include "sysemu/sysemu.h"
 #include "sysemu/kvm.h"
+#include "qemu/error-report.h"
 #include "qemu/iov.h"
 #include "qemu/range.h"
+#include "qapi/error.h"
 
 #include <net/if.h>
 #include "net/netmap.h"
@@ -96,18 +98,20 @@ ptnet_receive(NetClientState *nc, const uint8_t *buf, size_t size)
  * each time the guest acesses the I/O register specified by 'ofs'.
  * We don't need an handler, since the eventfd will be drained
  * in kernelspace. */
-static void
-ptnet_host_notifier_init(PtNetState *s, EventNotifier *e, hwaddr ofs)
+static int
+ptnet_host_notifier_init(PtNetState *s, EventNotifier *e, hwaddr ofs,
+                         Error **errp)
 {
     int ret = event_notifier_init(e, 0);
 
     if (ret) {
-        printf("%s: host notifier initialization failed\n", __func__);
-        return;
+        error_setg(errp, "Host notifier initialization failed");
+        return ret;
     }
     event_notifier_set_handler(e, NULL);
     memory_region_add_eventfd(&s->io, ofs, 4, false, 0, e);
 
+    return 0;
 }
 
 static void
@@ -117,15 +121,15 @@ ptnet_host_notifier_fini(PtNetState *s, EventNotifier *e, hwaddr ofs)
     event_notifier_cleanup(e);
 }
 
-static void
+static int
 ptnet_guest_notifier_init(PtNetState *s, EventNotifier *e, unsigned int vector)
 {
     /* Initialize an eventfd. */
     int ret = event_notifier_init(e, 0);
 
     if (ret) {
-        printf("%s: guest notifier initialization failed\n", __func__);
-        return;
+        error_report("Guest notifier initialization failed");
+        return ret;
     }
 
     event_notifier_set_handler(e, NULL);
@@ -134,28 +138,28 @@ ptnet_guest_notifier_init(PtNetState *s, EventNotifier *e, unsigned int vector)
 
     /* Setup KVM irqfd, using an MSI-X entry and the eventfd initialize
      * above. */
-    s->virqs[vector] = kvm_irqchip_add_msi_route(kvm_state, vector,
-                                                 PCI_DEVICE(s));
-    if (s->virqs[vector] < 0) {
-        printf("%s: kvm_irqchip_add_msi_route() failed: %d\n", __func__,
-               -s->virqs[vector]);
+    ret = s->virqs[vector] = kvm_irqchip_add_msi_route(kvm_state, vector,
+                                                       PCI_DEVICE(s));
+    if (ret < 0) {
+        error_report("kvm_irqchip_add_msi_route() failed: %s", strerror(-ret));
         goto err_msi_route;
     }
 
     ret = kvm_irqchip_add_irqfd_notifier_gsi(kvm_state, e, NULL,
                                              s->virqs[vector]);
     if (ret) {
-        printf("%s: kvm_irqchip_add_irqfd_notifier_gsi() failed: %d\n",
-               __func__, ret);
+        error_report("kvm_irqchip_add_irqfd_notifier_gsi() failed: %s", strerror(-ret));
         goto err_add_irqfd;
     }
 
-    return;
+    return 0;
 
 err_add_irqfd:
     kvm_irqchip_release_virq(kvm_state, s->virqs[vector]);
 err_msi_route:
     event_notifier_cleanup(e);
+
+    return ret;
 }
 
 static void
@@ -164,16 +168,14 @@ ptnet_guest_notifier_fini(PtNetState *s, EventNotifier *e, unsigned int vector)
     int ret;
 
     if (s->virqs[vector] == -1) {
-        printf("%s: guest notifier #%u not initialized, nothing to do\n",
-               __func__, vector);
+        /* Not initialized, nothing to do. */
         return;
     }
 
     ret = kvm_irqchip_remove_irqfd_notifier_gsi(kvm_state, e,
                                                 s->virqs[vector]);
     if (ret) {
-        printf("%s: kvm_irqchip_remove_irqfd_notifier_gsi() failed: %d\n",
-               __func__, ret);
+        error_report("kvm_irqchip_remove_irqfd_notifier_gsi() failed: %s", strerror(-ret));
     }
     kvm_irqchip_release_virq(kvm_state, s->virqs[vector]);
     s->virqs[vector] = -1;
@@ -189,7 +191,11 @@ ptnet_guest_notifiers_init(PtNetState *s)
     msix_unuse_all_vectors(PCI_DEVICE(s));
 
     for (i = 0; i < s->num_rings; i++, vec ++) {
-        ptnet_guest_notifier_init(s, s->guest_notifiers + i, vec);
+        int ret = ptnet_guest_notifier_init(s, s->guest_notifiers + i, vec);
+
+        if (ret) {
+            return ret;
+        }
     }
 
     return 0;
@@ -231,7 +237,8 @@ ptnet_get_netmap_if(PtNetState *s)
     num_rings = s->ioregs[PTNET_IO_NUM_TX_RINGS >> 2] +
                 s->ioregs[PTNET_IO_NUM_RX_RINGS >> 2];
     if (s->num_rings && num_rings && s->num_rings != num_rings) {
-        printf("Number of rings change is not supported");
+        error_report("Number of rings don't match (%" PRIu32 " != %" PRIu32 ")",
+                     s->num_rings, num_rings);
         return -1;
     }
     s->num_rings = num_rings;
@@ -248,8 +255,8 @@ ptnet_ptctl_create(PtNetState *s)
     int i;
 
     if (s->csb == NULL) {
-        printf("%s: Unexpected NULL CSB", __func__);
-        return -1;
+        DBG("CSB not set, can't create ptnetmap worker");
+        return ENXIO;
     }
 
     /* Guest must haave allocated MSI-X now, we can setup
@@ -287,7 +294,7 @@ ptnet_ptctl_delete(PtNetState *s)
     return ptnetmap_delete(s->ptbe);
 }
 
-static void
+static int
 ptnet_ptctl(PtNetState *s, uint64_t cmd)
 {
     int ret = EINVAL;
@@ -307,6 +314,8 @@ ptnet_ptctl(PtNetState *s, uint64_t cmd)
     }
 
     s->ioregs[PTNET_IO_PTCTL >> 2] = ret;
+
+    return ret;
 }
 
 static void
@@ -332,7 +341,7 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     unsigned int index;
 
     if (!s->ptbe) {
-        printf("Invalid I/O write, backend does not support passthrough\n");
+        DBG("Invalid I/O write, backend does not support passthrough");
         return;
     }
 
@@ -500,12 +509,15 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     s->ptbe = nc->peer ? get_ptnetmap(nc->peer) : NULL;
 
     s->num_rings = 0;
-    ptnet_get_netmap_if(s);
+    if (ptnet_get_netmap_if(s)) {
+        return;
+    }
 
     /* Allocate a PCI bar to manage MSI-X information for this device. */
     if (msix_init_exclusive_bar(pci_dev, s->num_rings,
                                 PTNETMAP_MSIX_PCI_BAR, NULL)) {
-        printf("[ERR] Failed to intialize MSI-X BAR\n");
+        error_setg(errp, "Failed to initialize MSI-X BAR");
+        return;
     }
 
     /* We can setup host --> guest notifications immediately, since
@@ -517,7 +529,10 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 
     for (i = 0; i < s->num_rings; i++, kick_reg += 4) {
         s->virqs[i] = -1; /* start from a known value */
-        ptnet_host_notifier_init(s, s->host_notifiers + i, kick_reg);
+        if (ptnet_host_notifier_init(s, s->host_notifiers + i,
+                                     kick_reg, errp)) {
+            return;
+        }
     }
 
     DBG("%s(%p)", __func__, s);

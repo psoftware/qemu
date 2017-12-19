@@ -515,12 +515,12 @@ ptnetmap_get_netmap_if(PTNetmapState *ptn, NetmapIf *nif)
     if (!ptn) {
         error_report("Cannot get netmap info on a backend which "
                      "is not netmap");
-        return EINVAL;
+        return -1;
     }
 
     s = ptn->netmap;
     if (s->nmd == NULL) {
-        return EINVAL;
+        return -1;
     }
 
     memset(nif, 0, sizeof(*nif));
