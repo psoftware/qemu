@@ -510,6 +510,7 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
 
     s->num_rings = 0;
     if (ptnet_get_netmap_if(s)) {
+        error_setg(errp, "Failed to get netmap backend to pass-through");
         return;
     }
 
