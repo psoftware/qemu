@@ -297,7 +297,6 @@ curses=""
 docs=""
 fdt=""
 netmap="no"
-ptnetmap="no"
 sdl=""
 sdlabi=""
 virtfs=""
@@ -1004,13 +1003,9 @@ for opt do
   ;;
   --enable-vde) vde="yes"
   ;;
-  --disable-netmap) netmap="no"; ptnetmap="no"
+  --disable-netmap) netmap="no";
   ;;
   --enable-netmap) netmap="yes"
-  ;;
-  --disable-ptnetmap) ptnetmap="no"
-  ;;
-  --enable-ptnetmap) netmap="yes"; ptnetmap="yes"
   ;;
   --disable-xen) xen="no"
   ;;
@@ -1531,7 +1526,6 @@ disabled with --disable-FEATURE, default is enabled if available:
   rdma            RDMA-based migration support
   vde             support for vde network
   netmap          support for netmap network
-  ptnetmap        support for netmap passthrough
   linux-aio       Linux AIO support
   cap-ng          libcap-ng support
   attr            attr and xattr support
@@ -3051,7 +3045,6 @@ EOF
       feature_not_found "netmap"
     fi
     netmap=no
-    ptnetmap=no
   fi
 fi
 
@@ -5502,7 +5495,6 @@ echo "Documentation     $docs"
 echo "PIE               $pie"
 echo "vde support       $vde"
 echo "netmap support    $netmap"
-echo "ptnetmap support  $ptnetmap"
 echo "Linux AIO support $linux_aio"
 echo "ATTR/XATTR support $attr"
 echo "Install blobs     $blobs"
@@ -5703,9 +5695,6 @@ if test "$vde" = "yes" ; then
 fi
 if test "$netmap" = "yes" ; then
   echo "CONFIG_NETMAP=y" >> $config_host_mak
-fi
-if test "$ptnetmap" = "yes" ; then
-  echo "CONFIG_NETMAP_PASSTHROUGH=y" >> $config_host_mak
 fi
 if test "$l2tpv3" = "yes" ; then
   echo "CONFIG_L2TPV3=y" >> $config_host_mak

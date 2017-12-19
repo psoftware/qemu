@@ -38,10 +38,7 @@
 #include "qapi/error.h"
 #include "qemu/iov.h"
 #include "qemu/cutils.h"
-
-#ifdef CONFIG_NETMAP_PASSTHROUGH
 #include "hw/net/ptnetmap.h"
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
 
 typedef struct NetmapState {
     NetClientState      nc;
@@ -55,9 +52,7 @@ typedef struct NetmapState {
     struct iovec        iov[IOV_MAX];
     int                 vnet_hdr_len;  /* Current virtio-net header length. */
     QTAILQ_ENTRY(NetmapState) next;
-#ifdef CONFIG_NETMAP_PASSTHROUGH
     PTNetmapState       ptnetmap;
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
 } NetmapState;
 
 static QTAILQ_HEAD(, NetmapState) netmap_clients =
@@ -119,11 +114,9 @@ static struct nm_desc *netmap_open(const NetdevNetmapOptions *nm_opts,
     int ret;
 
     memset(&req, 0, sizeof(req));
-#ifdef CONFIG_NETMAP_PASSTHROUGH
     if (nm_opts->passthrough) {
         req.nr_flags |= NR_PTNETMAP_HOST;
     }
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
 
     nmd = nm_open(nm_opts->ifname, &req, NETMAP_NO_TX_POLL | NM_OPEN_NO_MMAP,
                   NULL);
@@ -365,11 +358,9 @@ static void netmap_cleanup(NetClientState *nc)
 
     qemu_purge_queued_packets(nc);
 
-#ifdef CONFIG_NETMAP_PASSTHROUGH
     if (s->ptnetmap.running) {
         ptnetmap_delete(&s->ptnetmap);
     }
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
 
     netmap_poll(nc, false);
     nm_close(s->nmd);
@@ -475,7 +466,6 @@ static NetClientInfo net_netmap_info = {
     .set_vnet_hdr_len = netmap_set_vnet_hdr_len,
 };
 
-#ifdef CONFIG_NETMAP_PASSTHROUGH
 /*
  * ptnetmap routines
  */
@@ -613,7 +603,6 @@ ptnetmap_delete(PTNetmapState *ptn)
 
     return err;
 }
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
 
 /* The exported init function
  *
@@ -644,7 +633,6 @@ int net_init_netmap(const Netdev *netdev,
     pstrcpy(s->ifname, sizeof(s->ifname), netmap_opts->ifname);
     QTAILQ_INSERT_TAIL(&netmap_clients, s, next);
     netmap_read_poll(s, true); /* Initially only poll for reads. */
-#ifdef CONFIG_NETMAP_PASSTHROUGH
     if (netmap_opts->passthrough) {
         s->ptnetmap.netmap = s;
         s->ptnetmap.features = 0;
@@ -656,7 +644,6 @@ int net_init_netmap(const Netdev *netdev,
         }
         netmap_read_poll(s, false); /* avoid QEMU spinning on netmap fd */
     }
-#endif /* CONFIG_NETMAP_PASSTHROUGH */
 
 
     return 0;
