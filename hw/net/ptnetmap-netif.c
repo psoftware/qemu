@@ -65,10 +65,6 @@ typedef struct PtNetState_st {
     NICState *nic;
     NICConf conf;
     MemoryRegion io;
-#ifndef PTNET_CSB_ALLOC
-    MemoryRegion mem;
-    MemoryRegion csb_ram;
-#endif  /* !PTNET_CSB_ALLOC */
 
     PTNetmapState *ptbe;
 
@@ -82,11 +78,7 @@ typedef struct PtNetState_st {
     int *virqs;
 
     uint32_t ioregs[PTNET_IO_END >> 2];
-#ifndef PTNET_CSB_ALLOC
-    char csb[NETMAP_VIRT_CSB_SIZE];
-#else /* PTNET_CSB_ALLOC */
     char *csb;
-#endif
 } PtNetState;
 
 #define TYPE_PTNET_PCI  "ptnet-pci"
@@ -317,7 +309,6 @@ ptnet_ptctl(PtNetState *s, uint64_t cmd)
     s->ioregs[PTNET_IO_PTCTL >> 2] = ret;
 }
 
-#ifdef PTNET_CSB_ALLOC
 static void
 ptnet_csb_mapping(PtNetState *s)
 {
@@ -333,7 +324,6 @@ ptnet_csb_mapping(PtNetState *s)
         s->csb = cpu_physical_memory_map(base, &len, 1 /* is_write */);
     }
 }
-#endif  /* PTNET_CSB_ALLOC */
 
 static void
 ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
@@ -375,9 +365,7 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 
         case PTNET_IO_CSBBAL:
             s->ioregs[index] = val;
-#ifdef PTNET_CSB_ALLOC
             ptnet_csb_mapping(s);
-#endif  /* PTNET_CSB_ALLOC */
             break;
 
 	case PTNET_IO_VNET_HDR_LEN:
@@ -502,20 +490,6 @@ pci_ptnet_realize(PCIDevice *pci_dev, Error **errp)
     pci_register_bar(pci_dev, PTNETMAP_IO_PCI_BAR,
                      PCI_BASE_ADDRESS_SPACE_IO, &s->io);
 
-#ifndef PTNET_CSB_ALLOC
-    /* Init memory mapped memory region, exposing CSB.
-     * It is important that size(s->csb_ram) < size(s->mem),
-     * otherwise KVM memory setup routines fail. */
-    memory_region_init(&s->mem, OBJECT(s), "ptnet-mem", NETMAP_VIRT_CSB_SIZE);
-    memory_region_init_ram_ptr(&s->csb_ram, OBJECT(s), "ptnet-csb-ram",
-                               sizeof(struct ptnet_csb), s->csb);
-    memory_region_add_subregion(&s->mem, 0, &s->csb_ram);
-    vmstate_register_ram(&s->csb_ram, DEVICE(s));
-    pci_register_bar(pci_dev, PTNETMAP_MEM_PCI_BAR,
-                     PCI_BASE_ADDRESS_SPACE_MEMORY |
-		     PCI_BASE_ADDRESS_MEM_PREFETCH, &s->mem);
-#endif /* !PTNET_CSB_ALLOC */
-
     qemu_macaddr_default_if_unset(&s->conf.macaddr);
 
     s->nic = qemu_new_nic(&net_ptnet_info, &s->conf,
@@ -578,9 +552,7 @@ static void qdev_ptnet_reset(DeviceState *dev)
     s->ioregs[PTNET_IO_MAC_HI >> 2] = (macaddr[0] << 8) | macaddr[1];
     s->ioregs[PTNET_IO_MAC_LO >> 2] = (macaddr[2] << 24) | (macaddr[3] << 16)
                                  | (macaddr[4] << 8) | macaddr[5];
-#ifdef PTNET_CSB_ALLOC
     s->csb = NULL;
-#endif  /* PTNET_CSB_ALLOC */
     DBG("%s(%p)", __func__, s);
 }
 
