@@ -1003,7 +1003,7 @@ for opt do
   ;;
   --enable-vde) vde="yes"
   ;;
-  --disable-netmap) netmap="no";
+  --disable-netmap) netmap="no"
   ;;
   --enable-netmap) netmap="yes"
   ;;
