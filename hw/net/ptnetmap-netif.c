@@ -328,7 +328,7 @@ ptnet_ptctl(PtNetState *s, uint64_t cmd)
 
 static void
 ptnet_csb_map_one(PtNetState *s, char **csbp, unsigned int bah,
-                  unsigned int bal, size_t entry_size)
+                  unsigned int bal, size_t entry_size, int is_write)
 {
     hwaddr base = ((uint64_t)s->ioregs[bah >> 2] << 32) |
                     s->ioregs[bal >> 2];
@@ -336,11 +336,11 @@ ptnet_csb_map_one(PtNetState *s, char **csbp, unsigned int bah,
                                + s->ioregs[PTNET_IO_NUM_RX_RINGS >> 2]);
 
     if (*csbp) {
-        cpu_physical_memory_unmap(*csbp, len, 1, len);
+        cpu_physical_memory_unmap(*csbp, len, is_write, len);
         *csbp = NULL;
     }
     if (base) {
-        *csbp = cpu_physical_memory_map(base, &len, 1 /* is_write */);
+        *csbp = cpu_physical_memory_map(base, &len, is_write);
     }
 }
 
@@ -387,14 +387,16 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         /* Write to BAL triggers CSB mapping. */
         s->ioregs[index] = val;
         ptnet_csb_map_one(s, &s->csb_gh, PTNET_IO_CSB_GH_BAH,
-                          PTNET_IO_CSB_GH_BAL, sizeof(struct ptnet_gh_ring));
+                          PTNET_IO_CSB_GH_BAL, sizeof(struct ptnet_gh_ring),
+                          /*is_write=*/0);
         break;
 
     case PTNET_IO_CSB_HG_BAL:
         /* Write to BAL triggers CSB mapping. */
         s->ioregs[index] = val;
         ptnet_csb_map_one(s, &s->csb_hg, PTNET_IO_CSB_HG_BAH,
-                          PTNET_IO_CSB_HG_BAL, sizeof(struct ptnet_hg_ring));
+                          PTNET_IO_CSB_HG_BAL, sizeof(struct ptnet_hg_ring),
+                          /*is_write=*/1);
         break;
 
     case PTNET_IO_VNET_HDR_LEN:
