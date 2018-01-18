@@ -57,6 +57,10 @@ static const char *regnames[] = {
     "NUM_RX_SLOTS",
     "VNET_HDR_LEN",
     "HOSTMEMID",
+    "CSB_GH_BAH",
+    "CSB_GH_BAL",
+    "CSB_HG_BAH",
+    "CSB_HG_BAL",
 };
 
 #define REGNAMES_LEN  (sizeof(regnames) / (sizeof(regnames[0])))
@@ -80,7 +84,8 @@ typedef struct PtNetState_st {
     int *virqs;
 
     uint32_t ioregs[PTNET_IO_END >> 2];
-    char *csb;
+    char *csb_gh;
+    char *csb_hg;
 } PtNetState;
 
 #define TYPE_PTNET_PCI  "ptnet-pci"
@@ -256,8 +261,8 @@ ptnet_ptctl_create(PtNetState *s)
     int ret;
     int i;
 
-    if (s->csb == NULL) {
-        DBG("CSB not set, can't create ptnetmap worker");
+    if (s->csb_gh == NULL || s->csb_hg == NULL) {
+        error_report("CSB not set, can't create ptnetmap worker");
         return -ENXIO;
     }
 
@@ -272,7 +277,8 @@ ptnet_ptctl_create(PtNetState *s)
     cfg->cfgtype = PTNETMAP_CFGTYPE_QEMU;
     cfg->entry_size = sizeof(*cfgentry);
     cfg->num_rings = s->num_rings;
-    cfg->ptrings = s->csb;
+    cfg->csb_gh = s->csb_gh;
+    cfg->csb_hg = s->csb_hg;
     cfgentry = (struct ptnetmap_cfgentry_qemu *)(cfg + 1);
 
     for (i = 0; i < s->num_rings; i++, cfgentry++) {
@@ -321,18 +327,20 @@ ptnet_ptctl(PtNetState *s, uint64_t cmd)
 }
 
 static void
-ptnet_csb_mapping(PtNetState *s)
+ptnet_csb_map_one(PtNetState *s, char **csbp, unsigned int bah,
+                  unsigned int bal, size_t entry_size)
 {
-    hwaddr base = ((uint64_t)s->ioregs[PTNET_IO_CSBBAH >> 2] << 32) |
-                    s->ioregs[PTNET_IO_CSBBAL >> 2];
-    hwaddr len = 4096;
+    hwaddr base = ((uint64_t)s->ioregs[bah >> 2] << 32) |
+                    s->ioregs[bal >> 2];
+    hwaddr len = entry_size * (s->ioregs[PTNET_IO_NUM_TX_RINGS >> 2]
+                               + s->ioregs[PTNET_IO_NUM_RX_RINGS >> 2]);
 
-    if (s->csb) {
-        cpu_physical_memory_unmap(s->csb, len, 1, len);
-        s->csb = NULL;
+    if (*csbp) {
+        cpu_physical_memory_unmap(*csbp, len, 1, len);
+        *csbp = NULL;
     }
     if (base) {
-        s->csb = cpu_physical_memory_map(base, &len, 1 /* is_write */);
+        *csbp = cpu_physical_memory_map(base, &len, 1 /* is_write */);
     }
 }
 
@@ -370,13 +378,23 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         ptnet_ptctl(s, val);
         break;
 
-    case PTNET_IO_CSBBAH:
+    case PTNET_IO_CSB_GH_BAH:
+    case PTNET_IO_CSB_HG_BAH:
         s->ioregs[index] = val;
         break;
 
-    case PTNET_IO_CSBBAL:
+    case PTNET_IO_CSB_GH_BAL:
+        /* Write to BAL triggers CSB mapping. */
         s->ioregs[index] = val;
-        ptnet_csb_mapping(s);
+        ptnet_csb_map_one(s, &s->csb_gh, PTNET_IO_CSB_GH_BAH,
+                          PTNET_IO_CSB_GH_BAL, sizeof(struct ptnet_gh_ring));
+        break;
+
+    case PTNET_IO_CSB_HG_BAL:
+        /* Write to BAL triggers CSB mapping. */
+        s->ioregs[index] = val;
+        ptnet_csb_map_one(s, &s->csb_hg, PTNET_IO_CSB_HG_BAH,
+                          PTNET_IO_CSB_HG_BAL, sizeof(struct ptnet_hg_ring));
         break;
 
     case PTNET_IO_VNET_HDR_LEN:
@@ -448,8 +466,6 @@ static const VMStateDescription vmstate_ptnet = {
         VMSTATE_UINT32(ioregs[PTNET_IO_PTCTL >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_MAC_LO >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_MAC_HI >> 2], PtNetState),
-        VMSTATE_UINT32(ioregs[PTNET_IO_CSBBAH >> 2], PtNetState),
-        VMSTATE_UINT32(ioregs[PTNET_IO_CSBBAL >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_NIFP_OFS >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_NUM_TX_RINGS >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_NUM_RX_RINGS >> 2], PtNetState),
@@ -457,6 +473,10 @@ static const VMStateDescription vmstate_ptnet = {
         VMSTATE_UINT32(ioregs[PTNET_IO_NUM_RX_SLOTS >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_VNET_HDR_LEN >> 2], PtNetState),
         VMSTATE_UINT32(ioregs[PTNET_IO_HOSTMEMID >> 2], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_CSB_GH_BAH >> 2], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_CSB_GH_BAL >> 2], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_CSB_HG_BAH >> 2], PtNetState),
+        VMSTATE_UINT32(ioregs[PTNET_IO_CSB_HG_BAL >> 2], PtNetState),
         VMSTATE_END_OF_LIST()
     }
 };
@@ -558,7 +578,7 @@ static void qdev_ptnet_reset(DeviceState *dev)
     s->ioregs[PTNET_IO_MAC_HI >> 2] = (macaddr[0] << 8) | macaddr[1];
     s->ioregs[PTNET_IO_MAC_LO >> 2] = (macaddr[2] << 24) | (macaddr[3] << 16)
                                  | (macaddr[4] << 8) | macaddr[5];
-    s->csb = NULL;
+    s->csb_gh = s->csb_hg = NULL;
     DBG("%s(%p)", __func__, s);
 }
 
