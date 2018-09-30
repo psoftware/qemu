@@ -31,8 +31,9 @@
 typedef struct PTNetmapState {
     struct NetmapState *netmap;
 
-    /* True if ptnetmap kthreads are running. */
+    /* True if ptnetmap thread is running. */
     bool running;
+    QemuThread th;
 
     /* Feature acknowledgement support. */
     unsigned long features;

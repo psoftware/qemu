@@ -114,6 +114,9 @@ static struct nm_desc *netmap_open(const NetdevNetmapOptions *nm_opts,
     int ret;
 
     memset(&req, 0, sizeof(req));
+    if (nm_opts->passthrough) {
+        req.nr_flags = NR_EXCLUSIVE; /* needed by SYNC_KLOOP */
+    }
     nmd = nm_open(nm_opts->ifname, &req, NETMAP_NO_TX_POLL | NM_OPEN_NO_MMAP,
                   NULL);
     if (nmd == NULL) {
@@ -381,6 +384,7 @@ static int netmap_fd_set_vnet_hdr_len(NetmapState *s, int len)
     /* Issue a NETMAP_BDG_VNET_HDR command to change the virtio-net header
      * length for the netmap adapter associated to 's->ifname'.
      */
+    // TODO REPLACE!!
     nmreq_init(&req, s->ifname);
     req.nr_cmd = NETMAP_BDG_VNET_HDR;
     req.nr_arg1 = len;
@@ -542,11 +546,45 @@ ptnetmap_get_hostmemid(PTNetmapState *ptn)
     return s->memid;
 }
 
+struct SyncKloopThreadCtx {
+    NetmapState *s;
+    char *csb_gh;
+    char *csb_hg;
+};
+
+static void *
+ptnetmap_sync_kloop_worker(void *opaque)
+{
+    struct SyncKloopThreadCtx *ctx = opaque;
+    struct nmreq_sync_kloop_start req;
+    NetmapState *s = ctx->s;
+    struct nmreq_header hdr;
+    int err;
+
+    nmreq_hdr_init(&hdr, s->ifname);
+    hdr.nr_reqtype = NETMAP_REQ_SYNC_KLOOP_START;
+    hdr.nr_body    = (uintptr_t)&req;
+    hdr.nr_options = (uintptr_t)NULL;
+    memset(&req, 0, sizeof(req));
+    req.csb_atok = (uintptr_t)ctx->csb_gh;
+    req.csb_ktoa = (uintptr_t)ctx->csb_hg;
+    req.sleep_us = 100;
+    err          = ioctl(s->nmd->fd, NIOCCTRL, &hdr);
+    if (err) {
+        error_report("Unable to execute SYNC_KLOOP_START on %s: %s",
+                     s->ifname, strerror(errno));
+    }
+
+    free(ctx);
+
+    return NULL;
+}
+
 int
 ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *cfg)
 {
     NetmapState *s = ptn->netmap;
-    int err;
+    struct SyncKloopThreadCtx *ctx;
 
     if (ptn->running) {
         return 0;
@@ -557,13 +595,12 @@ ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *cfg)
     qemu_purge_queued_packets(&s->nc);
 
     /* Ask host netmap to start sync-kloop. */
-    err = 0; // TODO
-    if (err) {
-        error_report("Unable to execute SYNC_KLOOP_START on %s: %s",
-                     s->ifname, strerror(errno));
-        netmap_poll(&s->nc, true);
-        return -errno;
-    }
+    ctx = g_malloc(sizeof(*ctx));
+    ctx->s = s;
+    ctx->csb_gh = cfg->csb_gh;
+    ctx->csb_hg = cfg->csb_hg;
+    qemu_thread_create(&ptn->th, "ptnetmap-sync-kloop",
+                       ptnetmap_sync_kloop_worker, ctx, QEMU_THREAD_JOINABLE);
 
     ptn->running = true;
 
@@ -574,19 +611,23 @@ int
 ptnetmap_delete(PTNetmapState *ptn)
 {
     NetmapState *s = ptn->netmap;
-    int err;
+    struct nmreq_header hdr;
+    int err = 0;
 
     if (!ptn->running) {
         return 0;
     }
 
     /* Ask host netmap to stop sync-kloop. */
-    err = 0; // TODO
+    nmreq_hdr_init(&hdr, s->ifname);
+    hdr.nr_reqtype = NETMAP_REQ_SYNC_KLOOP_STOP;
+    err            = ioctl(s->nmd->fd, NIOCCTRL, &hdr);
     if (err) {
-        error_report("Unable to execute NETMAP_PT_HOST_DELETE on %s: %s",
-                s->ifname, strerror(errno));
+        error_report("Unable to execute SYNC_KLOOP_STOP on %s: %s",
+                     s->ifname, strerror(errno));
         err = -errno;
     }
+    qemu_thread_join(&ptn->th);
 
     /* Restore QEMU polling. */
     ptn->running = false;
