@@ -114,10 +114,6 @@ static struct nm_desc *netmap_open(const NetdevNetmapOptions *nm_opts,
     int ret;
 
     memset(&req, 0, sizeof(req));
-    if (nm_opts->passthrough) {
-        req.nr_flags |= NR_PTNETMAP_HOST;
-    }
-
     nmd = nm_open(nm_opts->ifname, &req, NETMAP_NO_TX_POLL | NM_OPEN_NO_MMAP,
                   NULL);
     if (nmd == NULL) {
@@ -470,25 +466,34 @@ static NetClientInfo net_netmap_info = {
  * ptnetmap routines
  */
 
+static void
+nmreq_hdr_init(struct nmreq_header *hdr, const char *ifname)
+{
+	memset(hdr, 0, sizeof(*hdr));
+	hdr->nr_version = NETMAP_API;
+	strncpy(hdr->nr_name, ifname, sizeof(hdr->nr_name) - 1);
+}
+
 PTNetmapState *
 get_ptnetmap(NetClientState *nc)
 {
     NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
-    struct netmap_pools_info pi;
-    struct nmreq req;
+    struct nmreq_pools_info pi;
+    struct nmreq_header hdr;
     int err;
 
     if (nc->info->type != NET_CLIENT_DRIVER_NETMAP
-                            || !(s->nmd->req.nr_flags & NR_PTNETMAP_HOST)) {
+                              || s->ptnetmap.netmap != s) {
         return NULL;
     }
 
-    nmreq_init(&req, s->ifname);
-    req.nr_cmd = NETMAP_POOLS_INFO_GET;
-    nmreq_pointer_put(&req, &pi);
-    err = ioctl(s->nmd->fd, NIOCREGIF, &req);
+    nmreq_hdr_init(&hdr, s->ifname);
+    hdr.nr_reqtype = NETMAP_REQ_POOLS_INFO_GET;
+    hdr.nr_body    = (uintptr_t)&pi;
+    memset(&pi, 0, sizeof(pi));
+    err = ioctl(s->nmd->fd, NIOCCTRL, &hdr);
     if (err) {
-        error_report("Unable to execute NETMAP_POOLS_INFO_GET on %s: %s",
+        error_report("Unable to execute POOLS_INFO_GET on %s: %s",
                      s->ifname, strerror(errno));
         return NULL;
     }
@@ -541,7 +546,6 @@ int
 ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *cfg)
 {
     NetmapState *s = ptn->netmap;
-    struct nmreq req;
     int err;
 
     if (ptn->running) {
@@ -552,13 +556,10 @@ ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *cfg)
     netmap_poll(&s->nc, false);
     qemu_purge_queued_packets(&s->nc);
 
-    /* Ask host netmap to create ptnetmap kthreads. */
-    nmreq_init(&req, s->ifname);
-    nmreq_pointer_put(&req, cfg);
-    req.nr_cmd = NETMAP_PT_HOST_CREATE;
-    err = ioctl(s->nmd->fd, NIOCREGIF, &req);
+    /* Ask host netmap to start sync-kloop. */
+    err = 0; // TODO
     if (err) {
-        error_report("Unable to execute NETMAP_PT_HOST_CREATE on %s: %s",
+        error_report("Unable to execute SYNC_KLOOP_START on %s: %s",
                      s->ifname, strerror(errno));
         netmap_poll(&s->nc, true);
         return -errno;
@@ -574,16 +575,13 @@ ptnetmap_delete(PTNetmapState *ptn)
 {
     NetmapState *s = ptn->netmap;
     int err;
-    struct nmreq req;
 
     if (!ptn->running) {
         return 0;
     }
 
-    /* Ask host netmap to delete ptnetmap kthreads. */
-    nmreq_init(&req, s->ifname);
-    req.nr_cmd = NETMAP_PT_HOST_DELETE;
-    err = ioctl(s->nmd->fd, NIOCREGIF, &req);
+    /* Ask host netmap to stop sync-kloop. */
+    err = 0; // TODO
     if (err) {
         error_report("Unable to execute NETMAP_PT_HOST_DELETE on %s: %s",
                 s->ifname, strerror(errno));

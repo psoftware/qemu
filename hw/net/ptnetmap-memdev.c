@@ -61,7 +61,7 @@ typedef struct PTNetmapMemDevState {
     MemoryRegion mem_bar;       /* ptnetmap shared memory BAR */
     MemoryRegion mem_ram;       /* ptnetmap shared memory subregion */
     void *mem_ptr;              /* host virtual pointer to netmap memory */
-    struct netmap_pools_info pi;
+    struct nmreq_pools_info pi;
 
     QTAILQ_ENTRY(PTNetmapMemDevState) next;
 } PTNetmapMemDevState;
@@ -89,40 +89,40 @@ ptnetmap_memdev_io_read(void *opaque, hwaddr addr, unsigned size)
 
     switch (addr) {
     case PTNET_MDEV_IO_MEMSIZE_LO:
-        ret = memd->pi.memsize & 0xffffffff;
+        ret = memd->pi.nr_memsize & 0xffffffff;
         break;
     case PTNET_MDEV_IO_MEMSIZE_HI:
-        ret = memd->pi.memsize >> 32;
+        ret = memd->pi.nr_memsize >> 32;
         break;
     case PTNET_MDEV_IO_MEMID:
-        ret = memd->pi.memid;
+        ret = memd->pi.nr_mem_id;
         break;
     case PTNET_MDEV_IO_IF_POOL_OFS:
-        ret = memd->pi.if_pool_offset;
+        ret = memd->pi.nr_if_pool_offset;
         break;
     case PTNET_MDEV_IO_IF_POOL_OBJNUM:
-        ret = memd->pi.if_pool_objtotal;
+        ret = memd->pi.nr_if_pool_objtotal;
         break;
     case PTNET_MDEV_IO_IF_POOL_OBJSZ:
-        ret = memd->pi.if_pool_objsize;
+        ret = memd->pi.nr_if_pool_objsize;
         break;
     case PTNET_MDEV_IO_RING_POOL_OFS:
-        ret = memd->pi.ring_pool_offset;
+        ret = memd->pi.nr_ring_pool_offset;
         break;
     case PTNET_MDEV_IO_RING_POOL_OBJNUM:
-        ret = memd->pi.ring_pool_objtotal;
+        ret = memd->pi.nr_ring_pool_objtotal;
         break;
     case PTNET_MDEV_IO_RING_POOL_OBJSZ:
-        ret = memd->pi.ring_pool_objsize;
+        ret = memd->pi.nr_ring_pool_objsize;
         break;
     case PTNET_MDEV_IO_BUF_POOL_OFS:
-        ret = memd->pi.buf_pool_offset;
+        ret = memd->pi.nr_buf_pool_offset;
         break;
     case PTNET_MDEV_IO_BUF_POOL_OBJNUM:
-        ret = memd->pi.buf_pool_objtotal;
+        ret = memd->pi.nr_buf_pool_objtotal;
         break;
     case PTNET_MDEV_IO_BUF_POOL_OBJSZ:
-        ret = memd->pi.buf_pool_objsize;
+        ret = memd->pi.nr_buf_pool_objsize;
         break;
     default:
         DBG("invalid I/O read [addr 0x%lx]", addr);
@@ -163,13 +163,13 @@ ptnetmap_memdev_init(PCIDevice *dev)
 
     /* init PCI_BAR to map netmap memory into the guest */
     if (memd->mem_ptr) {
-        size = upper_pow2(memd->pi.memsize);
+        size = upper_pow2(memd->pi.nr_memsize);
         DBG("Netmap memory mapped, size %lx (%lu MiB)", size, size >> 20);
 
         memory_region_init(&memd->mem_bar, OBJECT(memd),
                            "ptnetmap-mem-bar", size);
         memory_region_init_ram_ptr(&memd->mem_ram, OBJECT(memd),
-                                   "ptnetmap-mem-ram", memd->pi.memsize,
+                                   "ptnetmap-mem-ram", memd->pi.nr_memsize,
                                    memd->mem_ptr);
         memory_region_add_subregion(&memd->mem_bar, 0, &memd->mem_ram);
         vmstate_register_ram(&memd->mem_ram, DEVICE(memd));
@@ -203,7 +203,7 @@ ptnetmap_memdev_find(uint16_t memid)
     PTNetmapMemDevState *memd;
 
     QTAILQ_FOREACH(memd, &ptn_memdevs, next) {
-        if (memid == memd->pi.memid) {
+        if (memid == memd->pi.nr_mem_id) {
             return memd;
         }
     }
@@ -213,14 +213,14 @@ ptnetmap_memdev_find(uint16_t memid)
 
 /* Function exported to be used by the netmap backend. */
 int
-ptnetmap_memdev_create(void *mem_ptr, struct netmap_pools_info *pi)
+ptnetmap_memdev_create(void *mem_ptr, struct nmreq_pools_info *pi)
 {
     PTNetmapMemDevState *memd;
     PCIDevice *dev;
     PCIBus *bus;
 
-    if (ptnetmap_memdev_find(pi->memid)) {
-        DBG("memdev instance for mem-id %d already exists", pi->memid);
+    if (ptnetmap_memdev_find(pi->nr_mem_id)) {
+        DBG("memdev instance for mem-id %d already exists", pi->nr_mem_id);
         return 0;
     }
 

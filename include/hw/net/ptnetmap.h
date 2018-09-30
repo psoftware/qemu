@@ -59,7 +59,7 @@ int ptnetmap_create(PTNetmapState *nc, struct ptnetmap_cfg *conf);
 int ptnetmap_delete(PTNetmapState *nc);
 PTNetmapState *get_ptnetmap(NetClientState *nc);
 
-int ptnetmap_memdev_create(void *mem_ptr, struct netmap_pools_info *pi);
+int ptnetmap_memdev_create(void *mem_ptr, struct nmreq_pools_info *pi);
 
 #undef PTNET_DEBUG /* enable to add debug logs for ptnetmap netif and memdev */
 
