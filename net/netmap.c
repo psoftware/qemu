@@ -574,7 +574,7 @@ ptnetmap_sync_kloop_worker(void *opaque)
                      s->ifname, strerror(errno));
     }
 
-    free(ctx);
+    g_free(ctx);
 
     return NULL;
 }
