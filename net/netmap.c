@@ -369,27 +369,35 @@ static void netmap_cleanup(NetClientState *nc)
 }
 
 static void
-nmreq_init(struct nmreq *req, char *ifname)
+nmreq_hdr_init(struct nmreq_header *hdr, const char *ifname)
 {
-    memset(req, 0, sizeof(*req));
-    pstrcpy(req->nr_name, sizeof(req->nr_name), ifname);
-    req->nr_version = NETMAP_API;
+    memset(hdr, 0, sizeof(*hdr));
+    hdr->nr_version = NETMAP_API;
+    strncpy(hdr->nr_name, ifname, sizeof(hdr->nr_name) - 1);
 }
 
 /* Offloading manipulation support callbacks. */
 static int netmap_fd_set_vnet_hdr_len(NetmapState *s, int len)
 {
-    struct nmreq req;
-
-    /* Issue a NETMAP_BDG_VNET_HDR command to change the virtio-net header
+    /* Issue a NETMAP_REQ_PORT_HDR_SET command to change the virtio-net header
      * length for the netmap adapter associated to 's->ifname'.
      */
-    // TODO REPLACE!!
-    nmreq_init(&req, s->ifname);
-    req.nr_cmd = NETMAP_BDG_VNET_HDR;
-    req.nr_arg1 = len;
+    struct nmreq_port_hdr req;
+    struct nmreq_header hdr;
+    int ret;
 
-    return ioctl(s->nmd->fd, NIOCREGIF, &req);
+    nmreq_hdr_init(&hdr, s->ifname);
+    hdr.nr_reqtype = NETMAP_REQ_PORT_HDR_SET;
+    hdr.nr_body    = (uintptr_t)&req;
+    memset(&req, 0, sizeof(req));
+    req.nr_hdr_len = len;
+    ret            = ioctl(s->nmd->fd, NIOCCTRL, &hdr);
+    if (ret) {
+        error_report("Failed to issue PORT_HDR_SET on %s: %s",
+                     s->ifname, strerror(errno));
+    }
+
+    return ret;
 }
 
 static bool netmap_has_vnet_hdr_len(NetClientState *nc, int len)
@@ -406,7 +414,6 @@ static bool netmap_has_vnet_hdr_len(NetClientState *nc, int len)
     if (netmap_fd_set_vnet_hdr_len(s, prev_len)) {
         error_report("Failed to restore vnet-hdr length %d on %s: %s",
                      prev_len, s->ifname, strerror(errno));
-        abort();
     }
 
     return true;
@@ -469,14 +476,6 @@ static NetClientInfo net_netmap_info = {
 /*
  * ptnetmap routines
  */
-
-static void
-nmreq_hdr_init(struct nmreq_header *hdr, const char *ifname)
-{
-	memset(hdr, 0, sizeof(*hdr));
-	hdr->nr_version = NETMAP_API;
-	strncpy(hdr->nr_name, ifname, sizeof(hdr->nr_name) - 1);
-}
 
 PTNetmapState *
 get_ptnetmap(NetClientState *nc)
