@@ -56,7 +56,8 @@ typedef struct NetmapIf {
 uint32_t ptnetmap_ack_features(PTNetmapState *pt, uint32_t wanted_features);
 int ptnetmap_get_netmap_if(PTNetmapState *pt, NetmapIf *nif);
 int ptnetmap_get_hostmemid(PTNetmapState *pt);
-int ptnetmap_create(PTNetmapState *nc, struct ptnetmap_cfg *conf);
+int ptnetmap_create(PTNetmapState *pt, void *csb_gh, void *csb_hg,
+                    unsigned int num_entries, int *ioeventfds, int *irqfds);
 int ptnetmap_delete(PTNetmapState *nc);
 PTNetmapState *get_ptnetmap(NetClientState *nc);
 

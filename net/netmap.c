@@ -549,6 +549,9 @@ struct SyncKloopThreadCtx {
     NetmapState *s;
     char *csb_gh;
     char *csb_hg;
+    int num_entries;
+    int *ioeventfds;
+    int *irqfds;
 };
 
 static void *
@@ -574,18 +577,23 @@ ptnetmap_sync_kloop_worker(void *opaque)
                      s->ifname, strerror(errno));
     }
 
+    g_free(ctx->ioeventfds);
+    g_free(ctx->irqfds);
     g_free(ctx);
 
     return NULL;
 }
 
 int
-ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *cfg)
+ptnetmap_create(PTNetmapState *ptn, void *csb_gh, void *csb_hg,
+                unsigned int num_entries, int *ioeventfds, int *irqfds)
 {
     NetmapState *s = ptn->netmap;
     struct SyncKloopThreadCtx *ctx;
 
     if (ptn->running) {
+        g_free(ioeventfds);
+        g_free(irqfds);
         return 0;
     }
 
@@ -596,8 +604,11 @@ ptnetmap_create(PTNetmapState *ptn, struct ptnetmap_cfg *cfg)
     /* Ask host netmap to start sync-kloop. */
     ctx = g_malloc(sizeof(*ctx));
     ctx->s = s;
-    ctx->csb_gh = cfg->csb_gh;
-    ctx->csb_hg = cfg->csb_hg;
+    ctx->csb_gh = csb_gh;
+    ctx->csb_hg = csb_hg;
+    ctx->num_entries = num_entries;
+    ctx->ioeventfds = ioeventfds;
+    ctx->irqfds = irqfds;
     qemu_thread_create(&ptn->th, "ptnetmap-sync-kloop",
                        ptnetmap_sync_kloop_worker, ctx, QEMU_THREAD_JOINABLE);
 

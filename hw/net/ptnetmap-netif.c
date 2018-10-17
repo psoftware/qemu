@@ -256,38 +256,33 @@ ptnet_get_netmap_if(PtNetState *s)
 static int
 ptnet_ptctl_create(PtNetState *s)
 {
-    struct ptnetmap_cfgentry_qemu *cfgentry;
-    struct ptnetmap_cfg *cfg;
-    int ret;
-    int i;
+    int *ioeventfds, *irqfds;
+    int ret, i;
 
     if (s->csb_gh == NULL || s->csb_hg == NULL) {
         error_report("CSB not set, can't create ptnetmap worker");
         return -ENXIO;
     }
 
-    /* Guest must haave allocated MSI-X now, we can setup
+    /* Guest must have allocated MSI-X at this point, so that we can setup
      * the irqfd notification mechanism. */
     ret = ptnet_guest_notifiers_init(s);
     if (ret) {
         return ret;
     }
 
-    cfg = g_malloc(sizeof(*cfg) + s->num_rings * sizeof(*cfgentry));
-    cfg->cfgtype = PTNETMAP_CFGTYPE_QEMU;
-    cfg->entry_size = sizeof(*cfgentry);
-    cfg->num_rings = s->num_rings;
-    cfg->csb_gh = s->csb_gh;
-    cfg->csb_hg = s->csb_hg;
-    cfgentry = (struct ptnetmap_cfgentry_qemu *)(cfg + 1);
+    ioeventfds = g_malloc(sizeof(*ioeventfds) * s->num_rings);
+    irqfds = g_malloc(sizeof(*irqfds) * s->num_rings);
 
-    for (i = 0; i < s->num_rings; i++, cfgentry++) {
-        cfgentry->ioeventfd = event_notifier_get_fd(s->host_notifiers + i);
-        cfgentry->irqfd = event_notifier_get_fd(s->guest_notifiers + i);
+    for (i = 0; i < s->num_rings; i++) {
+        ioeventfds[i] = event_notifier_get_fd(s->host_notifiers + i);
+        irqfds[i] = event_notifier_get_fd(s->guest_notifiers + i);
     }
 
-    ret = ptnetmap_create(s->ptbe, cfg);
-    g_free(cfg);
+    /* The ownership of the ioeventfds and irqfds arrays is passed
+     * to the callee. */
+    ret = ptnetmap_create(s->ptbe, s->csb_gh, s->csb_hg, s->num_rings,
+                          ioeventfds, irqfds);
 
     return ret;
 }
