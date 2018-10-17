@@ -31,8 +31,8 @@
 typedef struct PTNetmapState {
     struct NetmapState *netmap;
 
-    /* True if ptnetmap thread is running. */
-    bool running;
+    /* True if the sync kloop has been started for ptnetmap. */
+    bool worker_started;
     QemuThread th;
 
     /* Feature acknowledgement support. */
@@ -56,9 +56,9 @@ typedef struct NetmapIf {
 uint32_t ptnetmap_ack_features(PTNetmapState *pt, uint32_t wanted_features);
 int ptnetmap_get_netmap_if(PTNetmapState *pt, NetmapIf *nif);
 int ptnetmap_get_hostmemid(PTNetmapState *pt);
-int ptnetmap_create(PTNetmapState *pt, void *csb_gh, void *csb_hg,
+int ptnetmap_kloop_start(PTNetmapState *pt, void *csb_gh, void *csb_hg,
                     unsigned int num_entries, int *ioeventfds, int *irqfds);
-int ptnetmap_delete(PTNetmapState *nc);
+int ptnetmap_kloop_stop(PTNetmapState *pt);
 PTNetmapState *get_ptnetmap(NetClientState *nc);
 
 int ptnetmap_memdev_create(void *mem_ptr, struct nmreq_pools_info *pi);

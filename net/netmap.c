@@ -356,10 +356,7 @@ static void netmap_cleanup(NetClientState *nc)
     NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
 
     qemu_purge_queued_packets(nc);
-
-    if (s->ptnetmap.running) {
-        ptnetmap_delete(&s->ptnetmap);
-    }
+    ptnetmap_kloop_stop(&s->ptnetmap);
 
     netmap_poll(nc, false);
     nm_close(s->nmd);
@@ -585,13 +582,13 @@ ptnetmap_sync_kloop_worker(void *opaque)
 }
 
 int
-ptnetmap_create(PTNetmapState *ptn, void *csb_gh, void *csb_hg,
+ptnetmap_kloop_start(PTNetmapState *ptn, void *csb_gh, void *csb_hg,
                 unsigned int num_entries, int *ioeventfds, int *irqfds)
 {
     NetmapState *s = ptn->netmap;
     struct SyncKloopThreadCtx *ctx;
 
-    if (ptn->running) {
+    if (ptn->worker_started) {
         g_free(ioeventfds);
         g_free(irqfds);
         return 0;
@@ -612,19 +609,19 @@ ptnetmap_create(PTNetmapState *ptn, void *csb_gh, void *csb_hg,
     qemu_thread_create(&ptn->th, "ptnetmap-sync-kloop",
                        ptnetmap_sync_kloop_worker, ctx, QEMU_THREAD_JOINABLE);
 
-    ptn->running = true;
+    ptn->worker_started = true;
 
     return 0;
 }
 
 int
-ptnetmap_delete(PTNetmapState *ptn)
+ptnetmap_kloop_stop(PTNetmapState *ptn)
 {
     NetmapState *s = ptn->netmap;
     struct nmreq_header hdr;
     int err = 0;
 
-    if (!ptn->running) {
+    if (!ptn->worker_started) {
         return 0;
     }
 
@@ -640,7 +637,7 @@ ptnetmap_delete(PTNetmapState *ptn)
     qemu_thread_join(&ptn->th);
 
     /* Restore QEMU polling. */
-    ptn->running = false;
+    ptn->worker_started = false;
     netmap_poll(&s->nc, true);
 
     return err;
@@ -679,7 +676,7 @@ int net_init_netmap(const Netdev *netdev,
         s->ptnetmap.netmap = s;
         s->ptnetmap.features = 0;
         s->ptnetmap.acked_features = 0;
-        s->ptnetmap.running = false;
+        s->ptnetmap.worker_started = false;
 
         if (netmap_has_vnet_hdr_len(nc, sizeof(struct virtio_net_hdr_v1))) {
             s->ptnetmap.features |= PTNETMAP_F_VNET_HDR;

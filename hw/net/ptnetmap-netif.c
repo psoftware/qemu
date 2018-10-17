@@ -281,8 +281,8 @@ ptnet_ptctl_create(PtNetState *s)
 
     /* The ownership of the ioeventfds and irqfds arrays is passed
      * to the callee. */
-    ret = ptnetmap_create(s->ptbe, s->csb_gh, s->csb_hg, s->num_rings,
-                          ioeventfds, irqfds);
+    ret = ptnetmap_kloop_start(s->ptbe, s->csb_gh, s->csb_hg,
+                               s->num_rings, ioeventfds, irqfds);
 
     return ret;
 }
@@ -294,7 +294,7 @@ ptnet_ptctl_delete(PtNetState *s)
      * can tear donw the irqfd notification mechanism. */
     ptnet_guest_notifiers_fini(s);
 
-    return ptnetmap_delete(s->ptbe);
+    return ptnetmap_kloop_stop(s->ptbe);
 }
 
 static int
