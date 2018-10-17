@@ -554,26 +554,41 @@ struct SyncKloopThreadCtx {
 static void *
 ptnetmap_sync_kloop_worker(void *opaque)
 {
+    struct nmreq_opt_sync_kloop_eventfds *opt;
     struct SyncKloopThreadCtx *ctx = opaque;
     struct nmreq_sync_kloop_start req;
     NetmapState *s = ctx->s;
     struct nmreq_header hdr;
-    int err;
+    size_t opt_size;
+    int err, i;
+
+    opt_size = sizeof(*opt) + ctx->num_entries * sizeof(opt->eventfds[0]);
+    opt = g_malloc(opt_size);
+    memset(opt, 0, opt_size);
+    opt->nro_opt.nro_next    = 0;
+    opt->nro_opt.nro_reqtype = NETMAP_REQ_OPT_SYNC_KLOOP_EVENTFDS;
+    opt->nro_opt.nro_status  = 0;
+    opt->nro_opt.nro_size    = opt_size;
+    for (i = 0; i < ctx->num_entries; i++) {
+        opt->eventfds[i].ioeventfd = ctx->ioeventfds[i];
+        opt->eventfds[i].irqfd     = ctx->irqfds[i];
+    }
 
     nmreq_hdr_init(&hdr, s->ifname);
     hdr.nr_reqtype = NETMAP_REQ_SYNC_KLOOP_START;
     hdr.nr_body    = (uintptr_t)&req;
-    hdr.nr_options = (uintptr_t)NULL;
+    hdr.nr_options = (uintptr_t)opt;
     memset(&req, 0, sizeof(req));
     req.csb_atok = (uintptr_t)ctx->csb_gh;
     req.csb_ktoa = (uintptr_t)ctx->csb_hg;
-    req.sleep_us = 100;
+    req.sleep_us = 100;  /* ignored by the kernel */
     err          = ioctl(s->nmd->fd, NIOCCTRL, &hdr);
     if (err) {
         error_report("Unable to execute SYNC_KLOOP_START on %s: %s",
                      s->ifname, strerror(errno));
     }
 
+    g_free(opt);
     g_free(ctx->ioeventfds);
     g_free(ctx->irqfds);
     g_free(ctx);
