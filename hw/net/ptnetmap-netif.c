@@ -382,7 +382,7 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         /* Write to BAL triggers CSB mapping. */
         s->ioregs[index] = val;
         ptnet_csb_map_one(s, &s->csb_gh, PTNET_IO_CSB_GH_BAH,
-                          PTNET_IO_CSB_GH_BAL, sizeof(struct ptnet_csb_gh),
+                          PTNET_IO_CSB_GH_BAL, sizeof(struct nm_csb_atok),
                           /*is_write=*/0);
         break;
 
@@ -390,7 +390,7 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         /* Write to BAL triggers CSB mapping. */
         s->ioregs[index] = val;
         ptnet_csb_map_one(s, &s->csb_hg, PTNET_IO_CSB_HG_BAH,
-                          PTNET_IO_CSB_HG_BAL, sizeof(struct ptnet_csb_hg),
+                          PTNET_IO_CSB_HG_BAL, sizeof(struct nm_csb_ktoa),
                           /*is_write=*/1);
         break;
 
