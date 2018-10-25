@@ -399,8 +399,8 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         break;
 
     case PTNET_IO_VNET_HDR_LEN:
-        qemu_set_vnet_hdr_len(qemu_get_queue(s->nic)->peer, val);
         if (qemu_has_vnet_hdr_len(qemu_get_queue(s->nic)->peer, val)) {
+	    qemu_set_vnet_hdr_len(qemu_get_queue(s->nic)->peer, val);
             s->ioregs[index] = val;
         }
         break;
