@@ -404,20 +404,14 @@ static int netmap_fd_set_vnet_hdr_len(NetmapState *s, int len)
      */
     struct nmreq_port_hdr req;
     struct nmreq_header hdr;
-    int ret;
 
     nmreq_hdr_init(&hdr, s->ifname);
     hdr.nr_reqtype = NETMAP_REQ_PORT_HDR_SET;
     hdr.nr_body    = (uintptr_t)&req;
     memset(&req, 0, sizeof(req));
     req.nr_hdr_len = len;
-    ret            = ioctl(s->fd, NIOCCTRL, &hdr);
-    if (ret) {
-        error_report("Failed to issue PORT_HDR_SET(%d) on %s: %s",
-                     len, s->ifname, strerror(errno));
-    }
 
-    return ret;
+    return ioctl(s->fd, NIOCCTRL, &hdr);
 }
 
 static bool netmap_has_vnet_hdr_len(NetClientState *nc, int len)
@@ -700,6 +694,8 @@ int net_init_netmap(const Netdev *netdev,
                     const char *name, NetClientState *peer, Error **errp)
 {
     const NetdevNetmapOptions *netmap_opts = &netdev->u.netmap;
+    const char *ifname = netmap_opts->ifname;
+    const char *nmpref = "netmap:";
     NetClientState *nc;
     Error *err = NULL;
     NetmapState *s;
@@ -709,7 +705,12 @@ int net_init_netmap(const Netdev *netdev,
     s = DO_UPCAST(NetmapState, nc, nc);
     QTAILQ_INSERT_TAIL(&netmap_clients, s, next);
     s->vnet_hdr_len = 0;
-    pstrcpy(s->ifname, sizeof(s->ifname), netmap_opts->ifname);
+
+    /* Strip the netmap prefix, if present. */
+    if (!strncmp(ifname, nmpref, strlen(nmpref))) {
+        ifname += strlen(nmpref);
+    }
+    pstrcpy(s->ifname, sizeof(s->ifname), ifname);
 
     /* Open a netmap control device and bind it to 's->ifname'. This must
      * be done before all the subsequent ioctl() operations. */
