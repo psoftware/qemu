@@ -45,12 +45,12 @@ typedef struct PTNetmapState {
 } PTNetmapState;
 
 uint32_t ptnetmap_ack_features(PTNetmapState *pt, uint32_t wanted_features);
-int ptnetmap_get_netmap_if(PTNetmapState *pt, struct nmreq_port_info_get *nif);
 int ptnetmap_get_hostmemid(PTNetmapState *pt);
 int ptnetmap_kloop_start(PTNetmapState *pt, void *csb_gh, void *csb_hg,
                     unsigned int num_entries, int *ioeventfds, int *irqfds);
 int ptnetmap_kloop_stop(PTNetmapState *pt);
 PTNetmapState *get_ptnetmap(NetClientState *nc);
+int netmap_get_port_info(NetClientState *nc, struct nmreq_port_info_get *nif);
 
 int ptnetmap_memdev_create(void *mem_ptr, struct nmreq_pools_info *pi);
 

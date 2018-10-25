@@ -534,10 +534,16 @@ uint32_t ptnetmap_ack_features(PTNetmapState *ptn, uint32_t wanted_features)
 
 /* Get info on 's->ifname'. We reuse 's->fd' for convenience, although we
  * could use a different (unbound) netmap control device. */
-static int netmap_port_info_get(NetmapState *s, struct nmreq_port_info_get *nif)
+int netmap_get_port_info(NetClientState *nc, struct nmreq_port_info_get *nif)
 {
+    NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
     struct nmreq_header hdr;
     int ret;
+
+    if (nc->info->type != NET_CLIENT_DRIVER_NETMAP) {
+        error_report("Cannot get netmap port info on a non-netmap backend");
+        return -1;
+    }
 
     nmreq_hdr_init(&hdr, s->ifname);
     hdr.nr_reqtype = NETMAP_REQ_PORT_INFO_GET;
@@ -549,17 +555,6 @@ static int netmap_port_info_get(NetmapState *s, struct nmreq_port_info_get *nif)
     }
 
     return ret;
-}
-
-int ptnetmap_get_netmap_if(PTNetmapState *ptn, struct nmreq_port_info_get *nif)
-{
-    if (!ptn) {
-        error_report("Cannot get netmap info on a backend that "
-                     "is not netmap");
-        return -1;
-    }
-
-    return netmap_port_info_get(ptn->netmap, nif);
 }
 
 int ptnetmap_get_hostmemid(PTNetmapState *ptn)

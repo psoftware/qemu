@@ -230,7 +230,7 @@ ptnet_get_netmap_if(PtNetState *s)
     struct nmreq_port_info_get nif;
     int ret;
 
-    ret = ptnetmap_get_netmap_if(s->ptbe, &nif);
+    ret = netmap_get_port_info(qemu_get_queue(s->nic)->peer, &nif);
     if (ret) {
         return ret;
     }
