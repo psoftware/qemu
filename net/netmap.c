@@ -42,8 +42,9 @@
 
 typedef struct NetmapState {
     NetClientState      nc;
-    struct nm_desc      *nmd;
-    uint16_t            memid;
+    int                 fd;
+    uint16_t            mem_id;
+    void                *mem;
     char                ifname[IFNAMSIZ];
     struct netmap_ring  *tx;
     struct netmap_ring  *rx;
@@ -62,8 +63,7 @@ static QTAILQ_HEAD(, NetmapState) netmap_clients =
 #define pkt_copy bcopy
 #else
 /* A fast copy routine only for multiples of 64 bytes, non overlapped. */
-static inline void
-pkt_copy(const void *_src, void *_dst, int l)
+static inline void pkt_copy(const void *_src, void *_dst, int l)
 {
     const uint64_t *src = _src;
     uint64_t *dst = _dst;
@@ -87,15 +87,15 @@ pkt_copy(const void *_src, void *_dst, int l)
 /*
  * find nm_desc parent with same allocator
  */
-static struct nm_desc *
-netmap_find_memory(struct nm_desc *nmd)
+static NetmapState *netmap_find_memory(uint16_t mem_id, NetmapState *exclude)
 {
     NetmapState *s;
 
     QTAILQ_FOREACH(s, &netmap_clients, next) {
-        if (nmd->req.nr_arg2 == s->memid) {
-            D("Found parent: ifname: %s mem_id: %d", s->ifname, s->memid);
-            return s->nmd;
+        if (s != exclude && mem_id == s->mem_id) {
+            printf("Found netmap parent: ifname: %s mem_id: %d\n",
+                    s->ifname, s->mem_id);
+            return s;
         }
     }
 
@@ -103,40 +103,60 @@ netmap_find_memory(struct nm_desc *nmd)
 }
 
 /*
- * Open a netmap device. We assume there is only one queue
- * (which is the case for the VALE bridge).
+ * Open a netmap device. We only use the first TX ring and the first
+ * RX ring, even if there are more.
  */
-static struct nm_desc *netmap_open(const NetdevNetmapOptions *nm_opts,
-                                   Error **errp)
+static int netmap_open(NetmapState *s, Error **errp)
 {
-    struct nm_desc *nmd;
-    struct nmreq req;
+    struct nmreq_register req;
+    struct nmreq_header hdr;
+    struct netmap_if *nifp;
+    NetmapState *other;
     int ret;
 
+    s->fd = open("/dev/netmap", O_RDWR);
+    if (s->fd < 0) {
+        error_setg_errno(errp, errno, "Failed to open(/dev/netmap)");
+        return -1;
+    }
+
+    memset(&hdr, 0, sizeof(hdr));
     memset(&req, 0, sizeof(req));
-    if (nm_opts->passthrough) {
-        req.nr_flags = NR_EXCLUSIVE; /* needed by SYNC_KLOOP */
-    }
-    nmd = nm_open(nm_opts->ifname, &req, NETMAP_NO_TX_POLL | NM_OPEN_NO_MMAP,
-                  NULL);
-    if (nmd == NULL) {
-        error_setg_errno(errp, errno, "Failed to nm_open() %s",
-                         nm_opts->ifname);
-        return NULL;
-    }
 
-    /* Check if we already have a nm_desc that uses the same memory as the one
-     * just opened, so that nm_mmap() can skip mmap() and inherit from parent.
-     */
-    ret = nm_mmap(nmd, netmap_find_memory(nmd));
+    hdr.nr_version = NETMAP_API;
+    strncpy(hdr.nr_name, s->ifname, sizeof(hdr.nr_name) - 1);
+    hdr.nr_reqtype = NETMAP_REQ_REGISTER;
+    hdr.nr_body    = (uintptr_t)&req;
+    hdr.nr_options = (uintptr_t)NULL;
+    req.nr_mode    = NR_REG_ALL_NIC;
+    req.nr_flags   = NR_EXCLUSIVE | NR_NO_TX_POLL;
+    ret            = ioctl(s->fd, NIOCCTRL, &hdr);
     if (ret) {
-        error_setg_errno(errp, errno, "Failed to nm_mmap() %s",
-                         nm_opts->ifname);
-        nm_close(nmd);
-        return NULL;
+        error_setg_errno(errp, errno, "Failed to register %s", s->ifname);
+        return ret;
     }
+    s->mem_id = req.nr_mem_id;
 
-    return nmd;
+    /* Check if we already have a netmap port that uses the same memory as the
+     * one just opened, so that nm_mmap() can skip mmap() and inherit from
+     * parent. */
+    other = netmap_find_memory(req.nr_mem_id, s);
+    if (!other) {
+        s->mem = mmap(0, req.nr_memsize, PROT_WRITE | PROT_READ,
+                        MAP_SHARED, s->fd, 0);
+        if (s->mem == MAP_FAILED) {
+            error_setg_errno(errp, errno, "Failed to mmap %s",
+                    s->ifname);
+            return -1;
+        }
+    } else {
+        s->mem = other->mem;
+    }
+    nifp = NETMAP_IF(s->mem, req.nr_offset);
+    s->tx = NETMAP_TXRING(nifp, 0);
+    s->rx = NETMAP_RXRING(nifp, 0);
+
+    return 0;
 }
 
 static void netmap_send(void *opaque);
@@ -145,7 +165,7 @@ static void netmap_writable(void *opaque);
 /* Set the event-loop handlers for the netmap backend. */
 static void netmap_update_fd_handler(NetmapState *s)
 {
-    qemu_set_fd_handler(s->nmd->fd,
+    qemu_set_fd_handler(s->fd,
                         s->read_poll ? netmap_send : NULL,
                         s->write_poll ? netmap_writable : NULL,
                         s);
@@ -227,7 +247,7 @@ static ssize_t netmap_receive(NetClientState *nc,
     ring->slot[i].flags = 0;
     pkt_copy(buf, dst, size);
     ring->cur = ring->head = nm_ring_next(ring, i);
-    ioctl(s->nmd->fd, NIOCTXSYNC, NULL);
+    ioctl(s->fd, NIOCTXSYNC, NULL);
 
     return size;
 }
@@ -293,7 +313,7 @@ static ssize_t netmap_receive_iov(NetClientState *nc,
     /* Now update ring->cur and ring->head. */
     ring->cur = ring->head = i;
 
-    ioctl(s->nmd->fd, NIOCTXSYNC, NULL);
+    ioctl(s->fd, NIOCTXSYNC, NULL);
 
     return iov_size(iov, iovcnt);
 }
@@ -358,15 +378,16 @@ static void netmap_cleanup(NetClientState *nc)
     qemu_purge_queued_packets(nc);
     ptnetmap_kloop_stop(&s->ptnetmap);
 
-    netmap_poll(nc, false);
-    nm_close(s->nmd);
-    s->nmd = NULL;
+    if (s->fd >= 0) {
+        netmap_poll(nc, false);
+        close(s->fd);
+        s->fd = -1;
+    }
 
     QTAILQ_REMOVE(&netmap_clients, s, next);
 }
 
-static void
-nmreq_hdr_init(struct nmreq_header *hdr, const char *ifname)
+static void nmreq_hdr_init(struct nmreq_header *hdr, const char *ifname)
 {
     memset(hdr, 0, sizeof(*hdr));
     hdr->nr_version = NETMAP_API;
@@ -377,7 +398,9 @@ nmreq_hdr_init(struct nmreq_header *hdr, const char *ifname)
 static int netmap_fd_set_vnet_hdr_len(NetmapState *s, int len)
 {
     /* Issue a NETMAP_REQ_PORT_HDR_SET command to change the virtio-net header
-     * length for the netmap adapter associated to 's->ifname'.
+     * length for the netmap adapter associated to 's->ifname'. We reuse
+     * 's->fd' for convenience, although we could use a different (unbound)
+     * netmap control device.
      */
     struct nmreq_port_hdr req;
     struct nmreq_header hdr;
@@ -388,10 +411,10 @@ static int netmap_fd_set_vnet_hdr_len(NetmapState *s, int len)
     hdr.nr_body    = (uintptr_t)&req;
     memset(&req, 0, sizeof(req));
     req.nr_hdr_len = len;
-    ret            = ioctl(s->nmd->fd, NIOCCTRL, &hdr);
+    ret            = ioctl(s->fd, NIOCCTRL, &hdr);
     if (ret) {
-        error_report("Failed to issue PORT_HDR_SET on %s: %s",
-                     s->ifname, strerror(errno));
+        error_report("Failed to issue PORT_HDR_SET(%d) on %s: %s",
+                     len, s->ifname, strerror(errno));
     }
 
     return ret;
@@ -471,11 +494,10 @@ static NetClientInfo net_netmap_info = {
 };
 
 /*
- * ptnetmap routines
+ * Support for netmap passthrough.
  */
 
-PTNetmapState *
-get_ptnetmap(NetClientState *nc)
+PTNetmapState *get_ptnetmap(NetClientState *nc)
 {
     NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
     struct nmreq_pools_info pi;
@@ -487,108 +509,129 @@ get_ptnetmap(NetClientState *nc)
         return NULL;
     }
 
+    /* Use NETMAP_REQ_POOLS_INFO_GET to get information about the memory
+     * allocator for 's->ifname'. We reuse 's->fd' for convenience, although
+     * we could use a different (unbound) netmap control device.*/
     nmreq_hdr_init(&hdr, s->ifname);
     hdr.nr_reqtype = NETMAP_REQ_POOLS_INFO_GET;
     hdr.nr_body    = (uintptr_t)&pi;
     memset(&pi, 0, sizeof(pi));
-    err = ioctl(s->nmd->fd, NIOCCTRL, &hdr);
+    err = ioctl(s->fd, NIOCCTRL, &hdr);
     if (err) {
         error_report("Unable to execute POOLS_INFO_GET on %s: %s",
                      s->ifname, strerror(errno));
         return NULL;
     }
 
-    ptnetmap_memdev_create(s->nmd->mem, &pi);
+    /* Create a new ptnetmap memdev that exposes the memory allocator,
+     * if it does not exist yet. */
+    ptnetmap_memdev_create(s->mem, &pi);
 
     return &s->ptnetmap;
 }
 
 /* Store and return the features we agree upon. */
-uint32_t
-ptnetmap_ack_features(PTNetmapState *ptn, uint32_t wanted_features)
+uint32_t ptnetmap_ack_features(PTNetmapState *ptn, uint32_t wanted_features)
 {
     ptn->acked_features = ptn->features & wanted_features;
 
     return ptn->acked_features;
 }
 
-int
-ptnetmap_get_netmap_if(PTNetmapState *ptn, NetmapIf *nif)
+/* Get info on 's->ifname'. We reuse 's->fd' for convenience, although we
+ * could use a different (unbound) netmap control device. */
+static int netmap_port_info_get(NetmapState *s, struct nmreq_port_info_get *nif)
 {
-    NetmapState *s;
+    struct nmreq_header hdr;
+    int ret;
 
+    nmreq_hdr_init(&hdr, s->ifname);
+    hdr.nr_reqtype = NETMAP_REQ_PORT_INFO_GET;
+    hdr.nr_body    = (uintptr_t)nif;
+    memset(nif, 0, sizeof(*nif));
+    ret = ioctl(s->fd, NIOCCTRL, &hdr);
+    if (ret) {
+        error_report("NETMAP_REQ_PORT_INFO_GET failed on %s", s->ifname);
+    }
+
+    return ret;
+}
+
+int ptnetmap_get_netmap_if(PTNetmapState *ptn, struct nmreq_port_info_get *nif)
+{
     if (!ptn) {
-        error_report("Cannot get netmap info on a backend which "
+        error_report("Cannot get netmap info on a backend that "
                      "is not netmap");
         return -1;
     }
 
-    s = ptn->netmap;
-    memset(nif, 0, sizeof(*nif));
-    nif->nifp_offset = s->nmd->req.nr_offset;
-    nif->num_tx_rings = s->nmd->req.nr_tx_rings;
-    nif->num_rx_rings = s->nmd->req.nr_rx_rings;
-    nif->num_tx_slots = s->nmd->req.nr_tx_slots;
-    nif->num_rx_slots = s->nmd->req.nr_rx_slots;
-
-    return 0;
+    return netmap_port_info_get(ptn->netmap, nif);
 }
 
-int
-ptnetmap_get_hostmemid(PTNetmapState *ptn)
+int ptnetmap_get_hostmemid(PTNetmapState *ptn)
 {
     NetmapState *s = ptn->netmap;
 
-    return s->memid;
+    return s->mem_id;
 }
 
 struct SyncKloopThreadCtx {
     NetmapState *s;
-    char *csb_gh;
-    char *csb_hg;
     int num_entries;
     int *ioeventfds;
     int *irqfds;
+    void *csb_gh;
+    void *csb_hg;
 };
 
-static void *
-ptnetmap_sync_kloop_worker(void *opaque)
+/* Start a kernel sync loop for the netmap rings bound to 's->fd'. */
+static void *ptnetmap_sync_kloop_worker(void *opaque)
 {
-    struct nmreq_opt_sync_kloop_eventfds *opt;
+    struct nmreq_opt_sync_kloop_eventfds *evopt;
     struct SyncKloopThreadCtx *ctx = opaque;
     struct nmreq_sync_kloop_start req;
+    struct nmreq_opt_csb csbopt;
     NetmapState *s = ctx->s;
     struct nmreq_header hdr;
     size_t opt_size;
     int err, i;
 
-    opt_size = sizeof(*opt) + ctx->num_entries * sizeof(opt->eventfds[0]);
-    opt = g_malloc(opt_size);
-    memset(opt, 0, opt_size);
-    opt->nro_opt.nro_next    = 0;
-    opt->nro_opt.nro_reqtype = NETMAP_REQ_OPT_SYNC_KLOOP_EVENTFDS;
-    opt->nro_opt.nro_status  = 0;
-    opt->nro_opt.nro_size    = opt_size;
+    /* Prepare the CSB option. */
+    memset(&csbopt, 0, sizeof(csbopt));
+    csbopt.nro_opt.nro_reqtype = NETMAP_REQ_OPT_CSB;
+    csbopt.csb_atok = (uintptr_t)ctx->csb_gh;
+    csbopt.csb_ktoa = (uintptr_t)ctx->csb_hg;
+
+    /* Prepare the eventfds option. */
+    opt_size = sizeof(*evopt) + ctx->num_entries * sizeof(evopt->eventfds[0]);
+    evopt = g_malloc(opt_size);
+    memset(evopt, 0, opt_size);
+    evopt->nro_opt.nro_next    = 0;
+    evopt->nro_opt.nro_reqtype = NETMAP_REQ_OPT_SYNC_KLOOP_EVENTFDS;
+    evopt->nro_opt.nro_status  = 0;
+    evopt->nro_opt.nro_size    = opt_size;
     for (i = 0; i < ctx->num_entries; i++) {
-        opt->eventfds[i].ioeventfd = ctx->ioeventfds[i];
-        opt->eventfds[i].irqfd     = ctx->irqfds[i];
+        evopt->eventfds[i].ioeventfd = ctx->ioeventfds[i];
+        evopt->eventfds[i].irqfd     = ctx->irqfds[i];
     }
 
+    /* Link the two options together. */
+    csbopt.nro_opt.nro_next = (uintptr_t)evopt;
+
+    /* Prepare the request and link the options. */
     nmreq_hdr_init(&hdr, s->ifname);
     hdr.nr_reqtype = NETMAP_REQ_SYNC_KLOOP_START;
     hdr.nr_body    = (uintptr_t)&req;
-    hdr.nr_options = (uintptr_t)opt;
+    hdr.nr_options = (uintptr_t)&csbopt;
     memset(&req, 0, sizeof(req));
-    req.csb_atok = (uintptr_t)ctx->csb_gh;
-    req.csb_ktoa = (uintptr_t)ctx->csb_hg;
     req.sleep_us = 100;  /* ignored by the kernel */
-    err          = ioctl(s->nmd->fd, NIOCCTRL, &hdr);
+    err          = ioctl(s->fd, NIOCCTRL, &hdr);
     if (err) {
         error_report("Unable to execute SYNC_KLOOP_START on %s: %s",
                      s->ifname, strerror(errno));
     }
 
-    g_free(opt);
+    g_free(evopt);
     g_free(ctx->ioeventfds);
     g_free(ctx->irqfds);
     g_free(ctx);
@@ -596,12 +639,11 @@ ptnetmap_sync_kloop_worker(void *opaque)
     return NULL;
 }
 
-int
-ptnetmap_kloop_start(PTNetmapState *ptn, void *csb_gh, void *csb_hg,
+int ptnetmap_kloop_start(PTNetmapState *ptn, void *csb_gh, void *csb_hg,
                 unsigned int num_entries, int *ioeventfds, int *irqfds)
 {
-    NetmapState *s = ptn->netmap;
     struct SyncKloopThreadCtx *ctx;
+    NetmapState *s = ptn->netmap;
 
     if (ptn->worker_started) {
         g_free(ioeventfds);
@@ -609,11 +651,7 @@ ptnetmap_kloop_start(PTNetmapState *ptn, void *csb_gh, void *csb_hg,
         return 0;
     }
 
-    /* Tell QEMU not to poll the netmap fd. */
-    netmap_poll(&s->nc, false);
-    qemu_purge_queued_packets(&s->nc);
-
-    /* Ask host netmap to start sync-kloop. */
+    /* Ask netmap to start sync-kloop. */
     ctx = g_malloc(sizeof(*ctx));
     ctx->s = s;
     ctx->csb_gh = csb_gh;
@@ -629,8 +667,7 @@ ptnetmap_kloop_start(PTNetmapState *ptn, void *csb_gh, void *csb_hg,
     return 0;
 }
 
-int
-ptnetmap_kloop_stop(PTNetmapState *ptn)
+int ptnetmap_kloop_stop(PTNetmapState *ptn)
 {
     NetmapState *s = ptn->netmap;
     struct nmreq_header hdr;
@@ -640,20 +677,17 @@ ptnetmap_kloop_stop(PTNetmapState *ptn)
         return 0;
     }
 
-    /* Ask host netmap to stop sync-kloop. */
+    /* Ask netmap to stop sync-kloop for the rings bound to 's->fd'. */
     nmreq_hdr_init(&hdr, s->ifname);
     hdr.nr_reqtype = NETMAP_REQ_SYNC_KLOOP_STOP;
-    err            = ioctl(s->nmd->fd, NIOCCTRL, &hdr);
+    err            = ioctl(s->fd, NIOCCTRL, &hdr);
     if (err) {
         error_report("Unable to execute SYNC_KLOOP_STOP on %s: %s",
                      s->ifname, strerror(errno));
         err = -errno;
     }
     qemu_thread_join(&ptn->th);
-
-    /* Restore QEMU polling. */
     ptn->worker_started = false;
-    netmap_poll(&s->nc, true);
 
     return err;
 }
@@ -666,28 +700,32 @@ int net_init_netmap(const Netdev *netdev,
                     const char *name, NetClientState *peer, Error **errp)
 {
     const NetdevNetmapOptions *netmap_opts = &netdev->u.netmap;
-    struct nm_desc *nmd;
     NetClientState *nc;
     Error *err = NULL;
     NetmapState *s;
 
-    nmd = netmap_open(netmap_opts, &err);
+    /* Create a new net client object. */
+    nc = qemu_new_net_client(&net_netmap_info, peer, "netmap", name);
+    s = DO_UPCAST(NetmapState, nc, nc);
+    QTAILQ_INSERT_TAIL(&netmap_clients, s, next);
+    s->vnet_hdr_len = 0;
+    pstrcpy(s->ifname, sizeof(s->ifname), netmap_opts->ifname);
+
+    /* Open a netmap control device and bind it to 's->ifname'. This must
+     * be done before all the subsequent ioctl() operations. */
+    netmap_open(s, &err);
     if (err) {
         error_propagate(errp, err);
         return -1;
     }
-    /* Create the object. */
-    nc = qemu_new_net_client(&net_netmap_info, peer, "netmap", name);
-    s = DO_UPCAST(NetmapState, nc, nc);
-    s->nmd = nmd;
-    s->memid = nmd->req.nr_arg2;
-    s->tx = NETMAP_TXRING(nmd->nifp, 0);
-    s->rx = NETMAP_RXRING(nmd->nifp, 0);
-    s->vnet_hdr_len = 0;
-    pstrcpy(s->ifname, sizeof(s->ifname), netmap_opts->ifname);
-    QTAILQ_INSERT_TAIL(&netmap_clients, s, next);
-    netmap_read_poll(s, true); /* Initially only poll for reads. */
-    if (netmap_opts->passthrough) {
+
+    if (!netmap_opts->passthrough) {
+        /* Initially only poll for reads. We poll on write only when
+         * the TX rings become full. */
+        netmap_read_poll(s, true);
+    } else {
+        /* Enable get_ptnetmap() by initializing s->ptnetmap.netmap. Also
+         * check if 's->ifname' supports virtio-net headers. */
         s->ptnetmap.netmap = s;
         s->ptnetmap.features = 0;
         s->ptnetmap.acked_features = 0;
@@ -696,9 +734,7 @@ int net_init_netmap(const Netdev *netdev,
         if (netmap_has_vnet_hdr_len(nc, sizeof(struct virtio_net_hdr_v1))) {
             s->ptnetmap.features |= PTNETMAP_F_VNET_HDR;
         }
-        netmap_read_poll(s, false); /* avoid QEMU spinning on netmap fd */
     }
-
 
     return 0;
 }

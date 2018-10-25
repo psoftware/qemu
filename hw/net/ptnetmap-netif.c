@@ -227,7 +227,7 @@ static int
 ptnet_get_netmap_if(PtNetState *s)
 {
     unsigned int num_rings;
-    NetmapIf nif;
+    struct nmreq_port_info_get nif;
     int ret;
 
     ret = ptnetmap_get_netmap_if(s->ptbe, &nif);
@@ -235,11 +235,11 @@ ptnet_get_netmap_if(PtNetState *s)
         return ret;
     }
 
-    s->ioregs[PTNET_IO_NIFP_OFS >> 2] = nif.nifp_offset;
-    s->ioregs[PTNET_IO_NUM_TX_RINGS >> 2] = nif.num_tx_rings;
-    s->ioregs[PTNET_IO_NUM_RX_RINGS >> 2] = nif.num_rx_rings;
-    s->ioregs[PTNET_IO_NUM_TX_SLOTS >> 2] = nif.num_tx_slots;
-    s->ioregs[PTNET_IO_NUM_RX_SLOTS >> 2] = nif.num_rx_slots;
+    s->ioregs[PTNET_IO_NIFP_OFS >> 2] = nif.nr_offset;
+    s->ioregs[PTNET_IO_NUM_TX_RINGS >> 2] = nif.nr_tx_rings;
+    s->ioregs[PTNET_IO_NUM_RX_RINGS >> 2] = nif.nr_rx_rings;
+    s->ioregs[PTNET_IO_NUM_TX_SLOTS >> 2] = nif.nr_tx_slots;
+    s->ioregs[PTNET_IO_NUM_RX_SLOTS >> 2] = nif.nr_rx_slots;
 
     num_rings = s->ioregs[PTNET_IO_NUM_TX_RINGS >> 2] +
                 s->ioregs[PTNET_IO_NUM_RX_RINGS >> 2];
@@ -291,7 +291,7 @@ static int
 ptnet_ptctl_delete(PtNetState *s)
 {
     /* Guest is not going to use MSI-X until next regif, we
-     * can tear donw the irqfd notification mechanism. */
+     * can tear down the irqfd notification mechanism. */
     ptnet_guest_notifiers_fini(s);
 
     return ptnetmap_kloop_stop(s->ptbe);
@@ -384,6 +384,8 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         ptnet_csb_map_one(s, &s->csb_gh, PTNET_IO_CSB_GH_BAH,
                           PTNET_IO_CSB_GH_BAL, sizeof(struct nm_csb_atok),
                           /*is_write=*/0);
+        /* Stop the sync-kloop in case it is still running. */
+        ptnet_ptctl(s, PTNETMAP_PTCTL_DELETE);
         break;
 
     case PTNET_IO_CSB_HG_BAL:
@@ -392,6 +394,8 @@ ptnet_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         ptnet_csb_map_one(s, &s->csb_hg, PTNET_IO_CSB_HG_BAH,
                           PTNET_IO_CSB_HG_BAL, sizeof(struct nm_csb_ktoa),
                           /*is_write=*/1);
+        /* Stop the sync-kloop in case it is still running. */
+        ptnet_ptctl(s, PTNETMAP_PTCTL_DELETE);
         break;
 
     case PTNET_IO_VNET_HDR_LEN:
