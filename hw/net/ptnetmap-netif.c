@@ -235,7 +235,6 @@ ptnet_get_netmap_if(PtNetState *s)
         return ret;
     }
 
-    s->ioregs[PTNET_IO_NIFP_OFS >> 2] = nif.nr_offset;
     s->ioregs[PTNET_IO_NUM_TX_RINGS >> 2] = nif.nr_tx_rings;
     s->ioregs[PTNET_IO_NUM_RX_RINGS >> 2] = nif.nr_rx_rings;
     s->ioregs[PTNET_IO_NUM_TX_SLOTS >> 2] = nif.nr_tx_slots;
@@ -429,6 +428,9 @@ ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
 
     switch (addr) {
     case PTNET_IO_NIFP_OFS:
+        s->ioregs[index] = netmap_get_nifp_offset(qemu_get_queue(s->nic)->peer);
+        break;
+
     case PTNET_IO_NUM_TX_RINGS:
     case PTNET_IO_NUM_RX_RINGS:
     case PTNET_IO_NUM_TX_SLOTS:
@@ -439,7 +441,8 @@ ptnet_io_read(void *opaque, hwaddr addr, unsigned size)
         break;
 
     case PTNET_IO_HOSTMEMID:
-        s->ioregs[index] = ptnetmap_get_hostmemid(s->ptbe);
+        s->ioregs[index] = netmap_get_hostmemid(qemu_get_queue(s->nic)->peer);
+        break;
     }
 
     DBG("I/O read from %s, val=0x%08x", regnames[index], s->ioregs[index]);

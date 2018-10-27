@@ -45,6 +45,7 @@ typedef struct NetmapState {
     NetClientState      nc;
     int                 fd;
     uint16_t            mem_id;
+    uint64_t            nifp_offset;
     void                *mem;
     char                ifname[IFNAMSIZ];
     struct netmap_ring  *tx;
@@ -137,6 +138,7 @@ static int netmap_open(NetmapState *s, Error **errp)
         return ret;
     }
     s->mem_id = req.nr_mem_id;
+    s->nifp_offset = req.nr_offset;
 
     /* Check if we already have a netmap port that uses the same memory as the
      * one just opened, so that nm_mmap() can skip mmap() and inherit from
@@ -558,11 +560,18 @@ int netmap_get_port_info(NetClientState *nc, struct nmreq_port_info_get *nif)
     return ret;
 }
 
-int ptnetmap_get_hostmemid(PTNetmapState *ptn)
+int netmap_get_hostmemid(NetClientState *nc)
 {
-    NetmapState *s = ptn->netmap;
+    NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
 
     return s->mem_id;
+}
+
+uint32_t netmap_get_nifp_offset(NetClientState *nc)
+{
+    NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
+
+    return s->nifp_offset;
 }
 
 struct SyncKloopThreadCtx {
