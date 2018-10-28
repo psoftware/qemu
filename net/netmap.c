@@ -579,8 +579,6 @@ struct SyncKloopThreadCtx {
     int num_entries;
     int *ioeventfds;
     int *irqfds;
-    void *csb_gh;
-    void *csb_hg;
 };
 
 /* Start a kernel sync loop for the netmap rings bound to 's->fd'. */
@@ -589,17 +587,10 @@ static void *ptnetmap_sync_kloop_worker(void *opaque)
     struct nmreq_opt_sync_kloop_eventfds *evopt;
     struct SyncKloopThreadCtx *ctx = opaque;
     struct nmreq_sync_kloop_start req;
-    struct nmreq_opt_csb csbopt;
     NetmapState *s = ctx->s;
     struct nmreq_header hdr;
     size_t opt_size;
     int err, i;
-
-    /* Prepare the CSB option. */
-    memset(&csbopt, 0, sizeof(csbopt));
-    csbopt.nro_opt.nro_reqtype = NETMAP_REQ_OPT_CSB;
-    csbopt.csb_atok = (uintptr_t)ctx->csb_gh;
-    csbopt.csb_ktoa = (uintptr_t)ctx->csb_hg;
 
     /* Prepare the eventfds option. */
     opt_size = sizeof(*evopt) + ctx->num_entries * sizeof(evopt->eventfds[0]);
@@ -614,14 +605,11 @@ static void *ptnetmap_sync_kloop_worker(void *opaque)
         evopt->eventfds[i].irqfd     = ctx->irqfds[i];
     }
 
-    /* Link the two options together. */
-    csbopt.nro_opt.nro_next = (uintptr_t)evopt;
-
     /* Prepare the request and link the options. */
     nmreq_hdr_init(&hdr, s->ifname);
     hdr.nr_reqtype = NETMAP_REQ_SYNC_KLOOP_START;
     hdr.nr_body    = (uintptr_t)&req;
-    hdr.nr_options = (uintptr_t)&csbopt;
+    hdr.nr_options = (uintptr_t)evopt;
     memset(&req, 0, sizeof(req));
     req.sleep_us = 100;  /* ignored by the kernel */
     err          = ioctl(s->fd, NIOCCTRL, &hdr);
@@ -643,6 +631,9 @@ int ptnetmap_kloop_start(PTNetmapState *ptn, void *csb_gh, void *csb_hg,
 {
     struct SyncKloopThreadCtx *ctx;
     NetmapState *s = ptn->netmap;
+    struct nmreq_opt_csb csbopt;
+    struct nmreq_header hdr;
+    int ret;
 
     if (ptn->worker_started) {
         g_free(ioeventfds);
@@ -650,15 +641,34 @@ int ptnetmap_kloop_start(PTNetmapState *ptn, void *csb_gh, void *csb_hg,
         return 0;
     }
 
+    /* Prepare the CSB option. */
+    memset(&csbopt, 0, sizeof(csbopt));
+    csbopt.nro_opt.nro_reqtype = NETMAP_REQ_OPT_CSB;
+    csbopt.csb_atok = (uintptr_t)csb_gh;
+    csbopt.csb_ktoa = (uintptr_t)csb_hg;
+
+    /* Enable CSB mode, since it was not done by netmap_open(). This
+     * operation also initializes the CSB. */
+    nmreq_hdr_init(&hdr, s->ifname);
+    hdr.nr_reqtype = NETMAP_REQ_CSB_ENABLE;
+    hdr.nr_options = (uintptr_t)&csbopt;
+    hdr.nr_body = (uintptr_t)NULL;
+    ret = ioctl(s->fd, NIOCCTRL, &hdr);
+    if (ret) {
+        error_report("Unable to execute CSB_ENABLE on %s: %s",
+                     s->ifname, strerror(errno));
+        g_free(ioeventfds);
+        g_free(irqfds);
+        return ret;
+    }
+
     /* Ask netmap to start sync-kloop. */
     ctx = g_malloc(sizeof(*ctx));
     ctx->s = s;
-    ctx->csb_gh = csb_gh;
-    ctx->csb_hg = csb_hg;
     ctx->num_entries = num_entries;
     ctx->ioeventfds = ioeventfds;
     ctx->irqfds = irqfds;
-    qemu_thread_create(&ptn->th, "ptnetmap-sync-kloop",
+    qemu_thread_create(&ptn->th, "ptnetmap-sync-kloop", //TODO improve name
                        ptnetmap_sync_kloop_worker, ctx, QEMU_THREAD_JOINABLE);
 
     ptn->worker_started = true;
