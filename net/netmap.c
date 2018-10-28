@@ -633,6 +633,7 @@ int ptnetmap_kloop_start(PTNetmapState *ptn, void *csb_gh, void *csb_hg,
     NetmapState *s = ptn->netmap;
     struct nmreq_opt_csb csbopt;
     struct nmreq_header hdr;
+    char tname[128];
     int ret;
 
     if (ptn->worker_started) {
@@ -668,8 +669,9 @@ int ptnetmap_kloop_start(PTNetmapState *ptn, void *csb_gh, void *csb_hg,
     ctx->num_entries = num_entries;
     ctx->ioeventfds = ioeventfds;
     ctx->irqfds = irqfds;
-    qemu_thread_create(&ptn->th, "ptnetmap-sync-kloop", //TODO improve name
-                       ptnetmap_sync_kloop_worker, ctx, QEMU_THREAD_JOINABLE);
+    snprintf(tname, sizeof(tname), "ptnetmap-sync-kloop-%s", s->ifname);
+    qemu_thread_create(&ptn->th, tname, ptnetmap_sync_kloop_worker,
+                       ctx, QEMU_THREAD_JOINABLE);
 
     ptn->worker_started = true;
 
