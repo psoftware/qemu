@@ -216,45 +216,6 @@ static void netmap_writable(void *opaque)
     qemu_flush_queued_packets(&s->nc);
 }
 
-static ssize_t netmap_receive(NetClientState *nc,
-      const uint8_t *buf, size_t size)
-{
-    NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
-    struct netmap_ring *ring = s->tx;
-    uint32_t i;
-    uint32_t idx;
-    uint8_t *dst;
-
-    if (unlikely(!ring)) {
-        /* Drop. */
-        return size;
-    }
-
-    if (unlikely(size > ring->nr_buf_size)) {
-        RD(5, "[netmap_receive] drop packet of size %d > %d\n",
-                                    (int)size, ring->nr_buf_size);
-        return size;
-    }
-
-    if (nm_ring_empty(ring)) {
-        /* No available slots in the netmap TX ring. */
-        netmap_write_poll(s, true);
-        return 0;
-    }
-
-    i = ring->cur;
-    idx = ring->slot[i].buf_idx;
-    dst = (uint8_t *)NETMAP_BUF(ring, idx);
-
-    ring->slot[i].len = size;
-    ring->slot[i].flags = 0;
-    pkt_copy(buf, dst, size);
-    ring->cur = ring->head = nm_ring_next(ring, i);
-    ioctl(s->fd, NIOCTXSYNC, NULL);
-
-    return size;
-}
-
 static ssize_t netmap_receive_iov(NetClientState *nc,
                     const struct iovec *iov, int iovcnt)
 {
@@ -290,7 +251,7 @@ static ssize_t netmap_receive_iov(NetClientState *nc,
             nm_frag_size = MIN(iov_frag_size, ring->nr_buf_size);
 
             if (unlikely(nm_ring_empty(ring))) {
-                /* We run out of netmap slots while splitting the
+                /* We ran out of netmap slots while splitting the
                    iovec fragments. */
                 netmap_write_poll(s, true);
                 return 0;
@@ -319,6 +280,17 @@ static ssize_t netmap_receive_iov(NetClientState *nc,
     ioctl(s->fd, NIOCTXSYNC, NULL);
 
     return iov_size(iov, iovcnt);
+}
+
+static ssize_t netmap_receive(NetClientState *nc,
+      const uint8_t *buf, size_t size)
+{
+    struct iovec iov;
+
+    iov.iov_base = (void *)buf;
+    iov.iov_len = size;
+
+    return netmap_receive_iov(nc, &iov, 1);
 }
 
 /* Complete a previous send (backend --> guest) and enable the
