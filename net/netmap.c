@@ -308,39 +308,48 @@ static void netmap_send(void *opaque)
 {
     NetmapState *s = opaque;
     struct netmap_ring *ring = s->rx;
+    unsigned int tail = ring->tail;
 
-    /* Keep sending while there are available packets into the netmap
+    /* Keep sending while there are available slots in the netmap
        RX ring and the forwarding path towards the peer is open. */
-    while (!nm_ring_empty(ring)) {
+    while (ring->head != tail) {
         uint32_t i;
         uint32_t idx;
         bool morefrag;
         int iovcnt = 0;
         int iovsize;
 
+        /* Get a (possibly multi-slot) packet. */
         do {
-            i = ring->cur;
+            i = ring->head;
             idx = ring->slot[i].buf_idx;
             morefrag = (ring->slot[i].flags & NS_MOREFRAG);
             s->iov[iovcnt].iov_base = (u_char *)NETMAP_BUF(ring, idx);
             s->iov[iovcnt].iov_len = ring->slot[i].len;
             iovcnt++;
 
-            ring->cur = ring->head = nm_ring_next(ring, i);
-        } while (!nm_ring_empty(ring) && morefrag);
+            i = nm_ring_next(ring, i);
+        } while (i != tail && morefrag);
 
-        if (unlikely(nm_ring_empty(ring) && morefrag)) {
-            RD(5, "[netmap_send] ran out of slots, with a pending"
-                   "incomplete packet\n");
+        /* Advance ring->cur to tell the kernel that we have seen the slots. */
+        ring->cur = i;
+
+        if (unlikely(morefrag)) {
+            /* This is a truncated packet, so we can stop without releasing the
+             * incomplete slots by updating ring->head. We will hopefully
+             * re-read the complete packet the next time we are called. */
+            break;
         }
 
         iovsize = qemu_sendv_packet_async(&s->nc, s->iov, iovcnt,
                                             netmap_send_completed);
 
+        /* Release the slots to the kernel. */
+        ring->head = i;
+
         if (iovsize == 0) {
             /* The peer does not receive anymore. Packet is queued, stop
-             * reading from the backend until netmap_send_completed()
-             */
+             * reading from the backend until netmap_send_completed(). */
             netmap_read_poll(s, false);
             break;
         }
