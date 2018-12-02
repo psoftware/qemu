@@ -221,21 +221,21 @@ static ssize_t netmap_receive_iov(NetClientState *nc,
 {
     NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
     struct netmap_ring *ring = s->tx;
+    unsigned int tail = ring->tail;
     uint32_t last;
     uint32_t idx;
     uint8_t *dst;
     int j;
     uint32_t i;
 
-    if (unlikely(!ring)) {
-        /* Drop the packet. */
-        return iov_size(iov, iovcnt);
-    }
-
-    last = i = ring->cur;
+    last = i = ring->head;
 
     if (nm_ring_space(ring) < iovcnt) {
-        /* Not enough netmap slots. */
+        /* Not enough netmap slots. Tell the kernel that we have seen the new
+         * available slots (so that it notifies us again when it has more
+         * ones), but without publishing any new slots to be processed
+         * (e.g., we don't advance ring->head). */
+        ring->cur = tail;
         netmap_write_poll(s, true);
         return 0;
     }
@@ -250,9 +250,10 @@ static ssize_t netmap_receive_iov(NetClientState *nc,
         while (iov_frag_size) {
             nm_frag_size = MIN(iov_frag_size, ring->nr_buf_size);
 
-            if (unlikely(nm_ring_empty(ring))) {
+            if (unlikely(i == tail)) {
                 /* We ran out of netmap slots while splitting the
                    iovec fragments. */
+                ring->cur = tail;
                 netmap_write_poll(s, true);
                 return 0;
             }
@@ -274,8 +275,9 @@ static ssize_t netmap_receive_iov(NetClientState *nc,
     /* The last slot must not have NS_MOREFRAG set. */
     ring->slot[last].flags &= ~NS_MOREFRAG;
 
-    /* Now update ring->cur and ring->head. */
-    ring->cur = ring->head = i;
+    /* Now update ring->head and ring->cur to publish the new slots and
+     * the new wakeup point. */
+    ring->head = ring->cur = i;
 
     ioctl(s->fd, NIOCTXSYNC, NULL);
 
