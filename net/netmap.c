@@ -222,6 +222,7 @@ static ssize_t netmap_receive_iov(NetClientState *nc,
     NetmapState *s = DO_UPCAST(NetmapState, nc, nc);
     struct netmap_ring *ring = s->tx;
     unsigned int tail = ring->tail;
+    ssize_t totlen = 0;
     uint32_t last;
     uint32_t idx;
     uint8_t *dst;
@@ -244,6 +245,8 @@ static ssize_t netmap_receive_iov(NetClientState *nc,
         int iov_frag_size = iov[j].iov_len;
         int offset = 0;
         int nm_frag_size;
+
+        totlen += iov_frag_size;
 
         /* Split each iovec fragment over more netmap slots, if
            necessary. */
@@ -281,7 +284,7 @@ static ssize_t netmap_receive_iov(NetClientState *nc,
 
     ioctl(s->fd, NIOCTXSYNC, NULL);
 
-    return iov_size(iov, iovcnt);
+    return totlen;
 }
 
 static ssize_t netmap_receive(NetClientState *nc,
