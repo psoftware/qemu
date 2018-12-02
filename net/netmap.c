@@ -316,7 +316,7 @@ static void netmap_send(void *opaque)
     /* Keep sending while there are available slots in the netmap
        RX ring and the forwarding path towards the peer is open. */
     while (ring->head != tail) {
-        uint32_t i;
+        uint32_t i = ring->head;
         uint32_t idx;
         bool morefrag;
         int iovcnt = 0;
@@ -324,13 +324,11 @@ static void netmap_send(void *opaque)
 
         /* Get a (possibly multi-slot) packet. */
         do {
-            i = ring->head;
             idx = ring->slot[i].buf_idx;
             morefrag = (ring->slot[i].flags & NS_MOREFRAG);
-            s->iov[iovcnt].iov_base = (u_char *)NETMAP_BUF(ring, idx);
+            s->iov[iovcnt].iov_base = (void *)NETMAP_BUF(ring, idx);
             s->iov[iovcnt].iov_len = ring->slot[i].len;
             iovcnt++;
-
             i = nm_ring_next(ring, i);
         } while (i != tail && morefrag);
 
