@@ -17,6 +17,7 @@
  *  along with this program; if not, see <http://www.gnu.org/licenses/>.
  */
 #include "qemu/osdep.h"
+#include "qemu/units.h"
 #include "qemu-version.h"
 #include <machine/trap.h>
 
@@ -649,7 +650,7 @@ void cpu_loop(CPUSPARCState *env)
 
 static void usage(void)
 {
-    printf("qemu-" TARGET_NAME " version " QEMU_VERSION QEMU_PKGVERSION
+    printf("qemu-" TARGET_NAME " version " QEMU_FULL_VERSION
            "\n" QEMU_COPYRIGHT "\n"
            "usage: qemu-" TARGET_NAME " [options] program [arguments...]\n"
            "BSD CPU emulator (compiled for %s emulation)\n"
@@ -723,6 +724,7 @@ int main(int argc, char **argv)
 {
     const char *filename;
     const char *cpu_model;
+    const char *cpu_type;
     const char *log_file = NULL;
     const char *log_mask = NULL;
     struct target_pt_regs regs1, *regs = &regs1;
@@ -794,9 +796,9 @@ int main(int argc, char **argv)
             if (x86_stack_size <= 0)
                 usage();
             if (*r == 'M')
-                x86_stack_size *= 1024 * 1024;
+                x86_stack_size *= MiB;
             else if (*r == 'k' || *r == 'K')
-                x86_stack_size *= 1024;
+                x86_stack_size *= KiB;
         } else if (!strcmp(r, "L")) {
             interp_prefix = argv[optind++];
         } else if (!strcmp(r, "p")) {
@@ -897,10 +899,12 @@ int main(int argc, char **argv)
         cpu_model = "any";
 #endif
     }
+
+    /* init tcg before creating CPUs and to get qemu_host_page_size */
     tcg_exec_init(0);
-    /* NOTE: we need to init the CPU at this stage to get
-       qemu_host_page_size */
-    cpu = cpu_init(cpu_model);
+
+    cpu_type = parse_cpu_model(cpu_model);
+    cpu = cpu_create(cpu_type);
     env = cpu->env_ptr;
 #if defined(TARGET_SPARC) || defined(TARGET_PPC)
     cpu_reset(cpu);
@@ -915,7 +919,7 @@ int main(int argc, char **argv)
     envlist_free(envlist);
 
     /*
-     * Now that page sizes are configured in cpu_init() we can do
+     * Now that page sizes are configured in tcg_exec_init() we can do
      * proper page alignment for guest_base.
      */
     guest_base = HOST_PAGE_ALIGN(guest_base);

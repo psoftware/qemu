@@ -21,8 +21,11 @@
 #include "hw/sysbus.h"
 #include "hw/boards.h"
 #include "hw/i386/x86-iommu.h"
+#include "hw/i386/pc.h"
+#include "qapi/error.h"
 #include "qemu/error-report.h"
 #include "trace.h"
+#include "sysemu/kvm.h"
 
 void x86_iommu_iec_register_notifier(X86IOMMUState *iommu,
                                      iec_notify_fn fn, void *data)
@@ -48,6 +51,30 @@ void x86_iommu_iec_notify_all(X86IOMMUState *iommu, bool global,
                                  index, mask);
         }
     }
+}
+
+/* Generate one MSI message from VTDIrq info */
+void x86_iommu_irq_to_msi_message(X86IOMMUIrq *irq, MSIMessage *msg_out)
+{
+    X86IOMMU_MSIMessage msg = {};
+
+    /* Generate address bits */
+    msg.dest_mode = irq->dest_mode;
+    msg.redir_hint = irq->redir_hint;
+    msg.dest = irq->dest;
+    msg.__addr_hi = irq->dest & 0xffffff00;
+    msg.__addr_head = cpu_to_le32(0xfee);
+    /* Keep this from original MSI address bits */
+    msg.__not_used = irq->msi_addr_last_bits;
+
+    /* Generate data bits */
+    msg.vector = irq->vector;
+    msg.delivery_mode = irq->delivery_mode;
+    msg.level = 1;
+    msg.trigger_mode = irq->trigger_mode;
+
+    msg_out->address = msg.msi_addr;
+    msg_out->data = msg.msi_data;
 }
 
 /* Default X86 IOMMU device */
@@ -80,7 +107,26 @@ static void x86_iommu_realize(DeviceState *dev, Error **errp)
 {
     X86IOMMUState *x86_iommu = X86_IOMMU_DEVICE(dev);
     X86IOMMUClass *x86_class = X86_IOMMU_GET_CLASS(dev);
+    MachineState *ms = MACHINE(qdev_get_machine());
+    MachineClass *mc = MACHINE_GET_CLASS(ms);
+    PCMachineState *pcms =
+        PC_MACHINE(object_dynamic_cast(OBJECT(ms), TYPE_PC_MACHINE));
     QLIST_INIT(&x86_iommu->iec_notifiers);
+
+    if (!pcms || !pcms->bus) {
+        error_setg(errp, "Machine-type '%s' not supported by IOMMU",
+                   mc->name);
+        return;
+    }
+
+    /* Both Intel and AMD IOMMU IR only support "kernel-irqchip={off|split}" */
+    if (x86_iommu->intr_supported && kvm_irqchip_in_kernel() &&
+        !kvm_irqchip_is_split()) {
+        error_setg(errp, "Interrupt Remapping cannot work with "
+                         "kernel-irqchip=on, please use 'split|off'.");
+        return;
+    }
+
     if (x86_class->realize) {
         x86_class->realize(dev, errp);
     }

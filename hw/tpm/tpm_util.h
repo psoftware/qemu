@@ -31,12 +31,52 @@ bool tpm_util_is_selftest(const uint8_t *in, uint32_t in_len);
 
 int tpm_util_test_tpmdev(int tpm_fd, TPMVersion *tpm_version);
 
+static inline uint16_t tpm_cmd_get_tag(const void *b)
+{
+    return lduw_be_p(b);
+}
+
+static inline void tpm_cmd_set_tag(void *b, uint16_t tag)
+{
+    stw_be_p(b, tag);
+}
+
 static inline uint32_t tpm_cmd_get_size(const void *b)
 {
-    return be32_to_cpu(*(const uint32_t *)(b + 2));
+    return ldl_be_p(b + 2);
+}
+
+static inline void tpm_cmd_set_size(void *b, uint32_t size)
+{
+    stl_be_p(b + 2, size);
+}
+
+static inline uint32_t tpm_cmd_get_ordinal(const void *b)
+{
+    return ldl_be_p(b + 6);
+}
+
+static inline uint32_t tpm_cmd_get_errcode(const void *b)
+{
+    return ldl_be_p(b + 6);
+}
+
+static inline void tpm_cmd_set_error(void *b, uint32_t error)
+{
+    stl_be_p(b + 6, error);
 }
 
 int tpm_util_get_buffer_size(int tpm_fd, TPMVersion tpm_version,
                              size_t *buffersize);
+
+#define DEFINE_PROP_TPMBE(_n, _s, _f)                     \
+    DEFINE_PROP(_n, _s, _f, qdev_prop_tpm, TPMBackend *)
+
+typedef struct TPMSizedBuffer {
+    uint32_t size;
+    uint8_t  *buffer;
+} TPMSizedBuffer;
+
+void tpm_sized_buffer_reset(TPMSizedBuffer *tsb);
 
 #endif /* TPM_TPM_UTIL_H */

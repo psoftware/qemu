@@ -25,6 +25,7 @@
 #include "qemu-common.h"
 #include "migration/vmstate.h"
 #include "exec/exec-all.h"
+#include "fpu/softfloat.h"
 
 
 static void superh_cpu_set_pc(CPUState *cs, vaddr value)
@@ -70,7 +71,6 @@ static void superh_cpu_reset(CPUState *s)
     set_flush_to_zero(1, &env->fp_status);
 #endif
     set_default_nan_mode(1, &env->fp_status);
-    set_snan_bit_is_one(1, &env->fp_status);
 }
 
 static void superh_cpu_disas_set_info(CPUState *cpu, disassemble_info *info)
@@ -83,18 +83,6 @@ typedef struct SuperHCPUListState {
     fprintf_function cpu_fprintf;
     FILE *file;
 } SuperHCPUListState;
-
-/* Sort alphabetically by type name. */
-static gint superh_cpu_list_compare(gconstpointer a, gconstpointer b)
-{
-    ObjectClass *class_a = (ObjectClass *)a;
-    ObjectClass *class_b = (ObjectClass *)b;
-    const char *name_a, *name_b;
-
-    name_a = object_class_get_name(class_a);
-    name_b = object_class_get_name(class_b);
-    return strcmp(name_a, name_b);
-}
 
 static void superh_cpu_list_entry(gpointer data, gpointer user_data)
 {
@@ -113,8 +101,7 @@ void sh4_cpu_list(FILE *f, fprintf_function cpu_fprintf)
     };
     GSList *list;
 
-    list = object_class_get_list(TYPE_SUPERH_CPU, false);
-    list = g_slist_sort(list, superh_cpu_list_compare);
+    list = object_class_get_list_sorted(TYPE_SUPERH_CPU, false);
     g_slist_foreach(list, superh_cpu_list_entry, &s);
     g_slist_free(list);
 }
@@ -236,8 +223,8 @@ static void superh_cpu_class_init(ObjectClass *oc, void *data)
     CPUClass *cc = CPU_CLASS(oc);
     SuperHCPUClass *scc = SUPERH_CPU_CLASS(oc);
 
-    scc->parent_realize = dc->realize;
-    dc->realize = superh_cpu_realizefn;
+    device_class_set_parent_realize(dc, superh_cpu_realizefn,
+                                    &scc->parent_realize);
 
     scc->parent_reset = cc->reset;
     cc->reset = superh_cpu_reset;

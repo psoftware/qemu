@@ -28,7 +28,7 @@ error() {
     echo
     echo "and then manually update submodules prior to running make, with:"
     echo
-    echo " $ scripts/git-sbumodule.sh update $modules"
+    echo " $ scripts/git-submodule.sh update $modules"
     echo
     exit 1
 }
@@ -59,8 +59,8 @@ status)
     fi
 
     test -f "$substat" || exit 1
-    CURSTATUS=`$GIT submodule status $modules`
-    OLDSTATUS=`cat $substat`
+    CURSTATUS=$($GIT submodule status $modules)
+    OLDSTATUS=$(cat $substat)
     test "$CURSTATUS" = "$OLDSTATUS"
     exit $?
     ;;

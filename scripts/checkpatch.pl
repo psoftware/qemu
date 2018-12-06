@@ -224,9 +224,8 @@ our $NonptrType;
 our $Type;
 our $Declare;
 
-our $UTF8	= qr {
-	[\x09\x0A\x0D\x20-\x7E]              # ASCII
-	| [\xC2-\xDF][\x80-\xBF]             # non-overlong 2-byte
+our $NON_ASCII_UTF8	= qr{
+	[\xC2-\xDF][\x80-\xBF]               # non-overlong 2-byte
 	|  \xE0[\xA0-\xBF][\x80-\xBF]        # excluding overlongs
 	| [\xE1-\xEC\xEE\xEF][\x80-\xBF]{2}  # straight 3-byte
 	|  \xED[\x80-\x9F][\x80-\xBF]        # excluding surrogates
@@ -235,9 +234,15 @@ our $UTF8	= qr {
 	|  \xF4[\x80-\x8F][\x80-\xBF]{2}     # plane 16
 }x;
 
+our $UTF8	= qr{
+	[\x09\x0A\x0D\x20-\x7E]              # ASCII
+	| $NON_ASCII_UTF8
+}x;
+
 # There are still some false positives, but this catches most
 # common cases.
 our $typeTypedefs = qr{(?x:
+        (?![KMGTPE]iB)                      # IEC binary prefix (do not match)
         [A-Z][A-Z\d_]*[a-z][A-Za-z\d_]*     # camelcase
         | [A-Z][A-Z\d_]*AIOCB               # all uppercase
         | [A-Z][A-Z\d_]*CPU                 # all uppercase
@@ -265,6 +270,36 @@ our @typeList = (
 	qr{${Ident}_handler_fn},
 	qr{target_(?:u)?long},
 	qr{hwaddr},
+        # external libraries
+	qr{xml${Ident}},
+	qr{xen\w+_handle},
+	# Glib definitions
+	qr{gchar},
+	qr{gshort},
+	qr{glong},
+	qr{gint},
+	qr{gboolean},
+	qr{guchar},
+	qr{gushort},
+	qr{gulong},
+	qr{guint},
+	qr{gfloat},
+	qr{gdouble},
+	qr{gpointer},
+	qr{gconstpointer},
+	qr{gint8},
+	qr{guint8},
+	qr{gint16},
+	qr{guint16},
+	qr{gint32},
+	qr{guint32},
+	qr{gint64},
+	qr{guint64},
+	qr{gsize},
+	qr{gssize},
+	qr{goffset},
+	qr{gintptr},
+	qr{guintptr},
 );
 
 # This can be modified by sub possible.  Since it can be empty, be careful
@@ -1097,11 +1132,10 @@ sub possible {
 			case|
 			else|
 			asm|__asm__|
-			do|
-			\#|
-			\#\#
+			do
 		)(?:\s|$)|
-		^(?:typedef|struct|enum)\b
+		^(?:typedef|struct|enum)\b|
+		^\#
 	    )}x;
 	warn "CHECK<$possible> ($line)\n" if ($dbg_possible > 2);
 	if ($possible !~ $notPermitted) {
@@ -1111,7 +1145,7 @@ sub possible {
 		if ($possible =~ /^\s*$/) {
 
 		} elsif ($possible =~ /\s/) {
-			$possible =~ s/\s*$Type\s*//g;
+			$possible =~ s/\s*(?:$Type|\#\#)\s*//g;
 			for my $modifier (split(' ', $possible)) {
 				if ($modifier !~ $notPermitted) {
 					warn "MODIFIER: $modifier ($possible) ($line)\n" if ($dbg_possible);
@@ -1176,6 +1210,11 @@ sub process {
 	our $clean = 1;
 	my $signoff = 0;
 	my $is_patch = 0;
+
+	my $in_header_lines = $file ? 0 : 1;
+	my $in_commit_log = 0;		#Scanning lines before patch
+	my $reported_maintainer_file = 0;
+	my $non_utf8_charset = 0;
 
 	our @report = ();
 	our $cnt_lines = 0;
@@ -1328,11 +1367,10 @@ sub process {
 		# extract the filename as it passes
 		if ($line =~ /^diff --git.*?(\S+)$/) {
 			$realfile = $1;
-			$realfile =~ s@^([^/]*)/@@;
-
+			$realfile =~ s@^([^/]*)/@@ if (!$file);
 		} elsif ($line =~ /^\+\+\+\s+(\S+)/) {
 			$realfile = $1;
-			$realfile =~ s@^([^/]*)/@@;
+			$realfile =~ s@^([^/]*)/@@ if (!$file);
 
 			$p1_prefix = $1;
 			if (!$file && $tree && $p1_prefix ne '' &&
@@ -1364,10 +1402,16 @@ sub process {
 			$is_patch = 1;
 		}
 
+		if ($line =~ /^Author: .*via Qemu-devel.*<qemu-devel\@nongnu.org>/) {
+		    ERROR("Author email address is mangled by the mailing list\n" . $herecurr);
+		}
+
 #check the patch for a signoff:
 		if ($line =~ /^\s*signed-off-by:/i) {
 			# This is a signoff, if ugly, so do not double report.
 			$signoff++;
+			$in_commit_log = 0;
+
 			if (!($line =~ /^\s*Signed-off-by:/)) {
 				ERROR("The correct form is \"Signed-off-by\"\n" .
 					$herecurr);
@@ -1376,6 +1420,22 @@ sub process {
 				ERROR("space required after Signed-off-by:\n" .
 					$herecurr);
 			}
+		}
+
+# Check if MAINTAINERS is being updated.  If so, there's probably no need to
+# emit the "does MAINTAINERS need updating?" message on file add/move/delete
+		if ($line =~ /^\s*MAINTAINERS\s*\|/) {
+			$reported_maintainer_file = 1;
+		}
+
+# Check for added, moved or deleted files
+		if (!$reported_maintainer_file && !$in_commit_log &&
+		    ($line =~ /^(?:new|deleted) file mode\s*\d+\s*$/ ||
+		     $line =~ /^rename (?:from|to) [\w\/\.\-]+\s*$/ ||
+		     ($line =~ /\{\s*([\w\/\.\-]*)\s*\=\>\s*([\w\/\.\-]*)\s*\}/ &&
+		      (defined($1) || defined($2))))) {
+			$reported_maintainer_file = 1;
+			WARN("added, moved or deleted file(s), does MAINTAINERS need updating?\n" . $herecurr);
 		}
 
 # Check for wrappage within a valid hunk of the file
@@ -1394,6 +1454,28 @@ sub process {
 			my $hereptr = "$hereline$ptr\n";
 
 			ERROR("Invalid UTF-8, patch and commit message should be encoded in UTF-8\n" . $hereptr);
+		}
+
+# Check if it's the start of a commit log
+# (not a header line and we haven't seen the patch filename)
+		if ($in_header_lines && $realfile =~ /^$/ &&
+		    !($rawline =~ /^\s+\S/ ||
+		      $rawline =~ /^(commit\b|from\b|[\w-]+:).*$/i)) {
+			$in_header_lines = 0;
+			$in_commit_log = 1;
+		}
+
+# Check if there is UTF-8 in a commit log when a mail header has explicitly
+# declined it, i.e defined some charset where it is missing.
+		if ($in_header_lines &&
+		    $rawline =~ /^Content-Type:.+charset="(.+)".*$/ &&
+		    $1 !~ /utf-8/i) {
+			$non_utf8_charset = 1;
+		}
+
+		if ($in_commit_log && $non_utf8_charset && $realfile =~ /^$/ &&
+		    $rawline =~ /$NON_ASCII_UTF8/) {
+			WARN("8-bit UTF-8 used in possible commit log\n" . $herecurr);
 		}
 
 # ignore non-hunk lines and lines being removed
@@ -1446,9 +1528,10 @@ sub process {
 # check we are in a valid source file if not then ignore this hunk
 		next if ($realfile !~ /$SrcFile/);
 
-#90 column limit
+#90 column limit; exempt URLs, if no other words on line
 		if ($line =~ /^\+/ &&
 		    !($line =~ /^\+\s*"[^"]*"\s*(?:\s*|,|\)\s*;)\s*$/) &&
+		    !($rawline =~ /^[^[:alnum:]]*https?:\S*$/) &&
 		    $length > 80)
 		{
 			if ($length > 90) {
@@ -1620,6 +1703,11 @@ sub process {
 						"$here\n$ctx\n$rawlines[$ctx_ln - 1]\n");
 				}
 			}
+		}
+
+# 'do ... while (0/false)' only makes sense in macros, without trailing ';'
+		if ($line =~ /while\s*\((0|false)\);/) {
+			ERROR("suspicious ; after while (0)\n" . $herecurr);
 		}
 
 # Check relative indent for conditionals and blocks.
@@ -1845,9 +1933,8 @@ sub process {
 			my ($where, $prefix) = ($-[1], $1);
 			if ($prefix !~ /$Type\s+$/ &&
 			    ($where != 0 || $prefix !~ /^.\s+$/) &&
-			    $prefix !~ /{\s+$/ &&
 			    $prefix !~ /\#\s*define[^(]*\([^)]*\)\s+$/ &&
-			    $prefix !~ /,\s+$/) {
+			    $prefix !~ /[,{:]\s+$/) {
 				ERROR("space prohibited before open square bracket '['\n" . $herecurr);
 			}
 		}
@@ -2346,8 +2433,21 @@ sub process {
 			}
 		}
 
-# check for missing bracing round if etc
-		if ($line =~ /(^.*)\bif\b/ && $line !~ /\#\s*if/) {
+# check for missing bracing around if etc
+		if ($line =~ /(^.*)\b(?:if|while|for)\b/ &&
+			$line !~ /\#\s*if/) {
+			my $allowed = 0;
+
+			# Check the pre-context.
+			if ($line =~ /(\}.*?)$/) {
+				my $pre = $1;
+
+				if ($line !~ /else/) {
+					print "APW: ALLOWED: pre<$pre> line<$line>\n"
+						if $dbg_adv_apw;
+					$allowed = 1;
+				}
+			}
 			my ($level, $endln, @chunks) =
 				ctx_statement_full($linenr, $realcnt, 1);
                         if ($dbg_adv_apw) {
@@ -2356,7 +2456,6 @@ sub process {
                                 if $#chunks >= 1;
                         }
 			if ($#chunks >= 0 && $level == 0) {
-				my $allowed = 0;
 				my $seen = 0;
 				my $herectx = $here . "\n";
 				my $ln = $linenr - 1;
@@ -2400,7 +2499,7 @@ sub process {
                                             $allowed = 1;
 					}
 				}
-				if ($seen != ($#chunks + 1)) {
+				if ($seen != ($#chunks + 1) && !$allowed) {
 					ERROR("braces {} are necessary for all arms of this statement\n" . $herectx);
 				}
 			}
@@ -2475,8 +2574,11 @@ sub process {
 
 # no volatiles please
 		my $asm_volatile = qr{\b(__asm__|asm)\s+(__volatile__|volatile)\b};
-		if ($line =~ /\bvolatile\b/ && $line !~ /$asm_volatile/) {
-			ERROR("Use of volatile is usually wrong: see Documentation/volatile-considered-harmful.txt\n" . $herecurr);
+		if ($line =~ /\bvolatile\b/ && $line !~ /$asm_volatile/ &&
+                    $line !~ /sig_atomic_t/ &&
+                    !ctx_has_comment($first_line, $linenr)) {
+			my $msg = "Use of volatile is usually wrong, please add a comment\n" . $herecurr;
+                        ERROR($msg);
 		}
 
 # warn about #if 0
@@ -2575,6 +2677,11 @@ sub process {
 			ERROR("__func__ should be used instead of gcc specific __FUNCTION__\n"  . $herecurr);
 		}
 
+# recommend g_path_get_* over g_strdup(basename/dirname(...))
+		if ($line =~ /\bg_strdup\s*\(\s*(basename|dirname)\s*\(/) {
+			WARN("consider using g_path_get_$1() in preference to g_strdup($1())\n" . $herecurr);
+		}
+
 # recommend qemu_strto* over strto* for numeric conversions
 		if ($line =~ /\b(strto[^kd].*?)\s*\(/) {
 			ERROR("consider using qemu_$1 in preference to $1\n" . $herecurr);
@@ -2645,7 +2752,8 @@ sub process {
 				info_vreport|
 				error_report|
 				warn_report|
-				info_report}x;
+				info_report|
+				g_test_message}x;
 
 	if ($rawline =~ /\b(?:$qemu_error_funcs)\s*\(.*\".*\\n/) {
 		ERROR("Error messages should not contain newlines\n" . $herecurr);

@@ -52,23 +52,7 @@
 #else /* defined (TARGET_PPC64) */
 /* PowerPC 32 definitions */
 #define TARGET_LONG_BITS 32
-
-#if defined(TARGET_PPCEMB)
-/* Specific definitions for PowerPC embedded */
-/* BookE have 36 bits physical address space */
-#if defined(CONFIG_USER_ONLY)
-/* It looks like a lot of Linux programs assume page size
- * is 4kB long. This is evil, but we have to deal with it...
- */
 #define TARGET_PAGE_BITS 12
-#else /* defined(CONFIG_USER_ONLY) */
-/* Pages can be 1 kB small */
-#define TARGET_PAGE_BITS 10
-#endif /* defined(CONFIG_USER_ONLY) */
-#else /* defined(TARGET_PPCEMB) */
-/* "standard" PowerPC 32 definitions */
-#define TARGET_PAGE_BITS 12
-#endif /* defined(TARGET_PPCEMB) */
 
 #define TARGET_PHYS_ADDR_SPACE_BITS 36
 #define TARGET_VIRT_ADDR_SPACE_BITS 32
@@ -79,7 +63,6 @@
 
 #include "exec/cpu-defs.h"
 #include "cpu-qom.h"
-#include "fpu/softfloat.h"
 
 #if defined (TARGET_PPC64)
 #define PPC_ELF_MACHINE     EM_PPC64
@@ -93,6 +76,19 @@
 #define PPC_BITMASK(bs, be)     ((PPC_BIT(bs) - PPC_BIT(be)) | PPC_BIT(bs))
 #define PPC_BITMASK32(bs, be)   ((PPC_BIT32(bs) - PPC_BIT32(be)) | \
                                  PPC_BIT32(bs))
+#define PPC_BITMASK8(bs, be)    ((PPC_BIT8(bs) - PPC_BIT8(be)) | PPC_BIT8(bs))
+
+#if HOST_LONG_BITS == 32
+# define MASK_TO_LSH(m)          (__builtin_ffsll(m) - 1)
+#elif HOST_LONG_BITS == 64
+# define MASK_TO_LSH(m)          (__builtin_ffsl(m) - 1)
+#else
+# error Unknown sizeof long
+#endif
+
+#define GETFIELD(m, v)          (((v) & (m)) >> MASK_TO_LSH(m))
+#define SETFIELD(m, v, val)                             \
+        (((v) & ~(m)) | ((((typeof(v))(val)) << MASK_TO_LSH(m)) & (m)))
 
 /*****************************************************************************/
 /* Exception vectors definitions                                             */
@@ -127,9 +123,6 @@ enum {
     POWERPC_EXCP_HYPPRIV  = 41, /* Embedded hypervisor priv instruction      */
     /* Vectors 42 to 63 are reserved                                         */
     /* Exceptions defined in the PowerPC server specification                */
-    /* Server doorbell variants */
-#define POWERPC_EXCP_SDOOR      POWERPC_EXCP_GDOORI
-#define POWERPC_EXCP_SDOOR_HV   POWERPC_EXCP_DOORI
     POWERPC_EXCP_RESET    = 64, /* System reset exception                    */
     POWERPC_EXCP_DSEG     = 65, /* Data segment exception                    */
     POWERPC_EXCP_ISEG     = 66, /* Instruction segment exception             */
@@ -176,15 +169,17 @@ enum {
     POWERPC_EXCP_HV_EMU   = 96, /* HV emulation assistance                   */
     POWERPC_EXCP_HV_MAINT = 97, /* HMI                                       */
     POWERPC_EXCP_HV_FU    = 98, /* Hypervisor Facility unavailable           */
+    /* Server doorbell variants */
+    POWERPC_EXCP_SDOOR    = 99,
+    POWERPC_EXCP_SDOOR_HV = 100,
     /* EOL                                                                   */
-    POWERPC_EXCP_NB       = 99,
+    POWERPC_EXCP_NB       = 101,
     /* QEMU exceptions: used internally during code translation              */
     POWERPC_EXCP_STOP         = 0x200, /* stop translation                   */
     POWERPC_EXCP_BRANCH       = 0x201, /* branch instruction                 */
     /* QEMU exceptions: special cases we want to stop translation            */
     POWERPC_EXCP_SYNC         = 0x202, /* context synchronizing instruction  */
     POWERPC_EXCP_SYSCALL_USER = 0x203, /* System call in user mode only      */
-    POWERPC_EXCP_STCX         = 0x204 /* Conditional stores in user mode     */
 };
 
 /* Exceptions error codes                                                    */
@@ -315,11 +310,13 @@ union ppc_tlb_t {
 #define TLB_MAS                3
 #endif
 
+typedef struct PPCHash64SegmentPageSizes PPCHash64SegmentPageSizes;
+
 typedef struct ppc_slb_t ppc_slb_t;
 struct ppc_slb_t {
     uint64_t esid;
     uint64_t vsid;
-    const struct ppc_one_seg_page_size *sps;
+    const PPCHash64SegmentPageSizes *sps;
 };
 
 #define MAX_SLB_ENTRIES         64
@@ -467,6 +464,11 @@ struct ppc_slb_t {
 #define msr_le   ((env->msr >> MSR_LE)   & 1)
 #define msr_ts   ((env->msr >> MSR_TS1)  & 3)
 #define msr_tm   ((env->msr >> MSR_TM)   & 1)
+
+#define DBCR0_ICMP (1 << 27)
+#define DBCR0_BRT (1 << 26)
+#define DBSR_ICMP (1 << 27)
+#define DBSR_BRT (1 << 26)
 
 /* Hypervisor bit is more specific */
 #if defined(TARGET_PPC64)
@@ -916,8 +918,21 @@ enum {
 /* number of possible TLBs */
 #define BOOKE206_MAX_TLBN      4
 
+#define EPID_EPID_SHIFT 0x0
+#define EPID_EPID 0xFF
+#define EPID_ELPID_SHIFT 0x10
+#define EPID_ELPID 0x3F0000
+#define EPID_EGS 0x20000000
+#define EPID_EGS_SHIFT 29
+#define EPID_EAS 0x40000000
+#define EPID_EAS_SHIFT 30
+#define EPID_EPR 0x80000000
+#define EPID_EPR_SHIFT 31
+/* We don't support EGS and ELPID */
+#define EPID_MASK (EPID_EPID | EPID_EAS | EPID_EPR)
+
 /*****************************************************************************/
-/* Embedded.Processor Control */
+/* Server and Embedded Processor Control */
 
 #define DBELL_TYPE_SHIFT               27
 #define DBELL_TYPE_MASK                (0x1f << DBELL_TYPE_SHIFT)
@@ -927,32 +942,16 @@ enum {
 #define DBELL_TYPE_G_DBELL_CRIT        (0x03 << DBELL_TYPE_SHIFT)
 #define DBELL_TYPE_G_DBELL_MC          (0x04 << DBELL_TYPE_SHIFT)
 
-#define DBELL_BRDCAST                  (1 << 26)
+#define DBELL_TYPE_DBELL_SERVER        (0x05 << DBELL_TYPE_SHIFT)
+
+#define DBELL_BRDCAST                  PPC_BIT(37)
 #define DBELL_LPIDTAG_SHIFT            14
 #define DBELL_LPIDTAG_MASK             (0xfff << DBELL_LPIDTAG_SHIFT)
 #define DBELL_PIRTAG_MASK              0x3fff
 
-/*****************************************************************************/
-/* Segment page size information, used by recent hash MMUs
- * The format of this structure mirrors kvm_ppc_smmu_info
- */
+#define DBELL_PROCIDTAG_MASK           PPC_BITMASK(44, 63)
 
 #define PPC_PAGE_SIZES_MAX_SZ   8
-
-struct ppc_one_page_size {
-    uint32_t page_shift;  /* Page shift (or 0) */
-    uint32_t pte_enc;     /* Encoding in the HPTE (>>12) */
-};
-
-struct ppc_one_seg_page_size {
-    uint32_t page_shift;  /* Base page shift of segment (or 0) */
-    uint32_t slb_enc;     /* SLB encoding for BookS */
-    struct ppc_one_page_size enc[PPC_PAGE_SIZES_MAX_SZ];
-};
-
-struct ppc_segment_page_sizes {
-    struct ppc_one_seg_page_size sps[PPC_PAGE_SIZES_MAX_SZ];
-};
 
 struct ppc_radix_page_info {
     uint32_t count;
@@ -961,7 +960,16 @@ struct ppc_radix_page_info {
 
 /*****************************************************************************/
 /* The whole PowerPC CPU context */
-#define NB_MMU_MODES    8
+
+/* PowerPC needs eight modes for different hypervisor/supervisor/guest +
+ * real/paged mode combinations. The other two modes are for external PID
+ * load/store.
+ */
+#define NB_MMU_MODES    10
+#define MMU_MODE8_SUFFIX _epl
+#define MMU_MODE9_SUFFIX _eps
+#define PPC_TLB_EPID_LOAD 8
+#define PPC_TLB_EPID_STORE 9
 
 #define PPC_CPU_OPCODES_LEN          0x40
 #define PPC_CPU_INDIRECT_OPCODES_LEN 0x20
@@ -996,10 +1004,6 @@ struct CPUPPCState {
     /* Reservation value */
     target_ulong reserve_val;
     target_ulong reserve_val2;
-    /* Reservation store address */
-    target_ulong reserve_ea;
-    /* Reserved store source register and size */
-    target_ulong reserve_info;
 
     /* Those ones are used in supervisor mode only */
     /* machine state register */
@@ -1017,6 +1021,9 @@ struct CPUPPCState {
     /* Next instruction pointer */
     target_ulong nip;
 
+    /* High part of 128-bit helper return.  */
+    uint64_t retxh;
+
     int access_type; /* when a memory exception occurs, the access
                         type is stored here */
 
@@ -1027,7 +1034,6 @@ struct CPUPPCState {
 #if defined(TARGET_PPC64)
     /* PowerPC 64 SLB area */
     ppc_slb_t slb[MAX_SLB_ENTRIES];
-    int32_t slb_nr;
     /* tcg TLB needs flush (deferred slb inval instruction typically) */
 #endif
     /* segment registers */
@@ -1090,17 +1096,9 @@ struct CPUPPCState {
     uint64_t insns_flags;
     uint64_t insns_flags2;
 #if defined(TARGET_PPC64)
-    struct ppc_segment_page_sizes sps;
     ppc_slb_t vrma_slb;
     target_ulong rmls;
-    bool ci_large_pages;
 #endif
-
-#if defined(TARGET_PPC64) && !defined(CONFIG_USER_ONLY)
-    uint64_t vpa_addr;
-    uint64_t slb_shadow_addr, slb_shadow_size;
-    uint64_t dtl_addr, dtl_size;
-#endif /* TARGET_PPC64 */
 
     int error_code;
     uint32_t pending_interrupts;
@@ -1210,7 +1208,9 @@ struct PowerPCCPU {
     uint32_t compat_pvr;
     PPCVirtualHypervisor *vhyp;
     Object *intc;
+    void *machine_data;
     int32_t node_id; /* NUMA node this CPU belongs to */
+    PPCHash64Options *hash64_opts;
 
     /* Fields related to migration compatibility hacks */
     bool pre_2_8_migration;
@@ -1219,6 +1219,8 @@ struct PowerPCCPU {
     uint64_t mig_insns_flags2;
     uint32_t mig_nb_BATs;
     bool pre_2_10_migration;
+    bool pre_3_0_migration;
+    int32_t mig_slb_nr;
 };
 
 static inline PowerPCCPU *ppc_env_get_cpu(CPUPPCState *env)
@@ -1291,18 +1293,17 @@ void ppc_translate_init(void);
 int cpu_ppc_signal_handler (int host_signum, void *pinfo,
                             void *puc);
 #if defined(CONFIG_USER_ONLY)
-int ppc_cpu_handle_mmu_fault(CPUState *cpu, vaddr address, int rw,
+int ppc_cpu_handle_mmu_fault(CPUState *cpu, vaddr address, int size, int rw,
                              int mmu_idx);
 #endif
 
 #if !defined(CONFIG_USER_ONLY)
 void ppc_store_sdr1 (CPUPPCState *env, target_ulong value);
+void ppc_store_ptcr(CPUPPCState *env, target_ulong value);
 #endif /* !defined(CONFIG_USER_ONLY) */
 void ppc_store_msr (CPUPPCState *env, target_ulong value);
 
 void ppc_cpu_list (FILE *f, fprintf_function cpu_fprintf);
-#if defined(TARGET_PPC64)
-#endif
 
 /* Time-base and decrementer management */
 #ifndef NO_CPU_IO_DEFS
@@ -1333,7 +1334,7 @@ void store_booke_tcr (CPUPPCState *env, target_ulong val);
 void store_booke_tsr (CPUPPCState *env, target_ulong val);
 void ppc_tlb_invalidate_all (CPUPPCState *env);
 void ppc_tlb_invalidate_one (CPUPPCState *env, target_ulong addr);
-void cpu_ppc_set_papr(PowerPCCPU *cpu, PPCVirtualHypervisor *vhyp);
+void cpu_ppc_set_vhyp(PowerPCCPU *cpu, PPCVirtualHypervisor *vhyp);
 #endif
 #endif
 
@@ -1359,10 +1360,9 @@ static inline uint64_t ppc_dump_gpr(CPUPPCState *env, int gprn)
 int ppc_dcr_read (ppc_dcr_t *dcr_env, int dcrn, uint32_t *valp);
 int ppc_dcr_write (ppc_dcr_t *dcr_env, int dcrn, uint32_t val);
 
-#define cpu_init(cpu_model) cpu_generic_init(TYPE_POWERPC_CPU, cpu_model)
-
 #define POWERPC_CPU_TYPE_SUFFIX "-" TYPE_POWERPC_CPU
 #define POWERPC_CPU_TYPE_NAME(model) model POWERPC_CPU_TYPE_SUFFIX
+#define CPU_RESOLVING_TYPE TYPE_POWERPC_CPU
 
 #define cpu_signal_handler cpu_ppc_signal_handler
 #define cpu_list ppc_cpu_list
@@ -1378,11 +1378,15 @@ static inline int cpu_mmu_index (CPUPPCState *env, bool ifetch)
 #if defined(TARGET_PPC64)
 bool ppc_check_compat(PowerPCCPU *cpu, uint32_t compat_pvr,
                       uint32_t min_compat_pvr, uint32_t max_compat_pvr);
+bool ppc_type_check_compat(const char *cputype, uint32_t compat_pvr,
+                           uint32_t min_compat_pvr, uint32_t max_compat_pvr);
+
 void ppc_set_compat(PowerPCCPU *cpu, uint32_t compat_pvr, Error **errp);
+
 #if !defined(CONFIG_USER_ONLY)
 void ppc_set_compat_all(uint32_t compat_pvr, Error **errp);
 #endif
-int ppc_compat_max_threads(PowerPCCPU *cpu);
+int ppc_compat_max_vthreads(PowerPCCPU *cpu);
 void ppc_compat_add_property(Object *obj, const char *name,
                              uint32_t *compat_pvr, const char *basedesc,
                              Error **errp);
@@ -1588,6 +1592,7 @@ void ppc_compat_add_property(Object *obj, const char *name,
 #define SPR_BOOKE_GIVOR13     (0x1BC)
 #define SPR_BOOKE_GIVOR14     (0x1BD)
 #define SPR_TIR               (0x1BE)
+#define SPR_PTCR              (0x1D0)
 #define SPR_BOOKE_SPEFSCR     (0x200)
 #define SPR_Exxx_BBEAR        (0x201)
 #define SPR_Exxx_BBTAR        (0x202)
@@ -1999,6 +2004,7 @@ void ppc_compat_add_property(Object *obj, const char *name,
 #define HID0_DOZE           (1 << 23)           /* pre-2.06 */
 #define HID0_NAP            (1 << 22)           /* pre-2.06 */
 #define HID0_HILE           PPC_BIT(19) /* POWER8 */
+#define HID0_POWER9_HILE    PPC_BIT(4)
 
 /*****************************************************************************/
 /* PowerPC Instructions types definitions                                    */
@@ -2349,32 +2355,31 @@ enum {
 
 /* Processor Compatibility mask (PCR) */
 enum {
-    PCR_COMPAT_2_05     = 1ull << (63-62),
-    PCR_COMPAT_2_06     = 1ull << (63-61),
-    PCR_COMPAT_2_07     = 1ull << (63-60),
-    PCR_COMPAT_3_00     = 1ull << (63-59),
-    PCR_VEC_DIS         = 1ull << (63-0), /* Vec. disable (bit NA since POWER8) */
-    PCR_VSX_DIS         = 1ull << (63-1), /* VSX disable (bit NA since POWER8) */
-    PCR_TM_DIS          = 1ull << (63-2), /* Trans. memory disable (POWER8) */
+    PCR_COMPAT_2_05     = PPC_BIT(62),
+    PCR_COMPAT_2_06     = PPC_BIT(61),
+    PCR_COMPAT_2_07     = PPC_BIT(60),
+    PCR_COMPAT_3_00     = PPC_BIT(59),
+    PCR_VEC_DIS         = PPC_BIT(0), /* Vec. disable (bit NA since POWER8) */
+    PCR_VSX_DIS         = PPC_BIT(1), /* VSX disable (bit NA since POWER8) */
+    PCR_TM_DIS          = PPC_BIT(2), /* Trans. memory disable (POWER8) */
 };
 
 /* HMER/HMEER */
 enum {
-    HMER_MALFUNCTION_ALERT      = 1ull << (63 - 0),
-    HMER_PROC_RECV_DONE         = 1ull << (63 - 2),
-    HMER_PROC_RECV_ERROR_MASKED = 1ull << (63 - 3),
-    HMER_TFAC_ERROR             = 1ull << (63 - 4),
-    HMER_TFMR_PARITY_ERROR      = 1ull << (63 - 5),
-    HMER_XSCOM_FAIL             = 1ull << (63 - 8),
-    HMER_XSCOM_DONE             = 1ull << (63 - 9),
-    HMER_PROC_RECV_AGAIN        = 1ull << (63 - 11),
-    HMER_WARN_RISE              = 1ull << (63 - 14),
-    HMER_WARN_FALL              = 1ull << (63 - 15),
-    HMER_SCOM_FIR_HMI           = 1ull << (63 - 16),
-    HMER_TRIG_FIR_HMI           = 1ull << (63 - 17),
-    HMER_HYP_RESOURCE_ERR       = 1ull << (63 - 20),
-    HMER_XSCOM_STATUS_MASK      = 7ull << (63 - 23),
-    HMER_XSCOM_STATUS_LSH       = (63 - 23),
+    HMER_MALFUNCTION_ALERT      = PPC_BIT(0),
+    HMER_PROC_RECV_DONE         = PPC_BIT(2),
+    HMER_PROC_RECV_ERROR_MASKED = PPC_BIT(3),
+    HMER_TFAC_ERROR             = PPC_BIT(4),
+    HMER_TFMR_PARITY_ERROR      = PPC_BIT(5),
+    HMER_XSCOM_FAIL             = PPC_BIT(8),
+    HMER_XSCOM_DONE             = PPC_BIT(9),
+    HMER_PROC_RECV_AGAIN        = PPC_BIT(11),
+    HMER_WARN_RISE              = PPC_BIT(14),
+    HMER_WARN_FALL              = PPC_BIT(15),
+    HMER_SCOM_FIR_HMI           = PPC_BIT(16),
+    HMER_TRIG_FIR_HMI           = PPC_BIT(17),
+    HMER_HYP_RESOURCE_ERR       = PPC_BIT(20),
+    HMER_XSCOM_STATUS_MASK      = PPC_BITMASK(21, 23),
 };
 
 /* Alternate Interrupt Location (AIL) */

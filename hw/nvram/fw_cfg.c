@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 #include "qemu/osdep.h"
 #include "hw/hw.h"
 #include "sysemu/sysemu.h"
@@ -31,6 +32,7 @@
 #include "hw/sysbus.h"
 #include "trace.h"
 #include "qemu/error-report.h"
+#include "qemu/option.h"
 #include "qemu/config-file.h"
 #include "qemu/cutils.h"
 #include "qapi/error.h"
@@ -418,16 +420,23 @@ static void fw_cfg_dma_mem_write(void *opaque, hwaddr addr,
 }
 
 static bool fw_cfg_dma_mem_valid(void *opaque, hwaddr addr,
-                                  unsigned size, bool is_write)
+                                 unsigned size, bool is_write,
+                                 MemTxAttrs attrs)
 {
     return !is_write || ((size == 4 && (addr == 0 || addr == 4)) ||
                          (size == 8 && addr == 0));
 }
 
 static bool fw_cfg_data_mem_valid(void *opaque, hwaddr addr,
-                                  unsigned size, bool is_write)
+                                  unsigned size, bool is_write,
+                                  MemTxAttrs attrs)
 {
     return addr == 0;
+}
+
+static uint64_t fw_cfg_ctl_mem_read(void *opaque, hwaddr addr, unsigned size)
+{
+    return 0;
 }
 
 static void fw_cfg_ctl_mem_write(void *opaque, hwaddr addr,
@@ -437,7 +446,8 @@ static void fw_cfg_ctl_mem_write(void *opaque, hwaddr addr,
 }
 
 static bool fw_cfg_ctl_mem_valid(void *opaque, hwaddr addr,
-                                 unsigned size, bool is_write)
+                                 unsigned size, bool is_write,
+                                 MemTxAttrs attrs)
 {
     return is_write && size == 2;
 }
@@ -456,12 +466,14 @@ static void fw_cfg_comb_write(void *opaque, hwaddr addr,
 }
 
 static bool fw_cfg_comb_valid(void *opaque, hwaddr addr,
-                                  unsigned size, bool is_write)
+                              unsigned size, bool is_write,
+                              MemTxAttrs attrs)
 {
     return (size == 1) || (is_write && size == 2);
 }
 
 static const MemoryRegionOps fw_cfg_ctl_mem_ops = {
+    .read = fw_cfg_ctl_mem_read,
     .write = fw_cfg_ctl_mem_write,
     .endianness = DEVICE_BIG_ENDIAN,
     .valid.accepts = fw_cfg_ctl_mem_valid,
@@ -508,15 +520,15 @@ static void fw_cfg_reset(DeviceState *d)
  */
 
 static int get_uint32_as_uint16(QEMUFile *f, void *pv, size_t size,
-                                VMStateField *field)
+                                const VMStateField *field)
 {
     uint32_t *v = pv;
     *v = qemu_get_be16(f);
     return 0;
 }
 
-static int put_unused(QEMUFile *f, void *pv, size_t size, VMStateField *field,
-                      QJSON *vmdesc)
+static int put_unused(QEMUFile *f, void *pv, size_t size,
+                      const VMStateField *field, QJSON *vmdesc)
 {
     fprintf(stderr, "uint32_as_uint16 is only used for backward compatibility.\n");
     fprintf(stderr, "This functions shouldn't be called.\n");
@@ -784,7 +796,7 @@ void fw_cfg_add_file_callback(FWCfgState *s,  const char *filename,
      * index and "i - 1" is the one being copied from, thus the
      * unusual start and end in the for statement.
      */
-    for (i = count + 1; i > index; i--) {
+    for (i = count; i > index; i--) {
         s->files->f[i] = s->files->f[i - 1];
         s->files->f[i].select = cpu_to_be16(FW_CFG_FILE_FIRST + i);
         s->entries[0][FW_CFG_FILE_FIRST + i] =
@@ -833,7 +845,6 @@ void *fw_cfg_modify_file(FWCfgState *s, const char *filename,
     assert(s->files);
 
     index = be32_to_cpu(s->files->count);
-    assert(index < fw_cfg_file_slots(s));
 
     for (i = 0; i < index; i++) {
         if (strcmp(filename, s->files->f[i].name) == 0) {
@@ -843,6 +854,9 @@ void *fw_cfg_modify_file(FWCfgState *s, const char *filename,
             return ptr;
         }
     }
+
+    assert(index < fw_cfg_file_slots(s));
+
     /* add new one */
     fw_cfg_add_file_callback(s, filename, NULL, NULL, NULL, data, len, true);
     return NULL;
@@ -853,7 +867,7 @@ static void fw_cfg_machine_reset(void *opaque)
     void *ptr;
     size_t len;
     FWCfgState *s = opaque;
-    char *bootindex = get_boot_devices_list(&len, false);
+    char *bootindex = get_boot_devices_list(&len);
 
     ptr = fw_cfg_modify_file(s, "bootorder", (uint8_t *)bootindex, len);
     g_free(ptr);
@@ -1101,12 +1115,7 @@ static void fw_cfg_mem_realize(DeviceState *dev, Error **errp)
     sysbus_init_mmio(sbd, &s->ctl_iomem);
 
     if (s->data_width > data_ops->valid.max_access_size) {
-        /* memberwise copy because the "old_mmio" member is const */
-        s->wide_data_ops.read       = data_ops->read;
-        s->wide_data_ops.write      = data_ops->write;
-        s->wide_data_ops.endianness = data_ops->endianness;
-        s->wide_data_ops.valid      = data_ops->valid;
-        s->wide_data_ops.impl       = data_ops->impl;
+        s->wide_data_ops = *data_ops;
 
         s->wide_data_ops.valid.max_access_size = s->data_width;
         s->wide_data_ops.impl.max_access_size  = s->data_width;

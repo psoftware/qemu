@@ -1,7 +1,7 @@
 /*
  * S390 feature list generator
  *
- * Copyright 2016 IBM Corp.
+ * Copyright IBM Corp. 2016, 2018
  *
  * Author(s): Michael Mueller <mimu@linux.vnet.ibm.com>
  *            David Hildenbrand <dahi@linux.vnet.ibm.com>
@@ -9,12 +9,10 @@
  * This work is licensed under the terms of the GNU GPL, version 2 or (at
  * your option) any later version. See the COPYING file in the top-level
  * directory.
- *
  */
 
-
-#include "inttypes.h"
-#include "stdio.h"
+#include <inttypes.h>
+#include <stdio.h>
 #include "cpu_features_def.h"
 
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
@@ -58,6 +56,12 @@
     S390_FEAT_PTFF_QUI, \
     S390_FEAT_PTFF_QTOU, \
     S390_FEAT_PTFF_STOU
+
+#define S390_FEAT_GROUP_MULTIPLE_EPOCH_PTFF \
+    S390_FEAT_PTFF_QSIE, \
+    S390_FEAT_PTFF_QTOUE, \
+    S390_FEAT_PTFF_STOE, \
+    S390_FEAT_PTFF_STOUE
 
 #define S390_FEAT_GROUP_MSA \
     S390_FEAT_MSA, \
@@ -219,6 +223,9 @@ static uint16_t group_TOD_CLOCK_STEERING[] = {
 static uint16_t group_GEN13_PTFF[] = {
     S390_FEAT_GROUP_GEN13_PTFF,
 };
+static uint16_t group_MULTIPLE_EPOCH_PTFF[] = {
+    S390_FEAT_GROUP_MULTIPLE_EPOCH_PTFF,
+};
 static uint16_t group_MSA[] = {
     S390_FEAT_GROUP_MSA,
 };
@@ -352,6 +359,8 @@ static uint16_t base_GEN14_GA1[] = {
  * support these features yet.
  */
 static uint16_t full_GEN7_GA1[] = {
+    S390_FEAT_PPA15,
+    S390_FEAT_BPB,
     S390_FEAT_SIE_F2,
     S390_FEAT_SIE_SKEY,
     S390_FEAT_SIE_GPERE,
@@ -438,6 +447,9 @@ static uint16_t full_GEN12_GA1[] = {
     S390_FEAT_ADAPTER_INT_SUPPRESSION,
     S390_FEAT_EDAT_2,
     S390_FEAT_SIDE_EFFECT_ACCESS_ESOP2,
+    S390_FEAT_AP_QUERY_CONFIG_INFO,
+    S390_FEAT_AP_FACILITIES_TEST,
+    S390_FEAT_AP,
 };
 
 static uint16_t full_GEN12_GA2[] = {
@@ -462,8 +474,10 @@ static uint16_t full_GEN14_GA1[] = {
     S390_FEAT_GROUP_MSA_EXT_7,
     S390_FEAT_GROUP_MSA_EXT_8,
     S390_FEAT_CMM_NT,
+    S390_FEAT_ETOKEN,
     S390_FEAT_HPMA2,
     S390_FEAT_SIE_KSS,
+    S390_FEAT_GROUP_MULTIPLE_EPOCH_PTFF,
 };
 
 /* Default features (in order of release)
@@ -502,6 +516,8 @@ static uint16_t default_GEN11_GA1[] = {
     S390_FEAT_IPTE_RANGE,
     S390_FEAT_ACCESS_EXCEPTION_FS_INDICATION,
     S390_FEAT_GROUP_MSA_EXT_4,
+    S390_FEAT_PPA15,
+    S390_FEAT_BPB,
 };
 
 #define default_GEN11_GA2 EmptyFeat
@@ -570,8 +586,10 @@ static uint16_t qemu_LATEST[] = {
     S390_FEAT_STFLE_49,
     S390_FEAT_LOCAL_TLB_CLEARING,
     S390_FEAT_INTERLOCKED_ACCESS_2,
-    S390_FEAT_MSA_EXT_4,
+    S390_FEAT_ADAPTER_EVENT_NOTIFICATION,
+    S390_FEAT_ADAPTER_INT_SUPPRESSION,
     S390_FEAT_MSA_EXT_3,
+    S390_FEAT_MSA_EXT_4,
 };
 
 /* add all new definitions before this point */
@@ -580,6 +598,8 @@ static uint16_t qemu_MAX[] = {
     S390_FEAT_STFLE_53,
     /* generates a dependency warning, leave it out for now */
     S390_FEAT_MSA_EXT_5,
+    /* only with CONFIG_PCI */
+    S390_FEAT_ZPCI,
 };
 
 /****** END FEATURE DEFS ******/
@@ -645,6 +665,7 @@ static CpuFeatDefSpec CpuFeatDef[] = {
 #define FEAT_GROUP_INITIALIZER(_name)                  \
     {                                                  \
         .name = "S390_FEAT_GROUP_LIST_" #_name,        \
+        .enum_name = "S390_FEAT_GROUP_" #_name,        \
         .bits =                                        \
             { .data = group_##_name,                   \
               .len = ARRAY_SIZE(group_##_name) },      \
@@ -652,6 +673,7 @@ static CpuFeatDefSpec CpuFeatDef[] = {
 
 typedef struct {
     const char *name;
+    const char *enum_name;
     BitSpec bits;
 } FeatGroupDefSpec;
 
@@ -671,6 +693,7 @@ static FeatGroupDefSpec FeatGroupDef[] = {
     FEAT_GROUP_INITIALIZER(MSA_EXT_6),
     FEAT_GROUP_INITIALIZER(MSA_EXT_7),
     FEAT_GROUP_INITIALIZER(MSA_EXT_8),
+    FEAT_GROUP_INITIALIZER(MULTIPLE_EPOCH_PTFF),
 };
 
 #define QEMU_FEAT_INITIALIZER(_name)                   \
@@ -793,6 +816,19 @@ static void print_feature_group_defs(void)
     }
 }
 
+static void print_feature_group_enum_type(void)
+{
+    int i;
+
+    printf("\n/* CPU feature group enum type */\n"
+           "typedef enum {\n");
+    for (i = 0; i < ARRAY_SIZE(FeatGroupDef); i++) {
+        printf("\t%s,\n", FeatGroupDef[i].enum_name);
+    }
+    printf("\tS390_FEAT_GROUP_MAX,\n"
+           "} S390FeatGroup;\n");
+}
+
 int main(int argc, char *argv[])
 {
     printf("/*\n"
@@ -809,6 +845,7 @@ int main(int argc, char *argv[])
     print_feature_defs();
     print_feature_group_defs();
     print_qemu_feature_defs();
+    print_feature_group_enum_type();
     printf("\n#endif\n");
     return 0;
 }

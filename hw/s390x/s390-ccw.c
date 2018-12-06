@@ -10,10 +10,11 @@
  * or (at your option) any later version. See the COPYING file in the
  * top-level directory.
  */
+
 #include "qemu/osdep.h"
+#include <libgen.h>
 #include "qapi/error.h"
 #include "hw/sysbus.h"
-#include "libgen.h"
 #include "hw/s390x/css.h"
 #include "hw/s390x/css-bridge.h"
 #include "hw/s390x/s390-ccw.h"
@@ -47,7 +48,7 @@ static void s390_ccw_get_dev_info(S390CCWDevice *cdev,
         return;
     }
 
-    cdev->mdevid = g_strdup(basename(dev_path));
+    cdev->mdevid = g_path_get_basename(dev_path);
 
     tmp = basename(dirname(dev_path));
     if (sscanf(tmp, "%2x.%1x.%4x", &cssid, &ssid, &devid) != 3) {
@@ -66,8 +67,6 @@ static void s390_ccw_realize(S390CCWDevice *cdev, char *sysfsdev, Error **errp)
     CcwDevice *ccw_dev = CCW_DEVICE(cdev);
     CCWDeviceClass *ck = CCW_DEVICE_GET_CLASS(ccw_dev);
     DeviceState *parent = DEVICE(ccw_dev);
-    BusState *qbus = qdev_get_parent_bus(parent);
-    VirtualCssBus *cbus = VIRTUAL_CSS_BUS(qbus);
     SubchDev *sch;
     int ret;
     Error *err = NULL;
@@ -77,7 +76,7 @@ static void s390_ccw_realize(S390CCWDevice *cdev, char *sysfsdev, Error **errp)
         goto out_err_propagate;
     }
 
-    sch = css_create_sch(ccw_dev->devno, cbus->squash_mcss, &err);
+    sch = css_create_sch(ccw_dev->devno, &err);
     if (!sch) {
         goto out_mdevid_free;
     }

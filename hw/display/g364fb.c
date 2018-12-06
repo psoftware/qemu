@@ -18,6 +18,7 @@
  */
 
 #include "qemu/osdep.h"
+#include "qemu/units.h"
 #include "hw/hw.h"
 #include "qemu/error-report.h"
 #include "ui/console.h"
@@ -62,15 +63,15 @@ typedef struct G364State {
 
 #define G364_PAGE_SIZE 4096
 
-static inline int check_dirty(G364State *s, ram_addr_t page)
+static inline int check_dirty(G364State *s, DirtyBitmapSnapshot *snap, ram_addr_t page)
 {
-    return memory_region_test_and_clear_dirty(&s->mem_vram, page, G364_PAGE_SIZE,
-                                              DIRTY_MEMORY_VGA);
+    return memory_region_snapshot_get_dirty(&s->mem_vram, snap, page, G364_PAGE_SIZE);
 }
 
 static void g364fb_draw_graphic8(G364State *s)
 {
     DisplaySurface *surface = qemu_console_surface(s->con);
+    DirtyBitmapSnapshot *snap;
     int i, w;
     uint8_t *vram;
     uint8_t *data_display, *dd;
@@ -122,8 +123,10 @@ static void g364fb_draw_graphic8(G364State *s)
     vram = s->vram + s->top_of_screen;
     /* XXX: out of range in vram? */
     data_display = dd = surface_data(surface);
+    snap = memory_region_snapshot_and_clear_dirty(&s->mem_vram, 0, s->vram_size,
+                                                  DIRTY_MEMORY_VGA);
     while (y < s->height) {
-        if (check_dirty(s, page)) {
+        if (check_dirty(s, snap, page)) {
             if (y < ymin)
                 ymin = ymax = y;
             if (x < xmin)
@@ -205,6 +208,7 @@ done:
     if (xmax || ymax) {
         dpy_gfx_update(s->con, xmin, ymin, xmax - xmin + 1, ymax - ymin + 1);
     }
+    g_free(snap);
 }
 
 static void g364fb_draw_blank(G364State *s)
@@ -225,7 +229,7 @@ static void g364fb_draw_blank(G364State *s)
         d += surface_stride(surface);
     }
 
-    dpy_gfx_update(s->con, 0, 0, s->width, s->height);
+    dpy_gfx_update_full(s->con);
     s->blanked = 1;
 }
 
@@ -244,7 +248,6 @@ static void g364fb_update_display(void *opaque)
         qemu_console_resize(s->con, s->width, s->height);
     }
 
-    memory_region_sync_dirty_bitmap(&s->mem_vram);
     if (s->ctla & CTLA_FORCE_BLANK) {
         g364fb_draw_blank(s);
     } else if (s->depth == 8) {
@@ -508,8 +511,7 @@ static void g364fb_sysbus_reset(DeviceState *d)
 }
 
 static Property g364fb_sysbus_properties[] = {
-    DEFINE_PROP_UINT32("vram_size", G364SysBusState, g364.vram_size,
-    8 * 1024 * 1024),
+    DEFINE_PROP_UINT32("vram_size", G364SysBusState, g364.vram_size, 8 * MiB),
     DEFINE_PROP_END_OF_LIST(),
 };
 

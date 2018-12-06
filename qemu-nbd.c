@@ -22,21 +22,23 @@
 #include <pthread.h>
 
 #include "qapi/error.h"
-#include "qemu-common.h"
 #include "qemu/cutils.h"
 #include "sysemu/block-backend.h"
 #include "block/block_int.h"
 #include "block/nbd.h"
 #include "qemu/main-loop.h"
+#include "qemu/option.h"
 #include "qemu/error-report.h"
 #include "qemu/config-file.h"
 #include "qemu/bswap.h"
 #include "qemu/log.h"
 #include "qemu/systemd.h"
 #include "block/snapshot.h"
+#include "qapi/qmp/qdict.h"
 #include "qapi/qmp/qstring.h"
 #include "qom/object_interfaces.h"
 #include "io/channel-socket.h"
+#include "io/net-listener.h"
 #include "crypto/init.h"
 #include "trace/control.h"
 #include "qemu-version.h"
@@ -54,7 +56,6 @@
 #define MBR_SIZE 512
 
 static NBDExport *exp;
-static bool newproto;
 static int verbose;
 static char *srcpath;
 static SocketAddress *saddr;
@@ -62,8 +63,7 @@ static int persistent = 0;
 static enum { RUNNING, TERMINATE, TERMINATING, TERMINATED } state;
 static int shared = 1;
 static int nb_fds;
-static QIOChannelSocket *server_ioc;
-static int server_watch = -1;
+static QIONetListener *server;
 static QCryptoTLSCreds *tlscreds;
 
 static void usage(const char *name)
@@ -83,8 +83,8 @@ static void usage(const char *name)
 "  -e, --shared=NUM          device can be shared by NUM clients (default '1')\n"
 "  -t, --persistent          don't exit on the last connection\n"
 "  -v, --verbose             display extra debugging information\n"
-"  -x, --export-name=NAME    expose export by name\n"
-"  -D, --description=TEXT    with -x, also export a human-readable description\n"
+"  -x, --export-name=NAME    expose export by name (default is empty string)\n"
+"  -D, --description=TEXT    export a human-readable description\n"
 "\n"
 "Exposing part of the image:\n"
 "  -o, --offset=OFFSET       offset into the image\n"
@@ -93,6 +93,7 @@ static void usage(const char *name)
 "General purpose options:\n"
 "  --object type,id=ID,...   define an object such as 'secret' for providing\n"
 "                            passwords and/or encryption keys\n"
+"  --tls-creds=ID            use id of an earlier --object to provide TLS\n"
 "  -T, --trace [[enable=]<pattern>][,events=<file>][,file=<file>]\n"
 "                            specify tracing options\n"
 "  --fork                    fork off the server process and exit the parent\n"
@@ -129,7 +130,7 @@ QEMU_HELP_BOTTOM "\n"
 static void version(const char *name)
 {
     printf(
-"%s " QEMU_VERSION QEMU_PKGVERSION "\n"
+"%s " QEMU_FULL_VERSION "\n"
 "Written by Anthony Liguori.\n"
 "\n"
 QEMU_COPYRIGHT "\n"
@@ -344,44 +345,24 @@ static void nbd_client_closed(NBDClient *client, bool negotiated)
     nbd_client_put(client);
 }
 
-static gboolean nbd_accept(QIOChannel *ioc, GIOCondition cond, gpointer opaque)
+static void nbd_accept(QIONetListener *listener, QIOChannelSocket *cioc,
+                       gpointer opaque)
 {
-    QIOChannelSocket *cioc;
-
-    cioc = qio_channel_socket_accept(QIO_CHANNEL_SOCKET(ioc),
-                                     NULL);
-    if (!cioc) {
-        return TRUE;
-    }
-
     if (state >= TERMINATE) {
-        object_unref(OBJECT(cioc));
-        return TRUE;
+        return;
     }
 
     nb_fds++;
     nbd_update_server_watch();
-    nbd_client_new(newproto ? NULL : exp, cioc,
-                   tlscreds, NULL, nbd_client_closed);
-    object_unref(OBJECT(cioc));
-
-    return TRUE;
+    nbd_client_new(cioc, tlscreds, NULL, nbd_client_closed);
 }
 
 static void nbd_update_server_watch(void)
 {
     if (nbd_can_accept()) {
-        if (server_watch == -1) {
-            server_watch = qio_channel_add_watch(QIO_CHANNEL(server_ioc),
-                                                 G_IO_IN,
-                                                 nbd_accept,
-                                                 NULL, NULL);
-        }
+        qio_net_listener_set_client_func(server, nbd_accept, NULL, NULL);
     } else {
-        if (server_watch != -1) {
-            g_source_remove(server_watch);
-            server_watch = -1;
-        }
+        qio_net_listener_set_client_func(server, NULL, NULL, NULL);
     }
 }
 
@@ -500,6 +481,12 @@ static const char *socket_activation_validate_opts(const char *device,
     return NULL;
 }
 
+static void qemu_nbd_shutdown(void)
+{
+    job_cancel_sync_all();
+    bdrv_close_all();
+}
+
 int main(int argc, char **argv)
 {
     BlockBackend *blk;
@@ -561,7 +548,7 @@ int main(int argc, char **argv)
     Error *local_err = NULL;
     BlockdevDetectZeroesOptions detect_zeroes = BLOCKDEV_DETECT_ZEROES_OPTIONS_OFF;
     QDict *options = NULL;
-    const char *export_name = NULL;
+    const char *export_name = ""; /* Default export name */
     const char *export_description = NULL;
     const char *tlscredsid = NULL;
     bool imageOpts = false;
@@ -779,11 +766,9 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
 
-    if (qemu_opts_foreach(&qemu_object_opts,
-                          user_creatable_add_opts_foreach,
-                          NULL, NULL)) {
-        exit(EXIT_FAILURE);
-    }
+    qemu_opts_foreach(&qemu_object_opts,
+                      user_creatable_add_opts_foreach,
+                      NULL, &error_fatal);
 
     if (!trace_init_backends()) {
         exit(1);
@@ -819,11 +804,6 @@ int main(int argc, char **argv)
         if (device) {
             error_report("TLS is not supported with a host device");
             exit(EXIT_FAILURE);
-        }
-        if (!export_name) {
-            /* Set the default NBD protocol export name, since
-             * we *must* use new style protocol for TLS */
-            export_name = "";
         }
         tlscreds = nbd_get_tls_creds(tlscredsid, &local_err);
         if (local_err) {
@@ -915,23 +895,29 @@ int main(int argc, char **argv)
         snprintf(sockpath, 128, SOCKET_PATH, basename(device));
     }
 
+    server = qio_net_listener_new();
     if (socket_activation == 0) {
-        server_ioc = qio_channel_socket_new();
         saddr = nbd_build_socket_address(sockpath, bindto, port);
-        if (qio_channel_socket_listen_sync(server_ioc, saddr, &local_err) < 0) {
-            object_unref(OBJECT(server_ioc));
+        if (qio_net_listener_open_sync(server, saddr, &local_err) < 0) {
+            object_unref(OBJECT(server));
             error_report_err(local_err);
-            return 1;
+            exit(EXIT_FAILURE);
         }
     } else {
+        size_t i;
         /* See comment in check_socket_activation above. */
-        assert(socket_activation == 1);
-        server_ioc = qio_channel_socket_new_fd(FIRST_SOCKET_ACTIVATION_FD,
-                                               &local_err);
-        if (server_ioc == NULL) {
-            error_report("Failed to use socket activation: %s",
-                         error_get_pretty(local_err));
-            exit(EXIT_FAILURE);
+        for (i = 0; i < socket_activation; i++) {
+            QIOChannelSocket *sioc;
+            sioc = qio_channel_socket_new_fd(FIRST_SOCKET_ACTIVATION_FD + i,
+                                             &local_err);
+            if (sioc == NULL) {
+                object_unref(OBJECT(server));
+                error_report("Failed to use socket activation: %s",
+                             error_get_pretty(local_err));
+                exit(EXIT_FAILURE);
+            }
+            qio_net_listener_add(server, sioc);
+            object_unref(OBJECT(sioc));
         }
     }
 
@@ -940,7 +926,7 @@ int main(int argc, char **argv)
         exit(EXIT_FAILURE);
     }
     bdrv_init();
-    atexit(bdrv_close_all);
+    atexit(qemu_nbd_shutdown);
 
     srcpath = argv[optind];
     if (imageOpts) {
@@ -1014,19 +1000,9 @@ int main(int argc, char **argv)
     }
 
     exp = nbd_export_new(bs, dev_offset, fd_size, nbdflags, nbd_export_closed,
-                         writethrough, NULL, &local_err);
-    if (!exp) {
-        error_report_err(local_err);
-        exit(EXIT_FAILURE);
-    }
-    if (export_name) {
-        nbd_export_set_name(exp, export_name);
-        nbd_export_set_description(exp, export_description);
-        newproto = true;
-    } else if (export_description) {
-        error_report("Export description requires an export name");
-        exit(EXIT_FAILURE);
-    }
+                         writethrough, NULL, &error_fatal);
+    nbd_export_set_name(exp, export_name);
+    nbd_export_set_description(exp, export_description);
 
     if (device) {
         int ret;

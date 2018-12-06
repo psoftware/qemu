@@ -16,10 +16,8 @@
 
 #define TFR(expr) do { if ((expr) != -1) break; } while (errno == EINTR)
 
-#include "qemu/option.h"
-
 /* Copyright string for -version arguments, About dialogs, etc */
-#define QEMU_COPYRIGHT "Copyright (c) 2003-2017 " \
+#define QEMU_COPYRIGHT "Copyright (c) 2003-2018 " \
     "Fabrice Bellard and the QEMU Project developers"
 
 /* Bug reporting information for --help arguments, About dialogs, etc */
@@ -139,7 +137,7 @@ char *qemu_find_file(int type, const char *name);
 /* OS specific functions */
 void os_setup_early_signal_handling(void);
 char *os_find_datadir(void);
-void os_parse_cmd_args(int index, const char *optarg);
+int os_parse_cmd_args(int index, const char *optarg);
 
 #include "qemu/module.h"
 

@@ -244,7 +244,9 @@ static int qemu_lock_fcntl(int fd, int64_t start, int64_t len, int fl_type)
         .l_type   = fl_type,
     };
     qemu_probe_lock_ops();
-    ret = fcntl(fd, fcntl_op_setlk, &fl);
+    do {
+        ret = fcntl(fd, fcntl_op_setlk, &fl);
+    } while (ret == -1 && errno == EINTR);
     return ret == -1 ? -errno : 0;
 }
 
@@ -300,7 +302,8 @@ int qemu_open(const char *name, int flags, ...)
         }
 
         fd = monitor_fdset_get_fd(fdset_id, flags);
-        if (fd == -1) {
+        if (fd < 0) {
+            errno = -fd;
             return -1;
         }
 
@@ -501,20 +504,6 @@ int socket_init(void)
     return 0;
 }
 
-#if !GLIB_CHECK_VERSION(2, 31, 0)
-/* Ensure that glib is running in multi-threaded mode
- * Old versions of glib require explicit initialization.  Failure to do
- * this results in the single-threaded code paths being taken inside
- * glib.  For example, the g_slice allocator will not be thread-safe
- * and cause crashes.
- */
-static void __attribute__((constructor)) thread_init(void)
-{
-    if (!g_thread_supported()) {
-       g_thread_init(NULL);
-    }
-}
-#endif
 
 #ifndef CONFIG_IOVEC
 /* helper function for iov_send_recv() */

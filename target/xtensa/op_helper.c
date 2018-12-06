@@ -34,6 +34,9 @@
 #include "exec/cpu_ldst.h"
 #include "exec/address-spaces.h"
 #include "qemu/timer.h"
+#include "fpu/softfloat.h"
+
+#ifndef CONFIG_USER_ONLY
 
 void xtensa_cpu_do_unaligned_access(CPUState *cs,
         vaddr addr, MMUAccessType access_type,
@@ -44,14 +47,14 @@ void xtensa_cpu_do_unaligned_access(CPUState *cs,
 
     if (xtensa_option_enabled(env->config, XTENSA_OPTION_UNALIGNED_EXCEPTION) &&
             !xtensa_option_enabled(env->config, XTENSA_OPTION_HW_ALIGNMENT)) {
-        cpu_restore_state(CPU(cpu), retaddr);
+        cpu_restore_state(CPU(cpu), retaddr, true);
         HELPER(exception_cause_vaddr)(env,
                 env->pc, LOAD_STORE_ALIGNMENT_CAUSE, addr);
     }
 }
 
-void tlb_fill(CPUState *cs, target_ulong vaddr, MMUAccessType access_type,
-              int mmu_idx, uintptr_t retaddr)
+void tlb_fill(CPUState *cs, target_ulong vaddr, int size,
+              MMUAccessType access_type, int mmu_idx, uintptr_t retaddr)
 {
     XtensaCPU *cpu = XTENSA_CPU(cs);
     CPUXtensaState *env = &cpu->env;
@@ -70,23 +73,25 @@ void tlb_fill(CPUState *cs, target_ulong vaddr, MMUAccessType access_type,
                      paddr & TARGET_PAGE_MASK,
                      access, mmu_idx, page_size);
     } else {
-        cpu_restore_state(cs, retaddr);
+        cpu_restore_state(cs, retaddr, true);
         HELPER(exception_cause_vaddr)(env, env->pc, ret, vaddr);
     }
 }
 
-void xtensa_cpu_do_unassigned_access(CPUState *cs, hwaddr addr,
-                                     bool is_write, bool is_exec, int opaque,
-                                     unsigned size)
+void xtensa_cpu_do_transaction_failed(CPUState *cs, hwaddr physaddr, vaddr addr,
+                                      unsigned size, MMUAccessType access_type,
+                                      int mmu_idx, MemTxAttrs attrs,
+                                      MemTxResult response, uintptr_t retaddr)
 {
     XtensaCPU *cpu = XTENSA_CPU(cs);
     CPUXtensaState *env = &cpu->env;
 
+    cpu_restore_state(cs, retaddr, true);
     HELPER(exception_cause_vaddr)(env, env->pc,
-                                  is_exec ?
+                                  access_type == MMU_INST_FETCH ?
                                   INSTR_PIF_ADDR_ERROR_CAUSE :
                                   LOAD_STORE_PIF_ADDR_ERROR_CAUSE,
-                                  is_exec ? addr : cs->mem_io_vaddr);
+                                  addr);
 }
 
 static void tb_invalidate_virtual_addr(CPUXtensaState *env, uint32_t vaddr)
@@ -97,9 +102,19 @@ static void tb_invalidate_virtual_addr(CPUXtensaState *env, uint32_t vaddr)
     int ret = xtensa_get_physical_addr(env, false, vaddr, 2, 0,
             &paddr, &page_size, &access);
     if (ret == 0) {
-        tb_invalidate_phys_addr(&address_space_memory, paddr);
+        tb_invalidate_phys_addr(&address_space_memory, paddr,
+                                MEMTXATTRS_UNSPECIFIED);
     }
 }
+
+#else
+
+static void tb_invalidate_virtual_addr(CPUXtensaState *env, uint32_t vaddr)
+{
+    tb_invalidate_phys_addr(vaddr);
+}
+
+#endif
 
 void HELPER(exception)(CPUXtensaState *env, uint32_t excp)
 {
@@ -218,42 +233,31 @@ void xtensa_sync_phys_from_window(CPUXtensaState *env)
     copy_phys_from_window(env, env->sregs[WINDOW_BASE] * 4, 0, 16);
 }
 
-static void rotate_window_abs(CPUXtensaState *env, uint32_t position)
+static void xtensa_rotate_window_abs(CPUXtensaState *env, uint32_t position)
 {
     xtensa_sync_phys_from_window(env);
     env->sregs[WINDOW_BASE] = windowbase_bound(position, env);
     xtensa_sync_window_from_phys(env);
 }
 
-static void rotate_window(CPUXtensaState *env, uint32_t delta)
+void xtensa_rotate_window(CPUXtensaState *env, uint32_t delta)
 {
-    rotate_window_abs(env, env->sregs[WINDOW_BASE] + delta);
+    xtensa_rotate_window_abs(env, env->sregs[WINDOW_BASE] + delta);
 }
 
 void HELPER(wsr_windowbase)(CPUXtensaState *env, uint32_t v)
 {
-    rotate_window_abs(env, v);
+    xtensa_rotate_window_abs(env, v);
 }
 
 void HELPER(entry)(CPUXtensaState *env, uint32_t pc, uint32_t s, uint32_t imm)
 {
     int callinc = (env->sregs[PS] & PS_CALLINC) >> PS_CALLINC_SHIFT;
-    if (s > 3 || ((env->sregs[PS] & (PS_WOE | PS_EXCM)) ^ PS_WOE) != 0) {
-        qemu_log_mask(LOG_GUEST_ERROR, "Illegal entry instruction(pc = %08x), PS = %08x\n",
-                      pc, env->sregs[PS]);
-        HELPER(exception_cause)(env, pc, ILLEGAL_INSTRUCTION_CAUSE);
-    } else {
-        uint32_t windowstart = xtensa_replicate_windowstart(env) >>
-            (env->sregs[WINDOW_BASE] + 1);
 
-        if (windowstart & ((1 << callinc) - 1)) {
-            HELPER(window_check)(env, pc, callinc);
-        }
-        env->regs[(callinc << 2) | (s & 3)] = env->regs[s] - (imm << 3);
-        rotate_window(env, callinc);
-        env->sregs[WINDOW_START] |=
-            windowstart_bit(env->sregs[WINDOW_BASE], env);
-    }
+    env->regs[(callinc << 2) | (s & 3)] = env->regs[s] - imm;
+    xtensa_rotate_window(env, callinc);
+    env->sregs[WINDOW_START] |=
+        windowstart_bit(env->sregs[WINDOW_BASE], env);
 }
 
 void HELPER(window_check)(CPUXtensaState *env, uint32_t pc, uint32_t w)
@@ -265,7 +269,7 @@ void HELPER(window_check)(CPUXtensaState *env, uint32_t pc, uint32_t w)
 
     assert(n <= w);
 
-    rotate_window(env, n);
+    xtensa_rotate_window(env, n);
     env->sregs[PS] = (env->sregs[PS] & ~PS_OWB) |
         (windowbase << PS_OWB_SHIFT) | PS_EXCM;
     env->sregs[EPC1] = env->pc = pc;
@@ -283,13 +287,12 @@ void HELPER(window_check)(CPUXtensaState *env, uint32_t pc, uint32_t w)
     }
 }
 
-uint32_t HELPER(retw)(CPUXtensaState *env, uint32_t pc)
+void HELPER(test_ill_retw)(CPUXtensaState *env, uint32_t pc)
 {
     int n = (env->regs[0] >> 30) & 0x3;
     int m = 0;
     uint32_t windowbase = windowbase_bound(env->sregs[WINDOW_BASE], env);
     uint32_t windowstart = env->sregs[WINDOW_START];
-    uint32_t ret_pc = 0;
 
     if (windowstart & windowstart_bit(windowbase - 1, env)) {
         m = 1;
@@ -299,46 +302,62 @@ uint32_t HELPER(retw)(CPUXtensaState *env, uint32_t pc)
         m = 3;
     }
 
-    if (n == 0 || (m != 0 && m != n) ||
-            ((env->sregs[PS] & (PS_WOE | PS_EXCM)) ^ PS_WOE) != 0) {
+    if (n == 0 || (m != 0 && m != n)) {
         qemu_log_mask(LOG_GUEST_ERROR, "Illegal retw instruction(pc = %08x), "
                       "PS = %08x, m = %d, n = %d\n",
                       pc, env->sregs[PS], m, n);
         HELPER(exception_cause)(env, pc, ILLEGAL_INSTRUCTION_CAUSE);
-    } else {
-        int owb = windowbase;
+    }
+}
 
-        ret_pc = (pc & 0xc0000000) | (env->regs[0] & 0x3fffffff);
+void HELPER(test_underflow_retw)(CPUXtensaState *env, uint32_t pc)
+{
+    int n = (env->regs[0] >> 30) & 0x3;
 
-        rotate_window(env, -n);
-        if (windowstart & windowstart_bit(env->sregs[WINDOW_BASE], env)) {
-            env->sregs[WINDOW_START] &= ~windowstart_bit(owb, env);
-        } else {
-            /* window underflow */
-            env->sregs[PS] = (env->sregs[PS] & ~PS_OWB) |
-                (windowbase << PS_OWB_SHIFT) | PS_EXCM;
-            env->sregs[EPC1] = env->pc = pc;
+    if (!(env->sregs[WINDOW_START] &
+          windowstart_bit(env->sregs[WINDOW_BASE] - n, env))) {
+        uint32_t windowbase = windowbase_bound(env->sregs[WINDOW_BASE], env);
 
-            if (n == 1) {
-                HELPER(exception)(env, EXC_WINDOW_UNDERFLOW4);
-            } else if (n == 2) {
-                HELPER(exception)(env, EXC_WINDOW_UNDERFLOW8);
-            } else if (n == 3) {
-                HELPER(exception)(env, EXC_WINDOW_UNDERFLOW12);
-            }
+        xtensa_rotate_window(env, -n);
+        /* window underflow */
+        env->sregs[PS] = (env->sregs[PS] & ~PS_OWB) |
+            (windowbase << PS_OWB_SHIFT) | PS_EXCM;
+        env->sregs[EPC1] = env->pc = pc;
+
+        if (n == 1) {
+            HELPER(exception)(env, EXC_WINDOW_UNDERFLOW4);
+        } else if (n == 2) {
+            HELPER(exception)(env, EXC_WINDOW_UNDERFLOW8);
+        } else if (n == 3) {
+            HELPER(exception)(env, EXC_WINDOW_UNDERFLOW12);
         }
     }
+}
+
+uint32_t HELPER(retw)(CPUXtensaState *env, uint32_t pc)
+{
+    int n = (env->regs[0] >> 30) & 0x3;
+    uint32_t windowbase = windowbase_bound(env->sregs[WINDOW_BASE], env);
+    uint32_t ret_pc = (pc & 0xc0000000) | (env->regs[0] & 0x3fffffff);
+
+    xtensa_rotate_window(env, -n);
+    env->sregs[WINDOW_START] &= ~windowstart_bit(windowbase, env);
     return ret_pc;
 }
 
 void HELPER(rotw)(CPUXtensaState *env, uint32_t imm4)
 {
-    rotate_window(env, imm4);
+    xtensa_rotate_window(env, imm4);
+}
+
+void xtensa_restore_owb(CPUXtensaState *env)
+{
+    xtensa_rotate_window_abs(env, (env->sregs[PS] & PS_OWB) >> PS_OWB_SHIFT);
 }
 
 void HELPER(restore_owb)(CPUXtensaState *env)
 {
-    rotate_window_abs(env, (env->sregs[PS] & PS_OWB) >> PS_OWB_SHIFT);
+    xtensa_restore_owb(env);
 }
 
 void HELPER(movsp)(CPUXtensaState *env, uint32_t pc)
@@ -374,6 +393,8 @@ void HELPER(dump_state)(CPUXtensaState *env)
 
     cpu_dump_state(CPU(cpu), stderr, fprintf, 0);
 }
+
+#ifndef CONFIG_USER_ONLY
 
 void HELPER(waiti)(CPUXtensaState *env, uint32_t pc, uint32_t intlevel)
 {
@@ -438,7 +459,11 @@ void HELPER(check_interrupts)(CPUXtensaState *env)
 
 void HELPER(itlb_hit_test)(CPUXtensaState *env, uint32_t vaddr)
 {
-    get_page_addr_code(env, vaddr);
+    /*
+     * Attempt the memory load; we don't care about the result but
+     * only the side-effects (ie any MMU or other exception)
+     */
+    cpu_ldub_code_ra(env, vaddr, GETPC());
 }
 
 /*!
@@ -887,6 +912,7 @@ void HELPER(wsr_dbreakc)(CPUXtensaState *env, uint32_t i, uint32_t v)
     }
     env->sregs[DBREAKC + i] = v;
 }
+#endif
 
 void HELPER(wur_fcr)(CPUXtensaState *env, uint32_t v)
 {
@@ -1024,12 +1050,18 @@ void HELPER(ule_s)(CPUXtensaState *env, uint32_t br, float32 a, float32 b)
 
 uint32_t HELPER(rer)(CPUXtensaState *env, uint32_t addr)
 {
+#ifndef CONFIG_USER_ONLY
     return address_space_ldl(env->address_space_er, addr,
                              MEMTXATTRS_UNSPECIFIED, NULL);
+#else
+    return 0;
+#endif
 }
 
 void HELPER(wer)(CPUXtensaState *env, uint32_t data, uint32_t addr)
 {
+#ifndef CONFIG_USER_ONLY
     address_space_stl(env->address_space_er, addr, data,
                       MEMTXATTRS_UNSPECIFIED, NULL);
+#endif
 }

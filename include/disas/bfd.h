@@ -387,6 +387,7 @@ typedef int (*disassembler_ftype) (bfd_vma, disassemble_info *);
 int print_insn_tci(bfd_vma, disassemble_info*);
 int print_insn_big_mips         (bfd_vma, disassemble_info*);
 int print_insn_little_mips      (bfd_vma, disassemble_info*);
+int print_insn_nanomips         (bfd_vma, disassemble_info*);
 int print_insn_i386             (bfd_vma, disassemble_info*);
 int print_insn_m68k             (bfd_vma, disassemble_info*);
 int print_insn_z8001            (bfd_vma, disassemble_info*);
@@ -428,6 +429,9 @@ int print_insn_ia64             (bfd_vma, disassemble_info*);
 int print_insn_lm32             (bfd_vma, disassemble_info*);
 int print_insn_big_nios2        (bfd_vma, disassemble_info*);
 int print_insn_little_nios2     (bfd_vma, disassemble_info*);
+int print_insn_xtensa           (bfd_vma, disassemble_info*);
+int print_insn_riscv32          (bfd_vma, disassemble_info*);
+int print_insn_riscv64          (bfd_vma, disassemble_info*);
 
 #if 0
 /* Fetch the disassembler for a given BFD, if that support is available.  */

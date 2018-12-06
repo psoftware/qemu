@@ -2,6 +2,8 @@
  * PPC4xx I2C controller emulation
  *
  * Copyright (c) 2007 Jocelyn Mayer
+ * Copyright (c) 2012 François Revol
+ * Copyright (c) 2016-2018 BALATON Zoltan
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,6 +31,9 @@
 #include "hw/sysbus.h"
 #include "hw/i2c/i2c.h"
 
+/* from hw/i2c/bitbang_i2c.h */
+typedef struct bitbang_i2c_interface bitbang_i2c_interface;
+
 #define TYPE_PPC4xx_I2C "ppc4xx-i2c"
 #define PPC4xx_I2C(obj) OBJECT_CHECK(PPC4xxI2CState, (obj), TYPE_PPC4xx_I2C)
 
@@ -40,14 +45,15 @@ typedef struct PPC4xxI2CState {
     I2CBus *bus;
     qemu_irq irq;
     MemoryRegion iomem;
-    uint8_t mdata;
+    bitbang_i2c_interface *bitbang;
+    int mdidx;
+    uint8_t mdata[4];
     uint8_t lmadr;
     uint8_t hmadr;
     uint8_t cntl;
     uint8_t mdcntl;
     uint8_t sts;
     uint8_t extsts;
-    uint8_t sdata;
     uint8_t lsadr;
     uint8_t hsadr;
     uint8_t clkdiv;

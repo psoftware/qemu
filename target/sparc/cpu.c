@@ -647,15 +647,18 @@ void sparc_cpu_dump_state(CPUState *cs, FILE *f, fprintf_function cpu_fprintf,
         }
     }
 
-    for (i = 0; i < TARGET_DPREGS; i++) {
-        if ((i & 3) == 0) {
-            cpu_fprintf(f, "%%f%02d: ", i * 2);
-        }
-        cpu_fprintf(f, " %016" PRIx64, env->fpr[i].ll);
-        if ((i & 3) == 3) {
-            cpu_fprintf(f, "\n");
+    if (flags & CPU_DUMP_FPU) {
+        for (i = 0; i < TARGET_DPREGS; i++) {
+            if ((i & 3) == 0) {
+                cpu_fprintf(f, "%%f%02d: ", i * 2);
+            }
+            cpu_fprintf(f, " %016" PRIx64, env->fpr[i].ll);
+            if ((i & 3) == 3) {
+                cpu_fprintf(f, "\n");
+            }
         }
     }
+
 #ifdef TARGET_SPARC64
     cpu_fprintf(f, "pstate: %08x ccr: %02x (icc: ", env->pstate,
                 (unsigned)cpu_get_ccr(env));
@@ -858,8 +861,8 @@ static void sparc_cpu_class_init(ObjectClass *oc, void *data)
     CPUClass *cc = CPU_CLASS(oc);
     DeviceClass *dc = DEVICE_CLASS(oc);
 
-    scc->parent_realize = dc->realize;
-    dc->realize = sparc_cpu_realizefn;
+    device_class_set_parent_realize(dc, sparc_cpu_realizefn,
+                                    &scc->parent_realize);
     dc->props = sparc_cpu_properties;
 
     scc->parent_reset = cc->reset;

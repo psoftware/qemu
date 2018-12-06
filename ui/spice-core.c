@@ -21,7 +21,6 @@
 #include <netdb.h>
 #include "sysemu/sysemu.h"
 
-#include "qemu-common.h"
 #include "ui/qemu-spice.h"
 #include "qemu/error-report.h"
 #include "qemu/thread.h"
@@ -29,15 +28,14 @@
 #include "qemu/queue.h"
 #include "qemu-x509.h"
 #include "qemu/sockets.h"
-#include "qmp-commands.h"
-#include "qapi/qmp/qbool.h"
-#include "qapi/qmp/qstring.h"
-#include "qapi/qmp/qjson.h"
+#include "qapi/error.h"
+#include "qapi/qapi-commands-ui.h"
+#include "qapi/qapi-events-ui.h"
 #include "qemu/notify.h"
+#include "qemu/option.h"
 #include "migration/misc.h"
 #include "hw/hw.h"
 #include "ui/spice-display.h"
-#include "qapi-event.h"
 
 /* core bits */
 
@@ -55,9 +53,7 @@ static QemuThread me;
 
 struct SpiceTimer {
     QEMUTimer *timer;
-    QTAILQ_ENTRY(SpiceTimer) next;
 };
-static QTAILQ_HEAD(, SpiceTimer) timers = QTAILQ_HEAD_INITIALIZER(timers);
 
 static SpiceTimer *timer_add(SpiceTimerFunc func, void *opaque)
 {
@@ -65,7 +61,6 @@ static SpiceTimer *timer_add(SpiceTimerFunc func, void *opaque)
 
     timer = g_malloc0(sizeof(*timer));
     timer->timer = timer_new_ms(QEMU_CLOCK_REALTIME, func, opaque);
-    QTAILQ_INSERT_TAIL(&timers, timer, next);
     return timer;
 }
 
@@ -83,18 +78,14 @@ static void timer_remove(SpiceTimer *timer)
 {
     timer_del(timer->timer);
     timer_free(timer->timer);
-    QTAILQ_REMOVE(&timers, timer, next);
     g_free(timer);
 }
 
 struct SpiceWatch {
     int fd;
-    int event_mask;
     SpiceWatchFunc func;
     void *opaque;
-    QTAILQ_ENTRY(SpiceWatch) next;
 };
-static QTAILQ_HEAD(, SpiceWatch) watches = QTAILQ_HEAD_INITIALIZER(watches);
 
 static void watch_read(void *opaque)
 {
@@ -113,11 +104,10 @@ static void watch_update_mask(SpiceWatch *watch, int event_mask)
     IOHandler *on_read = NULL;
     IOHandler *on_write = NULL;
 
-    watch->event_mask = event_mask;
-    if (watch->event_mask & SPICE_WATCH_EVENT_READ) {
+    if (event_mask & SPICE_WATCH_EVENT_READ) {
         on_read = watch_read;
     }
-    if (watch->event_mask & SPICE_WATCH_EVENT_WRITE) {
+    if (event_mask & SPICE_WATCH_EVENT_WRITE) {
         on_write = watch_write;
     }
     qemu_set_fd_handler(watch->fd, on_read, on_write, watch);
@@ -131,7 +121,6 @@ static SpiceWatch *watch_add(int fd, int event_mask, SpiceWatchFunc func, void *
     watch->fd     = fd;
     watch->func   = func;
     watch->opaque = opaque;
-    QTAILQ_INSERT_TAIL(&watches, watch, next);
 
     watch_update_mask(watch, event_mask);
     return watch;
@@ -140,7 +129,6 @@ static SpiceWatch *watch_add(int fd, int event_mask, SpiceWatchFunc func, void *
 static void watch_remove(SpiceWatch *watch)
 {
     qemu_set_fd_handler(watch->fd, NULL, NULL, NULL);
-    QTAILQ_REMOVE(&watches, watch, next);
     g_free(watch);
 }
 
@@ -230,8 +218,7 @@ static void channel_event(int event, SpiceChannelEventInfo *info)
     switch (event) {
     case SPICE_CHANNEL_EVENT_CONNECTED:
         qapi_event_send_spice_connected(qapi_SpiceServerInfo_base(server),
-                                        qapi_SpiceChannel_base(client),
-                                        &error_abort);
+                                        qapi_SpiceChannel_base(client));
         break;
     case SPICE_CHANNEL_EVENT_INITIALIZED:
         if (auth) {
@@ -240,13 +227,12 @@ static void channel_event(int event, SpiceChannelEventInfo *info)
         }
         add_channel_info(client, info);
         channel_list_add(info);
-        qapi_event_send_spice_initialized(server, client, &error_abort);
+        qapi_event_send_spice_initialized(server, client);
         break;
     case SPICE_CHANNEL_EVENT_DISCONNECTED:
         channel_list_del(info);
         qapi_event_send_spice_disconnected(qapi_SpiceServerInfo_base(server),
-                                           qapi_SpiceChannel_base(client),
-                                           &error_abort);
+                                           qapi_SpiceChannel_base(client));
         break;
     default:
         break;
@@ -299,7 +285,7 @@ static void migrate_connect_complete_cb(SpiceMigrateInstance *sin)
 
 static void migrate_end_complete_cb(SpiceMigrateInstance *sin)
 {
-    qapi_event_send_spice_migrate_completed(&error_abort);
+    qapi_event_send_spice_migrate_completed();
     spice_migration_completed = true;
 }
 
@@ -611,9 +597,9 @@ static int add_channel(void *opaque, const char *name, const char *value,
     if (strcmp(name, "tls-channel") == 0) {
         int *tls_port = opaque;
         if (!*tls_port) {
-            error_report("spice: tried to setup tls-channel"
-                         " without specifying a TLS port");
-            exit(1);
+            error_setg(errp, "spice: tried to setup tls-channel"
+                       " without specifying a TLS port");
+            return -1;
         }
         security = SPICE_CHANNEL_SECURITY_SSL;
     }
@@ -629,8 +615,9 @@ static int add_channel(void *opaque, const char *name, const char *value,
         rc = spice_server_set_channel_security(spice_server, value, security);
     }
     if (rc != 0) {
-        error_report("spice: failed to set channel security for %s", value);
-        exit(1);
+        error_setg(errp, "spice: failed to set channel security for %s",
+                   value);
+        return -1;
     }
     return 0;
 }
@@ -801,7 +788,7 @@ void qemu_spice_init(void)
     spice_server_set_playback_compression
         (spice_server, qemu_opt_get_bool(opts, "playback-compression", 1));
 
-    qemu_opt_foreach(opts, add_channel, &tls_port, NULL);
+    qemu_opt_foreach(opts, add_channel, &tls_port, &error_fatal);
 
     spice_server_set_name(spice_server, qemu_name);
     spice_server_set_uuid(spice_server, (unsigned char *)&qemu_uuid);
@@ -841,7 +828,8 @@ void qemu_spice_init(void)
                          "incompatible with -spice port/tls-port");
             exit(1);
         }
-        if (egl_rendernode_init(qemu_opt_get(opts, "rendernode")) != 0) {
+        if (egl_rendernode_init(qemu_opt_get(opts, "rendernode"),
+                                DISPLAYGL_MODE_ON) != 0) {
             error_report("Failed to initialize EGL render node for SPICE GL");
             exit(1);
         }

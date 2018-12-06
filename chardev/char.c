@@ -21,6 +21,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+
 #include "qemu/osdep.h"
 #include "qemu/cutils.h"
 #include "monitor/monitor.h"
@@ -28,10 +29,12 @@
 #include "qemu/config-file.h"
 #include "qemu/error-report.h"
 #include "chardev/char.h"
-#include "qmp-commands.h"
-#include "qapi-visit.h"
+#include "qapi/error.h"
+#include "qapi/qapi-commands-char.h"
+#include "qapi/qmp/qerror.h"
 #include "sysemu/replay.h"
 #include "qemu/help_option.h"
+#include "qemu/option.h"
 
 #include "chardev/char-mux.h"
 
@@ -43,10 +46,19 @@ static Object *get_chardevs_root(void)
     return container_get(object_get_root(), "/chardevs");
 }
 
-void qemu_chr_be_event(Chardev *s, int event)
+static void chr_be_event(Chardev *s, int event)
 {
     CharBackend *be = s->be;
 
+    if (!be || !be->chr_event) {
+        return;
+    }
+
+    be->chr_event(be->opaque, event);
+}
+
+void qemu_chr_be_event(Chardev *s, int event)
+{
     /* Keep track if the char device is open */
     switch (event) {
         case CHR_EVENT_OPENED:
@@ -57,11 +69,7 @@ void qemu_chr_be_event(Chardev *s, int event)
             break;
     }
 
-    if (!be || !be->chr_event) {
-        return;
-    }
-
-    be->chr_event(be->opaque, event);
+    CHARDEV_GET_CLASS(s)->chr_be_event(s, event);
 }
 
 /* Not reporting errors from writing to logfile, as logs are
@@ -244,6 +252,7 @@ static void char_class_init(ObjectClass *oc, void *data)
     ChardevClass *cc = CHARDEV_CLASS(oc);
 
     cc->chr_write = null_chr_write;
+    cc->chr_be_event = chr_be_event;
 }
 
 static void char_finalize(Object *obj)
@@ -272,40 +281,31 @@ static const TypeInfo char_type_info = {
     .class_init = char_class_init,
 };
 
-/**
- * Called after processing of default and command-line-specified
- * chardevs to deliver CHR_EVENT_OPENED events to any FEs attached
- * to a mux chardev. This is done here to ensure that
- * output/prompts/banners are only displayed for the FE that has
- * focus when initial command-line processing/machine init is
- * completed.
- *
- * After this point, any new FE attached to any new or existing
- * mux will receive CHR_EVENT_OPENED notifications for the BE
- * immediately.
- */
-static int open_muxes(Object *child, void *opaque)
+static int chardev_machine_done_notify_one(Object *child, void *opaque)
 {
-    if (CHARDEV_IS_MUX(child)) {
-        /* send OPENED to all already-attached FEs */
-        mux_chr_send_all_event(CHARDEV(child), CHR_EVENT_OPENED);
-        /* mark mux as OPENED so any new FEs will immediately receive
-         * OPENED event
-         */
-        qemu_chr_be_event(CHARDEV(child), CHR_EVENT_OPENED);
+    Chardev *chr = (Chardev *)child;
+    ChardevClass *class = CHARDEV_GET_CLASS(chr);
+
+    if (class->chr_machine_done) {
+        return class->chr_machine_done(chr);
     }
 
     return 0;
 }
 
-static void muxes_realize_done(Notifier *notifier, void *unused)
+static void chardev_machine_done_hook(Notifier *notifier, void *unused)
 {
-    muxes_realized = true;
-    object_child_foreach(get_chardevs_root(), open_muxes, NULL);
+    int ret = object_child_foreach(get_chardevs_root(),
+                                   chardev_machine_done_notify_one, NULL);
+
+    if (ret) {
+        error_report("Failed to call chardev machine_done hooks");
+        exit(1);
+    }
 }
 
-static Notifier muxes_realize_notify = {
-    .notify = muxes_realize_done,
+static Notifier chardev_machine_done_notify = {
+    .notify = chardev_machine_done_hook,
 };
 
 static bool qemu_chr_is_busy(Chardev *s)
@@ -329,7 +329,8 @@ int qemu_chr_wait_connected(Chardev *chr, Error **errp)
     return 0;
 }
 
-QemuOpts *qemu_chr_parse_compat(const char *label, const char *filename)
+QemuOpts *qemu_chr_parse_compat(const char *label, const char *filename,
+                                bool permit_mux_mon)
 {
     char host[65], port[33], width[8], height[8];
     int pos;
@@ -344,6 +345,10 @@ QemuOpts *qemu_chr_parse_compat(const char *label, const char *filename)
     }
 
     if (strstart(filename, "mon:", &p)) {
+        if (!permit_mux_mon) {
+            error_report("mon: isn't supported in this context");
+            return NULL;
+        }
         filename = p;
         qemu_opt_set(opts, "mux", "on", &error_abort);
         if (strcmp(filename, "stdio") == 0) {
@@ -404,7 +409,8 @@ QemuOpts *qemu_chr_parse_compat(const char *label, const char *filename)
     }
     if (strstart(filename, "tcp:", &p) ||
         strstart(filename, "telnet:", &p) ||
-        strstart(filename, "tn3270:", &p)) {
+        strstart(filename, "tn3270:", &p) ||
+        strstart(filename, "websocket:", &p)) {
         if (sscanf(p, "%64[^:]:%32[^,]%n", host, port, &pos) < 2) {
             host[0] = 0;
             if (sscanf(p, ":%32[^,]%n", port, &pos) < 1)
@@ -424,6 +430,8 @@ QemuOpts *qemu_chr_parse_compat(const char *label, const char *filename)
             qemu_opt_set(opts, "telnet", "on", &error_abort);
         } else if (strstart(filename, "tn3270:", &p)) {
             qemu_opt_set(opts, "tn3270", "on", &error_abort);
+        } else if (strstart(filename, "websocket:", &p)) {
+            qemu_opt_set(opts, "websocket", "on", &error_abort);
         }
         return opts;
     }
@@ -564,7 +572,7 @@ help_string_append(const char *name, void *opaque)
 {
     GString *str = opaque;
 
-    g_string_append_printf(str, "\n%s", name);
+    g_string_append_printf(str, "\n  %s", name);
 }
 
 static const char *chardev_alias_translate(const char *name)
@@ -629,7 +637,7 @@ Chardev *qemu_chr_new_from_opts(QemuOpts *opts, Error **errp)
 
         chardev_name_foreach(help_string_append, str);
 
-        error_report("Available chardev backend types: %s", str->str);
+        error_printf("Available chardev backend types: %s\n", str->str);
         g_string_free(str, true);
         return NULL;
     }
@@ -683,7 +691,8 @@ out:
     return chr;
 }
 
-Chardev *qemu_chr_new_noreplay(const char *label, const char *filename)
+Chardev *qemu_chr_new_noreplay(const char *label, const char *filename,
+                               bool permit_mux_mon)
 {
     const char *p;
     Chardev *chr;
@@ -694,25 +703,32 @@ Chardev *qemu_chr_new_noreplay(const char *label, const char *filename)
         return qemu_chr_find(p);
     }
 
-    opts = qemu_chr_parse_compat(label, filename);
+    opts = qemu_chr_parse_compat(label, filename, permit_mux_mon);
     if (!opts)
         return NULL;
 
     chr = qemu_chr_new_from_opts(opts, &err);
-    if (err) {
+    if (!chr) {
         error_report_err(err);
+        goto out;
     }
-    if (chr && qemu_opt_get_bool(opts, "mux", 0)) {
+
+    if (qemu_opt_get_bool(opts, "mux", 0)) {
+        assert(permit_mux_mon);
         monitor_init(chr, MONITOR_USE_READLINE);
     }
+
+out:
     qemu_opts_del(opts);
     return chr;
 }
 
-Chardev *qemu_chr_new(const char *label, const char *filename)
+static Chardev *qemu_chr_new_permit_mux_mon(const char *label,
+                                          const char *filename,
+                                          bool permit_mux_mon)
 {
     Chardev *chr;
-    chr = qemu_chr_new_noreplay(label, filename);
+    chr = qemu_chr_new_noreplay(label, filename, permit_mux_mon);
     if (chr) {
         if (replay_mode != REPLAY_MODE_NONE) {
             qemu_chr_set_feature(chr, QEMU_CHAR_FEATURE_REPLAY);
@@ -724,6 +740,16 @@ Chardev *qemu_chr_new(const char *label, const char *filename)
         replay_register_char_driver(chr);
     }
     return chr;
+}
+
+Chardev *qemu_chr_new(const char *label, const char *filename)
+{
+    return qemu_chr_new_permit_mux_mon(label, filename, false);
+}
+
+Chardev *qemu_chr_new_mux_mon(const char *label, const char *filename)
+{
+    return qemu_chr_new_permit_mux_mon(label, filename, true);
 }
 
 static int qmp_query_chardev_foreach(Object *obj, void *data)
@@ -799,6 +825,9 @@ QemuOptsList qemu_chardev_opts = {
             .name = "port",
             .type = QEMU_OPT_STRING,
         },{
+            .name = "fd",
+            .type = QEMU_OPT_STRING,
+        },{
             .name = "localaddr",
             .type = QEMU_OPT_STRING,
         },{
@@ -834,6 +863,9 @@ QemuOptsList qemu_chardev_opts = {
         },{
             .name = "tls-creds",
             .type = QEMU_OPT_STRING,
+        },{
+            .name = "websocket",
+            .type = QEMU_OPT_BOOL,
         },{
             .name = "width",
             .type = QEMU_OPT_NUMBER,
@@ -1078,6 +1110,24 @@ void qmp_chardev_send_break(const char *id, Error **errp)
     qemu_chr_be_event(chr, CHR_EVENT_BREAK);
 }
 
+/*
+ * Add a timeout callback for the chardev (in milliseconds), return
+ * the GSource object created. Please use this to add timeout hook for
+ * chardev instead of g_timeout_add() and g_timeout_add_seconds(), to
+ * make sure the gcontext that the task bound to is correct.
+ */
+GSource *qemu_chr_timeout_add_ms(Chardev *chr, guint ms,
+                                 GSourceFunc func, void *private)
+{
+    GSource *source = g_timeout_source_new(ms);
+
+    assert(func);
+    g_source_set_callback(source, func, private, NULL);
+    g_source_attach(source, chr->gcontext);
+
+    return source;
+}
+
 void qemu_chr_cleanup(void)
 {
     object_unparent(get_chardevs_root());
@@ -1091,7 +1141,7 @@ static void register_types(void)
      * as part of realize functions like serial_isa_realizefn when -nographic
      * is specified
      */
-    qemu_add_machine_init_done_notifier(&muxes_realize_notify);
+    qemu_add_machine_init_done_notifier(&chardev_machine_done_notify);
 }
 
 type_init(register_types);

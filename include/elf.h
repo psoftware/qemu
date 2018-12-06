@@ -28,11 +28,17 @@ typedef int64_t  Elf64_Sxword;
 #define PT_PHDR    6
 #define PT_LOPROC  0x70000000
 #define PT_HIPROC  0x7fffffff
-#define PT_MIPS_REGINFO		0x70000000
-#define PT_MIPS_OPTIONS		0x70000001
+
+#define PT_MIPS_REGINFO   0x70000000
+#define PT_MIPS_RTPROC    0x70000001
+#define PT_MIPS_OPTIONS   0x70000002
+#define PT_MIPS_ABIFLAGS  0x70000003
 
 /* Flags in the e_flags field of the header */
 /* MIPS architecture level. */
+#define EF_MIPS_ARCH            0xf0000000
+
+/* Legal values for MIPS architecture level.  */
 #define EF_MIPS_ARCH_1		0x00000000	/* -mips1 code.  */
 #define EF_MIPS_ARCH_2		0x10000000	/* -mips2 code.  */
 #define EF_MIPS_ARCH_3		0x20000000	/* -mips3 code.  */
@@ -40,6 +46,10 @@ typedef int64_t  Elf64_Sxword;
 #define EF_MIPS_ARCH_5		0x40000000	/* -mips5 code.  */
 #define EF_MIPS_ARCH_32		0x50000000	/* MIPS32 code.  */
 #define EF_MIPS_ARCH_64		0x60000000	/* MIPS64 code.  */
+#define EF_MIPS_ARCH_32R2       0x70000000      /* MIPS32r2 code.  */
+#define EF_MIPS_ARCH_64R2       0x80000000      /* MIPS64r2 code.  */
+#define EF_MIPS_ARCH_32R6       0x90000000      /* MIPS32r6 code.  */
+#define EF_MIPS_ARCH_64R6       0xa0000000      /* MIPS64r6 code.  */
 
 /* The ABI of a file. */
 #define EF_MIPS_ABI_O32		0x00001000	/* O32 ABI.  */
@@ -54,7 +64,55 @@ typedef int64_t  Elf64_Sxword;
 #define EF_MIPS_ABI		0x0000f000
 #define EF_MIPS_FP64      0x00000200
 #define EF_MIPS_NAN2008   0x00000400
-#define EF_MIPS_ARCH      0xf0000000
+
+/* MIPS machine variant */
+#define EF_MIPS_MACH_NONE     0x00000000  /* A standard MIPS implementation  */
+#define EF_MIPS_MACH_3900     0x00810000  /* Toshiba R3900                   */
+#define EF_MIPS_MACH_4010     0x00820000  /* LSI R4010                       */
+#define EF_MIPS_MACH_4100     0x00830000  /* NEC VR4100                      */
+#define EF_MIPS_MACH_4650     0x00850000  /* MIPS R4650                      */
+#define EF_MIPS_MACH_4120     0x00870000  /* NEC VR4120                      */
+#define EF_MIPS_MACH_4111     0x00880000  /* NEC VR4111/VR4181               */
+#define EF_MIPS_MACH_SB1      0x008a0000  /* Broadcom SB-1                   */
+#define EF_MIPS_MACH_OCTEON   0x008b0000  /* Cavium Networks Octeon          */
+#define EF_MIPS_MACH_XLR      0x008c0000  /* RMI Xlr                         */
+#define EF_MIPS_MACH_OCTEON2  0x008d0000  /* Cavium Networks Octeon2         */
+#define EF_MIPS_MACH_OCTEON3  0x008e0000  /* Cavium Networks Octeon3         */
+#define EF_MIPS_MACH_5400     0x00910000  /* NEC VR5400                      */
+#define EF_MIPS_MACH_5900     0x00920000  /* Toshiba/Sony R5900              */
+#define EF_MIPS_MACH_5500     0x00980000  /* NEC VR5500                      */
+#define EF_MIPS_MACH_9000     0x00990000  /* PMC-Sierra RM9000               */
+#define EF_MIPS_MACH_LS2E     0x00a00000  /* ST Microelectronics Loongson 2E */
+#define EF_MIPS_MACH_LS2F     0x00a10000  /* ST Microelectronics Loongson 2F */
+#define EF_MIPS_MACH_LS3A     0x00a20000  /* ST Microelectronics Loongson 3A */
+#define EF_MIPS_MACH          0x00ff0000  /* EF_MIPS_MACH_xxx selection mask */
+
+#define MIPS_ABI_FP_UNKNOWN   (-1)        /* Unknown FP ABI (internal)       */
+
+#define MIPS_ABI_FP_ANY       0x0         /* FP ABI doesn't matter           */
+#define MIPS_ABI_FP_DOUBLE    0x1         /* -mdouble-float                  */
+#define MIPS_ABI_FP_SINGLE    0x2         /* -msingle-float                  */
+#define MIPS_ABI_FP_SOFT      0x3         /* -msoft-float                    */
+#define MIPS_ABI_FP_OLD_64    0x4         /* -mips32r2 -mfp64                */
+#define MIPS_ABI_FP_XX        0x5         /* -mfpxx                          */
+#define MIPS_ABI_FP_64        0x6         /* -mips32r2 -mfp64                */
+#define MIPS_ABI_FP_64A       0x7         /* -mips32r2 -mfp64 -mno-odd-spreg */
+
+typedef struct mips_elf_abiflags_v0 {
+  uint16_t version;           /* Version of flags structure                  */
+  uint8_t isa_level;          /* The level of the ISA: 1-5, 32, 64           */
+  uint8_t isa_rev;            /* The revision of ISA:                        */
+                              /*   - 0 for MIPS V and below,                 */
+                              /*   - 1-n otherwise.                          */
+  uint8_t gpr_size;           /* The size of general purpose registers       */
+  uint8_t cpr1_size;          /* The size of co-processor 1 registers        */
+  uint8_t cpr2_size;          /* The size of co-processor 2 registers        */
+  uint8_t fp_abi;             /* The floating-point ABI                      */
+  uint32_t isa_ext;           /* Mask of processor-specific extensions       */
+  uint32_t ases;              /* Mask of ASEs used                           */
+  uint32_t flags1;            /* Mask of general flags                       */
+  uint32_t flags2;
+} Mips_elf_abiflags_v0;
 
 /* These constants define the different elf file types */
 #define ET_NONE   0
@@ -111,6 +169,10 @@ typedef int64_t  Elf64_Sxword;
 #define EM_OPENRISC     92        /* OpenCores OpenRISC */
 
 #define EM_UNICORE32    110     /* UniCore32 */
+
+#define EM_RISCV        243     /* RISC-V */
+
+#define EM_NANOMIPS     249     /* Wave Computing nanoMIPS */
 
 /*
  * This is an interim value that we will use until the committee comes
@@ -536,6 +598,34 @@ typedef struct {
 #define HWCAP_S390_ETF3EH       256
 #define HWCAP_S390_HIGH_GPRS    512
 #define HWCAP_S390_TE           1024
+
+/* M68K specific definitions. */
+/* We use the top 24 bits to encode information about the
+   architecture variant.  */
+#define EF_M68K_CPU32    0x00810000
+#define EF_M68K_M68000   0x01000000
+#define EF_M68K_CFV4E    0x00008000
+#define EF_M68K_FIDO     0x02000000
+#define EF_M68K_ARCH_MASK                                               \
+  (EF_M68K_M68000 | EF_M68K_CPU32 | EF_M68K_CFV4E | EF_M68K_FIDO)
+
+/* We use the bottom 8 bits to encode information about the
+   coldfire variant.  If we use any of these bits, the top 24 bits are
+   either 0 or EF_M68K_CFV4E.  */
+#define EF_M68K_CF_ISA_MASK     0x0F  /* Which ISA */
+#define EF_M68K_CF_ISA_A_NODIV  0x01  /* ISA A except for div */
+#define EF_M68K_CF_ISA_A        0x02
+#define EF_M68K_CF_ISA_A_PLUS   0x03
+#define EF_M68K_CF_ISA_B_NOUSP  0x04  /* ISA_B except for USP */
+#define EF_M68K_CF_ISA_B        0x05
+#define EF_M68K_CF_ISA_C        0x06
+#define EF_M68K_CF_ISA_C_NODIV  0x07  /* ISA C except for div */
+#define EF_M68K_CF_MAC_MASK     0x30
+#define EF_M68K_CF_MAC          0x10  /* MAC */
+#define EF_M68K_CF_EMAC         0x20  /* EMAC */
+#define EF_M68K_CF_EMAC_B       0x30  /* EMAC_B */
+#define EF_M68K_CF_FLOAT        0x40  /* Has float insns */
+#define EF_M68K_CF_MASK         0xFF
 
 /*
  * 68k ELF relocation types
@@ -1446,6 +1536,7 @@ typedef struct elf64_shdr {
 #define ELFOSABI_TRU64          10      /* Compaq TRU64 UNIX.  */
 #define ELFOSABI_MODESTO        11      /* Novell Modesto.  */
 #define ELFOSABI_OPENBSD        12      /* OpenBSD.  */
+#define ELFOSABI_ARM_FDPIC      65      /* ARM FDPIC */
 #define ELFOSABI_ARM            97      /* ARM */
 #define ELFOSABI_STANDALONE     255     /* Standalone (embedded) application */
 

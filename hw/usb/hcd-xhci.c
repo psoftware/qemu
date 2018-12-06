@@ -1954,7 +1954,12 @@ static void xhci_kick_epctx(XHCIEPContext *epctx, unsigned int streamid)
         for (i = 0; i < length; i++) {
             TRBType type;
             type = xhci_ring_fetch(xhci, ring, &xfer->trbs[i], NULL);
-            assert(type);
+            if (!type) {
+                xhci_die(xhci);
+                xhci_ep_free_xfer(xfer);
+                epctx->kick_active--;
+                return;
+            }
         }
         xfer->streamid = streamid;
 
@@ -3416,7 +3421,7 @@ static void usb_xhci_realize(struct PCIDevice *dev, Error **errp)
                      PCI_BASE_ADDRESS_SPACE_MEMORY|PCI_BASE_ADDRESS_MEM_TYPE_64,
                      &xhci->mem);
 
-    if (pci_bus_is_express(dev->bus) ||
+    if (pci_bus_is_express(pci_get_bus(dev)) ||
         xhci_get_flag(xhci, XHCI_FLAG_FORCE_PCIE_ENDCAP)) {
         ret = pcie_endpoint_cap_init(dev, 0xa0);
         assert(ret > 0);
@@ -3649,6 +3654,13 @@ static Property xhci_properties[] = {
     DEFINE_PROP_END_OF_LIST(),
 };
 
+static void xhci_instance_init(Object *obj)
+{
+    /* QEMU_PCI_CAP_EXPRESS initialization does not depend on QEMU command
+     * line, therefore, no need to wait to realize like other devices */
+    PCI_DEVICE(obj)->cap_present |= QEMU_PCI_CAP_EXPRESS;
+}
+
 static void xhci_class_init(ObjectClass *klass, void *data)
 {
     PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
@@ -3661,7 +3673,6 @@ static void xhci_class_init(ObjectClass *klass, void *data)
     k->realize      = usb_xhci_realize;
     k->exit         = usb_xhci_exit;
     k->class_id     = PCI_CLASS_SERIAL_USB;
-    k->is_express   = 1;
 }
 
 static const TypeInfo xhci_info = {
@@ -3669,6 +3680,7 @@ static const TypeInfo xhci_info = {
     .parent        = TYPE_PCI_DEVICE,
     .instance_size = sizeof(XHCIState),
     .class_init    = xhci_class_init,
+    .instance_init = xhci_instance_init,
     .abstract      = true,
     .interfaces = (InterfaceInfo[]) {
         { INTERFACE_PCIE_DEVICE },

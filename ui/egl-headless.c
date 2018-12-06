@@ -84,21 +84,30 @@ static void egl_scanout_dmabuf(DisplayChangeListener *dcl,
 }
 
 static void egl_cursor_dmabuf(DisplayChangeListener *dcl,
-                              QemuDmaBuf *dmabuf,
-                              uint32_t pos_x, uint32_t pos_y)
+                              QemuDmaBuf *dmabuf, bool have_hot,
+                              uint32_t hot_x, uint32_t hot_y)
+{
+    egl_dpy *edpy = container_of(dcl, egl_dpy, dcl);
+
+    if (dmabuf) {
+        egl_dmabuf_import_texture(dmabuf);
+        if (!dmabuf->texture) {
+            return;
+        }
+        egl_fb_setup_for_tex(&edpy->cursor_fb, dmabuf->width, dmabuf->height,
+                             dmabuf->texture, false);
+    } else {
+        egl_fb_destroy(&edpy->cursor_fb);
+    }
+}
+
+static void egl_cursor_position(DisplayChangeListener *dcl,
+                                uint32_t pos_x, uint32_t pos_y)
 {
     egl_dpy *edpy = container_of(dcl, egl_dpy, dcl);
 
     edpy->pos_x = pos_x;
     edpy->pos_y = pos_y;
-
-    egl_dmabuf_import_texture(dmabuf);
-    if (!dmabuf->texture) {
-        return;
-    }
-
-    egl_fb_setup_for_tex(&edpy->cursor_fb, dmabuf->width, dmabuf->height,
-                         dmabuf->texture, false);
 }
 
 static void egl_release_dmabuf(DisplayChangeListener *dcl,
@@ -150,17 +159,24 @@ static const DisplayChangeListenerOps egl_ops = {
     .dpy_gl_scanout_texture  = egl_scanout_texture,
     .dpy_gl_scanout_dmabuf   = egl_scanout_dmabuf,
     .dpy_gl_cursor_dmabuf    = egl_cursor_dmabuf,
+    .dpy_gl_cursor_position  = egl_cursor_position,
     .dpy_gl_release_dmabuf   = egl_release_dmabuf,
     .dpy_gl_update           = egl_scanout_flush,
 };
 
-void egl_headless_init(void)
+static void early_egl_headless_init(DisplayOptions *opts)
 {
+    display_opengl = 1;
+}
+
+static void egl_headless_init(DisplayState *ds, DisplayOptions *opts)
+{
+    DisplayGLMode mode = opts->has_gl ? opts->gl : DISPLAYGL_MODE_ON;
     QemuConsole *con;
     egl_dpy *edpy;
     int idx;
 
-    if (egl_rendernode_init(NULL) < 0) {
+    if (egl_rendernode_init(opts->u.egl_headless.rendernode, mode) < 0) {
         error_report("egl: render node init failed");
         exit(1);
     }
@@ -178,3 +194,16 @@ void egl_headless_init(void)
         register_displaychangelistener(&edpy->dcl);
     }
 }
+
+static QemuDisplay qemu_display_egl = {
+    .type       = DISPLAY_TYPE_EGL_HEADLESS,
+    .early_init = early_egl_headless_init,
+    .init       = egl_headless_init,
+};
+
+static void register_egl(void)
+{
+    qemu_display_register(&qemu_display_egl);
+}
+
+type_init(register_egl);

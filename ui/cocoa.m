@@ -31,7 +31,8 @@
 #include "ui/console.h"
 #include "ui/input.h"
 #include "sysemu/sysemu.h"
-#include "qmp-commands.h"
+#include "qapi/error.h"
+#include "qapi/qapi-commands.h"
 #include "sysemu/blockdev.h"
 #include "qemu-version.h"
 #include <Carbon/Carbon.h>
@@ -42,6 +43,9 @@
 #endif
 #ifndef MAC_OS_X_VERSION_10_6
 #define MAC_OS_X_VERSION_10_6 1060
+#endif
+#ifndef MAC_OS_X_VERSION_10_9
+#define MAC_OS_X_VERSION_10_9 1090
 #endif
 #ifndef MAC_OS_X_VERSION_10_10
 #define MAC_OS_X_VERSION_10_10 101000
@@ -77,6 +81,13 @@
 #define NSWindowStyleMaskClosable       NSClosableWindowMask
 #define NSWindowStyleMaskMiniaturizable NSMiniaturizableWindowMask
 #define NSWindowStyleMaskTitled         NSTitledWindowMask
+#endif
+/* 10.13 deprecates NSFileHandlingPanelOKButton in favour of
+ * NSModalResponseOK, which was introduced in 10.9. Define
+ * it for older versions.
+ */
+#if MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_9
+#define NSModalResponseOK NSFileHandlingPanelOKButton
 #endif
 
 //#define DEBUG
@@ -626,6 +637,7 @@ QemuCocoaView *cocoaView;
     int buttons = 0;
     int keycode = 0;
     bool mouse_event = false;
+    static bool switched_to_fullscreen = false;
     NSPoint p = [event locationInWindow];
 
     switch ([event type]) {
@@ -670,7 +682,11 @@ QemuCocoaView *cocoaView;
                     keycode == Q_KEY_CODE_NUM_LOCK) {
                     [self toggleStatefulModifier:keycode];
                 } else if (qemu_console_is_graphic(NULL)) {
-                  [self toggleModifier:keycode];
+                    if (switched_to_fullscreen) {
+                        switched_to_fullscreen = false;
+                    } else {
+                        [self toggleModifier:keycode];
+                    }
                 }
             }
 
@@ -680,6 +696,13 @@ QemuCocoaView *cocoaView;
 
             // forward command key combos to the host UI unless the mouse is grabbed
             if (!isMouseGrabbed && ([event modifierFlags] & NSEventModifierFlagCommand)) {
+                /*
+                 * Prevent the command key from being stuck down in the guest
+                 * when using Command-F to switch to full screen mode.
+                 */
+                if (keycode == Q_KEY_CODE_F) {
+                    switched_to_fullscreen = true;
+                }
                 [NSApp sendEvent:event];
                 return;
             }
@@ -786,11 +809,30 @@ QemuCocoaView *cocoaView;
             mouse_event = true;
             break;
         case NSEventTypeScrollWheel:
-            if (isMouseGrabbed) {
-                buttons |= ([event deltaY] < 0) ?
-                    MOUSE_EVENT_WHEELUP : MOUSE_EVENT_WHEELDN;
+            /*
+             * Send wheel events to the guest regardless of window focus.
+             * This is in-line with standard Mac OS X UI behaviour.
+             */
+
+            /*
+             * When deltaY is zero, it means that this scrolling event was
+             * either horizontal, or so fine that it only appears in
+             * scrollingDeltaY. So we drop the event.
+             */
+            if ([event deltaY] != 0) {
+            /* Determine if this is a scroll up or scroll down event */
+                buttons = ([event deltaY] > 0) ?
+                    INPUT_BUTTON_WHEEL_UP : INPUT_BUTTON_WHEEL_DOWN;
+                qemu_input_queue_btn(dcl->con, buttons, true);
+                qemu_input_event_sync();
+                qemu_input_queue_btn(dcl->con, buttons, false);
+                qemu_input_event_sync();
             }
-            mouse_event = true;
+            /*
+             * Since deltaY also reports scroll wheel events we prevent mouse
+             * movement code from executing.
+             */
+            mouse_event = false;
             break;
         default:
             [NSApp sendEvent:event];
@@ -809,9 +851,7 @@ QemuCocoaView *cocoaView;
             static uint32_t bmap[INPUT_BUTTON__MAX] = {
                 [INPUT_BUTTON_LEFT]       = MOUSE_EVENT_LBUTTON,
                 [INPUT_BUTTON_MIDDLE]     = MOUSE_EVENT_MBUTTON,
-                [INPUT_BUTTON_RIGHT]      = MOUSE_EVENT_RBUTTON,
-                [INPUT_BUTTON_WHEEL_UP]   = MOUSE_EVENT_WHEELUP,
-                [INPUT_BUTTON_WHEEL_DOWN] = MOUSE_EVENT_WHEELDN,
+                [INPUT_BUTTON_RIGHT]      = MOUSE_EVENT_RBUTTON
             };
             qemu_input_update_buttons(dcl->con, bmap, last_buttons, buttons);
             last_buttons = buttons;
@@ -1206,7 +1246,7 @@ QemuCocoaView *cocoaView;
     [openPanel setCanChooseFiles: YES];
     [openPanel setAllowsMultipleSelection: NO];
     [openPanel setAllowedFileTypes: supportedImageFileTypes];
-    if([openPanel runModal] == NSFileHandlingPanelOKButton) {
+    if([openPanel runModal] == NSModalResponseOK) {
         NSString * file = [[[openPanel URLs] objectAtIndex: 0] path];
         if(file == nil) {
             NSBeep();
@@ -1318,7 +1358,7 @@ QemuCocoaView *cocoaView;
     /* Create the version string*/
     NSString *version_string;
     version_string = [[NSString alloc] initWithFormat:
-    @"QEMU emulator version %s%s", QEMU_VERSION, QEMU_PKGVERSION];
+    @"QEMU emulator version %s", QEMU_FULL_VERSION];
     [version_label setStringValue: version_string];
     [superView addSubview: version_label];
 
@@ -1671,12 +1711,12 @@ static void addRemovableDevicesMenuItems(void)
     qapi_free_BlockInfoList(pointerToFree);
 }
 
-void cocoa_display_init(DisplayState *ds, int full_screen)
+static void cocoa_display_init(DisplayState *ds, DisplayOptions *opts)
 {
     COCOA_DEBUG("qemu_cocoa: cocoa_display_init\n");
 
     /* if fullscreen mode is to be used */
-    if (full_screen == true) {
+    if (opts->has_full_screen && opts->full_screen) {
         [NSApp activateIgnoringOtherApps: YES];
         [(QemuCocoaAppController *)[[NSApplication sharedApplication] delegate] toggleFullScreen: nil];
     }
@@ -1701,3 +1741,15 @@ void cocoa_display_init(DisplayState *ds, int full_screen)
      */
     addRemovableDevicesMenuItems();
 }
+
+static QemuDisplay qemu_display_cocoa = {
+    .type       = DISPLAY_TYPE_COCOA,
+    .init       = cocoa_display_init,
+};
+
+static void register_cocoa(void)
+{
+    qemu_display_register(&qemu_display_cocoa);
+}
+
+type_init(register_cocoa);

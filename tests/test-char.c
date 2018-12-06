@@ -1,14 +1,16 @@
 #include "qemu/osdep.h"
 #include <glib/gstdio.h>
 
-#include "qemu-common.h"
 #include "qemu/config-file.h"
+#include "qemu/option.h"
 #include "qemu/sockets.h"
 #include "chardev/char-fe.h"
+#include "chardev/char-mux.h"
 #include "sysemu/sysemu.h"
 #include "qapi/error.h"
+#include "qapi/qapi-commands-char.h"
+#include "qapi/qmp/qdict.h"
 #include "qom/qom-qobject.h"
-#include "qmp-commands.h"
 
 static bool quit;
 
@@ -54,7 +56,6 @@ static void fe_event(void *opaque, int event)
     }
 }
 
-#ifdef CONFIG_HAS_GLIB_SUBPROCESS_TESTS
 #ifdef _WIN32
 static void char_console_test_subprocess(void)
 {
@@ -104,7 +105,6 @@ static void char_stdio_test(void)
     g_test_trap_assert_passed();
     g_test_trap_assert_stdout("buf");
 }
-#endif
 
 static void char_ringbuf_test(void)
 {
@@ -201,14 +201,37 @@ static void char_mux_test(void)
     g_assert_cmpstr(h2.read_buf, ==, "hello");
     h2.read_count = 0;
 
+    g_assert_cmpint(h1.last_event, !=, 42); /* should be MUX_OUT or OPENED */
+    g_assert_cmpint(h2.last_event, !=, 42); /* should be MUX_IN or OPENED */
+    /* sending event on the base broadcast to all fe, historical reasons? */
+    qemu_chr_be_event(base, 42);
+    g_assert_cmpint(h1.last_event, ==, 42);
+    g_assert_cmpint(h2.last_event, ==, 42);
+    qemu_chr_be_event(chr, -1);
+    g_assert_cmpint(h1.last_event, ==, 42);
+    g_assert_cmpint(h2.last_event, ==, -1);
+
     /* switch focus */
+    qemu_chr_be_write(base, (void *)"\1b", 2);
+    g_assert_cmpint(h1.last_event, ==, 42);
+    g_assert_cmpint(h2.last_event, ==, CHR_EVENT_BREAK);
+
     qemu_chr_be_write(base, (void *)"\1c", 2);
+    g_assert_cmpint(h1.last_event, ==, CHR_EVENT_MUX_IN);
+    g_assert_cmpint(h2.last_event, ==, CHR_EVENT_MUX_OUT);
+    qemu_chr_be_event(chr, -1);
+    g_assert_cmpint(h1.last_event, ==, -1);
+    g_assert_cmpint(h2.last_event, ==, CHR_EVENT_MUX_OUT);
 
     qemu_chr_be_write(base, (void *)"hello", 6);
     g_assert_cmpint(h2.read_count, ==, 0);
     g_assert_cmpint(h1.read_count, ==, 6);
     g_assert_cmpstr(h1.read_buf, ==, "hello");
     h1.read_count = 0;
+
+    qemu_chr_be_write(base, (void *)"\1b", 2);
+    g_assert_cmpint(h1.last_event, ==, CHR_EVENT_BREAK);
+    g_assert_cmpint(h2.last_event, ==, CHR_EVENT_MUX_OUT);
 
     /* remove first handler */
     qemu_chr_fe_set_handlers(&chr_be1, NULL, NULL, NULL, NULL,
@@ -284,9 +307,8 @@ static int socket_can_read_hello(void *opaque)
     return 10;
 }
 
-static void char_socket_test(void)
+static void char_socket_test_common(Chardev *chr, bool reconnect)
 {
-    Chardev *chr = qemu_chr_new("server", "tcp:127.0.0.1:0,server,nowait");
     Chardev *chr_client;
     QObject *addr;
     QDict *qdict;
@@ -303,10 +325,11 @@ static void char_socket_test(void)
     g_assert(!object_property_get_bool(OBJECT(chr), "connected", &error_abort));
 
     addr = object_property_get_qobject(OBJECT(chr), "addr", &error_abort);
-    qdict = qobject_to_qdict(addr);
+    qdict = qobject_to(QDict, addr);
     port = qdict_get_str(qdict, "port");
-    tmp = g_strdup_printf("tcp:127.0.0.1:%s", port);
-    QDECREF(qdict);
+    tmp = g_strdup_printf("tcp:127.0.0.1:%s%s", port,
+                          reconnect ? ",reconnect=1" : "");
+    qobject_unref(qdict);
 
     qemu_chr_fe_init(&be, chr, &error_abort);
     qemu_chr_fe_set_handlers(&be, socket_can_read, socket_read,
@@ -325,6 +348,12 @@ static void char_socket_test(void)
     g_assert_cmpint(id, >, 0);
     main_loop();
 
+    d.chr = chr_client;
+    id = g_idle_add(char_socket_test_idle, &d);
+    g_source_set_name_by_id(id, "test-idle");
+    g_assert_cmpint(id, >, 0);
+    main_loop();
+
     g_assert(object_property_get_bool(OBJECT(chr), "connected", &error_abort));
     g_assert(object_property_get_bool(OBJECT(chr_client),
                                       "connected", &error_abort));
@@ -334,12 +363,186 @@ static void char_socket_test(void)
 
     object_unparent(OBJECT(chr_client));
 
+    d.chr = chr;
     d.conn_expected = false;
     g_idle_add(char_socket_test_idle, &d);
     main_loop();
 
     object_unparent(OBJECT(chr));
 }
+
+
+static void char_socket_basic_test(void)
+{
+    Chardev *chr = qemu_chr_new("server", "tcp:127.0.0.1:0,server,nowait");
+
+    char_socket_test_common(chr, false);
+}
+
+
+static void char_socket_reconnect_test(void)
+{
+    Chardev *chr = qemu_chr_new("server", "tcp:127.0.0.1:0,server,nowait");
+
+    char_socket_test_common(chr, true);
+}
+
+
+static void char_socket_fdpass_test(void)
+{
+    Chardev *chr;
+    char *optstr;
+    QemuOpts *opts;
+    int fd;
+    SocketAddress *addr = g_new0(SocketAddress, 1);
+
+    addr->type = SOCKET_ADDRESS_TYPE_INET;
+    addr->u.inet.host = g_strdup("127.0.0.1");
+    addr->u.inet.port = g_strdup("0");
+
+    fd = socket_listen(addr, &error_abort);
+    g_assert(fd >= 0);
+
+    qapi_free_SocketAddress(addr);
+
+    optstr = g_strdup_printf("socket,id=cdev,fd=%d,server,nowait", fd);
+
+    opts = qemu_opts_parse_noisily(qemu_find_opts("chardev"),
+                                   optstr, true);
+    g_free(optstr);
+    g_assert_nonnull(opts);
+
+    chr = qemu_chr_new_from_opts(opts, &error_abort);
+
+    qemu_opts_del(opts);
+
+    char_socket_test_common(chr, false);
+}
+
+
+static void websock_server_read(void *opaque, const uint8_t *buf, int size)
+{
+    g_assert_cmpint(size, ==, 5);
+    g_assert(memcmp(buf, "world", size) == 0);
+    quit = true;
+}
+
+
+static int websock_server_can_read(void *opaque)
+{
+    return 10;
+}
+
+
+static bool websock_check_http_headers(char *buf, int size)
+{
+    int i;
+    const char *ans[] = { "HTTP/1.1 101 Switching Protocols\r\n",
+                          "Server: QEMU VNC\r\n",
+                          "Upgrade: websocket\r\n",
+                          "Connection: Upgrade\r\n",
+                          "Sec-WebSocket-Accept:",
+                          "Sec-WebSocket-Protocol: binary\r\n" };
+
+    for (i = 0; i < 6; i++) {
+        if (g_strstr_len(buf, size, ans[i]) == NULL) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+static void websock_client_read(void *opaque, const uint8_t *buf, int size)
+{
+    const uint8_t ping[] = { 0x89, 0x85,                  /* Ping header */
+                             0x07, 0x77, 0x9e, 0xf9,      /* Masking key */
+                             0x6f, 0x12, 0xf2, 0x95, 0x68 /* "hello" */ };
+
+    const uint8_t binary[] = { 0x82, 0x85,                  /* Binary header */
+                               0x74, 0x90, 0xb9, 0xdf,      /* Masking key */
+                               0x03, 0xff, 0xcb, 0xb3, 0x10 /* "world" */ };
+    Chardev *chr_client = opaque;
+
+    if (websock_check_http_headers((char *) buf, size)) {
+        qemu_chr_fe_write(chr_client->be, ping, sizeof(ping));
+    } else if (buf[0] == 0x8a && buf[1] == 0x05) {
+        g_assert(strncmp((char *) buf + 2, "hello", 5) == 0);
+        qemu_chr_fe_write(chr_client->be, binary, sizeof(binary));
+    } else {
+        g_assert(buf[0] == 0x88 && buf[1] == 0x16);
+        g_assert(strncmp((char *) buf + 4, "peer requested close", 10) == 0);
+        quit = true;
+    }
+}
+
+
+static int websock_client_can_read(void *opaque)
+{
+    return 4096;
+}
+
+
+static void char_websock_test(void)
+{
+    QObject *addr;
+    QDict *qdict;
+    const char *port;
+    char *tmp;
+    char *handshake_port;
+    CharBackend be;
+    CharBackend client_be;
+    Chardev *chr_client;
+    Chardev *chr = qemu_chr_new("server",
+                                "websocket:127.0.0.1:0,server,nowait");
+    const char handshake[] = "GET / HTTP/1.1\r\n"
+                             "Upgrade: websocket\r\n"
+                             "Connection: Upgrade\r\n"
+                             "Host: localhost:%s\r\n"
+                             "Origin: http://localhost:%s\r\n"
+                             "Sec-WebSocket-Key: o9JHNiS3/0/0zYE1wa3yIw==\r\n"
+                             "Sec-WebSocket-Version: 13\r\n"
+                             "Sec-WebSocket-Protocol: binary\r\n\r\n";
+    const uint8_t close[] = { 0x88, 0x82,             /* Close header */
+                              0xef, 0xaa, 0xc5, 0x97, /* Masking key */
+                              0xec, 0x42              /* Status code */ };
+
+    addr = object_property_get_qobject(OBJECT(chr), "addr", &error_abort);
+    qdict = qobject_to(QDict, addr);
+    port = qdict_get_str(qdict, "port");
+    tmp = g_strdup_printf("tcp:127.0.0.1:%s", port);
+    handshake_port = g_strdup_printf(handshake, port, port);
+    qobject_unref(qdict);
+
+    qemu_chr_fe_init(&be, chr, &error_abort);
+    qemu_chr_fe_set_handlers(&be, websock_server_can_read, websock_server_read,
+                             NULL, NULL, chr, NULL, true);
+
+    chr_client = qemu_chr_new("client", tmp);
+    qemu_chr_fe_init(&client_be, chr_client, &error_abort);
+    qemu_chr_fe_set_handlers(&client_be, websock_client_can_read,
+                             websock_client_read,
+                             NULL, NULL, chr_client, NULL, true);
+    g_free(tmp);
+
+    qemu_chr_write_all(chr_client,
+                       (uint8_t *) handshake_port,
+                       strlen(handshake_port));
+    g_free(handshake_port);
+    main_loop();
+
+    g_assert(object_property_get_bool(OBJECT(chr), "connected", &error_abort));
+    g_assert(object_property_get_bool(OBJECT(chr_client),
+                                      "connected", &error_abort));
+
+    qemu_chr_write_all(chr_client, close, sizeof(close));
+    main_loop();
+
+    object_unparent(OBJECT(chr_client));
+    object_unparent(OBJECT(chr));
+}
+
 
 #ifndef _WIN32
 static void char_pipe_test(void)
@@ -742,14 +945,12 @@ int main(int argc, char **argv)
     g_test_add_func("/char/invalid", char_invalid_test);
     g_test_add_func("/char/ringbuf", char_ringbuf_test);
     g_test_add_func("/char/mux", char_mux_test);
-#ifdef CONFIG_HAS_GLIB_SUBPROCESS_TESTS
 #ifdef _WIN32
     g_test_add_func("/char/console/subprocess", char_console_test_subprocess);
     g_test_add_func("/char/console", char_console_test);
 #endif
     g_test_add_func("/char/stdio/subprocess", char_stdio_test_subprocess);
     g_test_add_func("/char/stdio", char_stdio_test);
-#endif
 #ifndef _WIN32
     g_test_add_func("/char/pipe", char_pipe_test);
 #endif
@@ -757,12 +958,15 @@ int main(int argc, char **argv)
 #ifndef _WIN32
     g_test_add_func("/char/file-fifo", char_file_fifo_test);
 #endif
-    g_test_add_func("/char/socket", char_socket_test);
+    g_test_add_func("/char/socket/basic", char_socket_basic_test);
+    g_test_add_func("/char/socket/reconnect", char_socket_reconnect_test);
+    g_test_add_func("/char/socket/fdpass", char_socket_fdpass_test);
     g_test_add_func("/char/udp", char_udp_test);
 #ifdef HAVE_CHARDEV_SERIAL
     g_test_add_func("/char/serial", char_serial_test);
 #endif
     g_test_add_func("/char/hotswap", char_hotswap_test);
+    g_test_add_func("/char/websocket", char_websock_test);
 
     return g_test_run();
 }

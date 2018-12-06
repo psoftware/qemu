@@ -144,8 +144,8 @@ static const MemoryRegionOps ptnetmap_memdev_io_ops = {
     },
 };
 
-static int
-ptnetmap_memdev_init(PCIDevice *dev)
+static void
+ptnetmap_memdev_realize(PCIDevice *dev, Error **errp)
 {
     PTNetmapMemDevState *memd = PTNETMAP_MEMDEV(dev);
     uint8_t *pci_conf;
@@ -181,8 +181,6 @@ ptnetmap_memdev_init(PCIDevice *dev)
 
     QTAILQ_INSERT_TAIL(&ptn_memdevs, memd, next);
     DBG("New instance initialized");
-
-    return 0;
 }
 
 static void
@@ -258,7 +256,7 @@ ptnetmap_memdev_class_init(ObjectClass *klass, void *data)
     DeviceClass *dc = DEVICE_CLASS(klass);
     PCIDeviceClass *k = PCI_DEVICE_CLASS(klass);
 
-    k->init = ptnetmap_memdev_init;
+    k->realize = ptnetmap_memdev_realize;
     k->exit = ptnetmap_memdev_uninit;
     k->vendor_id = PTNETMAP_PCI_VENDOR_ID;
     k->device_id = PTNETMAP_PCI_DEVICE_ID;

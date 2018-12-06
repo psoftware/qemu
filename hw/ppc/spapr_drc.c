@@ -12,6 +12,7 @@
 
 #include "qemu/osdep.h"
 #include "qapi/error.h"
+#include "qapi/qmp/qnull.h"
 #include "cpu.h"
 #include "qemu/cutils.h"
 #include "hw/ppc/spapr_drc.h"
@@ -304,7 +305,7 @@ static void prop_get_fdt(Object *obj, Visitor *v, const char *name,
 
     if (!drc->fdt) {
         visit_type_null(v, NULL, &null, errp);
-        QDECREF(null);
+        qobject_unref(null);
         return;
     }
 
@@ -365,7 +366,8 @@ static void prop_get_fdt(Object *obj, Visitor *v, const char *name,
             break;
         }
         default:
-            error_setg(&error_abort, "device FDT in unexpected state: %d", tag);
+            error_report("device FDT in unexpected state: %d", tag);
+            abort();
         }
         fdt_offset = fdt_offset_next;
     } while (fdt_depth != 0);

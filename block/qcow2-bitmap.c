@@ -30,7 +30,7 @@
 #include "qemu/cutils.h"
 
 #include "block/block_int.h"
-#include "block/qcow2.h"
+#include "qcow2.h"
 
 /* NOTICE: BME here means Bitmaps Extension and used as a namespace for
  * _internal_ constants. Please do not use this _internal_ abbreviation for
@@ -110,7 +110,7 @@ static int update_header_sync(BlockDriverState *bs)
         return ret;
     }
 
-    return bdrv_flush(bs);
+    return bdrv_flush(bs->file->bs);
 }
 
 static inline void bitmap_table_to_be(uint64_t *bitmap_table, size_t size)
@@ -118,7 +118,7 @@ static inline void bitmap_table_to_be(uint64_t *bitmap_table, size_t size)
     size_t i;
 
     for (i = 0; i < size; ++i) {
-        cpu_to_be64s(&bitmap_table[i]);
+        bitmap_table[i] = cpu_to_be64(bitmap_table[i]);
     }
 }
 
@@ -231,7 +231,7 @@ static int bitmap_table_load(BlockDriverState *bs, Qcow2BitmapTable *tb,
     }
 
     for (i = 0; i < tb->size; ++i) {
-        be64_to_cpus(&table[i]);
+        table[i] = be64_to_cpu(table[i]);
         ret = check_table_entry(table[i], s->cluster_size);
         if (ret < 0) {
             goto fail;
@@ -254,7 +254,6 @@ static int free_bitmap_clusters(BlockDriverState *bs, Qcow2BitmapTable *tb)
 
     ret = bitmap_table_load(bs, tb, &bitmap_table);
     if (ret < 0) {
-        assert(bitmap_table == NULL);
         return ret;
     }
 
@@ -395,26 +394,26 @@ fail:
 
 static inline void bitmap_dir_entry_to_cpu(Qcow2BitmapDirEntry *entry)
 {
-    be64_to_cpus(&entry->bitmap_table_offset);
-    be32_to_cpus(&entry->bitmap_table_size);
-    be32_to_cpus(&entry->flags);
-    be16_to_cpus(&entry->name_size);
-    be32_to_cpus(&entry->extra_data_size);
+    entry->bitmap_table_offset = be64_to_cpu(entry->bitmap_table_offset);
+    entry->bitmap_table_size = be32_to_cpu(entry->bitmap_table_size);
+    entry->flags = be32_to_cpu(entry->flags);
+    entry->name_size = be16_to_cpu(entry->name_size);
+    entry->extra_data_size = be32_to_cpu(entry->extra_data_size);
 }
 
 static inline void bitmap_dir_entry_to_be(Qcow2BitmapDirEntry *entry)
 {
-    cpu_to_be64s(&entry->bitmap_table_offset);
-    cpu_to_be32s(&entry->bitmap_table_size);
-    cpu_to_be32s(&entry->flags);
-    cpu_to_be16s(&entry->name_size);
-    cpu_to_be32s(&entry->extra_data_size);
+    entry->bitmap_table_offset = cpu_to_be64(entry->bitmap_table_offset);
+    entry->bitmap_table_size = cpu_to_be32(entry->bitmap_table_size);
+    entry->flags = cpu_to_be32(entry->flags);
+    entry->name_size = cpu_to_be16(entry->name_size);
+    entry->extra_data_size = cpu_to_be32(entry->extra_data_size);
 }
 
 static inline int calc_dir_entry_size(size_t name_size, size_t extra_data_size)
 {
-    return align_offset(sizeof(Qcow2BitmapDirEntry) +
-                        name_size + extra_data_size, 8);
+    int size = sizeof(Qcow2BitmapDirEntry) + name_size + extra_data_size;
+    return ROUND_UP(size, 8);
 }
 
 static inline int dir_entry_size(Qcow2BitmapDirEntry *entry)
@@ -776,7 +775,12 @@ static int bitmap_list_store(BlockDriverState *bs, Qcow2BitmapList *bm_list,
         }
     }
 
-    ret = qcow2_pre_write_overlap_check(bs, 0, dir_offset, dir_size);
+    /* Actually, even in in-place case ignoring QCOW2_OL_BITMAP_DIRECTORY is not
+     * necessary, because we drop QCOW2_AUTOCLEAR_BITMAPS when updating bitmap
+     * directory in-place (actually, turn-off the extension), which is checked
+     * in qcow2_check_metadata_overlap() */
+    ret = qcow2_pre_write_overlap_check(
+            bs, in_place ? QCOW2_OL_BITMAP_DIRECTORY : 0, dir_offset, dir_size);
     if (ret < 0) {
         goto fail;
     }
@@ -882,7 +886,7 @@ static int update_ext_header_and_dir(BlockDriverState *bs,
             return ret;
         }
 
-        ret = bdrv_flush(bs->file->bs);
+        ret = qcow2_flush_caches(bs);
         if (ret < 0) {
             goto fail;
         }
@@ -933,14 +937,14 @@ static void set_readonly_helper(gpointer bitmap, gpointer value)
     bdrv_dirty_bitmap_set_readonly(bitmap, (bool)value);
 }
 
-/* qcow2_load_autoloading_dirty_bitmaps()
+/* qcow2_load_dirty_bitmaps()
  * Return value is a hint for caller: true means that the Qcow2 header was
  * updated. (false doesn't mean that the header should be updated by the
  * caller, it just means that updating was not needed or the image cannot be
  * written to).
  * On failure the function returns false.
  */
-bool qcow2_load_autoloading_dirty_bitmaps(BlockDriverState *bs, Error **errp)
+bool qcow2_load_dirty_bitmaps(BlockDriverState *bs, Error **errp)
 {
     BDRVQcow2State *s = bs->opaque;
     Qcow2BitmapList *bm_list;
@@ -960,14 +964,16 @@ bool qcow2_load_autoloading_dirty_bitmaps(BlockDriverState *bs, Error **errp)
     }
 
     QSIMPLEQ_FOREACH(bm, bm_list, entry) {
-        if ((bm->flags & BME_FLAG_AUTO) && !(bm->flags & BME_FLAG_IN_USE)) {
+        if (!(bm->flags & BME_FLAG_IN_USE)) {
             BdrvDirtyBitmap *bitmap = load_bitmap(bs, bm, errp);
             if (bitmap == NULL) {
                 goto fail;
             }
 
+            if (!(bm->flags & BME_FLAG_AUTO)) {
+                bdrv_disable_dirty_bitmap(bitmap);
+            }
             bdrv_dirty_bitmap_set_persistance(bitmap, true);
-            bdrv_dirty_bitmap_set_autoload(bitmap, true);
             bm->flags |= BME_FLAG_IN_USE;
             created_dirty_bitmaps =
                     g_slist_append(created_dirty_bitmaps, bitmap);
@@ -1002,13 +1008,18 @@ fail:
     return false;
 }
 
-int qcow2_reopen_bitmaps_rw(BlockDriverState *bs, Error **errp)
+int qcow2_reopen_bitmaps_rw_hint(BlockDriverState *bs, bool *header_updated,
+                                 Error **errp)
 {
     BDRVQcow2State *s = bs->opaque;
     Qcow2BitmapList *bm_list;
     Qcow2Bitmap *bm;
     GSList *ro_dirty_bitmaps = NULL;
     int ret = 0;
+
+    if (header_updated != NULL) {
+        *header_updated = false;
+    }
 
     if (s->nb_bitmaps == 0) {
         /* No bitmaps - nothing to do */
@@ -1053,6 +1064,9 @@ int qcow2_reopen_bitmaps_rw(BlockDriverState *bs, Error **errp)
             error_setg_errno(errp, -ret, "Can't update bitmap directory");
             goto out;
         }
+        if (header_updated != NULL) {
+            *header_updated = true;
+        }
         g_slist_foreach(ro_dirty_bitmaps, set_readonly_helper, false);
     }
 
@@ -1061,6 +1075,11 @@ out:
     bitmap_list_free(bm_list);
 
     return ret;
+}
+
+int qcow2_reopen_bitmaps_rw(BlockDriverState *bs, Error **errp)
+{
+    return qcow2_reopen_bitmaps_rw_hint(bs, NULL, errp);
 }
 
 /* store_bitmap_data()
@@ -1369,7 +1388,7 @@ void qcow2_store_persistent_dirty_bitmaps(BlockDriverState *bs, Error **errp)
             bm->table.size = 0;
             QSIMPLEQ_INSERT_TAIL(&drop_tables, tb, entry);
         }
-        bm->flags = bdrv_dirty_bitmap_get_autoload(bitmap) ? BME_FLAG_AUTO : 0;
+        bm->flags = bdrv_dirty_bitmap_enabled(bitmap) ? BME_FLAG_AUTO : 0;
         bm->granularity_bits = ctz32(bdrv_dirty_bitmap_granularity(bitmap));
         bm->dirty_bitmap = bitmap;
     }
@@ -1397,6 +1416,22 @@ void qcow2_store_persistent_dirty_bitmaps(BlockDriverState *bs, Error **errp)
     QSIMPLEQ_FOREACH_SAFE(tb, &drop_tables, entry, tb_next) {
         free_bitmap_clusters(bs, tb);
         g_free(tb);
+    }
+
+    QSIMPLEQ_FOREACH(bm, bm_list, entry) {
+        /* For safety, we remove bitmap after storing.
+         * We may be here in two cases:
+         * 1. bdrv_close. It's ok to drop bitmap.
+         * 2. inactivation. It means migration without 'dirty-bitmaps'
+         *    capability, so bitmaps are not marked with
+         *    BdrvDirtyBitmap.migration flags. It's not bad to drop them too,
+         *    and reload on invalidation.
+         */
+        if (bm->dirty_bitmap == NULL) {
+            continue;
+        }
+
+        bdrv_release_dirty_bitmap(bs, bm->dirty_bitmap);
     }
 
     bitmap_list_free(bm_list);
@@ -1448,6 +1483,16 @@ bool qcow2_can_store_new_dirty_bitmap(BlockDriverState *bs,
     BDRVQcow2State *s = bs->opaque;
     bool found;
     Qcow2BitmapList *bm_list;
+
+    if (s->qcow_version < 3) {
+        /* Without autoclear_features, we would always have to assume
+         * that a program without persistent dirty bitmap support has
+         * accessed this qcow2 file when opening it, and would thus
+         * have to drop all dirty bitmaps (defeating their purpose).
+         */
+        error_setg(errp, "Cannot store dirty bitmaps in qcow2 v2 files");
+        goto fail;
+    }
 
     if (check_constraints_on_bitmap(bs, name, granularity, errp) != 0) {
         goto fail;

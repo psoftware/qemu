@@ -28,6 +28,7 @@
 #include <termios.h>
 #endif
 
+#include "qapi/error.h"
 #include "qemu-common.h"
 #include "ui/console.h"
 #include "ui/input.h"
@@ -271,7 +272,8 @@ static void curses_refresh(DisplayChangeListener *dcl)
                     keysym = chr;
             }
 
-            keycode = keysym2scancode(kbd_layout, keysym & KEYSYM_MASK);
+            keycode = keysym2scancode(kbd_layout, keysym & KEYSYM_MASK,
+                                      false, false, false);
             if (keycode == 0)
                 continue;
 
@@ -420,9 +422,8 @@ static void curses_keyboard_setup(void)
         keyboard_layout = "en-us";
 #endif
     if(keyboard_layout) {
-        kbd_layout = init_keyboard_layout(name2keysym, keyboard_layout);
-        if (!kbd_layout)
-            exit(1);
+        kbd_layout = init_keyboard_layout(name2keysym, keyboard_layout,
+                                          &error_fatal);
     }
 }
 
@@ -434,7 +435,7 @@ static const DisplayChangeListenerOps dcl_ops = {
     .dpy_text_cursor = curses_cursor_position,
 };
 
-void curses_display_init(DisplayState *ds, int full_screen)
+static void curses_display_init(DisplayState *ds, DisplayOptions *opts)
 {
 #ifndef _WIN32
     if (!isatty(1)) {
@@ -455,3 +456,15 @@ void curses_display_init(DisplayState *ds, int full_screen)
 
     invalidate = 1;
 }
+
+static QemuDisplay qemu_display_curses = {
+    .type       = DISPLAY_TYPE_CURSES,
+    .init       = curses_display_init,
+};
+
+static void register_curses(void)
+{
+    qemu_display_register(&qemu_display_curses);
+}
+
+type_init(register_curses);

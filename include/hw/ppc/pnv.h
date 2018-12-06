@@ -26,7 +26,7 @@
 #include "hw/ppc/pnv_psi.h"
 #include "hw/ppc/pnv_occ.h"
 
-#define TYPE_PNV_CHIP "powernv-chip"
+#define TYPE_PNV_CHIP "pnv-chip"
 #define PNV_CHIP(obj) OBJECT_CHECK(PnvChip, (obj), TYPE_PNV_CHIP)
 #define PNV_CHIP_CLASS(klass) \
      OBJECT_CLASS_CHECK(PnvChipClass, (klass), TYPE_PNV_CHIP)
@@ -57,12 +57,32 @@ typedef struct PnvChip {
     MemoryRegion xscom_mmio;
     MemoryRegion xscom;
     AddressSpace xscom_as;
+} PnvChip;
+
+#define TYPE_PNV8_CHIP "pnv8-chip"
+#define PNV8_CHIP(obj) OBJECT_CHECK(Pnv8Chip, (obj), TYPE_PNV8_CHIP)
+
+typedef struct Pnv8Chip {
+    /*< private >*/
+    PnvChip      parent_obj;
+
+    /*< public >*/
     MemoryRegion icp_mmio;
 
     PnvLpcController lpc;
     PnvPsi       psi;
     PnvOCC       occ;
-} PnvChip;
+} Pnv8Chip;
+
+#define TYPE_PNV9_CHIP "pnv9-chip"
+#define PNV9_CHIP(obj) OBJECT_CHECK(Pnv9Chip, (obj), TYPE_PNV9_CHIP)
+
+typedef struct Pnv9Chip {
+    /*< private >*/
+    PnvChip      parent_obj;
+
+    /*< public >*/
+} Pnv9Chip;
 
 typedef struct PnvChipClass {
     /*< private >*/
@@ -74,9 +94,12 @@ typedef struct PnvChipClass {
     uint64_t     cores_mask;
 
     hwaddr       xscom_base;
-    hwaddr       xscom_core_base;
+
+    DeviceRealize parent_realize;
 
     uint32_t (*core_pir)(PnvChip *chip, uint32_t core_id);
+    Object *(*intc_create)(PnvChip *chip, Object *child, Error **errp);
+    ISABus *(*isa_create)(PnvChip *chip, Error **errp);
 } PnvChipClass;
 
 #define PNV_CHIP_TYPE_SUFFIX "-" TYPE_PNV_CHIP
@@ -117,9 +140,9 @@ typedef struct PnvChipClass {
 #define PNV_CHIP_INDEX(chip)                                    \
     (((chip)->chip_id >> 2) * 2 + ((chip)->chip_id & 0x3))
 
-#define TYPE_POWERNV_MACHINE       MACHINE_TYPE_NAME("powernv")
-#define POWERNV_MACHINE(obj) \
-    OBJECT_CHECK(PnvMachineState, (obj), TYPE_POWERNV_MACHINE)
+#define TYPE_PNV_MACHINE       MACHINE_TYPE_NAME("powernv")
+#define PNV_MACHINE(obj) \
+    OBJECT_CHECK(PnvMachineState, (obj), TYPE_PNV_MACHINE)
 
 typedef struct PnvMachineState {
     /*< private >*/
@@ -138,13 +161,23 @@ typedef struct PnvMachineState {
     Notifier     powerdown_notifier;
 } PnvMachineState;
 
+static inline bool pnv_chip_is_power9(const PnvChip *chip)
+{
+    return PNV_CHIP_GET_CLASS(chip)->chip_type == PNV_CHIP_POWER9;
+}
+
+static inline bool pnv_is_power9(PnvMachineState *pnv)
+{
+    return pnv_chip_is_power9(pnv->chips[0]);
+}
+
 #define PNV_FDT_ADDR          0x01000000
 #define PNV_TIMEBASE_FREQ     512000000ULL
 
 /*
  * BMC helpers
  */
-void pnv_bmc_populate_sensors(IPMIBmc *bmc, void *fdt);
+void pnv_dt_bmc_sensors(IPMIBmc *bmc, void *fdt);
 void pnv_bmc_powerdown(IPMIBmc *bmc);
 
 /*

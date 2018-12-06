@@ -22,7 +22,7 @@
 #include "exec/helper-proto.h"
 #include "exec/exec-all.h"
 #include "exec/cpu_ldst.h"
-
+#include "internal.h"
 #include "helper_regs.h"
 
 //#define DEBUG_OP
@@ -348,19 +348,16 @@ static inline void powerpc_excp(PowerPCCPU *cpu, int excp_model, int excp)
     case POWERPC_EXCP_ITLB:      /* Instruction TLB error                    */
         break;
     case POWERPC_EXCP_DEBUG:     /* Debug interrupt                          */
-        switch (excp_model) {
-        case POWERPC_EXCP_BOOKE:
+        if (env->flags & POWERPC_FLAG_DE) {
             /* FIXME: choose one or the other based on CPU type */
             srr0 = SPR_BOOKE_DSRR0;
             srr1 = SPR_BOOKE_DSRR1;
             asrr0 = SPR_BOOKE_CSRR0;
             asrr1 = SPR_BOOKE_CSRR1;
-            break;
-        default:
-            break;
+            /* DBSR already modified by caller */
+        } else {
+            cpu_abort(cs, "Debug exception triggered on unsupported model\n");
         }
-        /* XXX: TODO */
-        cpu_abort(cs, "Debug exception is not implemented yet !\n");
         break;
     case POWERPC_EXCP_SPEU:      /* SPE/embedded floating-point unavailable  */
         env->spr[SPR_BOOKE_ESR] = ESR_SPV;
@@ -417,6 +414,7 @@ static inline void powerpc_excp(PowerPCCPU *cpu, int excp_model, int excp)
     case POWERPC_EXCP_HISI:      /* Hypervisor instruction storage exception */
     case POWERPC_EXCP_HDSEG:     /* Hypervisor data segment exception        */
     case POWERPC_EXCP_HISEG:     /* Hypervisor instruction segment exception */
+    case POWERPC_EXCP_SDOOR_HV:  /* Hypervisor Doorbell interrupt            */
     case POWERPC_EXCP_HV_EMU:
         srr0 = SPR_HSRR0;
         srr1 = SPR_HSRR1;
@@ -654,7 +652,7 @@ static inline void powerpc_excp(PowerPCCPU *cpu, int excp_model, int excp)
         }
     } else if (excp_model == POWERPC_EXCP_POWER8) {
         if (new_msr & MSR_HVB) {
-            if (env->spr[SPR_HID0] & HID0_HILE) {
+            if (env->spr[SPR_HID0] & (HID0_HILE | HID0_POWER9_HILE)) {
                 new_msr |= (target_ulong)1 << MSR_LE;
             }
         } else if (env->spr[SPR_LPCR] & LPCR_ILE) {
@@ -844,6 +842,11 @@ static void ppc_hw_interrupt(CPUPPCState *env)
         if (env->pending_interrupts & (1 << PPC_INTERRUPT_DOORBELL)) {
             env->pending_interrupts &= ~(1 << PPC_INTERRUPT_DOORBELL);
             powerpc_excp(cpu, env->excp_model, POWERPC_EXCP_DOORI);
+            return;
+        }
+        if (env->pending_interrupts & (1 << PPC_INTERRUPT_HDOORBELL)) {
+            env->pending_interrupts &= ~(1 << PPC_INTERRUPT_HDOORBELL);
+            powerpc_excp(cpu, env->excp_model, POWERPC_EXCP_SDOOR_HV);
             return;
         }
         if (env->pending_interrupts & (1 << PPC_INTERRUPT_PERFM)) {
@@ -1145,4 +1148,66 @@ void helper_msgsnd(target_ulong rb)
     }
     qemu_mutex_unlock_iothread();
 }
+
+/* Server Processor Control */
+static int book3s_dbell2irq(target_ulong rb)
+{
+    int msg = rb & DBELL_TYPE_MASK;
+
+    /* A Directed Hypervisor Doorbell message is sent only if the
+     * message type is 5. All other types are reserved and the
+     * instruction is a no-op */
+    return msg == DBELL_TYPE_DBELL_SERVER ? PPC_INTERRUPT_HDOORBELL : -1;
+}
+
+void helper_book3s_msgclr(CPUPPCState *env, target_ulong rb)
+{
+    int irq = book3s_dbell2irq(rb);
+
+    if (irq < 0) {
+        return;
+    }
+
+    env->pending_interrupts &= ~(1 << irq);
+}
+
+void helper_book3s_msgsnd(target_ulong rb)
+{
+    int irq = book3s_dbell2irq(rb);
+    int pir = rb & DBELL_PROCIDTAG_MASK;
+    CPUState *cs;
+
+    if (irq < 0) {
+        return;
+    }
+
+    qemu_mutex_lock_iothread();
+    CPU_FOREACH(cs) {
+        PowerPCCPU *cpu = POWERPC_CPU(cs);
+        CPUPPCState *cenv = &cpu->env;
+
+        /* TODO: broadcast message to all threads of the same  processor */
+        if (cenv->spr_cb[SPR_PIR].default_value == pir) {
+            cenv->pending_interrupts |= 1 << irq;
+            cpu_interrupt(cs, CPU_INTERRUPT_HARD);
+        }
+    }
+    qemu_mutex_unlock_iothread();
+}
 #endif
+
+void ppc_cpu_do_unaligned_access(CPUState *cs, vaddr vaddr,
+                                 MMUAccessType access_type,
+                                 int mmu_idx, uintptr_t retaddr)
+{
+    CPUPPCState *env = cs->env_ptr;
+    uint32_t insn;
+
+    /* Restore state and reload the insn we executed, for filling in DSISR.  */
+    cpu_restore_state(cs, retaddr, true);
+    insn = cpu_ldl_code(env, env->nip);
+
+    cs->exception_index = POWERPC_EXCP_ALIGN;
+    env->error_code = insn & 0x03FF0000;
+    cpu_loop_exit(cs);
+}

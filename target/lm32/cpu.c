@@ -22,7 +22,6 @@
 #include "qapi/error.h"
 #include "cpu.h"
 #include "qemu-common.h"
-#include "exec/exec-all.h"
 
 
 static void lm32_cpu_set_pc(CPUState *cs, vaddr value)
@@ -30,18 +29,6 @@ static void lm32_cpu_set_pc(CPUState *cs, vaddr value)
     LM32CPU *cpu = LM32_CPU(cs);
 
     cpu->env.pc = value;
-}
-
-/* Sort alphabetically by type name. */
-static gint lm32_cpu_list_compare(gconstpointer a, gconstpointer b)
-{
-    ObjectClass *class_a = (ObjectClass *)a;
-    ObjectClass *class_b = (ObjectClass *)b;
-    const char *name_a, *name_b;
-
-    name_a = object_class_get_name(class_a);
-    name_b = object_class_get_name(class_b);
-    return strcmp(name_a, name_b);
 }
 
 static void lm32_cpu_list_entry(gpointer data, gpointer user_data)
@@ -65,8 +52,7 @@ void lm32_cpu_list(FILE *f, fprintf_function cpu_fprintf)
     };
     GSList *list;
 
-    list = object_class_get_list(TYPE_LM32_CPU, false);
-    list = g_slist_sort(list, lm32_cpu_list_compare);
+    list = object_class_get_list_sorted(TYPE_LM32_CPU, false);
     (*cpu_fprintf)(f, "Available CPUs:\n");
     g_slist_foreach(list, lm32_cpu_list_entry, &s);
     g_slist_free(list);
@@ -236,9 +222,8 @@ static void lm32_cpu_class_init(ObjectClass *oc, void *data)
     CPUClass *cc = CPU_CLASS(oc);
     DeviceClass *dc = DEVICE_CLASS(oc);
 
-    lcc->parent_realize = dc->realize;
-    dc->realize = lm32_cpu_realizefn;
-
+    device_class_set_parent_realize(dc, lm32_cpu_realizefn,
+                                    &lcc->parent_realize);
     lcc->parent_reset = cc->reset;
     cc->reset = lm32_cpu_reset;
 

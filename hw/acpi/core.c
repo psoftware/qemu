@@ -18,16 +18,19 @@
  * Contributions after 2012-01-13 are licensed under the terms of the
  * GNU GPL, version 2 or (at your option) any later version.
  */
+
 #include "qemu/osdep.h"
 #include "sysemu/sysemu.h"
 #include "hw/hw.h"
 #include "hw/acpi/acpi.h"
 #include "hw/nvram/fw_cfg.h"
 #include "qemu/config-file.h"
+#include "qapi/error.h"
 #include "qapi/opts-visitor.h"
-#include "qapi-visit.h"
-#include "qapi-event.h"
+#include "qapi/qapi-events-run-state.h"
+#include "qapi/qapi-visit-misc.h"
 #include "qemu/error-report.h"
+#include "qemu/option.h"
 
 struct acpi_table_header {
     uint16_t _length;         /* our length, not actual part of the hdr */
@@ -567,7 +570,7 @@ static void acpi_pm1_cnt_write(ACPIREGS *ar, uint16_t val)
             break;
         default:
             if (sus_typ == ar->pm1.cnt.s4_val) { /* S4 request */
-                qapi_event_send_suspend_disk(&error_abort);
+                qapi_event_send_suspend_disk();
                 qemu_system_shutdown_request(SHUTDOWN_CAUSE_GUEST_SHUTDOWN);
             }
             break;

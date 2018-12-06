@@ -7,9 +7,10 @@
 /* internal defines */
 typedef struct DisasContext {
     DisasContextBase base;
+    const ARMISARegisters *isar;
 
     target_ulong pc;
-    target_ulong next_page_start;
+    target_ulong page_start;
     uint32_t insn;
     /* Nonzero if this instruction has been conditionally skipped.  */
     int condjmp;
@@ -29,6 +30,8 @@ typedef struct DisasContext {
     bool tbi1;         /* TBI1 for EL0/1, not used for EL2/3 */
     bool ns;        /* Use non-secure CPREG bank on access */
     int fp_excp_el; /* FP exception EL or 0 if enabled */
+    int sve_excp_el; /* SVE exception EL or 0 if enabled */
+    int sve_len;     /* SVE vector length in bytes */
     /* Flag indicating that exceptions from secure mode are routed to EL3. */
     bool secure_routed_to_el3;
     bool vfp_enabled; /* FP enabled via FPSCR.EN */
@@ -36,6 +39,7 @@ typedef struct DisasContext {
     int vec_stride;
     bool v7m_handler_mode;
     bool v8m_secure; /* true if v8M and we're in Secure mode */
+    bool v8m_stackcheck; /* true if we need to perform v8M stack limit checks */
     /* Immediate value in AArch32 SVC insn; must be set if is_jmp == DISAS_SWI
      * so that top level loop can generate correct syndrome information.
      */
@@ -66,8 +70,8 @@ typedef struct DisasContext {
     bool ss_same_el;
     /* Bottom two bits of XScale c15_cpar coprocessor access control reg */
     int c15_cpar;
-    /* TCG op index of the current insn_start.  */
-    int insn_start_idx;
+    /* TCG op of the current insn_start.  */
+    TCGOp *insn_start;
 #define TMP_A64_MAX 16
     int tmp_a64_count;
     TCGv_i64 tmp_a64[TMP_A64_MAX];
@@ -108,7 +112,7 @@ static inline int default_exception_el(DisasContext *s)
             ? 3 : MAX(1, s->current_el);
 }
 
-static void disas_set_insn_syndrome(DisasContext *s, uint32_t syn)
+static inline void disas_set_insn_syndrome(DisasContext *s, uint32_t syn)
 {
     /* We don't need to save all of the syndrome so we mask and shift
      * out unneeded bits to help the sleb128 encoder do a better job.
@@ -117,9 +121,9 @@ static void disas_set_insn_syndrome(DisasContext *s, uint32_t syn)
     syn >>= ARM_INSN_START_WORD2_SHIFT;
 
     /* We check and clear insn_start_idx to catch multiple updates.  */
-    assert(s->insn_start_idx != 0);
-    tcg_set_insn_param(s->insn_start_idx, 2, syn);
-    s->insn_start_idx = 0;
+    assert(s->insn_start != NULL);
+    tcg_set_insn_start_param(s->insn_start, 2, syn);
+    s->insn_start = NULL;
 }
 
 /* is_jmp field values */
@@ -174,5 +178,37 @@ void arm_test_cc(DisasCompare *cmp, int cc);
 void arm_free_cc(DisasCompare *cmp);
 void arm_jump_cc(DisasCompare *cmp, TCGLabel *label);
 void arm_gen_test_cc(int cc, TCGLabel *label);
+
+/* Return state of Alternate Half-precision flag, caller frees result */
+static inline TCGv_i32 get_ahp_flag(void)
+{
+    TCGv_i32 ret = tcg_temp_new_i32();
+
+    tcg_gen_ld_i32(ret, cpu_env,
+                   offsetof(CPUARMState, vfp.xregs[ARM_VFP_FPSCR]));
+    tcg_gen_extract_i32(ret, ret, 26, 1);
+
+    return ret;
+}
+
+
+/* Vector operations shared between ARM and AArch64.  */
+extern const GVecGen3 bsl_op;
+extern const GVecGen3 bit_op;
+extern const GVecGen3 bif_op;
+extern const GVecGen3 mla_op[4];
+extern const GVecGen3 mls_op[4];
+extern const GVecGen3 cmtst_op[4];
+extern const GVecGen2i ssra_op[4];
+extern const GVecGen2i usra_op[4];
+extern const GVecGen2i sri_op[4];
+extern const GVecGen2i sli_op[4];
+void gen_cmtst_i64(TCGv_i64 d, TCGv_i64 a, TCGv_i64 b);
+
+/*
+ * Forward to the isar_feature_* tests given a DisasContext pointer.
+ */
+#define dc_isar_feature(name, ctx) \
+    ({ DisasContext *ctx_ = (ctx); isar_feature_##name(ctx_->isar); })
 
 #endif /* TARGET_ARM_TRANSLATE_H */

@@ -21,8 +21,8 @@
 #include "net/hub.h"
 #include "qapi/visitor.h"
 #include "chardev/char-fe.h"
-#include "sysemu/tpm_backend.h"
 #include "sysemu/iothread.h"
+#include "sysemu/tpm_backend.h"
 
 static void get_pointer(Object *obj, Visitor *v, Property *prop,
                         char *(*print)(void *ptr),
@@ -237,69 +237,6 @@ const PropertyInfo qdev_prop_chr = {
     .release = release_chr,
 };
 
-/* --- character device --- */
-
-static void get_tpm(Object *obj, Visitor *v, const char *name, void *opaque,
-                    Error **errp)
-{
-    DeviceState *dev = DEVICE(obj);
-    TPMBackend **be = qdev_get_prop_ptr(dev, opaque);
-    char *p;
-
-    p = g_strdup(*be ? (*be)->id : "");
-    visit_type_str(v, name, &p, errp);
-    g_free(p);
-}
-
-static void set_tpm(Object *obj, Visitor *v, const char *name, void *opaque,
-                    Error **errp)
-{
-    DeviceState *dev = DEVICE(obj);
-    Error *local_err = NULL;
-    Property *prop = opaque;
-    TPMBackend *s, **be = qdev_get_prop_ptr(dev, prop);
-    char *str;
-
-    if (dev->realized) {
-        qdev_prop_set_after_realize(dev, name, errp);
-        return;
-    }
-
-    visit_type_str(v, name, &str, &local_err);
-    if (local_err) {
-        error_propagate(errp, local_err);
-        return;
-    }
-
-    s = qemu_find_tpm_be(str);
-    if (s == NULL) {
-        error_setg(errp, "Property '%s.%s' can't find value '%s'",
-                   object_get_typename(obj), prop->name, str);
-    } else if (tpm_backend_init(s, TPM_IF(obj), errp) == 0) {
-        *be = s; /* weak reference, avoid cyclic ref */
-    }
-    g_free(str);
-}
-
-static void release_tpm(Object *obj, const char *name, void *opaque)
-{
-    DeviceState *dev = DEVICE(obj);
-    Property *prop = opaque;
-    TPMBackend **be = qdev_get_prop_ptr(dev, prop);
-
-    if (*be) {
-        tpm_backend_reset(*be);
-    }
-}
-
-const PropertyInfo qdev_prop_tpm = {
-    .name  = "str",
-    .description = "ID of a tpm to use as a backend",
-    .get   = get_tpm,
-    .set   = set_tpm,
-    .release = release_tpm,
-};
-
 /* --- netdev device --- */
 static void get_netdev(Object *obj, Visitor *v, const char *name,
                        void *opaque, Error **errp)
@@ -384,86 +321,6 @@ const PropertyInfo qdev_prop_netdev = {
     .set   = set_netdev,
 };
 
-/* --- vlan --- */
-
-static int print_vlan(DeviceState *dev, Property *prop, char *dest, size_t len)
-{
-    NetClientState **ptr = qdev_get_prop_ptr(dev, prop);
-
-    if (*ptr) {
-        int id;
-        if (!net_hub_id_for_client(*ptr, &id)) {
-            return snprintf(dest, len, "%d", id);
-        }
-    }
-
-    return snprintf(dest, len, "<null>");
-}
-
-static void get_vlan(Object *obj, Visitor *v, const char *name, void *opaque,
-                     Error **errp)
-{
-    DeviceState *dev = DEVICE(obj);
-    Property *prop = opaque;
-    NetClientState **ptr = qdev_get_prop_ptr(dev, prop);
-    int32_t id = -1;
-
-    if (*ptr) {
-        int hub_id;
-        if (!net_hub_id_for_client(*ptr, &hub_id)) {
-            id = hub_id;
-        }
-    }
-
-    visit_type_int32(v, name, &id, errp);
-}
-
-static void set_vlan(Object *obj, Visitor *v, const char *name, void *opaque,
-                     Error **errp)
-{
-    DeviceState *dev = DEVICE(obj);
-    Property *prop = opaque;
-    NICPeers *peers_ptr = qdev_get_prop_ptr(dev, prop);
-    NetClientState **ptr = &peers_ptr->ncs[0];
-    Error *local_err = NULL;
-    int32_t id;
-    NetClientState *hubport;
-
-    if (dev->realized) {
-        qdev_prop_set_after_realize(dev, name, errp);
-        return;
-    }
-
-    visit_type_int32(v, name, &id, &local_err);
-    if (local_err) {
-        error_propagate(errp, local_err);
-        return;
-    }
-    if (id == -1) {
-        *ptr = NULL;
-        return;
-    }
-    if (*ptr) {
-        error_set_from_qdev_prop_error(errp, -EINVAL, dev, prop, name);
-        return;
-    }
-
-    hubport = net_hub_port_find(id);
-    if (!hubport) {
-        error_setg(errp, QERR_INVALID_PARAMETER_VALUE,
-                   name, prop->info->name);
-        return;
-    }
-    *ptr = hubport;
-}
-
-const PropertyInfo qdev_prop_vlan = {
-    .name  = "int32",
-    .description = "Integer VLAN id to connect to",
-    .print = print_vlan,
-    .get   = get_vlan,
-    .set   = set_vlan,
-};
 
 void qdev_prop_set_drive(DeviceState *dev, const char *name,
                          BlockBackend *value, Error **errp)

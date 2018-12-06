@@ -141,7 +141,7 @@ unsigned long hbitmap_iter_skip_words(HBitmapIter *hbi)
     return cur;
 }
 
-int64_t hbitmap_iter_next(HBitmapIter *hbi)
+int64_t hbitmap_iter_next(HBitmapIter *hbi, bool advance)
 {
     unsigned long cur = hbi->cur[HBITMAP_LEVELS - 1] &
             hbi->hb->levels[HBITMAP_LEVELS - 1][hbi->pos];
@@ -154,8 +154,12 @@ int64_t hbitmap_iter_next(HBitmapIter *hbi)
         }
     }
 
-    /* The next call will resume work from the next bit.  */
-    hbi->cur[HBITMAP_LEVELS - 1] = cur & (cur - 1);
+    if (advance) {
+        /* The next call will resume work from the next bit.  */
+        hbi->cur[HBITMAP_LEVELS - 1] = cur & (cur - 1);
+    } else {
+        hbi->cur[HBITMAP_LEVELS - 1] = cur;
+    }
     item = ((uint64_t)hbi->pos << BITS_PER_LEVEL) + ctzl(cur);
 
     return item << hbi->granularity;
@@ -186,6 +190,45 @@ void hbitmap_iter_init(HBitmapIter *hbi, const HBitmap *hb, uint64_t first)
             hbi->cur[i] &= ~(1UL << bit);
         }
     }
+}
+
+int64_t hbitmap_next_zero(const HBitmap *hb, uint64_t start)
+{
+    size_t pos = (start >> hb->granularity) >> BITS_PER_LEVEL;
+    unsigned long *last_lev = hb->levels[HBITMAP_LEVELS - 1];
+    uint64_t sz = hb->sizes[HBITMAP_LEVELS - 1];
+    unsigned long cur = last_lev[pos];
+    unsigned start_bit_offset =
+            (start >> hb->granularity) & (BITS_PER_LONG - 1);
+    int64_t res;
+
+    cur |= (1UL << start_bit_offset) - 1;
+    assert((start >> hb->granularity) < hb->size);
+
+    if (cur == (unsigned long)-1) {
+        do {
+            pos++;
+        } while (pos < sz && last_lev[pos] == (unsigned long)-1);
+
+        if (pos >= sz) {
+            return -1;
+        }
+
+        cur = last_lev[pos];
+    }
+
+    res = (pos << BITS_PER_LEVEL) + ctol(cur);
+    if (res >= hb->size) {
+        return -1;
+    }
+
+    res = res << hb->granularity;
+    if (res < start) {
+        assert(((start - res) >> hb->granularity) == 0);
+        return start;
+    }
+
+    return res;
 }
 
 bool hbitmap_empty(const HBitmap *hb)
@@ -591,6 +634,7 @@ void hbitmap_deserialize_finish(HBitmap *bitmap)
     }
 
     bitmap->levels[0][0] |= 1UL << (BITS_PER_LONG - 1);
+    bitmap->count = hb_count_between(bitmap, 0, bitmap->size - 1);
 }
 
 void hbitmap_free(HBitmap *hb)
@@ -679,6 +723,10 @@ void hbitmap_truncate(HBitmap *hb, uint64_t size)
     }
 }
 
+bool hbitmap_can_merge(const HBitmap *a, const HBitmap *b)
+{
+    return (a->size == b->size) && (a->granularity == b->granularity);
+}
 
 /**
  * Given HBitmaps A and B, let A := A (BITOR) B.
@@ -687,14 +735,15 @@ void hbitmap_truncate(HBitmap *hb, uint64_t size)
  * @return true if the merge was successful,
  *         false if it was not attempted.
  */
-bool hbitmap_merge(HBitmap *a, const HBitmap *b)
+bool hbitmap_merge(const HBitmap *a, const HBitmap *b, HBitmap *result)
 {
     int i;
     uint64_t j;
 
-    if ((a->size != b->size) || (a->granularity != b->granularity)) {
+    if (!hbitmap_can_merge(a, b) || !hbitmap_can_merge(a, result)) {
         return false;
     }
+    assert(hbitmap_can_merge(b, result));
 
     if (hbitmap_count(b) == 0) {
         return true;
@@ -706,9 +755,12 @@ bool hbitmap_merge(HBitmap *a, const HBitmap *b)
      */
     for (i = HBITMAP_LEVELS - 1; i >= 0; i--) {
         for (j = 0; j < a->sizes[i]; j++) {
-            a->levels[i][j] |= b->levels[i][j];
+            result->levels[i][j] = a->levels[i][j] | b->levels[i][j];
         }
     }
+
+    /* Recompute the dirty count */
+    result->count = hb_count_between(result, 0, result->size - 1);
 
     return true;
 }
