@@ -47,7 +47,7 @@ typedef struct BpfHvState_st {
     MemoryRegion io;
     unsigned int num_rings;
 
-    uint32_t ioregs[2];
+    uint32_t ioregs[BPFHV_IO_END >> 2];
 } BpfHvState;
 
 #define TYPE_BPFHV_PCI  "bpfhv-pci"

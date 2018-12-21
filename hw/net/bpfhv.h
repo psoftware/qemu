@@ -92,11 +92,17 @@ enum bpfhv_helper_id {
 	BPFHV_pkt_alloc = BPFHV_HELPER_MAGIC,
 };
 
-/* PCI device definitions */
+/* PCI device definitions, including PCI identifiers,
+ * BAR numbers, and device registers. */
 #define BPFHV_IO_PCI_BAR        0
 #define BPFHV_MSIX_PCI_BAR      1
 
-#define BPFHV_IO_MAC_LO         0
-#define BPFHV_IO_MAX_HI         4
-#define BPFHV_IO_MASK           0xff
+#define BPFHV_IO_MAC_LO             0
+#define BPFHV_IO_MAC_HI             4
+#define BPFHV_IO_NUM_RX_QUEUES      8
+#define BPFHV_IO_NUM_TX_QUEUES      12
+#define BPFHV_IO_NUM_RX_SLOTS       16
+#define BPFHV_IO_NUM_TX_SLOTS       20
+#define BPFHV_IO_END                24
+#define BPFHV_IO_MASK               0xff
 
