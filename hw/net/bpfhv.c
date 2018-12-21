@@ -29,6 +29,7 @@
 #include "qemu/iov.h"
 #include "qemu/range.h"
 #include "qapi/error.h"
+#include "bpfhv.h"
 
 #ifdef BPFHV_DEBUG
 #define DBG(fmt, ...) do { \
@@ -37,15 +38,6 @@
 #else
 #define DBG(fmt, ...) do {} while (0)
 #endif
-
-/* Shared device definitions. */
-#define BPFHV_IO_PCI_BAR        0
-#define BPFHV_MSIX_PCI_BAR   1
-
-#define BPFHV_IO_MAC_LO     0
-#define BPFHV_IO_MAX_HI     4
-#define BPFHV_IO_MASK       0xff
-/******************************/
 
 typedef struct BpfHvState_st {
     PCIDevice pci_device; /* Private field. */
