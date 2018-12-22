@@ -123,7 +123,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     pci_conf[PCI_CACHE_LINE_SIZE] = 0x10;
     pci_conf[PCI_INTERRUPT_PIN] = 1; /* interrupt pin A */
 
-    /* Init I/O mapped memory region, exposing bpfhvmap registers. */
+    /* Init I/O mapped memory region, exposing bpfhv registers. */
     memory_region_init_io(&s->io, OBJECT(s), &bpfhv_io_ops, s,
                           "bpfhv-io", BPFHV_IO_MASK + 1);
     pci_register_bar(pci_dev, BPFHV_IO_PCI_BAR,
@@ -136,7 +136,12 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     nc = qemu_get_queue(s->nic);
     qemu_format_nic_info_str(nc, s->conf.macaddr.a);
 
-    s->num_rings = 2;
+    s->ioregs[BPFHV_IO_NUM_RX_QUEUES] = 1;
+    s->ioregs[BPFHV_IO_NUM_TX_QUEUES] = 1;
+    s->ioregs[BPFHV_IO_NUM_RX_SLOTS] = 256;
+    s->ioregs[BPFHV_IO_NUM_TX_SLOTS] = 256;
+    s->num_rings = s->ioregs[BPFHV_IO_NUM_RX_QUEUES] +
+                    s->ioregs[BPFHV_IO_NUM_TX_QUEUES];
 
     /* Allocate a PCI bar to manage MSI-X information for this device. */
     if (msix_init_exclusive_bar(pci_dev, s->num_rings,
@@ -166,9 +171,10 @@ static void qdev_bpfhv_reset(DeviceState *dev)
 
     /* Init MAC address registers. */
     macaddr = s->conf.macaddr.a;
-    s->ioregs[0] = (macaddr[0] << 8) | macaddr[1];
-    s->ioregs[1] = (macaddr[2] << 24) | (macaddr[3] << 16)
+    s->ioregs[BPFHV_IO_MAC_LO] = (macaddr[0] << 8) | macaddr[1];
+    s->ioregs[BPFHV_IO_MAC_HI] = (macaddr[2] << 24) | (macaddr[3] << 16)
                                  | (macaddr[4] << 8) | macaddr[5];
+
     DBG("%s(%p)", __func__, s);
 }
 
