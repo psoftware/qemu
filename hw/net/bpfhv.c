@@ -44,21 +44,45 @@ static const char *regnames[] = {
     "MAC_HI",
     "NUM_RX_QUEUES",
     "NUM_TX_QUEUES",
-    "NUM_RX_SLOTS",
-    "NUM_TX_SLOTS",
+    "NUM_RX_BUFS",
+    "NUM_TX_BUFS",
+    "RX_CTX_SIZE",
+    "TX_CTX_SIZE",
+    "QUEUE_SELECT",
+    "CTX_PADDR_LO",
+    "CTX_PADDR_HI",
 };
 
 #define REGNAMES_LEN  (sizeof(regnames) / (sizeof(regnames[0])))
 
+typedef struct BpfHvTxQueue_st {
+    struct bpfhv_tx_context *ctx;
+} BpfHvTxQueue;
+
+typedef struct BpfHvRxQueue_st {
+    struct bpfhv_rx_context *ctx;
+} BpfHvRxQueue;
+
 typedef struct BpfHvState_st {
-    PCIDevice pci_device; /* Private field. */
+    /* Parent class. This is a private field, and it cannot be used. */
+    PCIDevice pci_device;
 
     NICState *nic;
     NICConf conf;
     MemoryRegion io;
-    unsigned int num_rings;
 
+    /* Storage for the I/O registers. */
     uint32_t ioregs[BPFHV_IO_END >> 2];
+
+    /* Total number of queues, including both receive and transmit
+     * ones. */
+    unsigned int num_queues;
+
+    /* Index of the queue currently selected by the guest. */
+    unsigned int selected_queue;
+
+    BpfHvRxQueue *rxq;
+    BpfHvTxQueue *txq;
 } BpfHvState;
 
 #define TYPE_BPFHV_PCI  "bpfhv-pci"
@@ -90,11 +114,52 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     assert(index < REGNAMES_LEN);
 
     switch (addr) {
-        default:
-            DBG("I/O write to %s ignored, val=0x%08" PRIx64,
-                regnames[index], val);
-            return;
+    case BPFHV_IO_QUEUE_SELECT:
+        if (val >= s->num_queues) {
+            DBG("Guest tried to select invalid queue "PRIx64"\n", val);
             break;
+        }
+        s->selected_queue = val;
+        break;
+
+    case BPFHV_IO_CTX_PADDR_LO:
+        s->ioregs[index] = val;
+        break;
+
+    case BPFHV_IO_CTX_PADDR_HI:
+        s->ioregs[index] = val;
+        /* A write to the most significant 32-bit word also triggers context
+         * mapping (or unmapping). */
+        {
+            hwaddr base, len;
+            void **pvaddr;
+
+            base = ((uint64_t)s->ioregs[BPFHV_IO_CTX_PADDR_HI >> 2] << 32) |
+                            s->ioregs[BPFHV_IO_CTX_PADDR_LO >> 2];
+
+            if (s->selected_queue < BPFHV_IO_NUM_RX_QUEUES) {
+                pvaddr = (void **)&s->rxq[s->selected_queue].ctx;
+                len = s->ioregs[BPFHV_IO_RX_CTX_SIZE >> 2];
+            } else {
+                pvaddr = (void **)&s->txq[s->selected_queue].ctx;
+                len = s->ioregs[BPFHV_IO_TX_CTX_SIZE >> 2];
+            }
+
+            if (*pvaddr) {
+                cpu_physical_memory_unmap(*pvaddr, len, /*is_write=*/1, len);
+                *pvaddr = NULL;
+            }
+            if (base != 0) {
+                *pvaddr = cpu_physical_memory_map(base, &len, /*is_write=*/1);
+            }
+        }
+        break;
+
+    default:
+        DBG("I/O write to %s ignored, val=0x%08" PRIx64,
+            regnames[index], val);
+        return;
+        break;
     }
 
     DBG("I/O write to %s, val=0x%08" PRIx64, regnames[index], val);
@@ -177,13 +242,16 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 
     s->ioregs[BPFHV_IO_NUM_RX_QUEUES] = 1;
     s->ioregs[BPFHV_IO_NUM_TX_QUEUES] = 1;
-    s->ioregs[BPFHV_IO_NUM_RX_SLOTS] = 256;
-    s->ioregs[BPFHV_IO_NUM_TX_SLOTS] = 256;
-    s->num_rings = s->ioregs[BPFHV_IO_NUM_RX_QUEUES] +
+    s->ioregs[BPFHV_IO_NUM_RX_BUFS] = 256;
+    s->ioregs[BPFHV_IO_NUM_TX_BUFS] = 256;
+    s->num_queues = s->ioregs[BPFHV_IO_NUM_RX_QUEUES] +
                     s->ioregs[BPFHV_IO_NUM_TX_QUEUES];
 
+    s->rxq = g_malloc0(s->ioregs[BPFHV_IO_NUM_RX_QUEUES] * sizeof(s->rxq[0]));
+    s->txq = g_malloc0(s->ioregs[BPFHV_IO_NUM_TX_QUEUES] * sizeof(s->txq[0]));
+
     /* Allocate a PCI bar to manage MSI-X information for this device. */
-    if (msix_init_exclusive_bar(pci_dev, s->num_rings,
+    if (msix_init_exclusive_bar(pci_dev, s->num_queues,
                                 BPFHV_MSIX_PCI_BAR, NULL)) {
         error_setg(errp, "Failed to initialize MSI-X BAR");
         return;
@@ -197,6 +265,8 @@ pci_bpfhv_uninit(PCIDevice *dev)
 {
     BpfHvState *s = BPFHV(dev);
 
+    g_free(s->rxq);
+    g_free(s->txq);
     msix_uninit_exclusive_bar(PCI_DEVICE(s));
     qemu_del_nic(s->nic);
 
