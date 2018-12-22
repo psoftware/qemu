@@ -39,6 +39,17 @@
 #define DBG(fmt, ...) do {} while (0)
 #endif
 
+static const char *regnames[] = {
+    "MAC_LO",
+    "MAC_HI",
+    "NUM_RX_QUEUES",
+    "NUM_TX_QUEUES",
+    "NUM_RX_SLOTS",
+    "NUM_TX_SLOTS",
+};
+
+#define REGNAMES_LEN  (sizeof(regnames) / (sizeof(regnames[0])))
+
 typedef struct BpfHvState_st {
     PCIDevice pci_device; /* Private field. */
 
@@ -65,21 +76,49 @@ static void
 bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 {
     BpfHvState *s = opaque;
+    unsigned int index;
 
-    (void)s;
-    DBG("Unknown I/O write addr=0x%08"PRIx64", val=0x%08"PRIx64,
-		    addr, val);
+    addr = addr & BPFHV_IO_MASK;
+    index = addr >> 2;
+
+    if (addr >= BPFHV_IO_END) {
+        DBG("Unknown I/O write addr=0x%08"PRIx64", val=0x%08"PRIx64,
+            addr, val);
+        return;
+    }
+
+    assert(index < REGNAMES_LEN);
+
+    switch (addr) {
+        default:
+            DBG("I/O write to %s ignored, val=0x%08" PRIx64,
+                regnames[index], val);
+            return;
+            break;
+    }
+
+    DBG("I/O write to %s, val=0x%08" PRIx64, regnames[index], val);
 }
 
 static uint64_t
 bpfhv_io_read(void *opaque, hwaddr addr, unsigned size)
 {
     BpfHvState *s = opaque;
+    unsigned int index;
 
-    (void)s;
-    DBG("Unknown I/O read addr=0x%08"PRIx64, addr);
+    addr = addr & BPFHV_IO_MASK;
+    index = addr >> 2;
 
-    return 0;
+    if (addr >= BPFHV_IO_END) {
+        DBG("Unknown I/O read addr=0x%08"PRIx64, addr);
+        return 0;
+    }
+
+    assert(index < REGNAMES_LEN);
+
+    DBG("I/O read from %s, val=0x%08x", regnames[index], s->ioregs[index]);
+
+    return s->ioregs[index];
 }
 
 static const MemoryRegionOps bpfhv_io_ops = {
