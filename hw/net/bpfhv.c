@@ -40,6 +40,7 @@
 #endif
 
 static const char *regnames[] = {
+    "STATUS",
     "MAC_LO",
     "MAC_HI",
     "NUM_RX_QUEUES",
@@ -240,10 +241,13 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     nc = qemu_get_queue(s->nic);
     qemu_format_nic_info_str(nc, s->conf.macaddr.a);
 
+    memset(s->ioregs, 0, sizeof(s->ioregs));
     s->ioregs[BPFHV_IO_NUM_RX_QUEUES] = 1;
     s->ioregs[BPFHV_IO_NUM_TX_QUEUES] = 1;
     s->ioregs[BPFHV_IO_NUM_RX_BUFS] = 256;
     s->ioregs[BPFHV_IO_NUM_TX_BUFS] = 256;
+    s->ioregs[BPFHV_IO_RX_CTX_SIZE] = sizeof(struct bpfhv_rx_context) + 1024;
+    s->ioregs[BPFHV_IO_TX_CTX_SIZE] = sizeof(struct bpfhv_tx_context) + 1024;
     s->num_queues = s->ioregs[BPFHV_IO_NUM_RX_QUEUES] +
                     s->ioregs[BPFHV_IO_NUM_TX_QUEUES];
 
