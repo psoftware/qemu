@@ -299,8 +299,8 @@ static void bpfhv_class_init(ObjectClass *klass, void *data)
 
     k->realize = pci_bpfhv_realize;
     k->exit = pci_bpfhv_uninit;
-    k->vendor_id = 0x1b36; /* QEMU virtual devices */
-    k->device_id = 0x000e;
+    k->vendor_id = BPFHV_PCI_VENDOR_ID;
+    k->device_id = BPFHV_PCI_DEVICE_ID;
     k->class_id = PCI_CLASS_NETWORK_ETHERNET;
     set_bit(DEVICE_CATEGORY_NETWORK, dc->categories);
     dc->desc = "BPF network device";
