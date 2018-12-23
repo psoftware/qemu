@@ -79,6 +79,7 @@ typedef struct BpfHvState_st {
     NICState *nic;
     NICConf conf;
     MemoryRegion io;
+    MemoryRegion progmmio;
 
     /* Storage for the I/O registers. */
     uint32_t ioregs[BPFHV_IO_END >> 2];
@@ -136,6 +137,14 @@ bpfhv_link_status_update(BpfHvState *s)
 
     DBG("Link status goes %s", new_status ? "up" : "down");
     s->ioregs[BPFHV_REG(STATUS)] ^= BPFHV_STATUS_LINK;
+}
+
+static void
+bpfhv_backend_link_status_changed(NetClientState *nc)
+{
+    BpfHvState *s = qemu_get_nic_opaque(nc);
+
+    bpfhv_link_status_update(s);
 }
 
 static void
@@ -248,14 +257,6 @@ bpfhv_io_read(void *opaque, hwaddr addr, unsigned size)
     return s->ioregs[index];
 }
 
-static void
-bpfhv_backend_link_status_changed(NetClientState *nc)
-{
-    BpfHvState *s = qemu_get_nic_opaque(nc);
-
-    bpfhv_link_status_update(s);
-}
-
 static const MemoryRegionOps bpfhv_io_ops = {
     .read = bpfhv_io_read,
     .write = bpfhv_io_write,
@@ -265,6 +266,28 @@ static const MemoryRegionOps bpfhv_io_ops = {
         .max_access_size = 4,
     },
 };
+
+static uint64_t
+bpfhv_progmmio_read(void *opaque, hwaddr addr, unsigned size)
+{
+    return 0;
+}
+
+static void
+bpfhv_progmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
+{
+}
+
+static const MemoryRegionOps bpfhv_progmmio_ops = {
+    .read = bpfhv_progmmio_read,
+    .write = bpfhv_progmmio_write,
+    .endianness = DEVICE_LITTLE_ENDIAN,
+    .impl = {
+        .min_access_size = 4,
+        .max_access_size = 4,
+    },
+};
+
 static const VMStateDescription vmstate_bpfhv = {
     .name = "bpfhv",
     .version_id = 1,
@@ -298,14 +321,8 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     pci_conf[PCI_CACHE_LINE_SIZE] = 0x10;
     pci_conf[PCI_INTERRUPT_PIN] = 1; /* interrupt pin A */
 
-    /* Init I/O mapped memory region, exposing bpfhv registers. */
-    memory_region_init_io(&s->io, OBJECT(s), &bpfhv_io_ops, s,
-                          "bpfhv-io", BPFHV_IO_MASK + 1);
-    pci_register_bar(pci_dev, BPFHV_IO_PCI_BAR,
-                     PCI_BASE_ADDRESS_SPACE_IO, &s->io);
-
+    /* Initializations related to QEMU networking. */
     qemu_macaddr_default_if_unset(&s->conf.macaddr);
-
     s->nic = qemu_new_nic(&net_bpfhv_info, &s->conf,
                           object_get_typename(OBJECT(s)), dev->id, s);
     nc = qemu_get_queue(s->nic);
@@ -336,6 +353,18 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 			* sizeof(s->rxq[0]));
     s->txq = g_malloc0(s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]
 			* sizeof(s->txq[0]));
+
+    /* Init I/O mapped memory region, exposing bpfhv registers. */
+    memory_region_init_io(&s->io, OBJECT(s), &bpfhv_io_ops, s,
+                          "bpfhv-io", BPFHV_IO_MASK + 1);
+    pci_register_bar(pci_dev, BPFHV_IO_PCI_BAR,
+                     PCI_BASE_ADDRESS_SPACE_IO, &s->io);
+
+    /* Init memory mapped memory region, to expose eBPF programs. */
+    memory_region_init_io(&s->progmmio, OBJECT(s), &bpfhv_progmmio_ops,
+			  s, "bpfhv-prog", BPFHV_PROG_SIZE_MAX * 8);
+    pci_register_bar(pci_dev, BPFHV_PROG_PCI_BAR,
+                     PCI_BASE_ADDRESS_SPACE_MEMORY, &s->progmmio);
 
     /* Allocate a PCI bar to manage MSI-X information for this device. */
     if (msix_init_exclusive_bar(pci_dev, s->num_queues,
