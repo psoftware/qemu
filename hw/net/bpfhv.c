@@ -91,7 +91,7 @@ typedef struct BpfHvState_st {
     unsigned int selected_queue;
 
     /* eBPF programs associated to this device. */
-    BpfHvProg progs[5];
+    BpfHvProg progs[BPFHV_PROG_MAX];
 
     BpfHvRxQueue *rxq;
     BpfHvTxQueue *txq;
@@ -209,7 +209,7 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         break;
 
     case BPFHV_IO_PROG_SELECT:
-        if (BPFHV_PROG_TX_PUBLISH <= val && val <= BPFHV_PROG_RX_COMPLETE) {
+        if (val < BPFHV_PROG_MAX) {
             s->ioregs[index] = val;
             s->ioregs[BPFHV_IO_PROG_SIZE >> 2] = s->progs[val].num_insns;
         }
@@ -322,7 +322,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
                     s->ioregs[BPFHV_IO_NUM_TX_QUEUES];
 
     /* Initialize eBPF programs. */
-    for (i = BPFHV_PROG_TX_PUBLISH; i <= BPFHV_PROG_RX_COMPLETE; i++) {
+    for (i = BPFHV_PROG_NONE; i < BPFHV_PROG_MAX; i++) {
         s->progs[i].num_insns = 0;
         s->progs[i].insns = NULL;
     }
