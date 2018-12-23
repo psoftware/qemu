@@ -87,9 +87,6 @@ typedef struct BpfHvState_st {
      * ones. */
     unsigned int num_queues;
 
-    /* Index of the queue currently selected by the guest. */
-    unsigned int selected_queue;
-
     /* eBPF programs associated to this device. */
     BpfHvProg progs[BPFHV_PROG_MAX];
 
@@ -144,17 +141,18 @@ bpfhv_link_status_update(BpfHvState *s)
 static void
 bpfhv_ctx_remap(BpfHvState *s)
 {
+    unsigned int qsel = s->ioregs[BPFHV_REG(QUEUE_SELECT)];
     hwaddr base, len;
     void **pvaddr;
 
     base = ((uint64_t)s->ioregs[BPFHV_REG(CTX_PADDR_HI)] << 32) |
                     s->ioregs[BPFHV_REG(CTX_PADDR_LO)];
 
-    if (s->selected_queue < BPFHV_IO_NUM_RX_QUEUES) {
-        pvaddr = (void **)&s->rxq[s->selected_queue].ctx;
+    if (qsel < BPFHV_IO_NUM_RX_QUEUES) {
+        pvaddr = (void **)&s->rxq[qsel].ctx;
         len = s->ioregs[BPFHV_REG(RX_CTX_SIZE)];
     } else {
-        pvaddr = (void **)&s->txq[s->selected_queue].ctx;
+        pvaddr = (void **)&s->txq[qsel].ctx;
         len = s->ioregs[BPFHV_REG(TX_CTX_SIZE)];
     }
 
@@ -193,11 +191,10 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     switch (addr) {
     case BPFHV_IO_QUEUE_SELECT:
         if (val >= s->num_queues) {
-            DBG("Guest tried to select invalid queue "PRIx64"\n", val);
+            DBG("Guest tried to select invalid queue #"PRIx64"\n", val);
             break;
         }
-        s->selected_queue = val;
-        // TODO remove selected_queue
+        s->ioregs[index] = val;
         break;
 
     case BPFHV_IO_CTX_PADDR_LO:
@@ -212,10 +209,12 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         break;
 
     case BPFHV_IO_PROG_SELECT:
-        if (val < BPFHV_PROG_MAX) {
-            s->ioregs[index] = val;
-            s->ioregs[BPFHV_REG(PROG_SIZE)] = s->progs[val].num_insns;
+        if (val >= BPFHV_PROG_MAX) {
+            DBG("Guest tried to select invalid program #"PRIx64"\n", val);
+            break;
         }
+        s->ioregs[index] = val;
+        s->ioregs[BPFHV_REG(PROG_SIZE)] = s->progs[val].num_insns;
         break;
 
     default:
