@@ -97,6 +97,69 @@ bpfhv_receive(NetClientState *nc, const uint8_t *buf, size_t size)
     return size;
 }
 
+/* Device link status is up iff all the contexts are valid and
+ * the network backend is up. */
+static void
+bpfhv_link_status_update(BpfHvState *s)
+{
+    bool status = !!(s->ioregs[BPFHV_IO_STATUS] & BPFHV_STATUS_LINK);
+    bool new_status = true;
+    int i;
+
+    for (i = 0; i < s->ioregs[BPFHV_IO_NUM_RX_QUEUES]; i++) {
+        if (s->rxq[i].ctx == NULL) {
+            new_status = false;
+            break;
+        }
+    }
+
+    for (i = 0; i < s->ioregs[BPFHV_IO_NUM_TX_QUEUES]; i++) {
+        if (s->txq[i].ctx == NULL) {
+            new_status = false;
+            break;
+        }
+    }
+
+    if (new_status == status) {
+        return;
+    }
+
+    DBG("Link status goes %s", new_status ? "up" : "down");
+    s->ioregs[BPFHV_IO_STATUS] ^= BPFHV_STATUS_LINK;
+}
+
+static void
+bpfhv_ctx_remap(BpfHvState *s)
+{
+    hwaddr base, len;
+    void **pvaddr;
+
+    base = ((uint64_t)s->ioregs[BPFHV_IO_CTX_PADDR_HI >> 2] << 32) |
+                    s->ioregs[BPFHV_IO_CTX_PADDR_LO >> 2];
+
+    if (s->selected_queue < BPFHV_IO_NUM_RX_QUEUES) {
+        pvaddr = (void **)&s->rxq[s->selected_queue].ctx;
+        len = s->ioregs[BPFHV_IO_RX_CTX_SIZE >> 2];
+    } else {
+        pvaddr = (void **)&s->txq[s->selected_queue].ctx;
+        len = s->ioregs[BPFHV_IO_TX_CTX_SIZE >> 2];
+    }
+
+    /* Unmap the previous context, if any. */
+    if (*pvaddr) {
+        cpu_physical_memory_unmap(*pvaddr, len, /*is_write=*/1, len);
+        *pvaddr = NULL;
+    }
+
+    /* Map the new context if it is provided. */
+    if (base != 0) {
+        *pvaddr = cpu_physical_memory_map(base, &len, /*is_write=*/1);
+    }
+
+    /* Possibly update link status. */
+    bpfhv_link_status_update(s);
+}
+
 static void
 bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 {
@@ -131,29 +194,7 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         s->ioregs[index] = val;
         /* A write to the most significant 32-bit word also triggers context
          * mapping (or unmapping). */
-        {
-            hwaddr base, len;
-            void **pvaddr;
-
-            base = ((uint64_t)s->ioregs[BPFHV_IO_CTX_PADDR_HI >> 2] << 32) |
-                            s->ioregs[BPFHV_IO_CTX_PADDR_LO >> 2];
-
-            if (s->selected_queue < BPFHV_IO_NUM_RX_QUEUES) {
-                pvaddr = (void **)&s->rxq[s->selected_queue].ctx;
-                len = s->ioregs[BPFHV_IO_RX_CTX_SIZE >> 2];
-            } else {
-                pvaddr = (void **)&s->txq[s->selected_queue].ctx;
-                len = s->ioregs[BPFHV_IO_TX_CTX_SIZE >> 2];
-            }
-
-            if (*pvaddr) {
-                cpu_physical_memory_unmap(*pvaddr, len, /*is_write=*/1, len);
-                *pvaddr = NULL;
-            }
-            if (base != 0) {
-                *pvaddr = cpu_physical_memory_map(base, &len, /*is_write=*/1);
-            }
-        }
+        bpfhv_ctx_remap(s);
         break;
 
     default:
