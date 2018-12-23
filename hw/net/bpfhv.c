@@ -64,6 +64,9 @@ typedef struct BpfHvProg_st {
     uint8_t *insns;
 } BpfHvProg;
 
+/* Each eBPF instruction is 8 bytes wide. */
+#define BPF_INSN_SIZE   8
+
 typedef struct BpfHvTxQueue_st {
     struct bpfhv_tx_context *ctx;
 } BpfHvTxQueue;
@@ -283,7 +286,7 @@ bpfhv_progmmio_read(void *opaque, hwaddr addr, unsigned size)
 
     prog = &s->progs[progsel];
 
-    if (addr + size > prog->num_insns * 8) {
+    if (addr + size > prog->num_insns * BPF_INSN_SIZE) {
         DBG("Out of bounds prog I/O read, addr=0x%08"PRIx64, addr);
         return 0;
     }
@@ -379,8 +382,8 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
                      PCI_BASE_ADDRESS_SPACE_IO, &s->io);
 
     /* Init memory mapped memory region, to expose eBPF programs. */
-    memory_region_init_io(&s->progmmio, OBJECT(s), &bpfhv_progmmio_ops,
-			  s, "bpfhv-prog", BPFHV_PROG_SIZE_MAX * 8);
+    memory_region_init_io(&s->progmmio, OBJECT(s), &bpfhv_progmmio_ops, s,
+                          "bpfhv-prog", BPFHV_PROG_SIZE_MAX * BPF_INSN_SIZE);
     pci_register_bar(pci_dev, BPFHV_PROG_PCI_BAR,
                      PCI_BASE_ADDRESS_SPACE_MEMORY, &s->progmmio);
 
