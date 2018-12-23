@@ -49,6 +49,7 @@ static const char *regnames[] = {
     "NUM_TX_BUFS",
     "RX_CTX_SIZE",
     "TX_CTX_SIZE",
+    "DOORBELL_SIZE",
     "QUEUE_SELECT",
     "CTX_PADDR_LO",
     "CTX_PADDR_HI",
@@ -296,6 +297,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->ioregs[BPFHV_IO_NUM_TX_BUFS] = 256;
     s->ioregs[BPFHV_IO_RX_CTX_SIZE] = sizeof(struct bpfhv_rx_context) + 1024;
     s->ioregs[BPFHV_IO_TX_CTX_SIZE] = sizeof(struct bpfhv_tx_context) + 1024;
+    s->ioregs[BPFHV_IO_DOORBELL_SIZE] = 8; /* could be 4096 */
     s->num_queues = s->ioregs[BPFHV_IO_NUM_RX_QUEUES] +
                     s->ioregs[BPFHV_IO_NUM_TX_QUEUES];
 
