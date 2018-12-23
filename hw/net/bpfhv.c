@@ -98,25 +98,24 @@ bpfhv_receive(NetClientState *nc, const uint8_t *buf, size_t size)
 }
 
 /* Device link status is up iff all the contexts are valid and
- * the network backend is up. */
+ * the network backend link status is up. */
 static void
 bpfhv_link_status_update(BpfHvState *s)
 {
     bool status = !!(s->ioregs[BPFHV_IO_STATUS] & BPFHV_STATUS_LINK);
-    bool new_status = true;
+    NetClientState *nc = qemu_get_queue(s->nic);
+    bool new_status = !(nc->link_down);
     int i;
 
-    for (i = 0; i < s->ioregs[BPFHV_IO_NUM_RX_QUEUES]; i++) {
+    for (i = 0; i < s->ioregs[BPFHV_IO_NUM_RX_QUEUES] && new_status; i++) {
         if (s->rxq[i].ctx == NULL) {
             new_status = false;
-            break;
         }
     }
 
-    for (i = 0; i < s->ioregs[BPFHV_IO_NUM_TX_QUEUES]; i++) {
+    for (i = 0; i < s->ioregs[BPFHV_IO_NUM_TX_QUEUES] && new_status; i++) {
         if (s->txq[i].ctx == NULL) {
             new_status = false;
-            break;
         }
     }
 
@@ -228,6 +227,14 @@ bpfhv_io_read(void *opaque, hwaddr addr, unsigned size)
     return s->ioregs[index];
 }
 
+static void
+bpfhv_backend_link_status_changed(NetClientState *nc)
+{
+    BpfHvState *s = qemu_get_nic_opaque(nc);
+
+    bpfhv_link_status_update(s);
+}
+
 static const MemoryRegionOps bpfhv_io_ops = {
     .read = bpfhv_io_read,
     .write = bpfhv_io_write,
@@ -237,7 +244,6 @@ static const MemoryRegionOps bpfhv_io_ops = {
         .max_access_size = 4,
     },
 };
-
 static const VMStateDescription vmstate_bpfhv = {
     .name = "bpfhv",
     .version_id = 1,
@@ -255,6 +261,7 @@ static NetClientInfo net_bpfhv_info = {
     .type = NET_CLIENT_DRIVER_NIC,
     .size = sizeof(NICState),
     .receive = bpfhv_receive,
+    .link_status_changed = bpfhv_backend_link_status_changed,
 };
 
 static void
