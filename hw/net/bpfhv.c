@@ -113,18 +113,18 @@ bpfhv_receive(NetClientState *nc, const uint8_t *buf, size_t size)
 static void
 bpfhv_link_status_update(BpfHvState *s)
 {
-    bool status = !!(s->ioregs[BPFHV_IO_STATUS] & BPFHV_STATUS_LINK);
+    bool status = !!(s->ioregs[BPFHV_IO_STATUS >> 2] & BPFHV_STATUS_LINK);
     NetClientState *nc = qemu_get_queue(s->nic);
     bool new_status = !(nc->link_down);
     int i;
 
-    for (i = 0; i < s->ioregs[BPFHV_IO_NUM_RX_QUEUES] && new_status; i++) {
+    for (i = 0; i < s->ioregs[BPFHV_IO_NUM_RX_QUEUES >> 2] && new_status; i++) {
         if (s->rxq[i].ctx == NULL) {
             new_status = false;
         }
     }
 
-    for (i = 0; i < s->ioregs[BPFHV_IO_NUM_TX_QUEUES] && new_status; i++) {
+    for (i = 0; i < s->ioregs[BPFHV_IO_NUM_TX_QUEUES >> 2] && new_status; i++) {
         if (s->txq[i].ctx == NULL) {
             new_status = false;
         }
@@ -135,7 +135,7 @@ bpfhv_link_status_update(BpfHvState *s)
     }
 
     DBG("Link status goes %s", new_status ? "up" : "down");
-    s->ioregs[BPFHV_IO_STATUS] ^= BPFHV_STATUS_LINK;
+    s->ioregs[BPFHV_IO_STATUS >> 2] ^= BPFHV_STATUS_LINK;
 }
 
 static void
@@ -311,15 +311,17 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 
     /* Initialize device registers. */
     memset(s->ioregs, 0, sizeof(s->ioregs));
-    s->ioregs[BPFHV_IO_NUM_RX_QUEUES] = 1;
-    s->ioregs[BPFHV_IO_NUM_TX_QUEUES] = 1;
-    s->ioregs[BPFHV_IO_NUM_RX_BUFS] = 256;
-    s->ioregs[BPFHV_IO_NUM_TX_BUFS] = 256;
-    s->ioregs[BPFHV_IO_RX_CTX_SIZE] = sizeof(struct bpfhv_rx_context) + 1024;
-    s->ioregs[BPFHV_IO_TX_CTX_SIZE] = sizeof(struct bpfhv_tx_context) + 1024;
-    s->ioregs[BPFHV_IO_DOORBELL_SIZE] = 8; /* could be 4096 */
-    s->num_queues = s->ioregs[BPFHV_IO_NUM_RX_QUEUES] +
-                    s->ioregs[BPFHV_IO_NUM_TX_QUEUES];
+    s->ioregs[BPFHV_IO_NUM_RX_QUEUES >> 2] = 1;
+    s->ioregs[BPFHV_IO_NUM_TX_QUEUES >> 2] = 1;
+    s->ioregs[BPFHV_IO_NUM_RX_BUFS >> 2] = 256;
+    s->ioregs[BPFHV_IO_NUM_TX_BUFS >> 2] = 256;
+    s->ioregs[BPFHV_IO_RX_CTX_SIZE >> 2] = sizeof(struct bpfhv_rx_context)
+						+ 1024;
+    s->ioregs[BPFHV_IO_TX_CTX_SIZE >> 2] = sizeof(struct bpfhv_tx_context)
+						+ 1024;
+    s->ioregs[BPFHV_IO_DOORBELL_SIZE >> 2] = 8; /* could be 4096 */
+    s->num_queues = s->ioregs[BPFHV_IO_NUM_RX_QUEUES >> 2] +
+                    s->ioregs[BPFHV_IO_NUM_TX_QUEUES >> 2];
 
     /* Initialize eBPF programs. */
     for (i = BPFHV_PROG_NONE; i < BPFHV_PROG_MAX; i++) {
@@ -328,8 +330,10 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     }
 
     /* Initialize device queues. */
-    s->rxq = g_malloc0(s->ioregs[BPFHV_IO_NUM_RX_QUEUES] * sizeof(s->rxq[0]));
-    s->txq = g_malloc0(s->ioregs[BPFHV_IO_NUM_TX_QUEUES] * sizeof(s->txq[0]));
+    s->rxq = g_malloc0(s->ioregs[BPFHV_IO_NUM_RX_QUEUES >> 2]
+			* sizeof(s->rxq[0]));
+    s->txq = g_malloc0(s->ioregs[BPFHV_IO_NUM_TX_QUEUES >> 2]
+			* sizeof(s->txq[0]));
 
     /* Allocate a PCI bar to manage MSI-X information for this device. */
     if (msix_init_exclusive_bar(pci_dev, s->num_queues,
@@ -361,8 +365,8 @@ static void qdev_bpfhv_reset(DeviceState *dev)
 
     /* Init MAC address registers. */
     macaddr = s->conf.macaddr.a;
-    s->ioregs[BPFHV_IO_MAC_LO] = (macaddr[0] << 8) | macaddr[1];
-    s->ioregs[BPFHV_IO_MAC_HI] = (macaddr[2] << 24) | (macaddr[3] << 16)
+    s->ioregs[BPFHV_IO_MAC_LO >> 2] = (macaddr[0] << 8) | macaddr[1];
+    s->ioregs[BPFHV_IO_MAC_HI >> 2] = (macaddr[2] << 24) | (macaddr[3] << 16)
                                  | (macaddr[4] << 8) | macaddr[5];
 
     DBG("%s(%p)", __func__, s);
