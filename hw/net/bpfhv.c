@@ -1,5 +1,5 @@
 /*
- * BPF paravirtual network device
+ * BPFHV paravirtual network device
  *
  * Copyright (c) 2018 Vincenzo Maffione <v.maffione@gmail.com>
  *
@@ -53,9 +53,16 @@ static const char *regnames[] = {
     "QUEUE_SELECT",
     "CTX_PADDR_LO",
     "CTX_PADDR_HI",
+    "PROG_SELECT",
+    "PROG_SIZE",
 };
 
 #define REGNAMES_LEN  (sizeof(regnames) / (sizeof(regnames[0])))
+
+typedef struct BpfHvProg_st {
+    unsigned int num_insns;
+    uint8_t *insns;
+} BpfHvProg;
 
 typedef struct BpfHvTxQueue_st {
     struct bpfhv_tx_context *ctx;
@@ -82,6 +89,9 @@ typedef struct BpfHvState_st {
 
     /* Index of the queue currently selected by the guest. */
     unsigned int selected_queue;
+
+    /* eBPF programs associated to this device. */
+    BpfHvProg progs[5];
 
     BpfHvRxQueue *rxq;
     BpfHvTxQueue *txq;
@@ -184,6 +194,7 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
             break;
         }
         s->selected_queue = val;
+        // TODO remove selected_queue
         break;
 
     case BPFHV_IO_CTX_PADDR_LO:
@@ -195,6 +206,13 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         /* A write to the most significant 32-bit word also triggers context
          * mapping (or unmapping). */
         bpfhv_ctx_remap(s);
+        break;
+
+    case BPFHV_IO_PROG_SELECT:
+        if (BPFHV_PROG_TX_PUBLISH <= val && val <= BPFHV_PROG_RX_COMPLETE) {
+            s->ioregs[index] = val;
+            s->ioregs[BPFHV_IO_PROG_SIZE >> 2] = s->progs[val].num_insns;
+        }
         break;
 
     default:
@@ -272,6 +290,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     BpfHvState *s = BPFHV(pci_dev);
     NetClientState *nc;
     uint8_t *pci_conf;
+    int i;
 
     pci_conf = pci_dev->config;
     pci_conf[PCI_CACHE_LINE_SIZE] = 0x10;
@@ -290,6 +309,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     nc = qemu_get_queue(s->nic);
     qemu_format_nic_info_str(nc, s->conf.macaddr.a);
 
+    /* Initialize device registers. */
     memset(s->ioregs, 0, sizeof(s->ioregs));
     s->ioregs[BPFHV_IO_NUM_RX_QUEUES] = 1;
     s->ioregs[BPFHV_IO_NUM_TX_QUEUES] = 1;
@@ -301,6 +321,13 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->num_queues = s->ioregs[BPFHV_IO_NUM_RX_QUEUES] +
                     s->ioregs[BPFHV_IO_NUM_TX_QUEUES];
 
+    /* Initialize eBPF programs. */
+    for (i = BPFHV_PROG_TX_PUBLISH; i <= BPFHV_PROG_RX_COMPLETE; i++) {
+        s->progs[i].num_insns = 0;
+        s->progs[i].insns = NULL;
+    }
+
+    /* Initialize device queues. */
     s->rxq = g_malloc0(s->ioregs[BPFHV_IO_NUM_RX_QUEUES] * sizeof(s->rxq[0]));
     s->txq = g_malloc0(s->ioregs[BPFHV_IO_NUM_TX_QUEUES] * sizeof(s->txq[0]));
 
