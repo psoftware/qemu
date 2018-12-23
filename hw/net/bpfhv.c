@@ -270,19 +270,37 @@ static const MemoryRegionOps bpfhv_io_ops = {
 static uint64_t
 bpfhv_progmmio_read(void *opaque, hwaddr addr, unsigned size)
 {
-    return 0;
-}
+    BpfHvState *s = opaque;
+    unsigned int progsel;
+    BpfHvProg *prog;
+    uint32_t *readp;
 
-static void
-bpfhv_progmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
-{
+    progsel = s->ioregs[BPFHV_REG(PROG_SELECT)];
+    if (progsel <= BPFHV_PROG_NONE || progsel >= BPFHV_PROG_MAX) {
+        DBG("Prog I/O read from unselected program, addr=0x%08"PRIx64, addr);
+        return 0;
+    }
+
+    prog = &s->progs[progsel];
+
+    if (addr + size > prog->num_insns * 8) {
+        DBG("Out of bounds prog I/O read, addr=0x%08"PRIx64, addr);
+        return 0;
+    }
+
+    readp = (uint32_t *)(prog->insns + addr);
+
+    return *readp;
 }
 
 static const MemoryRegionOps bpfhv_progmmio_ops = {
     .read = bpfhv_progmmio_read,
-    .write = bpfhv_progmmio_write,
+    .write = NULL, /* this is a read-only region */
     .endianness = DEVICE_LITTLE_ENDIAN,
     .impl = {
+	/* These are only limitations of the emulation code, and they are not
+	 * visible to the guest, which can still perform larger or shorter
+	 * writes. See description of 'impl' and 'valid' fields. */
         .min_access_size = 4,
         .max_access_size = 4,
     },
