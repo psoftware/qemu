@@ -57,11 +57,9 @@ static const char *regnames[] = {
     "PROG_SIZE",
 };
 
-#define REGNAMES_LEN  (sizeof(regnames) / (sizeof(regnames[0])))
-
 typedef struct BpfHvProg_st {
     unsigned int num_insns;
-    uint8_t *insns;
+    uint64_t *insns;
 } BpfHvProg;
 
 /* Each eBPF instruction is 8 bytes wide. */
@@ -150,6 +148,13 @@ bpfhv_backend_link_status_changed(NetClientState *nc)
     bpfhv_link_status_update(s);
 }
 
+static NetClientInfo net_bpfhv_info = {
+    .type = NET_CLIENT_DRIVER_NIC,
+    .size = sizeof(NICState),
+    .receive = bpfhv_receive,
+    .link_status_changed = bpfhv_backend_link_status_changed,
+};
+
 static void
 bpfhv_ctx_remap(BpfHvState *s)
 {
@@ -198,7 +203,7 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         return;
     }
 
-    assert(index < REGNAMES_LEN);
+    assert(index < ARRAY_SIZE(regnames));
 
     switch (addr) {
     case BPFHV_IO_QUEUE_SELECT:
@@ -253,7 +258,7 @@ bpfhv_io_read(void *opaque, hwaddr addr, unsigned size)
         return 0;
     }
 
-    assert(index < REGNAMES_LEN);
+    assert(index < ARRAY_SIZE(regnames));
 
     DBG("I/O read from %s, val=0x%08x", regnames[index], s->ioregs[index]);
 
@@ -291,7 +296,7 @@ bpfhv_progmmio_read(void *opaque, hwaddr addr, unsigned size)
         return 0;
     }
 
-    readp = (uint32_t *)(prog->insns + addr);
+    readp = (uint32_t *)(((uint8_t *)prog->insns) + addr);
 
     return *readp;
 }
@@ -309,25 +314,16 @@ static const MemoryRegionOps bpfhv_progmmio_ops = {
     },
 };
 
-static const VMStateDescription vmstate_bpfhv = {
-    .name = "bpfhv",
-    .version_id = 1,
-    .minimum_version_id = 1,
-    .fields = (VMStateField[]) {
-        VMSTATE_PCI_DEVICE(pci_device, BpfHvState),
-        VMSTATE_UINT32(ioregs[0], BpfHvState),
-        VMSTATE_END_OF_LIST()
-    }
-};
-
-/* PCI interface */
-
-static NetClientInfo net_bpfhv_info = {
-    .type = NET_CLIENT_DRIVER_NIC,
-    .size = sizeof(NICState),
-    .receive = bpfhv_receive,
-    .link_status_changed = bpfhv_backend_link_status_changed,
-};
+/* eBPF programs, just hardcoded for now. */
+static uint64_t bpfhv_txp_prog[] = {0x3501279,0x100000207,0x350217b,
+                                    0x20bf,0x95};
+static uint64_t bpfhv_txc_prog[] = {0x3501079,0x3581279,0x2205d,0xb7,
+                                    0x95,0x100000207,0x358217b,0x1000000b7,
+                                    0x95};
+static uint64_t bpfhv_rxp_prog[] = {0xb7,0x95};
+static uint64_t bpfhv_rxc_prog[] = {0x16bf,0x5506279,0x20225,0xb7,0x95,
+                                    0x100000217,0x550267b,0x4b8f000000000085,
+                                    0x100c5,0x1000000b7,0x95};
 
 static void
 pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
@@ -336,7 +332,6 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     BpfHvState *s = BPFHV(pci_dev);
     NetClientState *nc;
     uint8_t *pci_conf;
-    int i;
 
     pci_conf = pci_dev->config;
     pci_conf[PCI_CACHE_LINE_SIZE] = 0x10;
@@ -364,10 +359,16 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
                     s->ioregs[BPFHV_REG(NUM_TX_QUEUES)];
 
     /* Initialize eBPF programs. */
-    for (i = BPFHV_PROG_NONE; i < BPFHV_PROG_MAX; i++) {
-        s->progs[i].num_insns = 0;
-        s->progs[i].insns = NULL;
-    }
+    s->progs[BPFHV_PROG_NONE].insns = NULL;
+    s->progs[BPFHV_PROG_NONE].num_insns = 0;
+    s->progs[BPFHV_PROG_TX_PUBLISH].insns = bpfhv_txp_prog;
+    s->progs[BPFHV_PROG_TX_PUBLISH].num_insns = ARRAY_SIZE(bpfhv_txp_prog);
+    s->progs[BPFHV_PROG_TX_COMPLETE].insns = bpfhv_txc_prog;
+    s->progs[BPFHV_PROG_TX_COMPLETE].num_insns = ARRAY_SIZE(bpfhv_txc_prog);
+    s->progs[BPFHV_PROG_RX_PUBLISH].insns = bpfhv_rxp_prog;
+    s->progs[BPFHV_PROG_RX_PUBLISH].num_insns = ARRAY_SIZE(bpfhv_rxp_prog);
+    s->progs[BPFHV_PROG_RX_COMPLETE].insns = bpfhv_rxc_prog;
+    s->progs[BPFHV_PROG_RX_COMPLETE].num_insns = ARRAY_SIZE(bpfhv_rxc_prog);
 
     /* Initialize device queues. */
     s->rxq = g_malloc0(s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]
@@ -423,6 +424,17 @@ static void qdev_bpfhv_reset(DeviceState *dev)
 
     DBG("%s(%p)", __func__, s);
 }
+
+static const VMStateDescription vmstate_bpfhv = {
+    .name = "bpfhv",
+    .version_id = 1,
+    .minimum_version_id = 1,
+    .fields = (VMStateField[]) {
+        VMSTATE_PCI_DEVICE(pci_device, BpfHvState),
+        VMSTATE_UINT32(ioregs[0], BpfHvState),
+        VMSTATE_END_OF_LIST()
+    }
+};
 
 static Property bpfhv_properties[] = {
     DEFINE_NIC_PROPERTIES(BpfHvState, conf),
