@@ -162,10 +162,10 @@ bpfhv_ctx_remap(BpfHvState *s)
     hwaddr base, len;
     void **pvaddr;
 
-    base = ((uint64_t)s->ioregs[BPFHV_REG(CTX_PADDR_HI)] << 32) |
-                    s->ioregs[BPFHV_REG(CTX_PADDR_LO)];
+    base = (((uint64_t)s->ioregs[BPFHV_REG(CTX_PADDR_HI)]) << 32ULL) |
+                    (uint64_t)s->ioregs[BPFHV_REG(CTX_PADDR_LO)];
 
-    if (qsel < BPFHV_IO_NUM_RX_QUEUES) {
+    if (qsel < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]) {
         pvaddr = (void **)&s->rxq[qsel].ctx;
         len = s->ioregs[BPFHV_REG(RX_CTX_SIZE)];
     } else {
@@ -182,6 +182,8 @@ bpfhv_ctx_remap(BpfHvState *s)
     /* Map the new context if it is provided. */
     if (base != 0) {
         *pvaddr = cpu_physical_memory_map(base, &len, /*is_write=*/1);
+        DBG("GPA %llx (%llu) mapped at HVA %p\n",
+               (unsigned long long)base, (unsigned long long)len, *pvaddr);
     }
 
     /* Possibly update link status. */
