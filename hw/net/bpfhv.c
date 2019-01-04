@@ -210,7 +210,7 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     switch (addr) {
     case BPFHV_IO_QUEUE_SELECT:
         if (val >= s->num_queues) {
-            DBG("Guest tried to select invalid queue #"PRIx64"\n", val);
+            DBG("Guest tried to select invalid queue #%"PRIx64"\n", val);
             break;
         }
         s->ioregs[index] = val;
@@ -229,7 +229,7 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 
     case BPFHV_IO_PROG_SELECT:
         if (val >= BPFHV_PROG_MAX) {
-            DBG("Guest tried to select invalid program #"PRIx64"\n", val);
+            DBG("Guest tried to select invalid program #%"PRIx64"\n", val);
             break;
         }
         s->ioregs[index] = val;
