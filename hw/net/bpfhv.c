@@ -55,6 +55,8 @@ static const char *regnames[] = {
     "CTX_PADDR_HI",
     "PROG_SELECT",
     "PROG_SIZE",
+    "DOORBELL_GVA_LO",
+    "DOORBELL_GVA_HI",
 };
 
 typedef struct BpfHvProg_st {
@@ -217,6 +219,8 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         s->ioregs[index] = val;
         break;
 
+    case BPFHV_IO_DOORBELL_GVA_LO:
+    case BPFHV_IO_DOORBELL_GVA_HI:
     case BPFHV_IO_CTX_PADDR_LO:
         s->ioregs[index] = val;
         break;
