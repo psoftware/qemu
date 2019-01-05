@@ -348,6 +348,8 @@ curses=""
 docs=""
 fdt=""
 netmap="no"
+elf=""
+bpfhv=""
 sdl=""
 sdl_image=""
 virtfs=""
@@ -3343,6 +3345,31 @@ EOF
       feature_not_found "netmap"
     fi
     netmap=no
+  fi
+fi
+
+##########################################
+# libelf library probe
+if test "$bpfhv" != "no" ; then
+  elf_libs="-lelf"
+  cat > $TMPC << EOF
+#include <libelf.h>
+#include <gelf.h>
+int main(void)
+{
+    return elf_begin(0, ELF_C_READ, 0);
+}
+EOF
+  if compile_prog "" "$elf_libs" ; then
+    elf=yes
+    bpfhv=yes
+    libs_tools="$elf_libs $libs_tools"
+  else
+    if test "$elf" = "yes" ; then
+      feature_not_found "elf" "Install libelf devel"
+    fi
+    elf=no
+    bpfhv=no
   fi
 fi
 
@@ -6352,6 +6379,8 @@ echo "Documentation     $docs"
 echo "PIE               $pie"
 echo "vde support       $vde"
 echo "netmap support    $netmap"
+echo "libelf support    $elf"
+echo "bpfhv support     $bpfhv"
 echo "Linux AIO support $linux_aio"
 echo "ATTR/XATTR support $attr"
 echo "Install blobs     $blobs"
@@ -6580,6 +6609,12 @@ if test "$vde" = "yes" ; then
 fi
 if test "$netmap" = "yes" ; then
   echo "CONFIG_NETMAP=y" >> $config_host_mak
+fi
+if test "$elf" = "yes" ; then
+  echo "CONFIG_LIBELF=y" >> $config_host_mak
+fi
+if test "$bpfhv" = "yes" ; then
+  echo "CONFIG_BPFHV=y" >> $config_host_mak
 fi
 if test "$l2tpv3" = "yes" ; then
   echo "CONFIG_L2TPV3=y" >> $config_host_mak

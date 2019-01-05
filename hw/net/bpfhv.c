@@ -29,7 +29,12 @@
 #include "qemu/iov.h"
 #include "qemu/range.h"
 #include "qapi/error.h"
+
+#include <libelf.h>
+#include <gelf.h>
+
 #include "bpfhv.h"
+#include "bpfhv_sring.h"
 
 #define BPFHV_DEBUG
 #ifdef BPFHV_DEBUG
