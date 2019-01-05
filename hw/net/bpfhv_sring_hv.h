@@ -1,6 +1,6 @@
 /*
  * BPFHV paravirtual network device
- *   Definitions shared between the sring eBPF programs and the
+ *   Definitions shared between the device emulation and the
  *   sring hv implementation.
  *
  * Copyright (c) 2018 Vincenzo Maffione <v.maffione@gmail.com>
@@ -19,33 +19,21 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __BPFHV_SRING_H__
-#define __BPFHV_SRING_H__
+#ifndef __BPFHV_SRING_HV_H__
+#define __BPFHV_SRING_HV_H__
 
-#include <stdint.h>
+static inline size_t
+sring_tx_ctx_size(unsigned int num_tx_bufs)
+{
+    return sizeof(struct sring_tx_context) +
+	num_tx_bufs * sizeof(struct sring_tx_desc);
+}
 
-struct sring_tx_desc {
-    uint64_t paddr;
-    uint32_t len;
-    uint32_t flags;
-};
+static inline size_t
+sring_rx_ctx_size(unsigned int num_rx_bufs)
+{
+    return sizeof(struct sring_rx_context) +
+	num_rx_bufs * sizeof(struct sring_rx_desc);
+}
 
-struct sring_tx_context {
-    uint32_t tail;
-    uint32_t head;
-    struct sring_tx_desc desc[0];
-};
-
-struct sring_rx_desc {
-    uint64_t paddr;
-    uint32_t len;
-    uint32_t flags;
-};
-
-struct sring_rx_context {
-    uint32_t tail;
-    uint32_t head;
-    struct sring_rx_desc desc[0];
-};
-
-#endif  /* __BPFHV_SRING_H__ */
+#endif  /*__BPFHV_SRING_HV_H__ */

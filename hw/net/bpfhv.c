@@ -1,5 +1,6 @@
 /*
  * BPFHV paravirtual network device
+ *   Device emulation main functionalities
  *
  * Copyright (c) 2018 Vincenzo Maffione <v.maffione@gmail.com>
  *
@@ -35,6 +36,7 @@
 
 #include "bpfhv.h"
 #include "bpfhv_sring.h"
+#include "bpfhv_sring_hv.h"
 
 #define BPFHV_DEBUG
 #ifdef BPFHV_DEBUG
@@ -407,9 +409,9 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->ioregs[BPFHV_REG(NUM_RX_BUFS)] = 256;
     s->ioregs[BPFHV_REG(NUM_TX_BUFS)] = 256;
     s->ioregs[BPFHV_REG(RX_CTX_SIZE)] = sizeof(struct bpfhv_rx_context)
-						+ 1024;
+        + sring_rx_ctx_size(s->ioregs[BPFHV_REG(NUM_RX_BUFS)]);
     s->ioregs[BPFHV_REG(TX_CTX_SIZE)] = sizeof(struct bpfhv_tx_context)
-						+ 1024;
+        + sring_tx_ctx_size(s->ioregs[BPFHV_REG(NUM_TX_BUFS)]);
     s->ioregs[BPFHV_REG(DOORBELL_SIZE)] = 8; /* could be 4096 */
     s->num_queues = s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] +
                     s->ioregs[BPFHV_REG(NUM_TX_QUEUES)];

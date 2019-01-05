@@ -1,7 +1,6 @@
 /*
  * BPFHV paravirtual network device
- *   Definitions shared between the sring eBPF programs and the
- *   sring hv implementation.
+ *   Hypervisor-side implementation of the sring.
  *
  * Copyright (c) 2018 Vincenzo Maffione <v.maffione@gmail.com>
  *
@@ -19,33 +18,8 @@
  * License along with this library; if not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __BPFHV_SRING_H__
-#define __BPFHV_SRING_H__
+#include "qemu/osdep.h"
 
-#include <stdint.h>
-
-struct sring_tx_desc {
-    uint64_t paddr;
-    uint32_t len;
-    uint32_t flags;
-};
-
-struct sring_tx_context {
-    uint32_t tail;
-    uint32_t head;
-    struct sring_tx_desc desc[0];
-};
-
-struct sring_rx_desc {
-    uint64_t paddr;
-    uint32_t len;
-    uint32_t flags;
-};
-
-struct sring_rx_context {
-    uint32_t tail;
-    uint32_t head;
-    struct sring_rx_desc desc[0];
-};
-
-#endif  /* __BPFHV_SRING_H__ */
+#include "bpfhv.h"
+#include "bpfhv_sring.h"
+#include "bpfhv_sring_hv.h"
