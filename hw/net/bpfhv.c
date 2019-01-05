@@ -386,9 +386,11 @@ static int
 bpfhv_progs_load(BpfHvState *s, const char *implname)
 {
     char filename[64];
+    GElf_Ehdr ehdr;
     char *path;
     Elf *elf;
     int fd;
+    int i;
 
     snprintf(filename, sizeof(filename), "bpfhv_%s_progs.o", implname);
     path = qemu_find_file(QEMU_FILE_TYPE_EBPF, filename);
@@ -407,6 +409,13 @@ bpfhv_progs_load(BpfHvState *s, const char *implname)
     elf = elf_begin(fd, ELF_C_READ, NULL);
     if (!elf) {
         goto err;
+    }
+
+    if (gelf_getehdr(elf, &ehdr) != &ehdr) {
+        goto err;
+    }
+
+    for (i = 1; i < ehdr.e_shnum; i++) {
     }
 
     close(fd);
