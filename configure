@@ -3363,7 +3363,7 @@ EOF
   if compile_prog "" "$elf_libs" ; then
     elf=yes
     bpfhv=yes
-    libs_tools="$elf_libs $libs_tools"
+    libs_softmmu="$elf_libs $libs_softmmu"
   else
     if test "$elf" = "yes" ; then
       feature_not_found "elf" "Install libelf devel"

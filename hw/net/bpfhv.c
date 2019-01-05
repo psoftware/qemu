@@ -387,6 +387,7 @@ bpfhv_progs_load(BpfHvState *s, const char *implname)
 {
     char filename[64];
     char *path;
+    Elf *elf;
     int fd;
 
     snprintf(filename, sizeof(filename), "bpfhv_%s_progs.o", implname);
@@ -400,9 +401,21 @@ bpfhv_progs_load(BpfHvState *s, const char *implname)
     if (fd < 0) {
         return -1;
     }
+    if (elf_version(EV_CURRENT) == EV_NONE) {
+        goto err;
+    }
+    elf = elf_begin(fd, ELF_C_READ, NULL);
+    if (!elf) {
+        goto err;
+    }
+
     close(fd);
 
     return 0;
+err:
+    close(fd);
+
+    return -1;
 }
 
 static void
