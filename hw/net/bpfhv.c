@@ -394,8 +394,13 @@ bpfhv_progs_load(BpfHvState *s, const char *implname)
     if (!path) {
         return -1;
     }
-    printf("FOUND FILE %s\n", path);
+
+    fd = open(path, O_RDONLY, 0);
     g_free(path);
+    if (fd < 0) {
+        return -1;
+    }
+    close(fd);
 
     return 0;
 }
@@ -440,8 +445,10 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         error_setg(errp, "Failed to load eBPF programs for '%s'", implname);
         return;
     }
+#if 0
     error_setg(errp, "EARLY EXIT");
     return;
+#endif
     s->progs[BPFHV_PROG_NONE].insns = NULL;
     s->progs[BPFHV_PROG_NONE].num_insns = 0;
     s->progs[BPFHV_PROG_TX_PUBLISH].insns = bpfhv_txp_prog;
