@@ -1,3 +1,5 @@
+#ifndef __BPFHV_H__
+#define __BPFHV_H__
 /*
  *    Shared definitions for the eBPF paravirtual device.
  *    2018 Vincenzo Maffione <v.maffione@gmail.it>
@@ -39,8 +41,9 @@ struct bpfhv_tx_context {
 	 * or mbuf) can be stored in 'cookie'.
 	 *
 	 * On publication, 'phys', 'len', 'cookie' and 'num_bufs'
-	 * are input argument for the eBPF program.
-	 * On completion, 'cookie' is an output argument, while
+	 * are input argument for the eBPF program, and 'oflags' is
+	 * an output argument.
+	 * On completion, 'cookie' and 'oflags' are output arguments, while
 	 * all the other fields are invalid.
 	 */
 	uint64_t	cookie;
@@ -48,7 +51,10 @@ struct bpfhv_tx_context {
 	uint64_t	phys[BPFHV_MAX_TX_BUFS];
 	uint32_t	len[BPFHV_MAX_TX_BUFS];
 	uint32_t	num_bufs;
-	uint32_t	pad[15];
+	uint32_t	oflags;
+#define BPFHV_OFLAGS_NOTIF_NEEDED	(1 << 0)
+#define BPFHV_OFLAGS_RESCHED_NEEDED	(1 << 1)
+	uint32_t	pad[14];
 
 	/* Private hv-side context follows here. */
 	char		opaque[0];
@@ -67,11 +73,12 @@ struct bpfhv_rx_context {
 	 * A reference to the OS packet can be stored in 'packet'.
 	 *
 	 * On publication, 'phys', 'len', 'buf_cookie' and 'num_bufs'
-	 * are input arguments for the eBPF program, and the 'packet'
-	 * field is invalid.
-	 * On receiving, 'packet' is an output argument, and it contains
-	 * a pointer to a guest OS packet. The OS packet allocated by the
-	 * receive eBPF program by means of a helper call.
+	 * are input arguments for the eBPF program, the 'packet'
+	 * field is invalid, and 'oflags' is an output argument.
+	 * On receiving, 'packet' and 'oflags' are output arguments, with
+	 * 'packet' containing a pointer to a guest OS packet.
+	 * The OS packet allocated by the receive eBPF program by means of
+	 * a helper call.
 	 * All the other fields are invalid.
 	 */
 	uint64_t	packet;
@@ -80,7 +87,8 @@ struct bpfhv_rx_context {
 	uint64_t	phys[BPFHV_MAX_RX_BUFS];
 	uint32_t	len[BPFHV_MAX_RX_BUFS];
 	uint32_t	num_bufs;
-	uint32_t	pad[15];
+	uint32_t	oflags;
+	uint32_t	pad[14];
 
 	/* Private hv-side context follows here. */
 	char		opaque[0];
@@ -89,9 +97,19 @@ struct bpfhv_rx_context {
 /* Numbers for the helper calls used by bpfhv programs. */
 #define BPFHV_HELPER_MAGIC	0x4b8f0000
 enum bpfhv_helper_id {
-	BPFHV_pkt_alloc = BPFHV_HELPER_MAGIC,
+	BPFHV_FUNC_pkt_alloc = BPFHV_HELPER_MAGIC,
 };
 
+#ifndef BPFHV_FUNC
+#define BPFHV_FUNC(NAME, ...)              \
+   (*NAME)(__VA_ARGS__) = (void *)BPFHV_FUNC_##NAME
+#endif
+
+/* Example of helper call definition, to be used in the C code to be compiled
+ * into eBPF. */
+#if 0
+static void *BPFHV_FUNC(pkt_alloc, struct bpfhv_rx_context *ctx);
+#endif
 
 /*
  * PCI device definitions, including PCI identifiers,
@@ -174,7 +192,10 @@ enum {
  * the eBPF instructions that send notifications to the hypervisor itself
  * (since guest-->host notifications are triggered by memory writes into
  * the doorbell region). The guest is required to provide the GVA before
- * reading any eBPF program from the program mmio region. */
+ * reading any eBPF program from the program mmio region. Note, however,
+ * that notifications can also be performed directly by the guest native
+ * code, and therefore the hypervisor is not required to implement a
+ * relocation mechanism.  */
 #define BPFHV_IO_DOORBELL_GVA_LO	60
 #define BPFHV_IO_DOORBELL_GVA_HI	64
 
@@ -182,3 +203,4 @@ enum {
 #define BPFHV_IO_END			68
 #define BPFHV_IO_MASK			0xff
 
+#endif  /* __BPFHV_H__ */
