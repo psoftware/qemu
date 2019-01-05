@@ -80,6 +80,7 @@ typedef struct BpfHvState_st {
     NICState *nic;
     NICConf conf;
     MemoryRegion io;
+    MemoryRegion dbmmio;
     MemoryRegion progmmio;
 
     /* Storage for the I/O registers. */
@@ -200,7 +201,7 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     index = addr >> 2;
 
     if (addr >= BPFHV_IO_END) {
-        DBG("Unknown I/O write addr=0x%08"PRIx64", val=0x%08"PRIx64,
+        DBG("Unknown I/O write, addr=0x%08"PRIx64", val=0x%08"PRIx64,
             addr, val);
         return;
     }
@@ -256,7 +257,7 @@ bpfhv_io_read(void *opaque, hwaddr addr, unsigned size)
     index = addr >> 2;
 
     if (addr >= BPFHV_IO_END) {
-        DBG("Unknown I/O read addr=0x%08"PRIx64, addr);
+        DBG("Unknown I/O read, addr=0x%08"PRIx64, addr);
         return 0;
     }
 
@@ -267,11 +268,43 @@ bpfhv_io_read(void *opaque, hwaddr addr, unsigned size)
     return s->ioregs[index];
 }
 
+static void
+bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
+{
+    BpfHvState *s = opaque;
+    unsigned int doorbell;
+
+    doorbell = addr / s->ioregs[BPFHV_REG(DOORBELL_SIZE)];
+    if (doorbell >= s->num_queues) {
+        DBG("Invalid doorbell write, addr=0x%08"PRIx64, addr);
+        return;
+    }
+    if (doorbell < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]) {
+        DBG("Doorbell RX#%u rung\n", doorbell);
+    } else {
+        doorbell -= s->ioregs[BPFHV_REG(NUM_RX_QUEUES)];
+        DBG("Doorbell TX#%u rung\n", doorbell);
+    }
+}
+
 static const MemoryRegionOps bpfhv_io_ops = {
     .read = bpfhv_io_read,
     .write = bpfhv_io_write,
     .endianness = DEVICE_LITTLE_ENDIAN,
     .impl = {
+        .min_access_size = 4,
+        .max_access_size = 4,
+    },
+};
+
+static const MemoryRegionOps bpfhv_dbmmio_ops = {
+    .read = NULL, /* this is a write-only region */
+    .write = bpfhv_dbmmio_write,
+    .endianness = DEVICE_LITTLE_ENDIAN,
+    .impl = {
+	/* These are only limitations of the emulation code, and they are not
+	 * visible to the guest, which can still perform larger or shorter
+	 * writes. See description of 'impl' and 'valid' fields. */
         .min_access_size = 4,
         .max_access_size = 4,
     },
@@ -383,6 +416,13 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
                           "bpfhv-io", BPFHV_IO_MASK + 1);
     pci_register_bar(pci_dev, BPFHV_IO_PCI_BAR,
                      PCI_BASE_ADDRESS_SPACE_IO, &s->io);
+
+    /* Init memory mapped memory region, to expose doorbells. */
+    memory_region_init_io(&s->dbmmio, OBJECT(s), &bpfhv_dbmmio_ops, s,
+                          "bpfhv-doorbell",
+                          s->ioregs[BPFHV_REG(DOORBELL_SIZE)] * s->num_queues);
+    pci_register_bar(pci_dev, BPFHV_DOORBELL_PCI_BAR,
+                     PCI_BASE_ADDRESS_SPACE_MEMORY, &s->dbmmio);
 
     /* Init memory mapped memory region, to expose eBPF programs. */
     memory_region_init_io(&s->progmmio, OBJECT(s), &bpfhv_progmmio_ops, s,
