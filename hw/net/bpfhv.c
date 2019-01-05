@@ -31,6 +31,7 @@
 #include "qapi/error.h"
 #include "bpfhv.h"
 
+#define BPFHV_DEBUG
 #ifdef BPFHV_DEBUG
 #define DBG(fmt, ...) do { \
         fprintf(stderr, "bpfhv-if: " fmt "\n", ## __VA_ARGS__); \
