@@ -95,6 +95,10 @@ typedef struct BpfHvState_st {
     /* eBPF programs associated to this device. */
     BpfHvProg progs[BPFHV_PROG_MAX];
 
+    /* True if the guest changed doorbell GVA, and therefore we may need
+     * to relocate the eBPF programs before the guest reads them. */
+    bool doorbell_gva_changed;
+
     BpfHvRxQueue *rxq;
     BpfHvTxQueue *txq;
 } BpfHvState;
@@ -221,6 +225,8 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 
     case BPFHV_IO_DOORBELL_GVA_LO:
     case BPFHV_IO_DOORBELL_GVA_HI:
+        s->doorbell_gva_changed |= (s->ioregs[index] != (uint32_t)val);
+        /* fallback */
     case BPFHV_IO_CTX_PADDR_LO:
         s->ioregs[index] = val;
         break;
@@ -328,6 +334,11 @@ bpfhv_progmmio_read(void *opaque, hwaddr addr, unsigned size)
         return 0;
     }
 
+    if (s->doorbell_gva_changed) {
+       /* We may need to relocate the programs here. Not needed for now. */
+       s->doorbell_gva_changed = false;
+    }
+
     prog = &s->progs[progsel];
 
     if (addr + size > prog->num_insns * BPF_INSN_SIZE) {
@@ -396,6 +407,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->ioregs[BPFHV_REG(DOORBELL_SIZE)] = 8; /* could be 4096 */
     s->num_queues = s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] +
                     s->ioregs[BPFHV_REG(NUM_TX_QUEUES)];
+    s->doorbell_gva_changed = false;
 
     /* Initialize eBPF programs. */
     s->progs[BPFHV_PROG_NONE].insns = NULL;
