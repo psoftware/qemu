@@ -382,10 +382,28 @@ static uint64_t bpfhv_rxp_prog[] = {0xb7,0x95};
 static uint64_t bpfhv_rxc_prog[] = {0x16bf,0x5506279,0x20225,0xb7,0x95,
                                     0x100000217,0x550267b,0x4b8f000000000085,
                                     0x100c5,0x1000000b7,0x95};
+static int
+bpfhv_progs_load(BpfHvState *s, const char *implname)
+{
+    char filename[64];
+    char *path;
+    int fd;
+
+    snprintf(filename, sizeof(filename), "bpfhv_%s_progs.o", implname);
+    path = qemu_find_file(QEMU_FILE_TYPE_EBPF, filename);
+    if (!path) {
+        return -1;
+    }
+    printf("FOUND FILE %s\n", path);
+    g_free(path);
+
+    return 0;
+}
 
 static void
 pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 {
+    const char *implname = "sring";
     DeviceState *dev = DEVICE(pci_dev);
     BpfHvState *s = BPFHV(pci_dev);
     NetClientState *nc;
@@ -418,6 +436,10 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->doorbell_gva_changed = false;
 
     /* Initialize eBPF programs. */
+    if (bpfhv_progs_load(s, implname)) {
+        error_setg(errp, "Failed to load eBPF programs for '%s'", implname);
+        return;
+    }
     s->progs[BPFHV_PROG_NONE].insns = NULL;
     s->progs[BPFHV_PROG_NONE].num_insns = 0;
     s->progs[BPFHV_PROG_TX_PUBLISH].insns = bpfhv_txp_prog;

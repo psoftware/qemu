@@ -824,8 +824,9 @@ endif
 	$(INSTALL_DATA) $(SRC_PATH)/ui/qemu.desktop \
 		"$(DESTDIR)/$(qemu_desktopdir)/qemu.desktop"
 ifdef CONFIG_BPFHV
+	$(INSTALL_DIR) "$(DESTDIR)$(qemu_datadir)/ebpf"
 	set -e; for x in "sring"; do \
-		$(INSTALL_DATA) $(SRC_PATH)/hw/net/bpfhv_$${x}_progs.o "$(DESTDIR)$(qemu_datadir)"; \
+		$(INSTALL_DATA) $(SRC_PATH)/hw/net/bpfhv_$${x}_progs.o "$(DESTDIR)$(qemu_datadir)/ebpf"; \
 	done
 endif
 ifdef CONFIG_GTK
@@ -874,10 +875,9 @@ ui/shader.o: $(SRC_PATH)/ui/shader.c \
 	ui/shader/texture-blit-frag.h
 
 ifdef CONFIG_BPFHV
-bpfhv:
-	for impl in "sring" ; do \
-		clang -O2 -Wall -target bpf -c hw/net/bpfhv_$${impl}_progs.c -o hw/net/bpfhv_$${impl}_progs.o; \
-	done
+bpfhv: hw/net/bpfhv_*_progs.o
+hw/net/bpfhv_%_progs.o : $(SRC_PATH)/hw/net/bpfhv_%_progs.c
+	clang -O2 -Wall -target bpf -c $(SRC_PATH)/hw/net/bpfhv_$*_progs.c -o hw/net/bpfhv_$*_progs.o
 else
 bpfhv:
 endif
