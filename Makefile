@@ -823,6 +823,11 @@ endif
 	mkdir -p "$(DESTDIR)/$(qemu_desktopdir)"
 	$(INSTALL_DATA) $(SRC_PATH)/ui/qemu.desktop \
 		"$(DESTDIR)/$(qemu_desktopdir)/qemu.desktop"
+ifdef CONFIG_BPFHV
+	set -e; for x in "sring"; do \
+		$(INSTALL_DATA) $(SRC_PATH)/hw/net/bpfhv_$${x}_progs.o "$(DESTDIR)$(qemu_datadir)"; \
+	done
+endif
 ifdef CONFIG_GTK
 	$(MAKE) -C po $@
 endif
