@@ -419,7 +419,7 @@ dummy := $(call unnest-vars,, \
 
 include $(SRC_PATH)/tests/Makefile.include
 
-all: $(DOCS) $(if $(BUILD_DOCS),sphinxdocs) $(TOOLS) $(HELPERS-y) recurse-all modules
+all: $(DOCS) $(if $(BUILD_DOCS),sphinxdocs) $(TOOLS) $(HELPERS-y) recurse-all modules bpfhv
 
 qemu-version.h: FORCE
 	$(call quiet-command, \
@@ -867,6 +867,11 @@ ui/shader.o: $(SRC_PATH)/ui/shader.c \
 	ui/shader/texture-blit-vert.h \
 	ui/shader/texture-blit-flip-vert.h \
 	ui/shader/texture-blit-frag.h
+
+bpfhv:
+	for impl in "sring" ; do \
+		clang -O2 -Wall -target bpf -c hw/net/bpfhv_$${impl}_progs.c -o hw/net/bpfhv_$${impl}_progs.o; \
+	done
 
 # documentation
 MAKEINFO=makeinfo
