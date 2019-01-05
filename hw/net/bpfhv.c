@@ -440,6 +440,8 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         error_setg(errp, "Failed to load eBPF programs for '%s'", implname);
         return;
     }
+    error_setg(errp, "EARLY EXIT");
+    return;
     s->progs[BPFHV_PROG_NONE].insns = NULL;
     s->progs[BPFHV_PROG_NONE].num_insns = 0;
     s->progs[BPFHV_PROG_TX_PUBLISH].insns = bpfhv_txp_prog;

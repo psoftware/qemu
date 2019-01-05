@@ -15,3 +15,21 @@ int sring_txp(struct bpfhv_tx_context *ctx)
 
     return 0;
 }
+
+__section("txc")
+int sring_txc(struct bpfhv_tx_context *ctx)
+{
+    return 0;
+}
+
+__section("rxp")
+int sring_rxp(struct bpfhv_rx_context *ctx)
+{
+    return 0;
+}
+
+__section("rxc")
+int sring_rxc(struct bpfhv_rx_context *ctx)
+{
+    return 0;
+}

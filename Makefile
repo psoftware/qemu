@@ -875,7 +875,7 @@ ui/shader.o: $(SRC_PATH)/ui/shader.c \
 	ui/shader/texture-blit-frag.h
 
 ifdef CONFIG_BPFHV
-bpfhv: hw/net/bpfhv_*_progs.o
+bpfhv: hw/net/bpfhv_sring_progs.o
 hw/net/bpfhv_%_progs.o : $(SRC_PATH)/hw/net/bpfhv_%_progs.c
 	clang -O2 -Wall -target bpf -c $(SRC_PATH)/hw/net/bpfhv_$*_progs.c -o hw/net/bpfhv_$*_progs.o
 else
