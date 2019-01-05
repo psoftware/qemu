@@ -868,10 +868,14 @@ ui/shader.o: $(SRC_PATH)/ui/shader.c \
 	ui/shader/texture-blit-flip-vert.h \
 	ui/shader/texture-blit-frag.h
 
+ifdef CONFIG_BPFHV
 bpfhv:
 	for impl in "sring" ; do \
 		clang -O2 -Wall -target bpf -c hw/net/bpfhv_$${impl}_progs.c -o hw/net/bpfhv_$${impl}_progs.o; \
 	done
+else
+bpfhv:
+endif
 
 # documentation
 MAKEINFO=makeinfo
