@@ -355,6 +355,7 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     } else {
         doorbell -= s->ioregs[BPFHV_REG(NUM_RX_QUEUES)];
         DBG("Doorbell TX#%u rung", doorbell);
+        sring_txq_drain(qemu_get_queue(s->nic), s->txq[doorbell].ctx);
     }
 }
 

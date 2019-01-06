@@ -19,6 +19,7 @@
  */
 
 #include "qemu/osdep.h"
+#include "net/net.h"
 
 #include "bpfhv.h"
 #include "bpfhv_sring.h"
@@ -37,4 +38,10 @@ sring_tx_ctx_init(struct bpfhv_tx_context *ctx, size_t num_tx_bufs)
     priv->num_slots = num_tx_bufs;
     priv->tail = priv->head = 0;
     memset(priv->desc, 0, num_tx_bufs * sizeof(priv->desc[0]));
+}
+
+
+void
+sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx)
+{
 }
