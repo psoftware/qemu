@@ -232,7 +232,8 @@ bpfhv_ctx_remap(BpfHvState *s)
         pvaddr = (void **)&s->rxq[qsel].ctx;
         len = s->ioregs[BPFHV_REG(RX_CTX_SIZE)];
     } else {
-        pvaddr = (void **)&s->txq[qsel].ctx;
+        pvaddr =
+            (void **) &s->txq[qsel - s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]].ctx;
         len = s->ioregs[BPFHV_REG(TX_CTX_SIZE)];
     }
 
@@ -245,7 +246,7 @@ bpfhv_ctx_remap(BpfHvState *s)
     /* Map the new context if it is provided. */
     if (base != 0) {
         *pvaddr = cpu_physical_memory_map(base, &len, /*is_write=*/1);
-        DBG("GPA %llx (%llu) mapped at HVA %p",
+        DBG("Queue #%u GPA %llx (%llu) mapped at HVA %p", qsel,
                (unsigned long long)base, (unsigned long long)len, *pvaddr);
     }
 
@@ -270,7 +271,7 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 
     assert(index < ARRAY_SIZE(regnames));
 
-    DBG("I/O write to %s (%u), val=0x%08" PRIx64, regnames[index], (unsigned)addr, val);
+    DBG("I/O write to %s, val=0x%08" PRIx64, regnames[index], val);
 
     switch (addr) {
     case BPFHV_IO_CTRL:
