@@ -270,10 +270,13 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 
     assert(index < ARRAY_SIZE(regnames));
 
+    DBG("I/O write to %s (%u), val=0x%08" PRIx64, regnames[index], (unsigned)addr, val);
+
     switch (addr) {
     case BPFHV_IO_CTRL:
         bpfhv_ctrl_update(s, (uint32_t)val);
         break;
+
     case BPFHV_IO_QUEUE_SELECT:
         if (val >= s->num_queues) {
             DBG("Guest tried to select invalid queue #%"PRIx64"", val);
@@ -312,8 +315,6 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         return;
         break;
     }
-
-    DBG("I/O write to %s, val=0x%08" PRIx64, regnames[index], val);
 }
 
 static uint64_t
@@ -639,8 +640,8 @@ static void qdev_bpfhv_reset(DeviceState *dev)
 
     /* Init MAC address registers. */
     macaddr = s->conf.macaddr.a;
-    s->ioregs[BPFHV_REG(MAC_LO)] = (macaddr[0] << 8) | macaddr[1];
-    s->ioregs[BPFHV_REG(MAC_HI)] = (macaddr[2] << 24) | (macaddr[3] << 16)
+    s->ioregs[BPFHV_REG(MAC_HI)] = (macaddr[0] << 8) | macaddr[1];
+    s->ioregs[BPFHV_REG(MAC_LO)] = (macaddr[2] << 24) | (macaddr[3] << 16)
                                  | (macaddr[4] << 8) | macaddr[5];
 
     DBG("%s(%p)", __func__, s);
