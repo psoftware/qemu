@@ -10,22 +10,58 @@ __section("txp")
 int sring_txp(struct bpfhv_tx_context *ctx)
 {
     struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
+    uint32_t prod = priv->prod;
+    struct sring_tx_desc *txd;
+    uint32_t i;
 
-    priv->tail++;
+    if (ctx->num_bufs > BPFHV_MAX_TX_BUFS) {
+        return -1;
+    }
 
-    return priv->tail;
+    for (i = 0; i < ctx->num_bufs; i++) {
+        txd = priv->desc + prod;
+        txd->paddr = ctx->phys[i];
+        txd->len = ctx->len[i];
+        txd->flags = 0;
+        txd->cookie = 0;
+        if (++prod == priv->num_slots) {
+            prod = 0;
+        }
+    }
+    txd->flags = TX_DESC_F_EOP;
+    txd->cookie = ctx->cookie;
+    priv->prod = prod;
+    ctx->oflags = BPFHV_OFLAGS_NOTIF_NEEDED;
+
+    return 0;
 }
 
 __section("txc")
 int sring_txc(struct bpfhv_tx_context *ctx)
 {
     struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
+    uint32_t cons = priv->cons;
+    uint32_t clear = priv->clear;
 
-    if (priv->head == priv->tail) {
+    if (clear == cons) {
         return 0;
     }
 
-    priv->head++;
+    for (;;) {
+        struct sring_tx_desc *txd;
+
+        txd = priv->desc + clear;
+        if (++clear == priv->num_slots) {
+            clear = 0;
+        }
+        if (txd->flags & TX_DESC_F_EOP) {
+            ctx->cookie = txd->cookie;
+            break;
+        }
+    }
+
+    priv->clear = clear;
+    ctx->oflags = 0;
 
     return 1;
 }

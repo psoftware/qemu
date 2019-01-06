@@ -36,7 +36,7 @@ sring_tx_ctx_init(struct bpfhv_tx_context *ctx, size_t num_tx_bufs)
     struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
 
     priv->num_slots = num_tx_bufs;
-    priv->tail = priv->head = 0;
+    priv->prod = priv->cons = priv->clear = 0;
     memset(priv->desc, 0, num_tx_bufs * sizeof(priv->desc[0]));
 }
 
@@ -44,4 +44,23 @@ sring_tx_ctx_init(struct bpfhv_tx_context *ctx, size_t num_tx_bufs)
 void
 sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx)
 {
+    struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
+    uint32_t prod = priv->prod;
+    uint32_t cons = priv->cons;
+    uint32_t pkt_len = 0;
+
+    while (cons != prod) {
+        struct sring_tx_desc *txd = priv->desc + cons;
+
+        pkt_len += txd->len;
+        if (txd->flags & TX_DESC_F_EOP) {
+            printf("Fake transmit pkt_len %u\n", pkt_len);
+            pkt_len = 0;
+        }
+        if (++cons == priv->num_slots) {
+            cons = 0;
+        }
+    }
+
+    priv->cons = cons;
 }
