@@ -31,6 +31,7 @@ struct sring_tx_desc {
 };
 
 struct sring_tx_context {
+    uint32_t num_slots;
     uint32_t tail;
     uint32_t head;
     struct sring_tx_desc desc[0];
@@ -43,7 +44,8 @@ struct sring_rx_desc {
 };
 
 struct sring_rx_context {
-    uint64_t temp;
+    uint64_t temp;  /* TODO remove */
+    uint32_t num_slots;
     uint32_t tail;
     uint32_t head;
     struct sring_rx_desc desc[0];

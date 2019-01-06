@@ -49,6 +49,7 @@
 
 static const char *regnames[] = {
     "STATUS",
+    "CTRL",
     "MAC_LO",
     "MAC_HI",
     "NUM_RX_QUEUES",
@@ -103,6 +104,10 @@ typedef struct BpfHvState_st {
     /* eBPF programs associated to this device. */
     BpfHvProg progs[BPFHV_PROG_MAX];
 
+    /* True if the guest provided all the receive (or ransmit) contexts. */
+    bool rx_contexts_ready;
+    bool tx_contexts_ready;
+
     /* True if the guest changed doorbell GVA, and therefore we may need
      * to relocate the eBPF programs before the guest reads them. */
     bool doorbell_gva_changed;
@@ -132,21 +137,27 @@ bpfhv_link_status_update(BpfHvState *s)
 {
     bool status = !!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_LINK);
     NetClientState *nc = qemu_get_queue(s->nic);
-    bool new_status = !(nc->link_down);
+    bool new_status;
     int i;
 
-    for (i = 0; i < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] && new_status; i++) {
+    s->rx_contexts_ready = true;
+    for (i = 0; i < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]; i++) {
         if (s->rxq[i].ctx == NULL) {
-            new_status = false;
+            s->rx_contexts_ready = false;
+            break;
         }
     }
 
-    for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)] && new_status; i++) {
+    s->tx_contexts_ready = true;
+    for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
         if (s->txq[i].ctx == NULL) {
-            new_status = false;
+            s->tx_contexts_ready = false;
+            break;
         }
     }
 
+    new_status = !(nc->link_down) && s->rx_contexts_ready
+                    && s->tx_contexts_ready;
     if (new_status == status) {
         return;
     }
@@ -169,6 +180,43 @@ static NetClientInfo net_bpfhv_info = {
     .receive = bpfhv_receive,
     .link_status_changed = bpfhv_backend_link_status_changed,
 };
+
+static void
+bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
+{
+    uint32_t changed = s->ioregs[BPFHV_REG(CTRL)] ^ newval;
+    int i;
+
+    if (changed & BPFHV_CTRL_RX_ENABLE) {
+        if (newval & BPFHV_CTRL_RX_ENABLE) {
+            /* Guest asked to enable receive operation. We can do that
+             * only if all the receive contexts are present. */
+            if (s->rx_contexts_ready) {
+                for (i = 0; i < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]; i++) {
+                    sring_rx_ctx_init(s->rxq[i].ctx,
+                                    s->ioregs[BPFHV_REG(NUM_RX_BUFS)]);
+                }
+            } else {
+                newval &= ~BPFHV_CTRL_RX_ENABLE;
+            }
+        }
+    }
+
+    if (changed & BPFHV_CTRL_TX_ENABLE) {
+        if (newval & BPFHV_CTRL_TX_ENABLE) {
+            if (s->tx_contexts_ready) {
+                for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
+                    sring_tx_ctx_init(s->txq[i].ctx,
+                                    s->ioregs[BPFHV_REG(NUM_TX_BUFS)]);
+                }
+            } else {
+                newval &= ~BPFHV_CTRL_TX_ENABLE;
+            }
+        }
+    }
+
+    s->ioregs[BPFHV_REG(CTRL)] = newval;
+}
 
 static void
 bpfhv_ctx_remap(BpfHvState *s)
@@ -197,7 +245,7 @@ bpfhv_ctx_remap(BpfHvState *s)
     /* Map the new context if it is provided. */
     if (base != 0) {
         *pvaddr = cpu_physical_memory_map(base, &len, /*is_write=*/1);
-        DBG("GPA %llx (%llu) mapped at HVA %p\n",
+        DBG("GPA %llx (%llu) mapped at HVA %p",
                (unsigned long long)base, (unsigned long long)len, *pvaddr);
     }
 
@@ -223,9 +271,12 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     assert(index < ARRAY_SIZE(regnames));
 
     switch (addr) {
+    case BPFHV_IO_CTRL:
+        bpfhv_ctrl_update(s, (uint32_t)val);
+        break;
     case BPFHV_IO_QUEUE_SELECT:
         if (val >= s->num_queues) {
-            DBG("Guest tried to select invalid queue #%"PRIx64"\n", val);
+            DBG("Guest tried to select invalid queue #%"PRIx64"", val);
             break;
         }
         s->ioregs[index] = val;
@@ -248,7 +299,7 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 
     case BPFHV_IO_PROG_SELECT:
         if (val >= BPFHV_PROG_MAX) {
-            DBG("Guest tried to select invalid program #%"PRIx64"\n", val);
+            DBG("Guest tried to select invalid program #%"PRIx64"", val);
             break;
         }
         s->ioregs[index] = val;
@@ -298,10 +349,10 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         return;
     }
     if (doorbell < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]) {
-        DBG("Doorbell RX#%u rung\n", doorbell);
+        DBG("Doorbell RX#%u rung", doorbell);
     } else {
         doorbell -= s->ioregs[BPFHV_REG(NUM_RX_QUEUES)];
-        DBG("Doorbell TX#%u rung\n", doorbell);
+        DBG("Doorbell TX#%u rung", doorbell);
     }
 }
 
@@ -517,6 +568,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->num_queues = s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] +
                     s->ioregs[BPFHV_REG(NUM_TX_QUEUES)];
     s->doorbell_gva_changed = false;
+    s->rx_contexts_ready = s->tx_contexts_ready = false;
 
     /* Initialize eBPF programs. */
     if (bpfhv_progs_load(s, implname)) {

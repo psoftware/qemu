@@ -23,17 +23,20 @@
 #define __BPFHV_SRING_HV_H__
 
 static inline size_t
-sring_tx_ctx_size(unsigned int num_tx_bufs)
+sring_rx_ctx_size(size_t num_rx_bufs)
+{
+    return sizeof(struct sring_rx_context) +
+	num_rx_bufs * sizeof(struct sring_rx_desc);
+}
+
+static inline size_t
+sring_tx_ctx_size(size_t num_tx_bufs)
 {
     return sizeof(struct sring_tx_context) +
 	num_tx_bufs * sizeof(struct sring_tx_desc);
 }
 
-static inline size_t
-sring_rx_ctx_size(unsigned int num_rx_bufs)
-{
-    return sizeof(struct sring_rx_context) +
-	num_rx_bufs * sizeof(struct sring_rx_desc);
-}
+void sring_rx_ctx_init(struct bpfhv_rx_context *ctx, size_t num_rx_bufs);
+void sring_tx_ctx_init(struct bpfhv_tx_context *ctx, size_t num_tx_bufs);
 
 #endif  /*__BPFHV_SRING_HV_H__ */
