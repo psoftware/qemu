@@ -372,25 +372,24 @@ static const MemoryRegionOps bpfhv_progmmio_ops = {
     },
 };
 
-/* eBPF programs, just hardcoded for now. */
-static uint64_t bpfhv_txp_prog[] = {0x3501279,0x100000207,0x350217b,
-                                    0x20bf,0x95};
-static uint64_t bpfhv_txc_prog[] = {0x3501079,0x3581279,0x2205d,0xb7,
-                                    0x95,0x100000207,0x358217b,0x1000000b7,
-                                    0x95};
-static uint64_t bpfhv_rxp_prog[] = {0xb7,0x95};
-static uint64_t bpfhv_rxc_prog[] = {0x16bf,0x5506279,0x20225,0xb7,0x95,
-                                    0x100000217,0x550267b,0x4b8f000000000085,
-                                    0x100c5,0x1000000b7,0x95};
 static int
 bpfhv_progs_load(BpfHvState *s, const char *implname)
 {
+    const char *prog_names[BPFHV_PROG_MAX] = {"none", "txp", "txc", "rxp", "rxc"};
     char filename[64];
     GElf_Ehdr ehdr;
     char *path;
     Elf *elf;
     int fd;
     int i;
+
+    for (i = 0; i < BPFHV_PROG_MAX; i++) {
+        if (s->progs[i].insns != NULL) {
+            g_free(s->progs[i].insns);
+            s->progs[i].insns = NULL;
+        }
+        s->progs[i].num_insns = 0;
+    }
 
     snprintf(filename, sizeof(filename), "bpfhv_%s_progs.o", implname);
     path = qemu_find_file(QEMU_FILE_TYPE_EBPF, filename);
@@ -416,9 +415,66 @@ bpfhv_progs_load(BpfHvState *s, const char *implname)
     }
 
     for (i = 1; i < ehdr.e_shnum; i++) {
+        Elf_Data *sdata;
+        GElf_Shdr shdr;
+        Elf_Scn *scn;
+        char *shname;
+
+        scn = elf_getscn(elf, i);
+        if (!scn) {
+            continue;
+        }
+
+        if (gelf_getshdr(scn, &shdr) != &shdr) {
+            continue;
+        }
+
+        if (shdr.sh_type != SHT_PROGBITS) {
+            continue;
+        }
+
+        shname = elf_strptr(elf, ehdr.e_shstrndx, shdr.sh_name);
+        if (!shname || shdr.sh_size == 0) {
+            continue;
+        }
+
+        sdata = elf_getdata(scn, NULL);
+        if (!sdata || elf_getdata(scn, sdata) != NULL) {
+            continue;
+        }
+
+        {
+            int j;
+
+            for (j = 0; j < ARRAY_SIZE(prog_names); j++) {
+                if (!strcmp(shname, prog_names[j])) {
+                    break;
+                }
+            }
+
+            if (j >= ARRAY_SIZE(prog_names)) {
+                continue;
+            }
+
+            if (s->progs[j].insns != NULL) {
+                DBG("warning: %s contains more sections with name %s",
+                    path, prog_names[j]);
+                continue;
+            }
+
+            s->progs[j].insns = g_malloc(sdata->d_size);
+            memcpy(s->progs[j].insns, sdata->d_buf, sdata->d_size);
+            s->progs[j].num_insns = sdata->d_size / BPF_INSN_SIZE;
+        }
     }
 
     close(fd);
+
+    for (i = BPFHV_PROG_NONE + 1; i < BPFHV_PROG_MAX; i++) {
+        if (s->progs[i].insns == NULL || s->progs[i].num_insns == 0) {
+            return -1;
+        }
+    }
 
     return 0;
 err:
@@ -467,20 +523,6 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         error_setg(errp, "Failed to load eBPF programs for '%s'", implname);
         return;
     }
-#if 0
-    error_setg(errp, "EARLY EXIT");
-    return;
-#endif
-    s->progs[BPFHV_PROG_NONE].insns = NULL;
-    s->progs[BPFHV_PROG_NONE].num_insns = 0;
-    s->progs[BPFHV_PROG_TX_PUBLISH].insns = bpfhv_txp_prog;
-    s->progs[BPFHV_PROG_TX_PUBLISH].num_insns = ARRAY_SIZE(bpfhv_txp_prog);
-    s->progs[BPFHV_PROG_TX_COMPLETE].insns = bpfhv_txc_prog;
-    s->progs[BPFHV_PROG_TX_COMPLETE].num_insns = ARRAY_SIZE(bpfhv_txc_prog);
-    s->progs[BPFHV_PROG_RX_PUBLISH].insns = bpfhv_rxp_prog;
-    s->progs[BPFHV_PROG_RX_PUBLISH].num_insns = ARRAY_SIZE(bpfhv_rxp_prog);
-    s->progs[BPFHV_PROG_RX_COMPLETE].insns = bpfhv_rxc_prog;
-    s->progs[BPFHV_PROG_RX_COMPLETE].num_insns = ARRAY_SIZE(bpfhv_rxc_prog);
 
     /* Initialize device queues. */
     s->rxq = g_malloc0(s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]
@@ -521,6 +563,14 @@ static void
 pci_bpfhv_uninit(PCIDevice *dev)
 {
     BpfHvState *s = BPFHV(dev);
+    int i;
+
+    for (i = 0; i < BPFHV_PROG_MAX; i++) {
+        if (s->progs[i].insns != NULL) {
+            g_free(s->progs[i].insns);
+            s->progs[i].insns = NULL;
+        }
+    }
 
     g_free(s->rxq);
     g_free(s->txq);

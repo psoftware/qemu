@@ -13,13 +13,21 @@ int sring_txp(struct bpfhv_tx_context *ctx)
 
     priv->tail++;
 
-    return 0;
+    return priv->tail;
 }
 
 __section("txc")
 int sring_txc(struct bpfhv_tx_context *ctx)
 {
-    return 0;
+    struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
+
+    if (priv->head == priv->tail) {
+        return 0;
+    }
+
+    priv->head++;
+
+    return 1;
 }
 
 __section("rxp")
@@ -28,8 +36,22 @@ int sring_rxp(struct bpfhv_rx_context *ctx)
     return 0;
 }
 
+static int BPFHV_FUNC(pkt_alloc, struct bpfhv_rx_context *ctx);
+
 __section("rxc")
 int sring_rxc(struct bpfhv_rx_context *ctx)
 {
-    return 0;
+    struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
+    int ret;
+
+    if (priv->temp == 0) {
+        return 0;
+    }
+    priv->temp--;
+    ret = pkt_alloc(ctx);
+    if (ret < 0) {
+        return ret;
+    }
+
+    return 1;
 }

@@ -43,6 +43,7 @@ struct sring_rx_desc {
 };
 
 struct sring_rx_context {
+    uint64_t temp;
     uint32_t tail;
     uint32_t head;
     struct sring_rx_desc desc[0];
