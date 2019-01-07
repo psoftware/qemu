@@ -86,7 +86,7 @@ int sring_rxp(struct bpfhv_rx_context *ctx)
     return 0;
 }
 
-static int BPFHV_FUNC(pkt_alloc, struct bpfhv_rx_context *ctx);
+static int BPFHV_FUNC(rx_pkt_alloc, struct bpfhv_rx_context *ctx);
 
 __section("rxc")
 int sring_rxc(struct bpfhv_rx_context *ctx)
@@ -103,7 +103,7 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
         return 0;
     }
 
-    /* Prepare the input arguments for pkt_alloc(). */
+    /* Prepare the input arguments for rx_pkt_alloc(). */
     for (; clear != cons && i < BPFHV_MAX_RX_BUFS; i++) {
         rxd = priv->desc + (clear % priv->num_slots);
         clear++;
@@ -118,7 +118,7 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
     priv->clear = clear;
     ctx->num_bufs = i + 1;
 
-    ret = pkt_alloc(ctx);
+    ret = rx_pkt_alloc(ctx);
     if (ret < 0) {
         return ret;
     }

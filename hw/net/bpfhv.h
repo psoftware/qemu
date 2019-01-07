@@ -47,9 +47,6 @@ struct bpfhv_tx_context {
 	 * all the other fields are invalid.
 	 */
 	uint64_t	cookie;
-        /* TODO replace parallel arrays with a single array, in order to
-         * trade space for cache efficiency. */
-        /* TODO rename phys --> paddr */
 #define BPFHV_MAX_TX_BUFS		64
 	uint64_t	phys[BPFHV_MAX_TX_BUFS];
 	uint32_t	len[BPFHV_MAX_TX_BUFS];
@@ -100,7 +97,7 @@ struct bpfhv_rx_context {
 /* Numbers for the helper calls used by bpfhv programs. */
 #define BPFHV_HELPER_MAGIC	0x4b8f0000
 enum bpfhv_helper_id {
-	BPFHV_FUNC_pkt_alloc = BPFHV_HELPER_MAGIC,
+	BPFHV_FUNC_rx_pkt_alloc = BPFHV_HELPER_MAGIC,
 };
 
 #ifndef BPFHV_FUNC
