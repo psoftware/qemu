@@ -116,7 +116,7 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
         }
     }
     priv->clear = clear;
-    ctx->num_bufs = i;
+    ctx->num_bufs = i + 1;
 
     ret = pkt_alloc(ctx);
     if (ret < 0) {
