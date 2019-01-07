@@ -124,6 +124,25 @@ typedef struct BpfHvState_st {
 #define BPFHV(obj) \
             OBJECT_CHECK(BpfHvState, (obj), TYPE_BPFHV_PCI)
 
+static int
+bpfhv_can_receive(NetClientState *nc)
+{
+    BpfHvState *s = qemu_get_nic_opaque(nc);
+    unsigned int i;
+
+    if (!s->rx_contexts_ready) {
+        return false;
+    }
+
+    for (i = 0; i < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]; i++) {
+        if (sring_can_receive(s->rxq[i].ctx)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static ssize_t
 bpfhv_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
 {
@@ -138,7 +157,7 @@ bpfhv_link_status_update(BpfHvState *s)
     bool status = !!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_LINK);
     NetClientState *nc = qemu_get_queue(s->nic);
     bool new_status;
-    int i;
+    unsigned int i;
 
     s->rx_contexts_ready = true;
     for (i = 0; i < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]; i++) {
@@ -180,6 +199,7 @@ bpfhv_backend_link_status_changed(NetClientState *nc)
 static NetClientInfo net_bpfhv_info = {
     .type = NET_CLIENT_DRIVER_NIC,
     .size = sizeof(NICState),
+    .can_receive = bpfhv_can_receive,
     .receive_iov = bpfhv_receive_iov,
     .link_status_changed = bpfhv_backend_link_status_changed,
 };

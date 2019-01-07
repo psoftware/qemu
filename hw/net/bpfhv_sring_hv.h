@@ -42,4 +42,6 @@ void sring_tx_ctx_init(struct bpfhv_tx_context *ctx, size_t num_tx_bufs);
 void sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
                 NetPacketSent *complete_cb);
 
+bool sring_can_receive(struct bpfhv_rx_context *ctx);
+
 #endif  /*__BPFHV_SRING_HV_H__ */

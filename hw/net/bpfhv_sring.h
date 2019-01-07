@@ -32,6 +32,7 @@ struct sring_tx_desc {
     uint64_t cookie;
 };
 
+/* TODO add proper padding to minimize cache misses */
 struct sring_tx_context {
     uint32_t num_slots;
     uint32_t prod;
@@ -50,6 +51,7 @@ struct sring_rx_context {
     uint64_t temp;  /* TODO remove */
     uint32_t num_slots;
     uint32_t prod;
+    uint32_t clear;
     uint32_t cons;
     struct sring_rx_desc desc[0];
 };

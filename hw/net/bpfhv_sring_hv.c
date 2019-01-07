@@ -29,6 +29,11 @@
 void
 sring_rx_ctx_init(struct bpfhv_rx_context *ctx, size_t num_rx_bufs)
 {
+    struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
+
+    priv->num_slots = num_rx_bufs;
+    priv->prod = priv->cons = priv->clear = 0;
+    memset(priv->desc, 0, num_rx_bufs * sizeof(priv->desc[0]));
 }
 
 void
@@ -92,4 +97,12 @@ sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
     }
 
     priv->cons = cons;
+}
+
+bool
+sring_can_receive(struct bpfhv_rx_context *ctx)
+{
+    struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
+
+    return (priv->cons != priv->prod);
 }
