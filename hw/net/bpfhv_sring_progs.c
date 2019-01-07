@@ -18,15 +18,12 @@ int sring_txp(struct bpfhv_tx_context *ctx)
         return -1;
     }
 
-    for (i = 0; i < ctx->num_bufs; i++) {
-        txd = priv->desc + prod;
+    for (i = 0; i < ctx->num_bufs; i++, prod++) {
+        txd = priv->desc + (prod % priv->num_slots);
         txd->paddr = ctx->phys[i];
         txd->len = ctx->len[i];
         txd->flags = 0;
         txd->cookie = 0;
-        if (++prod == priv->num_slots) {
-            prod = 0;
-        }
     }
     txd->flags = SRING_DESC_F_EOP;
     txd->cookie = ctx->cookie;
@@ -50,10 +47,8 @@ int sring_txc(struct bpfhv_tx_context *ctx)
     for (;;) {
         struct sring_tx_desc *txd;
 
-        txd = priv->desc + clear;
-        if (++clear == priv->num_slots) {
-            clear = 0;
-        }
+        txd = priv->desc + (clear % priv->num_slots);
+        clear++;
         if (txd->flags & SRING_DESC_F_EOP) {
             ctx->cookie = txd->cookie;
             break;
@@ -78,15 +73,12 @@ int sring_rxp(struct bpfhv_rx_context *ctx)
         return -1;
     }
 
-    for (i = 0; i < ctx->num_bufs; i++) {
-        rxd = priv->desc + prod;
+    for (i = 0; i < ctx->num_bufs; i++, prod++) {
+        rxd = priv->desc + (prod % priv->num_slots);
         rxd->cookie = ctx->buf_cookie[i];
         rxd->paddr = ctx->phys[i];
         rxd->len = ctx->len[i];
         rxd->flags = 0;
-        if (++prod == priv->num_slots) {
-            prod = 0;
-        }
     }
     priv->prod = prod;
     ctx->oflags = BPFHV_OFLAGS_NOTIF_NEEDED;
@@ -112,16 +104,14 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
     }
 
     /* Prepare the input arguments for pkt_alloc(). */
-    for (; clear != cons; i++) {
-        rxd = priv->desc + clear;
-        if (++clear == priv->num_slots) {
-            clear = 0;
-        }
+    for (; clear != cons && i < BPFHV_MAX_RX_BUFS; i++) {
+        rxd = priv->desc + (clear % priv->num_slots);
+        clear++;
         ctx->buf_cookie[i] = rxd->cookie;
         ctx->phys[i] = rxd->paddr;
         ctx->len[i] = rxd->len;
 
-        if ((rxd->flags & SRING_DESC_F_EOP) || i >= BPFHV_MAX_RX_BUFS) {
+        if (rxd->flags & SRING_DESC_F_EOP) {
             break;
         }
     }

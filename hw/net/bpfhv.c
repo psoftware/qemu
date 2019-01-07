@@ -217,17 +217,12 @@ static void
 bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
 {
     uint32_t changed = s->ioregs[BPFHV_REG(CTRL)] ^ newval;
-    int i;
 
     if (changed & BPFHV_CTRL_RX_ENABLE) {
         if (newval & BPFHV_CTRL_RX_ENABLE) {
             /* Guest asked to enable receive operation. We can do that
              * only if all the receive contexts are present. */
             if (s->rx_contexts_ready) {
-                for (i = 0; i < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]; i++) {
-                    sring_rx_ctx_init(s->rxq[i].ctx,
-                                    s->ioregs[BPFHV_REG(NUM_RX_BUFS)]);
-                }
             } else {
                 newval &= ~BPFHV_CTRL_RX_ENABLE;
             }
@@ -237,10 +232,6 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
     if (changed & BPFHV_CTRL_TX_ENABLE) {
         if (newval & BPFHV_CTRL_TX_ENABLE) {
             if (s->tx_contexts_ready) {
-                for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
-                    sring_tx_ctx_init(s->txq[i].ctx,
-                                    s->ioregs[BPFHV_REG(NUM_TX_BUFS)]);
-                }
             } else {
                 newval &= ~BPFHV_CTRL_TX_ENABLE;
             }
@@ -254,6 +245,7 @@ static void
 bpfhv_ctx_remap(BpfHvState *s)
 {
     unsigned int qsel = s->ioregs[BPFHV_REG(QUEUE_SELECT)];
+    bool rx = false;
     hwaddr base, len;
     void **pvaddr;
 
@@ -263,10 +255,12 @@ bpfhv_ctx_remap(BpfHvState *s)
     if (qsel < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]) {
         pvaddr = (void **)&s->rxq[qsel].ctx;
         len = s->ioregs[BPFHV_REG(RX_CTX_SIZE)];
+        rx = true;
     } else {
-        pvaddr =
-            (void **) &s->txq[qsel - s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]].ctx;
+        qsel -= s->ioregs[BPFHV_REG(NUM_RX_QUEUES)];
+        pvaddr = (void **) &s->txq[qsel].ctx;
         len = s->ioregs[BPFHV_REG(TX_CTX_SIZE)];
+        rx = false;
     }
 
     /* Unmap the previous context, if any. */
@@ -278,8 +272,15 @@ bpfhv_ctx_remap(BpfHvState *s)
     /* Map the new context if it is provided. */
     if (base != 0) {
         *pvaddr = cpu_physical_memory_map(base, &len, /*is_write=*/1);
-        DBG("Queue #%u GPA %llx (%llu) mapped at HVA %p", qsel,
-               (unsigned long long)base, (unsigned long long)len, *pvaddr);
+        DBG("Queue %sX#%u GPA %llx (%llu) mapped at HVA %p", rx ? "R" : "T",
+            qsel, (unsigned long long)base, (unsigned long long)len, *pvaddr);
+        if (rx) {
+            sring_rx_ctx_init(s->rxq[qsel].ctx,
+                              s->ioregs[BPFHV_REG(NUM_RX_BUFS)]);
+        } else {
+            sring_tx_ctx_init(s->txq[qsel].ctx,
+                              s->ioregs[BPFHV_REG(NUM_TX_BUFS)]);
+        }
     }
 
     /* Possibly update link status. */

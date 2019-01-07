@@ -59,12 +59,10 @@ sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
     int i;
 
     while (cons != prod) {
-        struct sring_tx_desc *txd = priv->desc + cons;
+        struct sring_tx_desc *txd = priv->desc + (cons % priv->num_slots);
         hwaddr len;
 
-        if (++cons == priv->num_slots) {
-            cons = 0;
-        }
+        cons++;
 
         len = txd->len;
         iov[iovcnt].iov_base = cpu_physical_memory_map(txd->paddr,
@@ -114,7 +112,7 @@ sring_receive_iov(struct bpfhv_rx_context *ctx, const struct iovec *iov, int iov
     const struct iovec *const iov_end = iov + iovcnt;
     uint32_t cons = priv->cons;
     const uint32_t prod = priv->prod;
-    struct sring_rx_desc *rxd = priv->desc + cons;
+    struct sring_rx_desc *rxd = priv->desc + (cons % priv->num_slots);
     hwaddr sspace = iov->iov_len;
     void *sbuf = iov->iov_base;
     hwaddr dspace = rxd->len;
@@ -147,9 +145,7 @@ sring_receive_iov(struct bpfhv_rx_context *ctx, const struct iovec *iov, int iov
         }
 
         if (iov == iov_end || dspace == 0) {
-            if (++cons == priv->num_slots) {
-                cons = 0;
-            }
+            cons++;
             cpu_physical_memory_unmap(dbuf, rxd->len, /*is_write=*/1,
                                       rxd->len);
             if (iov == iov_end) {
@@ -158,7 +154,7 @@ sring_receive_iov(struct bpfhv_rx_context *ctx, const struct iovec *iov, int iov
                 break;
             }
             rxd->flags = 0;
-            rxd = priv->desc + cons;
+            rxd = priv->desc + (cons % priv->num_slots);
             dspace = rxd->len;
             dbuf = NULL;
             dofs = 0;
