@@ -125,9 +125,9 @@ typedef struct BpfHvState_st {
             OBJECT_CHECK(BpfHvState, (obj), TYPE_BPFHV_PCI)
 
 static ssize_t
-bpfhv_receive(NetClientState *nc, const uint8_t *buf, size_t size)
+bpfhv_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
 {
-    return size;
+    return iov_size(iov, iovcnt);
 }
 
 /* Device link status is up iff all the contexts are valid and
@@ -172,12 +172,15 @@ bpfhv_backend_link_status_changed(NetClientState *nc)
     BpfHvState *s = qemu_get_nic_opaque(nc);
 
     bpfhv_link_status_update(s);
+    if (s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_LINK) {
+        qemu_flush_queued_packets(nc);
+    }
 }
 
 static NetClientInfo net_bpfhv_info = {
     .type = NET_CLIENT_DRIVER_NIC,
     .size = sizeof(NICState),
-    .receive = bpfhv_receive,
+    .receive_iov = bpfhv_receive_iov,
     .link_status_changed = bpfhv_backend_link_status_changed,
 };
 
