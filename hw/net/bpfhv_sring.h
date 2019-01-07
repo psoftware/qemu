@@ -24,11 +24,12 @@
 
 #include <stdint.h>
 
+#define SRING_DESC_F_EOP     (1 << 0)
+
 struct sring_tx_desc {
     uint64_t paddr;
     uint32_t len;
     uint32_t flags;
-#define TX_DESC_F_EOP     (1 << 0)
     uint64_t cookie;
 };
 
@@ -45,10 +46,10 @@ struct sring_rx_desc {
     uint64_t paddr;
     uint32_t len;
     uint32_t flags;
+    uint64_t cookie;
 };
 
 struct sring_rx_context {
-    uint64_t temp;  /* TODO remove */
     uint32_t num_slots;
     uint32_t prod;
     uint32_t clear;

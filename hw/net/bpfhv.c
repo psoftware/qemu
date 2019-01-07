@@ -138,6 +138,7 @@ bpfhv_can_receive(NetClientState *nc)
         if (sring_can_receive(s->rxq[i].ctx)) {
             return true;
         }
+        break; /* We only support a single receive queue for now. */
     }
 
     return false;
@@ -146,7 +147,15 @@ bpfhv_can_receive(NetClientState *nc)
 static ssize_t
 bpfhv_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
 {
-    return iov_size(iov, iovcnt);
+    BpfHvState *s = qemu_get_nic_opaque(nc);
+
+    if (!s->rx_contexts_ready) {
+        /* This should never happen, because we exported the can_receive method. */
+        return 0;
+    }
+
+    /* We only support a single receive queue for now. */
+    return sring_receive_iov(s->rxq[0].ctx, iov, iovcnt);
 }
 
 /* Device link status is up iff all the contexts are valid and
@@ -183,6 +192,9 @@ bpfhv_link_status_update(BpfHvState *s)
 
     DBG("Link status goes %s", new_status ? "up" : "down");
     s->ioregs[BPFHV_REG(STATUS)] ^= BPFHV_STATUS_LINK;
+    if (new_status) {
+        qemu_flush_queued_packets(nc);
+    }
 }
 
 static void
@@ -191,9 +203,6 @@ bpfhv_backend_link_status_changed(NetClientState *nc)
     BpfHvState *s = qemu_get_nic_opaque(nc);
 
     bpfhv_link_status_update(s);
-    if (s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_LINK) {
-        qemu_flush_queued_packets(nc);
-    }
 }
 
 static NetClientInfo net_bpfhv_info = {
@@ -386,6 +395,7 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     }
     if (doorbell < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]) {
         DBG("Doorbell RX#%u rung", doorbell);
+        qemu_flush_queued_packets(qemu_get_queue(s->nic));
     } else {
         doorbell -= s->ioregs[BPFHV_REG(NUM_RX_QUEUES)];
         DBG("Doorbell TX#%u rung", doorbell);
@@ -461,8 +471,9 @@ static const MemoryRegionOps bpfhv_progmmio_ops = {
     },
 };
 
+/* TODO fill errp as appropriate. */
 static int
-bpfhv_progs_load(BpfHvState *s, const char *implname)
+bpfhv_progs_load(BpfHvState *s, const char *implname, Error **errp)
 {
     const char *prog_names[BPFHV_PROG_MAX] = {"none", "txp", "txc", "rxp", "rxc"};
     char filename[64];
@@ -609,7 +620,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->rx_contexts_ready = s->tx_contexts_ready = false;
 
     /* Initialize eBPF programs. */
-    if (bpfhv_progs_load(s, implname)) {
+    if (bpfhv_progs_load(s, implname, errp)) {
         error_setg(errp, "Failed to load eBPF programs for '%s'", implname);
         return;
     }

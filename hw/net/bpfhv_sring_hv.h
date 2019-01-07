@@ -44,4 +44,7 @@ void sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
 
 bool sring_can_receive(struct bpfhv_rx_context *ctx);
 
+ssize_t sring_receive_iov(struct bpfhv_rx_context *ctx,
+                          const struct iovec *iov, int iovcnt);
+
 #endif  /*__BPFHV_SRING_HV_H__ */

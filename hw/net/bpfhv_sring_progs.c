@@ -28,7 +28,7 @@ int sring_txp(struct bpfhv_tx_context *ctx)
             prod = 0;
         }
     }
-    txd->flags = TX_DESC_F_EOP;
+    txd->flags = SRING_DESC_F_EOP;
     txd->cookie = ctx->cookie;
     priv->prod = prod;
     ctx->oflags = BPFHV_OFLAGS_NOTIF_NEEDED;
@@ -40,8 +40,8 @@ __section("txc")
 int sring_txc(struct bpfhv_tx_context *ctx)
 {
     struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
-    uint32_t cons = priv->cons;
     uint32_t clear = priv->clear;
+    uint32_t cons = priv->cons;
 
     if (clear == cons) {
         return 0;
@@ -54,7 +54,7 @@ int sring_txc(struct bpfhv_tx_context *ctx)
         if (++clear == priv->num_slots) {
             clear = 0;
         }
-        if (txd->flags & TX_DESC_F_EOP) {
+        if (txd->flags & SRING_DESC_F_EOP) {
             ctx->cookie = txd->cookie;
             break;
         }
@@ -69,6 +69,28 @@ int sring_txc(struct bpfhv_tx_context *ctx)
 __section("rxp")
 int sring_rxp(struct bpfhv_rx_context *ctx)
 {
+    struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
+    uint32_t prod = priv->prod;
+    struct sring_rx_desc *rxd;
+    uint32_t i;
+
+    if (ctx->num_bufs > BPFHV_MAX_RX_BUFS) {
+        return -1;
+    }
+
+    for (i = 0; i < ctx->num_bufs; i++) {
+        rxd = priv->desc + prod;
+        rxd->cookie = ctx->buf_cookie[i];
+        rxd->paddr = ctx->phys[i];
+        rxd->len = ctx->len[i];
+        rxd->flags = 0;
+        if (++prod == priv->num_slots) {
+            prod = 0;
+        }
+    }
+    priv->prod = prod;
+    ctx->oflags = BPFHV_OFLAGS_NOTIF_NEEDED;
+
     return 0;
 }
 
@@ -78,16 +100,43 @@ __section("rxc")
 int sring_rxc(struct bpfhv_rx_context *ctx)
 {
     struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
+    uint32_t clear = priv->clear;
+    uint32_t cons = priv->cons;
+    struct sring_rx_desc *rxd;
+    uint32_t i = 0;
     int ret;
 
-    if (priv->temp == 0) {
+    if (clear == cons) {
+        /* No new packets to be received. */
         return 0;
     }
-    priv->temp--;
+
+    /* Prepare the input arguments for pkt_alloc(). */
+    for (; clear != cons; i++) {
+        rxd = priv->desc + clear;
+        if (++clear == priv->num_slots) {
+            clear = 0;
+        }
+        ctx->buf_cookie[i] = rxd->cookie;
+        ctx->phys[i] = rxd->paddr;
+        ctx->len[i] = rxd->len;
+
+        if ((rxd->flags & SRING_DESC_F_EOP) || i >= BPFHV_MAX_RX_BUFS) {
+            break;
+        }
+    }
+    priv->clear = clear;
+    ctx->num_bufs = i;
+
     ret = pkt_alloc(ctx);
     if (ret < 0) {
         return ret;
     }
+
+    /* Now ctx->packet contains the allocated OS packet. Return 1 to tell
+     * the driver that ctx->packet is valid. Also set ctx->oflags to tell
+     * the driver whether rescheduling is necessary. */
+    ctx->oflags = 0;
 
     return 1;
 }

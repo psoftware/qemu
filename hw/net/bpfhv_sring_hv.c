@@ -76,7 +76,7 @@ sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
             iovcnt++;
         }
 
-        if (txd->flags & TX_DESC_F_EOP) {
+        if (txd->flags & SRING_DESC_F_EOP) {
             int ret = qemu_sendv_packet_async(nc, iov, iovcnt,
                                             /*sent_cb=*/complete_cb);
 
@@ -105,4 +105,68 @@ sring_can_receive(struct bpfhv_rx_context *ctx)
     struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
 
     return (priv->cons != priv->prod);
+}
+
+ssize_t
+sring_receive_iov(struct bpfhv_rx_context *ctx, const struct iovec *iov, int iovcnt)
+{
+    struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
+    const struct iovec *const iov_end = iov + iovcnt;
+    uint32_t cons = priv->cons;
+    const uint32_t prod = priv->prod;
+    struct sring_rx_desc *rxd = priv->desc + cons;
+    hwaddr sspace = iov->iov_len;
+    void *sbuf = iov->iov_base;
+    hwaddr dspace = rxd->len;
+    ssize_t totlen = 0;
+    void *dbuf = NULL;
+    size_t dofs = 0;
+
+    while (cons != prod) {
+        size_t copy = sspace < dspace ? sspace : dspace;
+
+        if (!dbuf) {
+            dbuf = cpu_physical_memory_map(rxd->paddr, &dspace, /*is_write*/1);
+            if (!dbuf) {
+                /* Invalid descriptor, just skip it. */
+                return 0;
+            }
+        }
+
+        memcpy(dbuf + dofs, sbuf, copy);
+        totlen += copy;
+        sspace -= copy;
+        dspace -= copy;
+        sbuf += copy;
+        dofs += copy;
+
+        if (sspace == 0) {
+            iov++;
+            sspace = iov->iov_len;
+            sbuf = iov->iov_base;
+        }
+
+        if (iov == iov_end || dspace == 0) {
+            if (++cons == priv->num_slots) {
+                cons = 0;
+            }
+            cpu_physical_memory_unmap(dbuf, rxd->len, /*is_write=*/1,
+                                      rxd->len);
+            if (iov == iov_end) {
+                rxd->len -= dspace;
+                rxd->flags = SRING_DESC_F_EOP;
+                break;
+            }
+            rxd->flags = 0;
+            rxd = priv->desc + cons;
+            dspace = rxd->len;
+            dbuf = NULL;
+            dofs = 0;
+        }
+    }
+
+    priv->cons = cons;
+
+    return totlen;
+
 }

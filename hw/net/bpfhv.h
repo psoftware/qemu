@@ -47,6 +47,9 @@ struct bpfhv_tx_context {
 	 * all the other fields are invalid.
 	 */
 	uint64_t	cookie;
+        /* TODO replace parallel arrays with a single array, in order to
+         * trade space for cache efficiency. */
+        /* TODO rename phys --> paddr */
 #define BPFHV_MAX_TX_BUFS		64
 	uint64_t	phys[BPFHV_MAX_TX_BUFS];
 	uint32_t	len[BPFHV_MAX_TX_BUFS];
