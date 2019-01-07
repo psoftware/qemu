@@ -343,6 +343,17 @@ bpfhv_io_read(void *opaque, hwaddr addr, unsigned size)
 }
 
 static void
+bpfhv_tx_complete(NetClientState *nc, ssize_t len)
+{
+    BpfHvState *s = qemu_get_nic_opaque(nc);
+    int i;
+
+    for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
+        sring_txq_drain(nc, s->txq[i].ctx, bpfhv_tx_complete);
+    }
+}
+
+static void
 bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 {
     BpfHvState *s = opaque;
@@ -358,7 +369,8 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     } else {
         doorbell -= s->ioregs[BPFHV_REG(NUM_RX_QUEUES)];
         DBG("Doorbell TX#%u rung", doorbell);
-        sring_txq_drain(qemu_get_queue(s->nic), s->txq[doorbell].ctx);
+        sring_txq_drain(qemu_get_queue(s->nic), s->txq[doorbell].ctx,
+                        bpfhv_tx_complete);
     }
 }
 

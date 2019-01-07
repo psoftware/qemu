@@ -39,6 +39,7 @@ sring_tx_ctx_size(size_t num_tx_bufs)
 void sring_rx_ctx_init(struct bpfhv_rx_context *ctx, size_t num_rx_bufs);
 void sring_tx_ctx_init(struct bpfhv_tx_context *ctx, size_t num_tx_bufs);
 
-void sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx);
+void sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
+                NetPacketSent *complete_cb);
 
 #endif  /*__BPFHV_SRING_HV_H__ */
