@@ -472,13 +472,13 @@ static const MemoryRegionOps bpfhv_progmmio_ops = {
     },
 };
 
-/* TODO fill errp as appropriate. */
 static int
 bpfhv_progs_load(BpfHvState *s, const char *implname, Error **errp)
 {
     const char *prog_names[BPFHV_PROG_MAX] = {"none", "txp", "txc", "rxp", "rxc"};
     char filename[64];
     GElf_Ehdr ehdr;
+    int ret = -1;
     char *path;
     Elf *elf;
     int fd;
@@ -495,23 +495,29 @@ bpfhv_progs_load(BpfHvState *s, const char *implname, Error **errp)
     snprintf(filename, sizeof(filename), "bpfhv_%s_progs.o", implname);
     path = qemu_find_file(QEMU_FILE_TYPE_EBPF, filename);
     if (!path) {
+        error_setg(errp, "Could not locate %s", filename);
         return -1;
     }
 
     fd = open(path, O_RDONLY, 0);
     g_free(path);
+    path = NULL;
     if (fd < 0) {
+        error_setg_errno(errp, errno, "Failed to open %s", filename);
         return -1;
     }
     if (elf_version(EV_CURRENT) == EV_NONE) {
+        error_setg(errp, "ELF version mismatch");
         goto err;
     }
     elf = elf_begin(fd, ELF_C_READ, NULL);
     if (!elf) {
+        error_setg(errp, "Failed to initialize ELF library for %s", filename);
         goto err;
     }
 
     if (gelf_getehdr(elf, &ehdr) != &ehdr) {
+        error_setg(errp, "Failed to get ELF header for %s", filename);
         goto err;
     }
 
@@ -559,7 +565,7 @@ bpfhv_progs_load(BpfHvState *s, const char *implname, Error **errp)
 
             if (s->progs[j].insns != NULL) {
                 DBG("warning: %s contains more sections with name %s",
-                    path, prog_names[j]);
+                    filename, prog_names[j]);
                 continue;
             }
 
@@ -569,19 +575,18 @@ bpfhv_progs_load(BpfHvState *s, const char *implname, Error **errp)
         }
     }
 
-    close(fd);
-
     for (i = BPFHV_PROG_NONE + 1; i < BPFHV_PROG_MAX; i++) {
         if (s->progs[i].insns == NULL || s->progs[i].num_insns == 0) {
-            return -1;
+            error_setg(errp, "Program %s missing in ELF '%s'", prog_names[i], filename);
+            goto err;
         }
     }
 
-    return 0;
+    ret = 0;
 err:
     close(fd);
 
-    return -1;
+    return ret;
 }
 
 static void
