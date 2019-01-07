@@ -20,6 +20,7 @@
 
 #include "qemu/osdep.h"
 #include "net/net.h"
+#include "exec/memory.h"
 
 #include "bpfhv.h"
 #include "bpfhv_sring.h"
@@ -45,20 +46,38 @@ void
 sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx)
 {
     struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
+    struct iovec iov[BPFHV_MAX_TX_BUFS];
     uint32_t prod = priv->prod;
     uint32_t cons = priv->cons;
-    uint32_t pkt_len = 0;
+    int iovcnt = 0;
+    int i;
 
     while (cons != prod) {
         struct sring_tx_desc *txd = priv->desc + cons;
+        hwaddr len;
 
-        pkt_len += txd->len;
-        if (txd->flags & TX_DESC_F_EOP) {
-            printf("Fake transmit pkt_len %u\n", pkt_len);
-            pkt_len = 0;
+        len = txd->len;
+        iov[iovcnt].iov_base = cpu_physical_memory_map(txd->paddr,
+                                                    &len, /*is_write*/0);
+        iov[iovcnt].iov_len = len; /* technically, it may be len < txd->len */
+        if (iov[iovcnt].iov_base == NULL) {
+            /* Invalid descriptor, just skip it. */
+        } else {
+            iovcnt++;
         }
+
         if (++cons == priv->num_slots) {
             cons = 0;
+        }
+
+        if (txd->flags & TX_DESC_F_EOP) {
+            qemu_sendv_packet_async(nc, iov, iovcnt, /*sent_cb=*/NULL);
+            /* TODO handle return value */
+            for (i = 0; i < iovcnt; i++) {
+                cpu_physical_memory_unmap(iov[i].iov_base, iov[i].iov_len,
+                                        /*is_write=*/0, iov[i].iov_len);
+            }
+            iovcnt = 0;
         }
     }
 
