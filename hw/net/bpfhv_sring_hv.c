@@ -46,9 +46,9 @@ sring_tx_ctx_init(struct bpfhv_tx_context *ctx, size_t num_tx_bufs)
     memset(priv->desc, 0, num_tx_bufs * sizeof(priv->desc[0]));
 }
 
-void
+ssize_t
 sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
-                NetPacketSent *complete_cb)
+                NetPacketSent *complete_cb, bool *notify)
 {
     struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
     struct iovec iov[BPFHV_MAX_TX_BUFS];
@@ -56,6 +56,7 @@ sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
     uint32_t cons = priv->cons;
     uint32_t first = cons;
     int iovcnt = 0;
+    int count = 0;
     int i;
 
     while (cons != prod) {
@@ -91,10 +92,14 @@ sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
             }
             iovcnt = 0;
             first = cons;
+            count++;
         }
     }
 
     priv->cons = cons;
+    *notify = true;
+
+    return count;
 }
 
 bool
@@ -106,7 +111,8 @@ sring_can_receive(struct bpfhv_rx_context *ctx)
 }
 
 ssize_t
-sring_receive_iov(struct bpfhv_rx_context *ctx, const struct iovec *iov, int iovcnt)
+sring_receive_iov(struct bpfhv_rx_context *ctx, const struct iovec *iov,
+                  int iovcnt, bool *notify)
 {
     struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
     const struct iovec *const iov_end = iov + iovcnt;
@@ -127,6 +133,7 @@ sring_receive_iov(struct bpfhv_rx_context *ctx, const struct iovec *iov, int iov
             dbuf = cpu_physical_memory_map(rxd->paddr, &dspace, /*is_write*/1);
             if (!dbuf) {
                 /* Invalid descriptor, just skip it. */
+                *notify = false;
                 return 0;
             }
         }
@@ -162,6 +169,7 @@ sring_receive_iov(struct bpfhv_rx_context *ctx, const struct iovec *iov, int iov
     }
 
     priv->cons = cons;
+    *notify = true;
 
     return totlen;
 

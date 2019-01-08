@@ -38,7 +38,7 @@
 #include "bpfhv_sring.h"
 #include "bpfhv_sring_hv.h"
 
-#define BPFHV_DEBUG
+#undef BPFHV_DEBUG
 #ifdef BPFHV_DEBUG
 #define DBG(fmt, ...) do { \
         fprintf(stderr, "bpfhv-if: " fmt "\n", ## __VA_ARGS__); \
@@ -148,6 +148,7 @@ static ssize_t
 bpfhv_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
 {
     BpfHvState *s = qemu_get_nic_opaque(nc);
+    bool notify;
     ssize_t ret;
 
     if (!s->rx_contexts_ready) {
@@ -156,9 +157,8 @@ bpfhv_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
     }
 
     /* We only support a single receive queue for now. */
-    ret = sring_receive_iov(s->rxq[0].ctx, iov, iovcnt);
-    if (ret > 0) {
-	/* TODO move to sring somehow */
+    ret = sring_receive_iov(s->rxq[0].ctx, iov, iovcnt, &notify);
+    if (ret > 0 && notify) {
         msix_notify(PCI_DEVICE(s), 0);
     }
 
@@ -388,7 +388,12 @@ bpfhv_tx_complete(NetClientState *nc, ssize_t len)
     int i;
 
     for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
-        sring_txq_drain(nc, s->txq[i].ctx, bpfhv_tx_complete);
+        bool notify;
+
+        sring_txq_drain(nc, s->txq[i].ctx, bpfhv_tx_complete, &notify);
+        if (notify) {
+	    msix_notify(PCI_DEVICE(s), i);
+        }
     }
 }
 
@@ -408,13 +413,15 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         qemu_flush_queued_packets(qemu_get_queue(s->nic));
     } else {
 	unsigned int vector = doorbell;
+        bool notify;
 
         doorbell -= s->ioregs[BPFHV_REG(NUM_RX_QUEUES)];
         DBG("Doorbell TX#%u rung", doorbell);
         sring_txq_drain(qemu_get_queue(s->nic), s->txq[doorbell].ctx,
-                        bpfhv_tx_complete);
-	/* TODO move to sring somehow */
-	msix_notify(PCI_DEVICE(s), vector);
+                        bpfhv_tx_complete, &notify);
+        if (notify) {
+	    msix_notify(PCI_DEVICE(s), vector);
+        }
     }
 }
 
