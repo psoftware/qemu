@@ -148,6 +148,7 @@ static ssize_t
 bpfhv_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
 {
     BpfHvState *s = qemu_get_nic_opaque(nc);
+    ssize_t ret;
 
     if (!s->rx_contexts_ready) {
         /* This should never happen, because we exported the can_receive method. */
@@ -155,7 +156,13 @@ bpfhv_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
     }
 
     /* We only support a single receive queue for now. */
-    return sring_receive_iov(s->rxq[0].ctx, iov, iovcnt);
+    ret = sring_receive_iov(s->rxq[0].ctx, iov, iovcnt);
+    if (ret > 0) {
+	/* TODO move to sring somehow */
+        msix_notify(PCI_DEVICE(s), 0);
+    }
+
+    return ret;
 }
 
 /* Device link status is up iff all the contexts are valid and
@@ -400,10 +407,14 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         DBG("Doorbell RX#%u rung", doorbell);
         qemu_flush_queued_packets(qemu_get_queue(s->nic));
     } else {
+	unsigned int vector = doorbell;
+
         doorbell -= s->ioregs[BPFHV_REG(NUM_RX_QUEUES)];
         DBG("Doorbell TX#%u rung", doorbell);
         sring_txq_drain(qemu_get_queue(s->nic), s->txq[doorbell].ctx,
                         bpfhv_tx_complete);
+	/* TODO move to sring somehow */
+	msix_notify(PCI_DEVICE(s), vector);
     }
 }
 
