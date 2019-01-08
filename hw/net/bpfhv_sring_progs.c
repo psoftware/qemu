@@ -19,9 +19,11 @@ int sring_txp(struct bpfhv_tx_context *ctx)
     }
 
     for (i = 0; i < ctx->num_bufs; i++, prod++) {
+        struct bpfhv_tx_buf *txb = ctx->bufs + i;
+
         txd = priv->desc + (prod % priv->num_slots);
-        txd->paddr = ctx->phys[i];
-        txd->len = ctx->len[i];
+        txd->paddr = txb->paddr;
+        txd->len = txb->len;
         txd->flags = 0;
         txd->cookie = 0;
     }
@@ -74,10 +76,12 @@ int sring_rxp(struct bpfhv_rx_context *ctx)
     }
 
     for (i = 0; i < ctx->num_bufs; i++, prod++) {
+        struct bpfhv_rx_buf *rxb = ctx->bufs + i;
+
         rxd = priv->desc + (prod % priv->num_slots);
-        rxd->cookie = ctx->buf_cookie[i];
-        rxd->paddr = ctx->phys[i];
-        rxd->len = ctx->len[i];
+        rxd->cookie = rxb->cookie;
+        rxd->paddr = rxb->paddr;
+        rxd->len = rxb->len;
         rxd->flags = 0;
     }
     priv->prod = prod;
@@ -105,11 +109,13 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
 
     /* Prepare the input arguments for rx_pkt_alloc(). */
     for (; clear != cons && i < BPFHV_MAX_RX_BUFS; i++) {
+        struct bpfhv_rx_buf *rxb = ctx->bufs + i;
+
         rxd = priv->desc + (clear % priv->num_slots);
         clear++;
-        ctx->buf_cookie[i] = rxd->cookie;
-        ctx->phys[i] = rxd->paddr;
-        ctx->len[i] = rxd->len;
+        rxb->cookie = rxd->cookie;
+        rxb->paddr = rxd->paddr;
+        rxb->len = rxd->len;
 
         if (rxd->flags & SRING_DESC_F_EOP) {
             break;

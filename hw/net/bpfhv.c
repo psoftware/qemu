@@ -274,6 +274,8 @@ bpfhv_ctx_remap(BpfHvState *s)
         *pvaddr = cpu_physical_memory_map(base, &len, /*is_write=*/1);
         DBG("Queue %sX#%u GPA %llx (%llu) mapped at HVA %p", rx ? "R" : "T",
             qsel, (unsigned long long)base, (unsigned long long)len, *pvaddr);
+
+        /* Also initialize the hypervisor-side of the context. */
         if (rx) {
             sring_rx_ctx_init(s->rxq[qsel].ctx,
                               s->ioregs[BPFHV_REG(NUM_RX_BUFS)]);
