@@ -599,6 +599,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     BpfHvState *s = BPFHV(pci_dev);
     NetClientState *nc;
     uint8_t *pci_conf;
+    int i;
 
     pci_conf = pci_dev->config;
     pci_conf[PCI_CACHE_LINE_SIZE] = 0x10;
@@ -665,6 +666,22 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         return;
     }
 
+    for (i = 0; i < s->num_queues; i++) {
+        int ret = msix_vector_use(pci_dev, i);
+
+        if (ret) {
+            int j;
+
+            for (j = 0; j < i; j++) {
+                msix_vector_unuse(pci_dev, j);
+            }
+            msix_uninit_exclusive_bar(PCI_DEVICE(s));
+            error_setg(errp, "Failed to setup MSIX vector #%d (error=%d)",
+                             i, ret);
+            return;
+        }
+    }
+
     DBG("%s(%p)", __func__, s);
 }
 
@@ -683,6 +700,9 @@ pci_bpfhv_uninit(PCIDevice *dev)
 
     g_free(s->rxq);
     g_free(s->txq);
+    for (i = 0; i < s->num_queues; i++) {
+        msix_vector_unuse(PCI_DEVICE(s), i);
+    }
     msix_uninit_exclusive_bar(PCI_DEVICE(s));
     qemu_del_nic(s->nic);
 
