@@ -569,7 +569,8 @@ static const MemoryRegionOps bpfhv_progmmio_ops = {
 static int
 bpfhv_progs_load(BpfHvState *s, const char *implname, Error **errp)
 {
-    const char *prog_names[BPFHV_PROG_MAX] = {"none", "txp", "txc", "rxp", "rxc"};
+    const char *prog_names[BPFHV_PROG_MAX] = {"none", "rxp", "rxc", "rxr",
+                                              "txp", "txc", "txr"};
     char filename[64];
     GElf_Ehdr ehdr;
     int ret = -1;
@@ -671,7 +672,8 @@ bpfhv_progs_load(BpfHvState *s, const char *implname, Error **errp)
 
     for (i = BPFHV_PROG_NONE + 1; i < BPFHV_PROG_MAX; i++) {
         if (s->progs[i].insns == NULL || s->progs[i].num_insns == 0) {
-            error_setg(errp, "Program %s missing in ELF '%s'", prog_names[i], filename);
+            error_setg(errp, "Program %s missing in ELF '%s'",
+                       prog_names[i], filename);
             goto err;
         }
     }
