@@ -35,6 +35,24 @@ int sring_txp(struct bpfhv_tx_context *ctx)
     return 0;
 }
 
+static inline uint32_t
+sring_tx_get_one(struct bpfhv_tx_context *ctx,
+                 struct sring_tx_context *priv, uint32_t start)
+{
+    for (;;) {
+        struct sring_tx_desc *txd;
+
+        txd = priv->desc + (start % priv->num_slots);
+        start++;
+        if (txd->flags & SRING_DESC_F_EOP) {
+            ctx->cookie = txd->cookie;
+            break;
+        }
+    }
+
+    return start;
+}
+
 __section("txc")
 int sring_txc(struct bpfhv_tx_context *ctx)
 {
@@ -46,18 +64,24 @@ int sring_txc(struct bpfhv_tx_context *ctx)
         return 0;
     }
 
-    for (;;) {
-        struct sring_tx_desc *txd;
+    priv->clear = sring_tx_get_one(ctx, priv, clear);
+    ctx->oflags = 0;
 
-        txd = priv->desc + (clear % priv->num_slots);
-        clear++;
-        if (txd->flags & SRING_DESC_F_EOP) {
-            ctx->cookie = txd->cookie;
-            break;
-        }
+    return 1;
+}
+
+__section("txr")
+int sring_txr(struct bpfhv_tx_context *ctx)
+{
+    struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
+    uint32_t cons = priv->cons;
+    uint32_t prod = priv->prod;
+
+    if (cons == prod) {
+        return 0;
     }
 
-    priv->clear = clear;
+    priv->cons = sring_tx_get_one(ctx, priv, cons);
     ctx->oflags = 0;
 
     return 1;
@@ -98,7 +122,6 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
     struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
     uint32_t clear = priv->clear;
     uint32_t cons = priv->cons;
-    struct sring_rx_desc *rxd;
     uint32_t i = 0;
     int ret;
 
@@ -110,6 +133,7 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
     /* Prepare the input arguments for rx_pkt_alloc(). */
     for (; clear != cons && i < BPFHV_MAX_RX_BUFS; i++) {
         struct bpfhv_rx_buf *rxb = ctx->bufs + i;
+        struct sring_rx_desc *rxd;
 
         rxd = priv->desc + (clear % priv->num_slots);
         clear++;
@@ -132,6 +156,36 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
     /* Now ctx->packet contains the allocated OS packet. Return 1 to tell
      * the driver that ctx->packet is valid. Also set ctx->oflags to tell
      * the driver whether rescheduling is necessary. */
+    ctx->oflags = 0;
+
+    return 1;
+}
+
+__section("rxr")
+int sring_rxr(struct bpfhv_rx_context *ctx)
+{
+    struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
+    uint32_t cons = priv->cons;
+    uint32_t prod = priv->prod;
+    uint32_t i = 0;
+
+    if (cons == prod) {
+        return 0;
+    }
+
+    for (; cons != prod && i < BPFHV_MAX_RX_BUFS; i++) {
+        struct bpfhv_rx_buf *rxb = ctx->bufs + i;
+        struct sring_rx_desc *rxd;
+
+        rxd = priv->desc + (cons % priv->num_slots);
+        cons++;
+        rxb->cookie = rxd->cookie;
+        rxb->paddr = rxd->paddr;
+        rxb->len = rxd->len;
+    }
+
+    priv->cons = cons;
+    ctx->num_bufs = i;
     ctx->oflags = 0;
 
     return 1;
