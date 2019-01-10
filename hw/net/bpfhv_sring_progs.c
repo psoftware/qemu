@@ -81,7 +81,7 @@ int sring_txr(struct bpfhv_tx_context *ctx)
         return 0;
     }
 
-    priv->cons = sring_tx_get_one(ctx, priv, cons);
+    priv->cons = priv->clear = sring_tx_get_one(ctx, priv, cons);
     ctx->oflags = 0;
 
     return 1;
@@ -184,7 +184,7 @@ int sring_rxr(struct bpfhv_rx_context *ctx)
         rxb->len = rxd->len;
     }
 
-    priv->cons = cons;
+    priv->cons = priv->clear = cons;
     ctx->num_bufs = i;
     ctx->oflags = 0;
 
