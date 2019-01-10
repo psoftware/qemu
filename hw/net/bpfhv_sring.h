@@ -27,10 +27,10 @@
 #define SRING_DESC_F_EOP     (1 << 0)
 
 struct sring_tx_desc {
+    uint64_t cookie;
     uint64_t paddr;
     uint32_t len;
     uint32_t flags;
-    uint64_t cookie;
 };
 
 /* TODO add proper padding to minimize cache misses */
@@ -43,10 +43,10 @@ struct sring_tx_context {
 };
 
 struct sring_rx_desc {
+    uint64_t cookie;
     uint64_t paddr;
     uint32_t len;
     uint32_t flags;
-    uint64_t cookie;
 };
 
 struct sring_rx_context {

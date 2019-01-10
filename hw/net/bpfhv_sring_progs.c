@@ -22,13 +22,13 @@ int sring_txp(struct bpfhv_tx_context *ctx)
         struct bpfhv_tx_buf *txb = ctx->bufs + i;
 
         txd = priv->desc + (prod % priv->num_slots);
+        txd->cookie = txb->cookie;
         txd->paddr = txb->paddr;
         txd->len = txb->len;
         txd->flags = 0;
         txd->cookie = 0;
     }
     txd->flags = SRING_DESC_F_EOP;
-    txd->cookie = ctx->cookie;
     priv->prod = prod;
     ctx->oflags = BPFHV_OFLAGS_NOTIF_NEEDED;
 
@@ -39,16 +39,24 @@ static inline uint32_t
 sring_tx_get_one(struct bpfhv_tx_context *ctx,
                  struct sring_tx_context *priv, uint32_t start)
 {
-    for (;;) {
+    uint32_t i;
+
+    for (i = 0; i < BPFHV_MAX_TX_BUFS; i++) {
+        struct bpfhv_tx_buf *txb = ctx->bufs + i;
         struct sring_tx_desc *txd;
 
         txd = priv->desc + (start % priv->num_slots);
         start++;
+        txb->paddr = txd->paddr;
+        txb->len = txd->len;
+        txb->cookie = txd->cookie;
         if (txd->flags & SRING_DESC_F_EOP) {
-            ctx->cookie = txd->cookie;
+            i++;
             break;
         }
     }
+
+    ctx->num_bufs = i;
 
     return start;
 }
@@ -122,7 +130,7 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
     struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
     uint32_t clear = priv->clear;
     uint32_t cons = priv->cons;
-    uint32_t i = 0;
+    uint32_t i;
     int ret;
 
     if (clear == cons) {
@@ -131,7 +139,7 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
     }
 
     /* Prepare the input arguments for rx_pkt_alloc(). */
-    for (; clear != cons && i < BPFHV_MAX_RX_BUFS; i++) {
+    for (i = 0; clear != cons && i < BPFHV_MAX_RX_BUFS; i++) {
         struct bpfhv_rx_buf *rxb = ctx->bufs + i;
         struct sring_rx_desc *rxd;
 
