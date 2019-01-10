@@ -83,6 +83,7 @@ typedef struct BpfHvTxQueue_st {
     QEMUBH *bh;
     NetClientState *nc;
     struct BpfHvState_st *parent;
+    unsigned int vector;
 } BpfHvTxQueue;
 
 typedef struct BpfHvRxQueue_st {
@@ -414,7 +415,7 @@ bpfhv_tx_complete(NetClientState *nc, ssize_t len)
 
         sring_txq_drain(nc, s->txq[i].ctx, bpfhv_tx_complete, &notify);
         if (notify) {
-	    msix_notify(PCI_DEVICE(s), i);
+	    msix_notify(PCI_DEVICE(s), s->txq[i].vector);
         }
 
         /* TODO enable notify */
@@ -435,7 +436,7 @@ bpfhv_tx_bh(void *opaque)
 
     ret = sring_txq_drain(txq->nc, txq->ctx, bpfhv_tx_complete, &notify);
     if (notify) {
-	    msix_notify(PCI_DEVICE(s), txq - s->txq);
+	    msix_notify(PCI_DEVICE(s), txq->vector);
     }
     if (ret == -EBUSY || ret == -EINVAL) {
         return;
@@ -455,7 +456,7 @@ bpfhv_tx_bh(void *opaque)
     /* TODO enable notify */
     ret = sring_txq_drain(txq->nc, txq->ctx, bpfhv_tx_complete, &notify);
     if (notify) {
-	    msix_notify(PCI_DEVICE(s), txq - s->txq);
+	    msix_notify(PCI_DEVICE(s), txq->vector);
     }
     if (ret == -EINVAL) {
         return;
@@ -484,13 +485,12 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         DBG("Doorbell TX#%u rung", doorbell);
 #if 0
         {
-            unsigned int vector = doorbell;
             bool notify;
 
             sring_txq_drain(s->txq[doorbell].nc, s->txq[doorbell].ctx,
                     bpfhv_tx_complete, &notify);
             if (notify) {
-                msix_notify(PCI_DEVICE(s), vector);
+                msix_notify(PCI_DEVICE(s), s->txq[doorbell].vector);
             }
         }
 #else
@@ -737,6 +737,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         s->txq[i].bh = qemu_bh_new(bpfhv_tx_bh, s->txq + i);
         s->txq[i].nc = nc;
         s->txq[i].parent = s;
+        s->txq[i].vector = s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] + i;
     }
 
     /* Init I/O mapped memory region, exposing bpfhv registers. */
