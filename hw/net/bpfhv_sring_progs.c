@@ -26,7 +26,6 @@ int sring_txp(struct bpfhv_tx_context *ctx)
         txd->paddr = txb->paddr;
         txd->len = txb->len;
         txd->flags = 0;
-        txd->cookie = 0;
     }
     txd->flags = SRING_DESC_F_EOP;
     priv->prod = prod;
