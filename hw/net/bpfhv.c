@@ -135,7 +135,7 @@ bpfhv_can_receive(NetClientState *nc)
     BpfHvState *s = qemu_get_nic_opaque(nc);
     unsigned int i;
 
-    if (!s->rx_contexts_ready) {
+    if (!(s->ioregs[BPFHV_REG(CTRL)] & BPFHV_CTRL_RX_ENABLE)) {
         return false;
     }
 
@@ -156,8 +156,9 @@ bpfhv_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
     bool notify;
     ssize_t ret;
 
-    if (!s->rx_contexts_ready) {
-        /* This should never happen, because we exported the can_receive method. */
+    if (!(s->ioregs[BPFHV_REG(CTRL)] & BPFHV_CTRL_RX_ENABLE)) {
+        /* This should never happen, because we exported the can_receive
+         * method. */
         return 0;
     }
 
@@ -170,7 +171,7 @@ bpfhv_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
     return ret;
 }
 
-/* Device link status is up iff all the contexts are valid and
+/* Device link status is up iff all the receive contexts are valid and
  * the network backend link status is up. */
 static void
 bpfhv_link_status_update(BpfHvState *s)
@@ -178,26 +179,8 @@ bpfhv_link_status_update(BpfHvState *s)
     bool status = !!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_LINK);
     NetClientState *nc = qemu_get_queue(s->nic);
     bool new_status;
-    unsigned int i;
 
-    s->rx_contexts_ready = true;
-    for (i = 0; i < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]; i++) {
-        if (s->rxq[i].ctx == NULL) {
-            s->rx_contexts_ready = false;
-            break;
-        }
-    }
-
-    s->tx_contexts_ready = true;
-    for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
-        if (s->txq[i].ctx == NULL) {
-            s->tx_contexts_ready = false;
-            break;
-        }
-    }
-
-    new_status = !(nc->link_down) && s->rx_contexts_ready
-                    && s->tx_contexts_ready;
+    new_status = !(nc->link_down) && s->rx_contexts_ready;
     if (new_status == status) {
         return;
     }
@@ -230,27 +213,37 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
 {
     uint32_t changed = s->ioregs[BPFHV_REG(CTRL)] ^ newval;
 
+    s->ioregs[BPFHV_REG(CTRL)] = newval;
+
     if (changed & BPFHV_CTRL_RX_ENABLE) {
         if (newval & BPFHV_CTRL_RX_ENABLE) {
-            /* Guest asked to enable receive operation. We can do that
-             * only if all the receive contexts are present. */
-            if (s->rx_contexts_ready) {
-            } else {
+            /* Guest asked to enable receive operation. We can accept
+             * that only if all the receive contexts are present. */
+            if (!s->rx_contexts_ready) {
                 newval &= ~BPFHV_CTRL_RX_ENABLE;
+            } else {
+                qemu_flush_queued_packets(qemu_get_queue(s->nic));
             }
+        } else {
         }
     }
 
     if (changed & BPFHV_CTRL_TX_ENABLE) {
         if (newval & BPFHV_CTRL_TX_ENABLE) {
-            if (s->tx_contexts_ready) {
-            } else {
+            /* Guest asked to enable transmit operation. We can accept
+             * that only if all the transmit contexts are present. */
+            if (!s->tx_contexts_ready) {
                 newval &= ~BPFHV_CTRL_TX_ENABLE;
+            }
+        } else {
+            int i;
+
+            /* Guest asked to disable TX operation. */
+            for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
+                qemu_bh_cancel(s->txq[i].bh);
             }
         }
     }
-
-    s->ioregs[BPFHV_REG(CTRL)] = newval;
 }
 
 static void
@@ -297,8 +290,32 @@ bpfhv_ctx_remap(BpfHvState *s)
         }
     }
 
-    /* Possibly update link status. */
-    bpfhv_link_status_update(s);
+    /* Update rx_contexts_ready and tx_contexts_ready. */
+    if (rx) {
+        int i;
+
+        s->rx_contexts_ready = true;
+        for (i = 0; i < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]; i++) {
+            if (s->rxq[i].ctx == NULL) {
+                s->rx_contexts_ready = false;
+                break;
+            }
+        }
+
+        /* Possibly update link status, which depends on
+         * rx_contexs_ready. */
+        bpfhv_link_status_update(s);
+    } else {
+        int i;
+
+        s->tx_contexts_ready = true;
+        for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
+            if (s->txq[i].ctx == NULL) {
+                s->tx_contexts_ready = false;
+                break;
+            }
+        }
+    }
 }
 
 static void
@@ -399,6 +416,8 @@ bpfhv_tx_complete(NetClientState *nc, ssize_t len)
         if (notify) {
 	    msix_notify(PCI_DEVICE(s), i);
         }
+
+        /* TODO enable notify */
     }
 }
 
@@ -410,7 +429,9 @@ bpfhv_tx_bh(void *opaque)
     bool notify;
     ssize_t ret;
 
-    /* TODO check if TX not enabled */
+    if (!(s->ioregs[BPFHV_REG(CTRL)] & BPFHV_CTRL_TX_ENABLE)) {
+        return;
+    }
 
     ret = sring_txq_drain(txq->nc, txq->ctx, bpfhv_tx_complete, &notify);
     if (notify) {
