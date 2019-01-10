@@ -757,13 +757,13 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
                      PCI_BASE_ADDRESS_SPACE_MEMORY, &s->progmmio);
 
     /* Allocate a PCI bar to manage MSI-X information for this device. */
-    if (msix_init_exclusive_bar(pci_dev, s->num_queues,
+    if (msix_init_exclusive_bar(pci_dev, s->num_queues + 1,
                                 BPFHV_MSIX_PCI_BAR, NULL)) {
         error_setg(errp, "Failed to initialize MSI-X BAR");
         return;
     }
 
-    for (i = 0; i < s->num_queues; i++) {
+    for (i = 0; i < s->num_queues + 1; i++) {
         int ret = msix_vector_use(pci_dev, i);
 
         if (ret) {
@@ -802,7 +802,7 @@ pci_bpfhv_uninit(PCIDevice *dev)
 
     g_free(s->rxq);
     g_free(s->txq);
-    for (i = 0; i < s->num_queues; i++) {
+    for (i = 0; i < s->num_queues + 1; i++) {
         msix_vector_unuse(PCI_DEVICE(s), i);
     }
     msix_uninit_exclusive_bar(PCI_DEVICE(s));
