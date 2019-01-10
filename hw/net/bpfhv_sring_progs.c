@@ -40,17 +40,17 @@ sring_tx_get_one(struct bpfhv_tx_context *ctx,
 {
     uint32_t i;
 
-    for (i = 0; i < BPFHV_MAX_TX_BUFS; i++) {
+    for (i = 0; i < BPFHV_MAX_TX_BUFS; ) {
         struct bpfhv_tx_buf *txb = ctx->bufs + i;
         struct sring_tx_desc *txd;
 
         txd = priv->desc + (start % priv->num_slots);
         start++;
+        i++;
         txb->paddr = txd->paddr;
         txb->len = txd->len;
         txb->cookie = txd->cookie;
         if (txd->flags & SRING_DESC_F_EOP) {
-            i++;
             break;
         }
     }
@@ -138,12 +138,13 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
     }
 
     /* Prepare the input arguments for rx_pkt_alloc(). */
-    for (i = 0; clear != cons && i < BPFHV_MAX_RX_BUFS; i++) {
+    for (i = 0; clear != cons && i < BPFHV_MAX_RX_BUFS;) {
         struct bpfhv_rx_buf *rxb = ctx->bufs + i;
         struct sring_rx_desc *rxd;
 
         rxd = priv->desc + (clear % priv->num_slots);
         clear++;
+        i++;
         rxb->cookie = rxd->cookie;
         rxb->paddr = rxd->paddr;
         rxb->len = rxd->len;
@@ -153,7 +154,7 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
         }
     }
     priv->clear = clear;
-    ctx->num_bufs = i + 1;
+    ctx->num_bufs = i;
 
     ret = rx_pkt_alloc(ctx);
     if (ret < 0) {
