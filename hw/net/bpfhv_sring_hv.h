@@ -47,4 +47,6 @@ bool sring_can_receive(struct bpfhv_rx_context *ctx);
 ssize_t sring_receive_iov(struct bpfhv_rx_context *ctx,
                           const struct iovec *iov, int iovcnt, bool *notify);
 
+#define BPFHV_HV_TX_BUDGET      64
+
 #endif  /*__BPFHV_SRING_HV_H__ */

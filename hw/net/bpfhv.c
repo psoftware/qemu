@@ -76,8 +76,13 @@ typedef struct BpfHvProg_st {
 /* Each eBPF instruction is 8 bytes wide. */
 #define BPF_INSN_SIZE   8
 
+struct BpfHvState_st;
+
 typedef struct BpfHvTxQueue_st {
     struct bpfhv_tx_context *ctx;
+    QEMUBH *bh;
+    NetClientState *nc;
+    struct BpfHvState_st *parent;
 } BpfHvTxQueue;
 
 typedef struct BpfHvRxQueue_st {
@@ -398,6 +403,48 @@ bpfhv_tx_complete(NetClientState *nc, ssize_t len)
 }
 
 static void
+bpfhv_tx_bh(void *opaque)
+{
+    BpfHvTxQueue *txq = opaque;
+    BpfHvState *s = txq->parent;
+    bool notify;
+    ssize_t ret;
+
+    /* TODO check if TX not enabled */
+
+    ret = sring_txq_drain(txq->nc, txq->ctx, bpfhv_tx_complete, &notify);
+    if (notify) {
+	    msix_notify(PCI_DEVICE(s), txq - s->txq);
+    }
+    if (ret == -EBUSY || ret == -EINVAL) {
+        return;
+    }
+
+    if (ret >= BPFHV_HV_TX_BUDGET) {
+        /* We processed a full budget of packets, thus it is likely that more
+         * are pending (or will come in short). */
+        qemu_bh_schedule(txq->bh);
+        return;
+    }
+
+    /* If less than a full budget, re-enable notification and flush
+     * anything that may have come in while we weren't looking.
+     * If we find something, assume the guest is still active and
+     * reschedule. */
+    /* TODO enable notify */
+    ret = sring_txq_drain(txq->nc, txq->ctx, bpfhv_tx_complete, &notify);
+    if (notify) {
+	    msix_notify(PCI_DEVICE(s), txq - s->txq);
+    }
+    if (ret == -EINVAL) {
+        return;
+    } else if (ret > 0) {
+        /* TODO disable notify */
+        qemu_bh_schedule(txq->bh);
+    }
+}
+
+static void
 bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 {
     BpfHvState *s = opaque;
@@ -412,16 +459,22 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         DBG("Doorbell RX#%u rung", doorbell);
         qemu_flush_queued_packets(qemu_get_queue(s->nic));
     } else {
-	unsigned int vector = doorbell;
-        bool notify;
-
         doorbell -= s->ioregs[BPFHV_REG(NUM_RX_QUEUES)];
         DBG("Doorbell TX#%u rung", doorbell);
-        sring_txq_drain(qemu_get_queue(s->nic), s->txq[doorbell].ctx,
-                        bpfhv_tx_complete, &notify);
-        if (notify) {
-	    msix_notify(PCI_DEVICE(s), vector);
+#if 0
+        {
+            unsigned int vector = doorbell;
+            bool notify;
+
+            sring_txq_drain(s->txq[doorbell].nc, s->txq[doorbell].ctx,
+                    bpfhv_tx_complete, &notify);
+            if (notify) {
+                msix_notify(PCI_DEVICE(s), vector);
+            }
         }
+#else
+        qemu_bh_schedule(s->txq[doorbell].bh);
+#endif
     }
 }
 
@@ -657,6 +710,11 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 			* sizeof(s->rxq[0]));
     s->txq = g_malloc0(s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]
 			* sizeof(s->txq[0]));
+    for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
+        s->txq[i].bh = qemu_bh_new(bpfhv_tx_bh, s->txq + i);
+        s->txq[i].nc = nc;
+        s->txq[i].parent = s;
+    }
 
     /* Init I/O mapped memory region, exposing bpfhv registers. */
     memory_region_init_io(&s->io, OBJECT(s), &bpfhv_io_ops, s,
@@ -714,6 +772,11 @@ pci_bpfhv_uninit(PCIDevice *dev)
             g_free(s->progs[i].insns);
             s->progs[i].insns = NULL;
         }
+    }
+
+    for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
+        qemu_bh_delete(s->txq[i].bh);
+        s->txq[i].bh = NULL;
     }
 
     g_free(s->rxq);

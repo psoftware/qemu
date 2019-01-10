@@ -90,9 +90,13 @@ sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
                 cons = first;
                 break;
             }
+
+            if (++count >= BPFHV_HV_TX_BUDGET) {
+                break;
+            }
+
             iovcnt = 0;
             first = cons;
-            count++;
         }
     }
 
