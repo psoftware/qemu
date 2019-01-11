@@ -103,7 +103,7 @@ sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
     }
 
     priv->cons = cons;
-    *notify = true;
+    *notify = priv->intr_enabled;
 
     return count;
 }
@@ -183,7 +183,7 @@ sring_receive_iov(struct bpfhv_rx_context *ctx, const struct iovec *iov,
     }
 
     priv->cons = cons;
-    *notify = true;
+    *notify = priv->intr_enabled;
 
     return totlen;
 }
