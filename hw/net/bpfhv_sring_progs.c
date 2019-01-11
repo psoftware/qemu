@@ -6,6 +6,8 @@
    __attribute__((section(NAME), used))
 #endif
 
+#define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
+
 __section("txp")
 int sring_txp(struct bpfhv_tx_context *ctx)
 {
