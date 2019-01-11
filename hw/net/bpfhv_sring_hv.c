@@ -21,12 +21,14 @@
 #include "qemu/osdep.h"
 #include "net/net.h"
 #include "exec/memory.h"
+#include "qemu/atomic.h"
 
 #include "bpfhv.h"
 #include "bpfhv_sring.h"
 #include "bpfhv_sring_hv.h"
 
 #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
+#define compiler_barrier() __asm__ __volatile__ ("");
 
 void
 sring_rx_ctx_init(struct bpfhv_rx_context *ctx, size_t num_rx_bufs)
@@ -56,7 +58,7 @@ sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
 {
     struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
     struct iovec iov[BPFHV_MAX_TX_BUFS];
-    uint32_t prod = priv->prod;
+    uint32_t prod = ACCESS_ONCE(priv->prod);
     uint32_t cons = priv->cons;
     uint32_t first = cons;
     int iovcnt = 0;
@@ -104,7 +106,9 @@ sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
         }
     }
 
+    smp_mb();
     priv->cons = cons;
+    smp_mb();
     *notify = ACCESS_ONCE(priv->intr_enabled);
 
     return count;
@@ -116,6 +120,9 @@ sring_txq_notification(struct bpfhv_tx_context *ctx, int enable)
     struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
 
     priv->kick_enabled = !!enable;
+    if (enable) {
+        smp_mb();
+    }
 }
 
 bool
@@ -123,7 +130,7 @@ sring_can_receive(struct bpfhv_rx_context *ctx)
 {
     struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
 
-    return (priv->cons != priv->prod);
+    return (priv->cons != ACCESS_ONCE(priv->prod));
 }
 
 ssize_t
@@ -133,7 +140,7 @@ sring_receive_iov(struct bpfhv_rx_context *ctx, const struct iovec *iov,
     struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
     const struct iovec *const iov_end = iov + iovcnt;
     uint32_t cons = priv->cons;
-    const uint32_t prod = priv->prod;
+    const uint32_t prod = ACCESS_ONCE(priv->prod);
     struct sring_rx_desc *rxd = priv->desc + (cons % priv->num_slots);
     hwaddr sspace = iov->iov_len;
     void *sbuf = iov->iov_base;
@@ -184,7 +191,9 @@ sring_receive_iov(struct bpfhv_rx_context *ctx, const struct iovec *iov,
         }
     }
 
+    smp_mb();
     priv->cons = cons;
+    smp_mb();
     *notify = ACCESS_ONCE(priv->intr_enabled);
 
     return totlen;
@@ -196,4 +205,7 @@ sring_rxq_notification(struct bpfhv_rx_context *ctx, int enable)
     struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
 
     priv->kick_enabled = !!enable;
+    if (enable) {
+        smp_mb();
+    }
 }

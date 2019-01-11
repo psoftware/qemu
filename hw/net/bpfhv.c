@@ -466,12 +466,12 @@ bpfhv_tx_complete(NetClientState *nc, ssize_t len)
     for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
         bool notify;
 
+        sring_txq_notification(s->txq[i].ctx, /*enable=*/true);
+
         sring_txq_drain(nc, s->txq[i].ctx, bpfhv_tx_complete, &notify);
         if (notify) {
 	    msix_notify(PCI_DEVICE(s), s->txq[i].vector);
         }
-
-        sring_txq_notification(s->txq[i].ctx, /*enable=*/true);
     }
 }
 

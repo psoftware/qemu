@@ -7,6 +7,7 @@
 #endif
 
 #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
+#define compiler_barrier() __asm__ __volatile__ ("");
 
 __section("txp")
 int sring_txp(struct bpfhv_tx_context *ctx)
@@ -30,7 +31,9 @@ int sring_txp(struct bpfhv_tx_context *ctx)
         txd->flags = 0;
     }
     txd->flags = SRING_DESC_F_EOP;
-    priv->prod = prod;
+    compiler_barrier();
+    ACCESS_ONCE(priv->prod) = prod;
+    compiler_barrier();
     ctx->oflags = ACCESS_ONCE(priv->kick_enabled) ?
                   BPFHV_OFLAGS_NOTIF_NEEDED : 0;
 
@@ -118,7 +121,9 @@ int sring_rxp(struct bpfhv_rx_context *ctx)
         rxd->len = rxb->len;
         rxd->flags = 0;
     }
-    priv->prod = prod;
+    compiler_barrier();
+    ACCESS_ONCE(priv->prod) = prod;
+    compiler_barrier();
     ctx->oflags = ACCESS_ONCE(priv->kick_enabled) ?
                   BPFHV_OFLAGS_NOTIF_NEEDED : 0;
 
@@ -132,14 +137,24 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
 {
     struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
     uint32_t clear = priv->clear;
-    uint32_t cons = priv->cons;
+    uint32_t cons = ACCESS_ONCE(priv->cons);
     uint32_t i;
     int ret;
 
     if (clear == cons) {
-        /* No new packets to be received. */
-        return 0;
+        /* No new packets to be received. Enable the interrupts and perform
+         * a double check. */
+        ACCESS_ONCE(priv->intr_enabled) = 1;
+        compiler_barrier();
+        cons = ACCESS_ONCE(priv->cons);
+        if (clear == cons) {
+            return 0;
+        }
     }
+    /* TODO disable interrupt */
+#if 0
+    ACCESS_ONCE(priv->intr_enabled) = 0;
+#endif
 
     /* Prepare the input arguments for rx_pkt_alloc(). */
     for (i = 0; clear != cons && i < BPFHV_MAX_RX_BUFS;) {
