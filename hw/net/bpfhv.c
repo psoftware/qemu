@@ -278,6 +278,15 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
         }
     }
 
+    /* Temporary hack to play with program upgrade. We trigger
+     * and upgrade interrupt if the guest writes to bit 31 of
+     * the control register. */
+    if (changed & (1 << 31)) {
+        s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_UPGRADE;
+        newval &= ~(1 << 31);
+        msix_notify(PCI_DEVICE(s), s->num_queues);
+    }
+
     s->ioregs[BPFHV_REG(CTRL)] = newval;
 }
 
