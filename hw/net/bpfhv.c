@@ -136,7 +136,7 @@ bpfhv_can_receive(NetClientState *nc)
     BpfHvState *s = qemu_get_nic_opaque(nc);
     unsigned int i;
 
-    if (!(s->ioregs[BPFHV_REG(CTRL)] & BPFHV_CTRL_RX_ENABLE)) {
+    if (!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_RX_ENABLED)) {
         return false;
     }
 
@@ -157,7 +157,7 @@ bpfhv_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
     bool notify;
     ssize_t ret;
 
-    if (!(s->ioregs[BPFHV_REG(CTRL)] & BPFHV_CTRL_RX_ENABLE)) {
+    if (!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_RX_ENABLED)) {
         /* This should never happen, because we exported the can_receive
          * method. */
         return 0;
@@ -209,12 +209,12 @@ static NetClientInfo net_bpfhv_info = {
     .link_status_changed = bpfhv_backend_link_status_changed,
 };
 
+static int bpfhv_progs_load(BpfHvState *s, const char *implname, Error **errp);
+
 static void
 bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
 {
     uint32_t changed = s->ioregs[BPFHV_REG(CTRL)] ^ newval;
-
-    s->ioregs[BPFHV_REG(CTRL)] = newval;
 
     if (changed & BPFHV_CTRL_RX_ENABLE) {
         if (newval & BPFHV_CTRL_RX_ENABLE) {
@@ -223,9 +223,14 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
             if (!s->rx_contexts_ready) {
                 newval &= ~BPFHV_CTRL_RX_ENABLE;
             } else {
+                /* Set the status bit before flushing queued packets,
+                 * otherwise can_receive will return false. */
+                s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_RX_ENABLED;
                 qemu_flush_queued_packets(qemu_get_queue(s->nic));
             }
         } else {
+            /* Guest asked to disable receive operation. */
+            s->ioregs[BPFHV_REG(STATUS)] &= ~BPFHV_STATUS_RX_ENABLED;
         }
     }
 
@@ -235,16 +240,41 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
              * that only if all the transmit contexts are present. */
             if (!s->tx_contexts_ready) {
                 newval &= ~BPFHV_CTRL_TX_ENABLE;
+            } else {
+                s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_TX_ENABLED;
             }
         } else {
+            /* Guest asked to disable transmit operation. */
             int i;
 
-            /* Guest asked to disable TX operation. */
+            s->ioregs[BPFHV_REG(STATUS)] &= ~BPFHV_STATUS_TX_ENABLED;
             for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
                 qemu_bh_cancel(s->txq[i].bh);
             }
         }
     }
+
+    if (changed & BPFHV_CTRL_UPGRADE_READY) {
+        /* Guest says it is ready to upgrade. First, reset the
+         * bit as we don't store it. */
+        newval &= ~BPFHV_CTRL_UPGRADE_READY;
+        if (!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_UPGRADE)) {
+            /* No upgrade is pending, hence we ignore this request. */
+        } else {
+            const char *implname = "sring";
+            Error *local_err = NULL;
+
+            /* Perform the upgrade and clear the status bit. We currently
+             * do not recover from upgrade failure. */
+            if (bpfhv_progs_load(s, implname, &local_err)) {
+                error_propagate(&error_abort /* or error_fatal? */, local_err);
+                return;
+            }
+            s->ioregs[BPFHV_REG(STATUS)] &= ~BPFHV_STATUS_UPGRADE;
+        }
+    }
+
+    s->ioregs[BPFHV_REG(CTRL)] = newval;
 }
 
 static void
@@ -430,7 +460,7 @@ bpfhv_tx_bh(void *opaque)
     bool notify;
     ssize_t ret;
 
-    if (!(s->ioregs[BPFHV_REG(CTRL)] & BPFHV_CTRL_TX_ENABLE)) {
+    if (!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_TX_ENABLED)) {
         return;
     }
 
@@ -724,7 +754,6 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 
     /* Initialize eBPF programs. */
     if (bpfhv_progs_load(s, implname, errp)) {
-        error_setg(errp, "Failed to load eBPF programs for '%s'", implname);
         return;
     }
 
