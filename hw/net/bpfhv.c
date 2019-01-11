@@ -470,7 +470,7 @@ bpfhv_tx_complete(NetClientState *nc, ssize_t len)
 	    msix_notify(PCI_DEVICE(s), s->txq[i].vector);
         }
 
-        /* TODO enable notify */
+        sring_txq_notification(s->txq[i].ctx, /*enable=*/true);
     }
 }
 
@@ -505,7 +505,7 @@ bpfhv_tx_bh(void *opaque)
      * anything that may have come in while we weren't looking.
      * If we find something, assume the guest is still active and
      * reschedule. */
-    /* TODO enable notify */
+    sring_txq_notification(txq->ctx, /*enable=*/true);
     ret = sring_txq_drain(txq->nc, txq->ctx, bpfhv_tx_complete, &notify);
     if (notify) {
 	    msix_notify(PCI_DEVICE(s), txq->vector);
@@ -513,7 +513,7 @@ bpfhv_tx_bh(void *opaque)
     if (ret == -EINVAL) {
         return;
     } else if (ret > 0) {
-        /* TODO disable notify */
+        sring_txq_notification(txq->ctx, /*enable=*/false);
         qemu_bh_schedule(txq->bh);
     }
 }
@@ -534,6 +534,7 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         qemu_flush_queued_packets(qemu_get_queue(s->nic));
     } else {
         doorbell -= s->ioregs[BPFHV_REG(NUM_RX_QUEUES)];
+        sring_txq_notification(s->txq[doorbell].ctx, /*enable=*/false);
         DBG("Doorbell TX#%u rung", doorbell);
         qemu_bh_schedule(s->txq[doorbell].bh);
     }

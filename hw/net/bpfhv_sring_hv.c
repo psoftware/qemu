@@ -108,6 +108,14 @@ sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
     return count;
 }
 
+void
+sring_txq_notification(struct bpfhv_tx_context *ctx, int enable)
+{
+    struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
+
+    priv->kick_enabled = !!enable;
+}
+
 bool
 sring_can_receive(struct bpfhv_rx_context *ctx)
 {
@@ -178,5 +186,12 @@ sring_receive_iov(struct bpfhv_rx_context *ctx, const struct iovec *iov,
     *notify = true;
 
     return totlen;
+}
 
+void
+sring_rxq_notification(struct bpfhv_rx_context *ctx, int enable)
+{
+    struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
+
+    priv->kick_enabled = !!enable;
 }
