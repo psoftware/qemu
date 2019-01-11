@@ -271,7 +271,7 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
             /* Perform the upgrade and clear the status bit. We currently
              * do not recover from upgrade failure. */
             if (bpfhv_progs_load(s, implname, &local_err)) {
-                error_propagate(&error_abort /* or error_fatal? */, local_err);
+                error_propagate(&error_fatal, local_err);
                 return;
             }
             s->ioregs[BPFHV_REG(STATUS)] &= ~BPFHV_STATUS_UPGRADE;
