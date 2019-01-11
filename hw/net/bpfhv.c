@@ -713,6 +713,7 @@ bpfhv_progs_load(BpfHvState *s, const char *implname, Error **errp)
     }
 
     ret = 0;
+    elf_end(elf);
 err:
     close(fd);
 
