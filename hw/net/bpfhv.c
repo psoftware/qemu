@@ -227,10 +227,12 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
                  * otherwise can_receive will return false. */
                 s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_RX_ENABLED;
                 qemu_flush_queued_packets(qemu_get_queue(s->nic));
+                DBG("Receive enabled");
             }
         } else {
             /* Guest asked to disable receive operation. */
             s->ioregs[BPFHV_REG(STATUS)] &= ~BPFHV_STATUS_RX_ENABLED;
+                DBG("Receive disabled");
         }
     }
 
@@ -242,6 +244,7 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
                 newval &= ~BPFHV_CTRL_TX_ENABLE;
             } else {
                 s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_TX_ENABLED;
+                DBG("Transmit enabled");
             }
         } else {
             /* Guest asked to disable transmit operation. */
@@ -251,6 +254,7 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
             for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
                 qemu_bh_cancel(s->txq[i].bh);
             }
+            DBG("Transmit disabled");
         }
     }
 
