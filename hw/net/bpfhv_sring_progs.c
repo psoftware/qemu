@@ -31,7 +31,8 @@ int sring_txp(struct bpfhv_tx_context *ctx)
     }
     txd->flags = SRING_DESC_F_EOP;
     priv->prod = prod;
-    ctx->oflags = BPFHV_OFLAGS_NOTIF_NEEDED;
+    ctx->oflags = ACCESS_ONCE(priv->kick_enabled) ?
+                  BPFHV_OFLAGS_NOTIF_NEEDED : 0;
 
     return 0;
 }
@@ -118,7 +119,8 @@ int sring_rxp(struct bpfhv_rx_context *ctx)
         rxd->flags = 0;
     }
     priv->prod = prod;
-    ctx->oflags = BPFHV_OFLAGS_NOTIF_NEEDED;
+    ctx->oflags = ACCESS_ONCE(priv->kick_enabled) ?
+                  BPFHV_OFLAGS_NOTIF_NEEDED : 0;
 
     return 0;
 }

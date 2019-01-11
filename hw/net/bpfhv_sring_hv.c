@@ -33,6 +33,7 @@ sring_rx_ctx_init(struct bpfhv_rx_context *ctx, size_t num_rx_bufs)
 
     priv->num_slots = num_rx_bufs;
     priv->prod = priv->cons = priv->clear = 0;
+    priv->kick_enabled = priv->intr_enabled = 1;
     memset(priv->desc, 0, num_rx_bufs * sizeof(priv->desc[0]));
 }
 
@@ -43,6 +44,7 @@ sring_tx_ctx_init(struct bpfhv_tx_context *ctx, size_t num_tx_bufs)
 
     priv->num_slots = num_tx_bufs;
     priv->prod = priv->cons = priv->clear = 0;
+    priv->kick_enabled = priv->intr_enabled = 1;
     memset(priv->desc, 0, num_tx_bufs * sizeof(priv->desc[0]));
 }
 

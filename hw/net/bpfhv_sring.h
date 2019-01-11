@@ -33,12 +33,15 @@ struct sring_tx_desc {
     uint32_t flags;
 };
 
-/* TODO add proper padding to minimize cache misses */
 struct sring_tx_context {
     uint32_t num_slots;
     uint32_t prod;
     uint32_t clear;
+    uint32_t intr_enabled;
+    uint32_t pad1[28];
     uint32_t cons;
+    uint32_t kick_enabled;
+    uint32_t pad2[30];
     struct sring_tx_desc desc[0];
 };
 
@@ -53,7 +56,11 @@ struct sring_rx_context {
     uint32_t num_slots;
     uint32_t prod;
     uint32_t clear;
+    uint32_t intr_enabled;
+    uint32_t pad1[28];
     uint32_t cons;
+    uint32_t kick_enabled;
+    uint32_t pad2[30];
     struct sring_rx_desc desc[0];
 };
 
