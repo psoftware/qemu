@@ -26,6 +26,8 @@
 #include "bpfhv_sring.h"
 #include "bpfhv_sring_hv.h"
 
+#define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
+
 void
 sring_rx_ctx_init(struct bpfhv_rx_context *ctx, size_t num_rx_bufs)
 {
@@ -103,7 +105,7 @@ sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
     }
 
     priv->cons = cons;
-    *notify = priv->intr_enabled;
+    *notify = ACCESS_ONCE(priv->intr_enabled);
 
     return count;
 }
@@ -183,7 +185,7 @@ sring_receive_iov(struct bpfhv_rx_context *ctx, const struct iovec *iov,
     }
 
     priv->cons = cons;
-    *notify = priv->intr_enabled;
+    *notify = ACCESS_ONCE(priv->intr_enabled);
 
     return totlen;
 }
