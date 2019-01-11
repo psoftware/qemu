@@ -243,7 +243,12 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
             if (!s->tx_contexts_ready) {
                 newval &= ~BPFHV_CTRL_TX_ENABLE;
             } else {
+                int i;
+
                 s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_TX_ENABLED;
+                for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
+                    qemu_bh_schedule(s->txq[i].bh);
+                }
                 DBG("Transmit enabled");
             }
         } else {
@@ -453,6 +458,10 @@ bpfhv_tx_complete(NetClientState *nc, ssize_t len)
     BpfHvState *s = qemu_get_nic_opaque(nc);
     int i;
 
+    if (!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_TX_ENABLED)) {
+        return;
+    }
+
     for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
         bool notify;
 
@@ -526,19 +535,7 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     } else {
         doorbell -= s->ioregs[BPFHV_REG(NUM_RX_QUEUES)];
         DBG("Doorbell TX#%u rung", doorbell);
-#if 0
-        {
-            bool notify;
-
-            sring_txq_drain(s->txq[doorbell].nc, s->txq[doorbell].ctx,
-                    bpfhv_tx_complete, &notify);
-            if (notify) {
-                msix_notify(PCI_DEVICE(s), s->txq[doorbell].vector);
-            }
-        }
-#else
         qemu_bh_schedule(s->txq[doorbell].bh);
-#endif
     }
 }
 
