@@ -100,6 +100,12 @@ int sring_txr(struct bpfhv_tx_context *ctx)
     return 1;
 }
 
+__section("txi")
+int sring_txi(struct bpfhv_tx_context *ctx)
+{
+    return 0;
+}
+
 __section("rxp")
 int sring_rxp(struct bpfhv_rx_context *ctx)
 {
@@ -222,4 +228,10 @@ int sring_rxr(struct bpfhv_rx_context *ctx)
     ctx->oflags = 0;
 
     return 1;
+}
+
+__section("rxi")
+int sring_rxi(struct bpfhv_rx_context *ctx)
+{
+    return 0;
 }
