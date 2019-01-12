@@ -141,21 +141,7 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
     uint32_t i;
     int ret;
 
-    if (clear == cons) {
-        /* No new packets to be received. Enable the interrupts and perform
-         * a double check. */
-        ACCESS_ONCE(priv->intr_enabled) = 1;
-        compiler_barrier();
-        cons = ACCESS_ONCE(priv->cons);
-        if (clear == cons) {
-            return 0;
-        }
-    }
-    /* TODO disable interrupt */
-#if 0
-    ACCESS_ONCE(priv->intr_enabled) = 0;
-#endif
-
+again:
     /* Prepare the input arguments for rx_pkt_alloc(). */
     for (i = 0; clear != cons && i < BPFHV_MAX_RX_BUFS;) {
         struct bpfhv_rx_buf *rxb = ctx->bufs + i;
@@ -172,6 +158,26 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
             break;
         }
     }
+
+    if (clear == cons) {
+        /* No more packets to be received. Enable the interrupts and
+         * perform a double check. */
+        ACCESS_ONCE(priv->intr_enabled) = 1;
+        compiler_barrier();
+        cons = ACCESS_ONCE(priv->cons);
+        if (clear != cons) {
+            /* More to read, disable interrupts. */
+            ACCESS_ONCE(priv->intr_enabled) = 0;
+            if (i == 0) {
+                goto again;
+            }
+        }
+        if (i == 0) {
+            /* This was a dry cycle. */
+            return 0;
+        }
+    }
+
     priv->clear = clear;
     ctx->num_bufs = i;
 
