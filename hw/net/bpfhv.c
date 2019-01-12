@@ -38,6 +38,7 @@
 #include "bpfhv_sring.h"
 #include "bpfhv_sring_hv.h"
 
+#define BPFHV_DEBUG_TIMER
 #undef BPFHV_DEBUG
 #ifdef BPFHV_DEBUG
 #define DBG(fmt, ...) do { \
@@ -120,6 +121,11 @@ typedef struct BpfHvState_st {
 
     BpfHvRxQueue *rxq;
     BpfHvTxQueue *txq;
+
+#ifdef BPFHV_DEBUG_TIMER
+    QEMUTimer  *debug_timer;
+#define BPFHV_DEBUG_TIMER_MS	2000
+#endif /* BPFHV_DEBUG_TIMER */
 } BpfHvState;
 
 /* Macro to generate I/O register indices. */
@@ -129,6 +135,30 @@ typedef struct BpfHvState_st {
 
 #define BPFHV(obj) \
             OBJECT_CHECK(BpfHvState, (obj), TYPE_BPFHV_PCI)
+
+#ifdef BPFHV_DEBUG_TIMER
+static void
+bpfhv_debug_timer(void *opaque)
+{
+    BpfHvState *s = opaque;
+    int i;
+
+    if (s->rx_contexts_ready) {
+        for (i = 0; i < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]; i++) {
+            sring_rxq_dump(s->rxq[i].ctx);
+        }
+    }
+
+    if (s->tx_contexts_ready) {
+        for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
+            sring_txq_dump(s->txq[i].ctx);
+        }
+    }
+
+    timer_mod(s->debug_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) +
+              BPFHV_DEBUG_TIMER_MS);
+}
+#endif /* BPFHV_DEBUG_TIMER */
 
 static int
 bpfhv_can_receive(NetClientState *nc)
@@ -191,6 +221,12 @@ bpfhv_link_status_update(BpfHvState *s)
     s->ioregs[BPFHV_REG(STATUS)] ^= BPFHV_STATUS_LINK;
     if (new_status) {
         qemu_flush_queued_packets(nc);
+#ifdef BPFHV_DEBUG_TIMER
+    timer_mod(s->debug_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) +
+              BPFHV_DEBUG_TIMER_MS);
+    } else {
+        timer_del(s->debug_timer);
+#endif /* BPFHV_DEBUG_TIMER */
     }
 }
 
@@ -825,6 +861,10 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         }
     }
 
+#ifdef BPFHV_DEBUG_TIMER
+    s->debug_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL, bpfhv_debug_timer, s);
+#endif /* BPFHV_DEBUG_TIMER */
+
     DBG("%s(%p)", __func__, s);
 }
 
@@ -833,6 +873,11 @@ pci_bpfhv_uninit(PCIDevice *dev)
 {
     BpfHvState *s = BPFHV(dev);
     int i;
+
+#ifdef BPFHV_DEBUG_TIMER
+    timer_del(s->debug_timer);
+    timer_free(s->debug_timer);
+#endif /* BPFHV_DEBUG_TIMER */
 
     for (i = 0; i < BPFHV_PROG_MAX; i++) {
         if (s->progs[i].insns != NULL) {

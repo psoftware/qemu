@@ -43,11 +43,12 @@ bool sring_can_receive(struct bpfhv_rx_context *ctx);
 ssize_t sring_receive_iov(struct bpfhv_rx_context *ctx,
                           const struct iovec *iov, int iovcnt, bool *notify);
 void sring_rxq_notification(struct bpfhv_rx_context *ctx, int enable);
+void sring_rxq_dump(struct bpfhv_rx_context *ctx);
 
 #define BPFHV_HV_TX_BUDGET      64
 ssize_t sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
                 NetPacketSent *complete_cb, bool *notify);
 void sring_txq_notification(struct bpfhv_tx_context *ctx, int enable);
-
+void sring_txq_dump(struct bpfhv_tx_context *ctx);
 
 #endif  /*__BPFHV_SRING_HV_H__ */

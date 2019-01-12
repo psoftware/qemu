@@ -125,6 +125,15 @@ sring_txq_notification(struct bpfhv_tx_context *ctx, int enable)
     }
 }
 
+void
+sring_txq_dump(struct bpfhv_tx_context *ctx)
+{
+    struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
+
+    printf("sring.txq cl %u co %u pr %u kick %u intr %u\n", priv->clear,
+           priv->cons, priv->prod, priv->kick_enabled, priv->intr_enabled);
+}
+
 bool
 sring_can_receive(struct bpfhv_rx_context *ctx)
 {
@@ -208,4 +217,13 @@ sring_rxq_notification(struct bpfhv_rx_context *ctx, int enable)
     if (enable) {
         smp_mb();
     }
+}
+
+void
+sring_rxq_dump(struct bpfhv_rx_context *ctx)
+{
+    struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
+
+    printf("sring.rxq cl %u co %u pr %u kick %u intr %u\n", priv->clear,
+           priv->cons, priv->prod, priv->kick_enabled, priv->intr_enabled);
 }
