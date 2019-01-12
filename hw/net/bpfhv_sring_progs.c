@@ -103,6 +103,25 @@ int sring_txr(struct bpfhv_tx_context *ctx)
 __section("txi")
 int sring_txi(struct bpfhv_tx_context *ctx)
 {
+    struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
+    uint32_t nfree;
+    uint32_t cons;
+
+    cons = ACCESS_ONCE(priv->cons);
+    nfree = priv->num_slots - (priv->prod - cons);
+
+    if (nfree >= ctx->min_completed_bufs) {
+        ACCESS_ONCE(priv->intr_enabled) = 0;
+        return 1;
+    }
+    ACCESS_ONCE(priv->intr_enabled) = 1;
+    compiler_barrier();
+    nfree += ACCESS_ONCE(priv->cons) - cons;
+    if (nfree >= ctx->min_completed_bufs) {
+        ACCESS_ONCE(priv->intr_enabled) = 0;
+        return 1;
+    }
+
     return 0;
 }
 
@@ -233,5 +252,24 @@ int sring_rxr(struct bpfhv_rx_context *ctx)
 __section("rxi")
 int sring_rxi(struct bpfhv_rx_context *ctx)
 {
+    struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
+    uint32_t ncompl;
+    uint32_t cons;
+
+    cons = ACCESS_ONCE(priv->cons);
+    ncompl = cons - priv->clear;
+
+    if (ncompl >= ctx->min_completed_bufs) {
+        ACCESS_ONCE(priv->intr_enabled) = 0;
+        return 1;
+    }
+    ACCESS_ONCE(priv->intr_enabled) = 1;
+    compiler_barrier();
+    ncompl += ACCESS_ONCE(priv->cons) - cons;
+    if (ncompl >= ctx->min_completed_bufs) {
+        ACCESS_ONCE(priv->intr_enabled) = 0;
+        return 1;
+    }
+
     return 0;
 }
