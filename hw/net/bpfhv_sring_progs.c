@@ -104,20 +104,20 @@ __section("txi")
 int sring_txi(struct bpfhv_tx_context *ctx)
 {
     struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
-    uint32_t nfree;
+    uint32_t ncompl;
     uint32_t cons;
 
     cons = ACCESS_ONCE(priv->cons);
-    nfree = priv->num_slots - (priv->prod - cons);
+    ncompl = cons - priv->clear;
 
-    if (nfree >= ctx->min_completed_bufs) {
+    if (ncompl >= ctx->min_completed_bufs) {
         ACCESS_ONCE(priv->intr_enabled) = 0;
         return 1;
     }
     ACCESS_ONCE(priv->intr_enabled) = 1;
     compiler_barrier();
-    nfree += ACCESS_ONCE(priv->cons) - cons;
-    if (nfree >= ctx->min_completed_bufs) {
+    ncompl += ACCESS_ONCE(priv->cons) - cons;
+    if (ncompl >= ctx->min_completed_bufs) {
         ACCESS_ONCE(priv->intr_enabled) = 0;
         return 1;
     }
