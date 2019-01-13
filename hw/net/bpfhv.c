@@ -67,6 +67,7 @@ static const char *regnames[] = {
     "PROG_SIZE",
     "DOORBELL_GVA_LO",
     "DOORBELL_GVA_HI",
+    "VERSION",
 };
 
 typedef struct BpfHvProg_st {
@@ -789,6 +790,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 
     /* Initialize device registers. */
     memset(s->ioregs, 0, sizeof(s->ioregs));
+    s->ioregs[BPFHV_REG(VERSION)] = BPFHV_VERSION;
     s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] = 1;
     s->ioregs[BPFHV_REG(NUM_TX_QUEUES)] = 1;
     s->ioregs[BPFHV_REG(NUM_RX_BUFS)] = 256;
