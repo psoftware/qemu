@@ -569,6 +569,7 @@ struct SyncKloopThreadCtx {
 static void *ptnetmap_sync_kloop_worker(void *opaque)
 {
     struct nmreq_opt_sync_kloop_eventfds *evopt;
+    struct nmreq_opt_sync_kloop_mode modeopt;
     struct SyncKloopThreadCtx *ctx = opaque;
     struct nmreq_sync_kloop_start req;
     NetmapState *s = ctx->s;
@@ -589,11 +590,18 @@ static void *ptnetmap_sync_kloop_worker(void *opaque)
         evopt->eventfds[i].irqfd     = ctx->irqfds[i];
     }
 
+    /* Prepare the kloop mode option. */
+    memset(&modeopt, 0, sizeof(modeopt));
+    modeopt.nro_opt.nro_next = (uintptr_t)evopt;
+    modeopt.nro_opt.nro_reqtype = NETMAP_REQ_OPT_SYNC_KLOOP_MODE;
+    modeopt.mode = 0;
+    //modeopt.mode = NM_OPT_SYNC_KLOOP_DIRECT_TX | NM_OPT_SYNC_KLOOP_DIRECT_RX;
+
     /* Prepare the request and link the options. */
     nmreq_hdr_init(&hdr, s->ifname);
     hdr.nr_reqtype = NETMAP_REQ_SYNC_KLOOP_START;
     hdr.nr_body    = (uintptr_t)&req;
-    hdr.nr_options = (uintptr_t)evopt;
+    hdr.nr_options = (uintptr_t)&modeopt;
     memset(&req, 0, sizeof(req));
     req.sleep_us = 100;  /* ignored by the kernel */
     err          = ioctl(s->fd, NIOCCTRL, &hdr);
