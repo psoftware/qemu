@@ -98,12 +98,12 @@ typedef struct BpfHvState_st {
 
     NICState *nic;
     NICConf conf;
-    MemoryRegion io;
+    MemoryRegion regs;
     MemoryRegion dbmmio;
     MemoryRegion progmmio;
 
     /* Storage for the I/O registers. */
-    uint32_t ioregs[BPFHV_IO_END >> 2];
+    uint32_t ioregs[BPFHV_REG_END >> 2];
 
     /* Total number of queues, including both receive and transmit
      * ones. */
@@ -130,7 +130,7 @@ typedef struct BpfHvState_st {
 } BpfHvState;
 
 /* Macro to generate I/O register indices. */
-#define BPFHV_REG(x) ((BPFHV_IO_ ## x) >> 2)
+#define BPFHV_REG(x) ((BPFHV_REG_ ## x) >> 2)
 
 #define TYPE_BPFHV_PCI  "bpfhv-pci"
 
@@ -411,10 +411,10 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     BpfHvState *s = opaque;
     unsigned int index;
 
-    addr = addr & BPFHV_IO_MASK;
+    addr = addr & BPFHV_REG_MASK;
     index = addr >> 2;
 
-    if (addr >= BPFHV_IO_END) {
+    if (addr >= BPFHV_REG_END) {
         DBG("Unknown I/O write, addr=0x%08"PRIx64", val=0x%08"PRIx64,
             addr, val);
         return;
@@ -425,11 +425,11 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     DBG("I/O write to %s, val=0x%08" PRIx64, regnames[index], val);
 
     switch (addr) {
-    case BPFHV_IO_CTRL:
+    case BPFHV_REG_CTRL:
         bpfhv_ctrl_update(s, (uint32_t)val);
         break;
 
-    case BPFHV_IO_QUEUE_SELECT:
+    case BPFHV_REG_QUEUE_SELECT:
         if (val >= s->num_queues) {
             DBG("Guest tried to select invalid queue #%"PRIx64"", val);
             break;
@@ -437,22 +437,22 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         s->ioregs[index] = val;
         break;
 
-    case BPFHV_IO_DOORBELL_GVA_LO:
-    case BPFHV_IO_DOORBELL_GVA_HI:
+    case BPFHV_REG_DOORBELL_GVA_LO:
+    case BPFHV_REG_DOORBELL_GVA_HI:
         s->doorbell_gva_changed |= (s->ioregs[index] != (uint32_t)val);
         /* fallback */
-    case BPFHV_IO_CTX_PADDR_LO:
+    case BPFHV_REG_CTX_PADDR_LO:
         s->ioregs[index] = val;
         break;
 
-    case BPFHV_IO_CTX_PADDR_HI:
+    case BPFHV_REG_CTX_PADDR_HI:
         s->ioregs[index] = val;
         /* A write to the most significant 32-bit word also triggers context
          * mapping (or unmapping). */
         bpfhv_ctx_remap(s);
         break;
 
-    case BPFHV_IO_PROG_SELECT:
+    case BPFHV_REG_PROG_SELECT:
         if (val >= BPFHV_PROG_MAX) {
             DBG("Guest tried to select invalid program #%"PRIx64"", val);
             break;
@@ -475,10 +475,10 @@ bpfhv_io_read(void *opaque, hwaddr addr, unsigned size)
     BpfHvState *s = opaque;
     unsigned int index;
 
-    addr = addr & BPFHV_IO_MASK;
+    addr = addr & BPFHV_REG_MASK;
     index = addr >> 2;
 
-    if (addr >= BPFHV_IO_END) {
+    if (addr >= BPFHV_REG_END) {
         DBG("Unknown I/O read, addr=0x%08"PRIx64, addr);
         return 0;
     }
@@ -823,10 +823,10 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     }
 
     /* Init I/O mapped memory region, exposing bpfhv registers. */
-    memory_region_init_io(&s->io, OBJECT(s), &bpfhv_io_ops, s,
-                          "bpfhv-io", BPFHV_IO_MASK + 1);
-    pci_register_bar(pci_dev, BPFHV_IO_PCI_BAR,
-                     PCI_BASE_ADDRESS_SPACE_IO, &s->io);
+    memory_region_init_io(&s->regs, OBJECT(s), &bpfhv_io_ops, s,
+                          "bpfhv-regs", BPFHV_REG_MASK + 1);
+    pci_register_bar(pci_dev, BPFHV_REG_PCI_BAR,
+                     PCI_BASE_ADDRESS_SPACE_MEMORY, &s->regs);
 
     /* Init memory mapped memory region, to expose doorbells. */
     memory_region_init_io(&s->dbmmio, OBJECT(s), &bpfhv_dbmmio_ops, s,
