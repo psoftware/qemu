@@ -22,6 +22,9 @@
 #ifndef __BPFHV_SRING_HV_H__
 #define __BPFHV_SRING_HV_H__
 
+void *bpfhv_mem_map(hwaddr paddr, hwaddr *plen, int is_write);
+void bpfhv_mem_unmap(void *buffer, hwaddr len, int is_write);
+
 static inline size_t
 sring_rx_ctx_size(size_t num_rx_bufs)
 {

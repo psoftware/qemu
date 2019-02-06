@@ -72,8 +72,7 @@ sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
         cons++;
 
         len = txd->len;
-        iov[iovcnt].iov_base = cpu_physical_memory_map(txd->paddr,
-                                                    &len, /*is_write*/0);
+        iov[iovcnt].iov_base = bpfhv_mem_map(txd->paddr, &len, /*is_write*/0);
         iov[iovcnt].iov_len = len; /* technically, it may be len < txd->len */
         if (iov[iovcnt].iov_base == NULL) {
             /* Invalid descriptor, just skip it. */
@@ -86,8 +85,8 @@ sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
                                             /*sent_cb=*/complete_cb);
 
             for (i = 0; i < iovcnt; i++) {
-                cpu_physical_memory_unmap(iov[i].iov_base, iov[i].iov_len,
-                                        /*is_write=*/0, iov[i].iov_len);
+                bpfhv_mem_unmap(iov[i].iov_base, iov[i].iov_len,
+                                /*is_write=*/0);
             }
 
             if (ret == 0) {
@@ -162,7 +161,7 @@ sring_receive_iov(struct bpfhv_rx_context *ctx, const struct iovec *iov,
         size_t copy = sspace < dspace ? sspace : dspace;
 
         if (!dbuf) {
-            dbuf = cpu_physical_memory_map(rxd->paddr, &dspace, /*is_write*/1);
+            dbuf = bpfhv_mem_map(rxd->paddr, &dspace, /*is_write*/1);
             if (!dbuf) {
                 /* Invalid descriptor, just skip it. */
                 *notify = false;
@@ -185,8 +184,7 @@ sring_receive_iov(struct bpfhv_rx_context *ctx, const struct iovec *iov,
 
         if (iov == iov_end || dspace == 0) {
             cons++;
-            cpu_physical_memory_unmap(dbuf, rxd->len, /*is_write=*/1,
-                                      rxd->len);
+            bpfhv_mem_unmap(dbuf, rxd->len, /*is_write=*/1);
             if (iov == iov_end) {
                 rxd->len -= dspace;
                 rxd->flags = SRING_DESC_F_EOP;

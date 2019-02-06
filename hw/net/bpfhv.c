@@ -741,7 +741,7 @@ bpfhv_memli_commit(MemoryListener *listener)
     s->num_translate_entries_tmp = 0;
 }
 
-void *
+static void *
 bpfhv_translate_addr(BpfHvState *s, uint64_t gpa, uint64_t len)
 {
     int i;
@@ -766,6 +766,20 @@ bpfhv_translate_addr(BpfHvState *s, uint64_t gpa, uint64_t len)
     }
 
     return NULL;
+}
+
+void *
+bpfhv_mem_map(hwaddr paddr, hwaddr *plen, int is_write)
+{
+    (void)bpfhv_translate_addr;
+    return cpu_physical_memory_map(paddr, plen, is_write);
+}
+
+void
+bpfhv_mem_unmap(void *buffer, hwaddr len, int is_write)
+{
+    cpu_physical_memory_unmap(buffer, /*len=*/len, is_write,
+                              /*access_len=*/len);
 }
 
 static int
