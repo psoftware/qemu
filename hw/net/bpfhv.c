@@ -97,6 +97,7 @@ typedef struct BpfHvTranslateEntry_st {
     uint64_t gpa_end;
     uint64_t size;
     void *hva_start;
+    MemoryRegion *mr;
 } BpfHvTranslateEntry;
 
 typedef struct BpfHvState_st {
@@ -659,37 +660,17 @@ static const MemoryRegionOps bpfhv_progmmio_ops = {
     },
 };
 
-static void bpfhv_memli_begin(MemoryListener *listener)
+static void
+bpfhv_memli_begin(MemoryListener *listener)
 {
     BpfHvState *s = container_of(listener, BpfHvState, memory_listener);
     s->num_translate_entries_tmp = 0;
     s->translate_entries_tmp = NULL;
 }
 
-static void bpfhv_memli_commit(MemoryListener *listener)
-{
-    BpfHvState *s = container_of(listener, BpfHvState, memory_listener);
-
-    s->translate_entries = s->translate_entries_tmp;
-    s->num_translate_entries = s->num_translate_entries_tmp;
-    s->translate_entries_tmp = NULL;
-    s->num_translate_entries_tmp = 0;
-
-#ifdef BPFHV_DEBUG
-    {
-        int i;
-
-        for (i = 0; i < s->num_translate_entries; i++) {
-            BpfHvTranslateEntry *te = s->translate_entries + i;
-            DBG("entry: gpa %lx-%lx size %lx hva_start %p",
-                te->gpa_start, te->gpa_end, te->size, te->hva_start);
-        }
-    }
-#endif
-}
-
-static void bpfhv_region_add(MemoryListener *listener,
-                             MemoryRegionSection *section)
+static void
+bpfhv_memli_region_add(MemoryListener *listener,
+                       MemoryRegionSection *section)
 {
     BpfHvState *s = container_of(listener, BpfHvState, memory_listener);
     uint64_t size = int128_get64(section->size);
@@ -726,9 +707,65 @@ static void bpfhv_region_add(MemoryListener *listener,
         last->gpa_end = gpa_end;
         last->size = size;
         last->hva_start = hva_start;
+        last->mr = section->mr;
+        memory_region_ref(last->mr);
     }
     DBG("append memory section %lx-%lx sz %lx %p", gpa_start, gpa_end,
         size, hva_start);
+}
+
+static void
+bpfhv_memli_commit(MemoryListener *listener)
+{
+    BpfHvState *s = container_of(listener, BpfHvState, memory_listener);
+    int i;
+
+    s->translate_entries = s->translate_entries_tmp;
+    s->num_translate_entries = s->num_translate_entries_tmp;
+
+#ifdef BPFHV_DEBUG
+    for (i = 0; i < s->num_translate_entries; i++) {
+        BpfHvTranslateEntry *te = s->translate_entries + i;
+        DBG("entry: gpa %lx-%lx size %lx hva_start %p",
+            te->gpa_start, te->gpa_end, te->size, te->hva_start);
+    }
+#endif
+
+    for (i = 0; i < s->num_translate_entries_tmp; i++) {
+        BpfHvTranslateEntry *te = s->translate_entries_tmp + i;
+
+        memory_region_unref(te->mr);
+    }
+    g_free(s->translate_entries_tmp);
+    s->translate_entries_tmp = NULL;
+    s->num_translate_entries_tmp = 0;
+}
+
+void *
+bpfhv_translate_addr(BpfHvState *s, uint64_t gpa, uint64_t len)
+{
+    int i;
+
+    for (i = 0; i < s->num_translate_entries; i++) {
+        BpfHvTranslateEntry *te = s->translate_entries + i;
+
+        if (likely(te->gpa_start <= gpa && gpa + len <= te->gpa_end)) {
+            /* Match. */
+
+            if (unlikely(i != 0)) {
+                /* Move this entry to the first position. */
+                BpfHvTranslateEntry tmp = *te;
+
+                *te = s->translate_entries[0];
+                te = s->translate_entries + 0;
+                *te = tmp;
+            }
+
+            return te->hva_start + (gpa - te->gpa_start);
+        }
+    }
+
+    return NULL;
 }
 
 static int
@@ -956,8 +993,8 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->memory_listener.priority = 10,
     s->memory_listener.begin = bpfhv_memli_begin,
     s->memory_listener.commit = bpfhv_memli_commit,
-    s->memory_listener.region_add = bpfhv_region_add,
-    s->memory_listener.region_nop = bpfhv_region_add,
+    s->memory_listener.region_add = bpfhv_memli_region_add,
+    s->memory_listener.region_nop = bpfhv_memli_region_add,
     memory_listener_register(&s->memory_listener, &address_space_memory);
 
     DBG("%s(%p)", __func__, s);
