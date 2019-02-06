@@ -48,6 +48,8 @@
 #define DBG(fmt, ...) do {} while (0)
 #endif
 
+#undef BPFHV_MEMLI
+
 static const char *regnames[] = {
     "STATUS",
     "CTRL",
@@ -210,7 +212,7 @@ bpfhv_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
     }
 
     /* We only support a single receive queue for now. */
-    ret = sring_receive_iov(s->rxq[0].ctx, iov, iovcnt, &notify);
+    ret = sring_receive_iov(s, s->rxq[0].ctx, iov, iovcnt, &notify);
     if (ret > 0 && notify) {
         msix_notify(PCI_DEVICE(s), 0);
     }
@@ -519,7 +521,7 @@ bpfhv_tx_complete(NetClientState *nc, ssize_t len)
 
         sring_txq_notification(s->txq[i].ctx, /*enable=*/true);
 
-        sring_txq_drain(nc, s->txq[i].ctx, bpfhv_tx_complete, &notify);
+        sring_txq_drain(s, nc, s->txq[i].ctx, bpfhv_tx_complete, &notify);
         if (notify) {
 	    msix_notify(PCI_DEVICE(s), s->txq[i].vector);
         }
@@ -538,7 +540,7 @@ bpfhv_tx_bh(void *opaque)
         return;
     }
 
-    ret = sring_txq_drain(txq->nc, txq->ctx, bpfhv_tx_complete, &notify);
+    ret = sring_txq_drain(s, txq->nc, txq->ctx, bpfhv_tx_complete, &notify);
     if (notify) {
 	    msix_notify(PCI_DEVICE(s), txq->vector);
     }
@@ -558,7 +560,7 @@ bpfhv_tx_bh(void *opaque)
      * If we find something, assume the guest is still active and
      * reschedule. */
     sring_txq_notification(txq->ctx, /*enable=*/true);
-    ret = sring_txq_drain(txq->nc, txq->ctx, bpfhv_tx_complete, &notify);
+    ret = sring_txq_drain(s, txq->nc, txq->ctx, bpfhv_tx_complete, &notify);
     if (notify) {
 	    msix_notify(PCI_DEVICE(s), txq->vector);
     }
@@ -741,6 +743,7 @@ bpfhv_memli_commit(MemoryListener *listener)
     s->num_translate_entries_tmp = 0;
 }
 
+#ifdef BPFHV_MEMLI
 static void *
 bpfhv_translate_addr(BpfHvState *s, uint64_t gpa, uint64_t len)
 {
@@ -765,21 +768,29 @@ bpfhv_translate_addr(BpfHvState *s, uint64_t gpa, uint64_t len)
         }
     }
 
+    assert(false);
+
     return NULL;
 }
+#endif /* BPFHV_MEMLI */
 
 void *
-bpfhv_mem_map(hwaddr paddr, hwaddr *plen, int is_write)
+bpfhv_mem_map(BpfHvState *s, hwaddr paddr, hwaddr *plen, int is_write)
 {
-    (void)bpfhv_translate_addr;
+#ifdef BPFHV_MEMLI
+    return bpfhv_translate_addr(s, paddr, *plen);
+#else  /* !BPFHV_MEMLI */
     return cpu_physical_memory_map(paddr, plen, is_write);
+#endif /* !BPFHV_MEMLI */
 }
 
 void
-bpfhv_mem_unmap(void *buffer, hwaddr len, int is_write)
+bpfhv_mem_unmap(BpfHvState *s, void *buffer, hwaddr len, int is_write)
 {
+#ifndef BPFHV_MEMLI
     cpu_physical_memory_unmap(buffer, /*len=*/len, is_write,
                               /*access_len=*/len);
+#endif /* !BPFHV_MEMLI */
 }
 
 static int

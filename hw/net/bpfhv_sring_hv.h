@@ -22,8 +22,11 @@
 #ifndef __BPFHV_SRING_HV_H__
 #define __BPFHV_SRING_HV_H__
 
-void *bpfhv_mem_map(hwaddr paddr, hwaddr *plen, int is_write);
-void bpfhv_mem_unmap(void *buffer, hwaddr len, int is_write);
+struct BpfHvState_st;
+void *bpfhv_mem_map(struct BpfHvState_st *s,
+                    hwaddr paddr, hwaddr *plen, int is_write);
+void bpfhv_mem_unmap(struct BpfHvState_st *s, void *buffer,
+                     hwaddr len, int is_write);
 
 static inline size_t
 sring_rx_ctx_size(size_t num_rx_bufs)
@@ -43,14 +46,16 @@ void sring_rx_ctx_init(struct bpfhv_rx_context *ctx, size_t num_rx_bufs);
 void sring_tx_ctx_init(struct bpfhv_tx_context *ctx, size_t num_tx_bufs);
 
 bool sring_can_receive(struct bpfhv_rx_context *ctx);
-ssize_t sring_receive_iov(struct bpfhv_rx_context *ctx,
+ssize_t sring_receive_iov(struct BpfHvState_st *s,
+                          struct bpfhv_rx_context *ctx,
                           const struct iovec *iov, int iovcnt, bool *notify);
 void sring_rxq_notification(struct bpfhv_rx_context *ctx, int enable);
 void sring_rxq_dump(struct bpfhv_rx_context *ctx);
 
 #define BPFHV_HV_TX_BUDGET      64
-ssize_t sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
-                NetPacketSent *complete_cb, bool *notify);
+ssize_t sring_txq_drain(struct BpfHvState_st *s, NetClientState *nc,
+                        struct bpfhv_tx_context *ctx,
+                        NetPacketSent *complete_cb, bool *notify);
 void sring_txq_notification(struct bpfhv_tx_context *ctx, int enable);
 void sring_txq_dump(struct bpfhv_tx_context *ctx);
 

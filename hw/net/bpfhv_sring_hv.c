@@ -53,7 +53,8 @@ sring_tx_ctx_init(struct bpfhv_tx_context *ctx, size_t num_tx_bufs)
 }
 
 ssize_t
-sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
+sring_txq_drain(struct BpfHvState_st *s, NetClientState *nc,
+                struct bpfhv_tx_context *ctx,
                 NetPacketSent *complete_cb, bool *notify)
 {
     struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
@@ -72,7 +73,8 @@ sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
         cons++;
 
         len = txd->len;
-        iov[iovcnt].iov_base = bpfhv_mem_map(txd->paddr, &len, /*is_write*/0);
+        iov[iovcnt].iov_base = bpfhv_mem_map(s, txd->paddr, &len,
+                                             /*is_write*/0);
         iov[iovcnt].iov_len = len; /* technically, it may be len < txd->len */
         if (iov[iovcnt].iov_base == NULL) {
             /* Invalid descriptor, just skip it. */
@@ -85,7 +87,7 @@ sring_txq_drain(NetClientState *nc, struct bpfhv_tx_context *ctx,
                                             /*sent_cb=*/complete_cb);
 
             for (i = 0; i < iovcnt; i++) {
-                bpfhv_mem_unmap(iov[i].iov_base, iov[i].iov_len,
+                bpfhv_mem_unmap(s, iov[i].iov_base, iov[i].iov_len,
                                 /*is_write=*/0);
             }
 
@@ -142,8 +144,8 @@ sring_can_receive(struct bpfhv_rx_context *ctx)
 }
 
 ssize_t
-sring_receive_iov(struct bpfhv_rx_context *ctx, const struct iovec *iov,
-                  int iovcnt, bool *notify)
+sring_receive_iov(struct BpfHvState_st *s, struct bpfhv_rx_context *ctx,
+                  const struct iovec *iov, int iovcnt, bool *notify)
 {
     struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
     const struct iovec *const iov_end = iov + iovcnt;
@@ -161,7 +163,7 @@ sring_receive_iov(struct bpfhv_rx_context *ctx, const struct iovec *iov,
         size_t copy = sspace < dspace ? sspace : dspace;
 
         if (!dbuf) {
-            dbuf = bpfhv_mem_map(rxd->paddr, &dspace, /*is_write*/1);
+            dbuf = bpfhv_mem_map(s, rxd->paddr, &dspace, /*is_write*/1);
             if (!dbuf) {
                 /* Invalid descriptor, just skip it. */
                 *notify = false;
@@ -184,7 +186,7 @@ sring_receive_iov(struct bpfhv_rx_context *ctx, const struct iovec *iov,
 
         if (iov == iov_end || dspace == 0) {
             cons++;
-            bpfhv_mem_unmap(dbuf, rxd->len, /*is_write=*/1);
+            bpfhv_mem_unmap(s, dbuf, rxd->len, /*is_write=*/1);
             if (iov == iov_end) {
                 rxd->len -= dspace;
                 rxd->flags = SRING_DESC_F_EOP;
