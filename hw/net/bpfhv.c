@@ -92,6 +92,13 @@ typedef struct BpfHvRxQueue_st {
     struct bpfhv_rx_context *ctx;
 } BpfHvRxQueue;
 
+typedef struct BpfHvTranslateEntry_st {
+    uint64_t gpa_start;
+    uint64_t gpa_end;
+    uint64_t size;
+    void *hva_start;
+} BpfHvTranslateEntry;
+
 typedef struct BpfHvState_st {
     /* Parent class. This is a private field, and it cannot be used. */
     PCIDevice pci_device;
@@ -127,6 +134,12 @@ typedef struct BpfHvState_st {
     QEMUTimer  *debug_timer;
 #define BPFHV_DEBUG_TIMER_MS	2000
 #endif /* BPFHV_DEBUG_TIMER */
+
+    MemoryListener memory_listener;
+    BpfHvTranslateEntry *translate_entries;
+    unsigned int num_translate_entries;
+    BpfHvTranslateEntry *translate_entries_tmp;
+    unsigned int num_translate_entries_tmp;
 } BpfHvState;
 
 /* Macro to generate I/O register indices. */
@@ -646,6 +659,78 @@ static const MemoryRegionOps bpfhv_progmmio_ops = {
     },
 };
 
+static void bpfhv_memli_begin(MemoryListener *listener)
+{
+    BpfHvState *s = container_of(listener, BpfHvState, memory_listener);
+    s->num_translate_entries_tmp = 0;
+    s->translate_entries_tmp = NULL;
+}
+
+static void bpfhv_memli_commit(MemoryListener *listener)
+{
+    BpfHvState *s = container_of(listener, BpfHvState, memory_listener);
+
+    s->translate_entries = s->translate_entries_tmp;
+    s->num_translate_entries = s->num_translate_entries_tmp;
+    s->translate_entries_tmp = NULL;
+    s->num_translate_entries_tmp = 0;
+
+#ifdef BPFHV_DEBUG
+    {
+        int i;
+
+        for (i = 0; i < s->num_translate_entries; i++) {
+            BpfHvTranslateEntry *te = s->translate_entries + i;
+            DBG("entry: gpa %lx-%lx size %lx hva_start %p",
+                te->gpa_start, te->gpa_end, te->size, te->hva_start);
+        }
+    }
+#endif
+}
+
+static void bpfhv_region_add(MemoryListener *listener,
+                             MemoryRegionSection *section)
+{
+    BpfHvState *s = container_of(listener, BpfHvState, memory_listener);
+    uint64_t size = int128_get64(section->size);
+    uint64_t gpa_start = section->offset_within_address_space;
+    uint64_t gpa_end = range_get_last(gpa_start, size) + 1;
+    void *hva_start;
+    BpfHvTranslateEntry *last = NULL;
+    bool add_entry = true;
+
+    if (!memory_region_is_ram(section->mr)) {
+        return;
+    }
+
+    hva_start = memory_region_get_ram_ptr(section->mr) +
+                      section->offset_within_region;
+    if (s->num_translate_entries_tmp > 0) {
+        /* Check if we can coalasce the last MemoryRegionSection to
+         * the current one. */
+        last = s->translate_entries_tmp + s->num_translate_entries_tmp - 1;
+        if (gpa_start == last->gpa_end &&
+            hva_start == last->hva_start + last->size) {
+            add_entry = false;
+            last->gpa_end = gpa_end;
+            last->size += size;
+        }
+    }
+
+    if (add_entry) {
+        s->num_translate_entries_tmp++;
+        s->translate_entries_tmp = g_renew(BpfHvTranslateEntry,
+            s->translate_entries_tmp, s->num_translate_entries_tmp);
+        last = s->translate_entries_tmp + s->num_translate_entries_tmp - 1;
+        last->gpa_start = gpa_start;
+        last->gpa_end = gpa_end;
+        last->size = size;
+        last->hva_start = hva_start;
+    }
+    DBG("append memory section %lx-%lx sz %lx %p", gpa_start, gpa_end,
+        size, hva_start);
+}
+
 static int
 bpfhv_progs_load(BpfHvState *s, const char *implname, Error **errp)
 {
@@ -868,6 +953,13 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->debug_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL, bpfhv_debug_timer, s);
 #endif /* BPFHV_DEBUG_TIMER */
 
+    s->memory_listener.priority = 10,
+    s->memory_listener.begin = bpfhv_memli_begin,
+    s->memory_listener.commit = bpfhv_memli_commit,
+    s->memory_listener.region_add = bpfhv_region_add,
+    s->memory_listener.region_nop = bpfhv_region_add,
+    memory_listener_register(&s->memory_listener, &address_space_memory);
+
     DBG("%s(%p)", __func__, s);
 }
 
@@ -876,6 +968,8 @@ pci_bpfhv_uninit(PCIDevice *dev)
 {
     BpfHvState *s = BPFHV(dev);
     int i;
+
+    memory_listener_unregister(&s->memory_listener);
 
 #ifdef BPFHV_DEBUG_TIMER
     timer_del(s->debug_timer);
