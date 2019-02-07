@@ -143,6 +143,8 @@ typedef struct BpfHvState_st {
     unsigned int num_translate_entries;
     BpfHvTranslateEntry *translate_entries_tmp;
     unsigned int num_translate_entries_tmp;
+
+    QemuThread proc_th;
 } BpfHvState;
 
 /* Macro to generate I/O register indices. */
@@ -801,6 +803,11 @@ bpfhv_mem_unmap(BpfHvState *s, void *buffer, hwaddr len, int is_write)
                               /*access_len=*/len);
 #endif /* !BPFHV_MEMLI */
 }
+static void *
+bpfhv_proc_thread(void *opaque)
+{
+    return NULL;
+}
 
 static int
 bpfhv_progs_load(BpfHvState *s, const char *implname, Error **errp)
@@ -1031,6 +1038,9 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->memory_listener.region_nop = bpfhv_memli_region_add,
     memory_listener_register(&s->memory_listener, &address_space_memory);
 
+    qemu_thread_create(&s->proc_th, "bpfhv", bpfhv_proc_thread,
+                       s, QEMU_THREAD_JOINABLE);
+
     DBG("%s(%p)", __func__, s);
 }
 
@@ -1039,6 +1049,8 @@ pci_bpfhv_uninit(PCIDevice *dev)
 {
     BpfHvState *s = BPFHV(dev);
     int i;
+
+    qemu_thread_join(&s->proc_th);
 
     memory_listener_unregister(&s->memory_listener);
 
