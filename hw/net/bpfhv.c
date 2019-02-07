@@ -139,10 +139,10 @@ typedef struct BpfHvState_st {
 #endif /* BPFHV_DEBUG_TIMER */
 
     MemoryListener memory_listener;
-    BpfHvTranslateEntry *translate_entries;
-    unsigned int num_translate_entries;
-    BpfHvTranslateEntry *translate_entries_tmp;
-    unsigned int num_translate_entries_tmp;
+    BpfHvTranslateEntry *trans_entries;
+    unsigned int num_trans_entries;
+    BpfHvTranslateEntry *trans_entries_tmp;
+    unsigned int num_trans_entries_tmp;
 
     QemuThread proc_th;
 } BpfHvState;
@@ -669,8 +669,8 @@ bpfhv_memli_begin(MemoryListener *listener)
 {
     BpfHvState *s = container_of(listener, BpfHvState, memory_listener);
 
-    s->num_translate_entries_tmp = 0;
-    s->translate_entries_tmp = NULL;
+    s->num_trans_entries_tmp = 0;
+    s->trans_entries_tmp = NULL;
 }
 
 static void
@@ -691,10 +691,10 @@ bpfhv_memli_region_add(MemoryListener *listener,
 
     hva_start = memory_region_get_ram_ptr(section->mr) +
                       section->offset_within_region;
-    if (s->num_translate_entries_tmp > 0) {
+    if (s->num_trans_entries_tmp > 0) {
         /* Check if we can coalasce the last MemoryRegionSection to
          * the current one. */
-        last = s->translate_entries_tmp + s->num_translate_entries_tmp - 1;
+        last = s->trans_entries_tmp + s->num_trans_entries_tmp - 1;
         if (gpa_start == last->gpa_end &&
             hva_start == last->hva_start + last->size) {
             add_entry = false;
@@ -704,10 +704,10 @@ bpfhv_memli_region_add(MemoryListener *listener,
     }
 
     if (add_entry) {
-        s->num_translate_entries_tmp++;
-        s->translate_entries_tmp = g_renew(BpfHvTranslateEntry,
-            s->translate_entries_tmp, s->num_translate_entries_tmp);
-        last = s->translate_entries_tmp + s->num_translate_entries_tmp - 1;
+        s->num_trans_entries_tmp++;
+        s->trans_entries_tmp = g_renew(BpfHvTranslateEntry,
+            s->trans_entries_tmp, s->num_trans_entries_tmp);
+        last = s->trans_entries_tmp + s->num_trans_entries_tmp - 1;
         last->gpa_start = gpa_start;
         last->gpa_end = gpa_end;
         last->size = size;
@@ -723,61 +723,61 @@ static void
 bpfhv_memli_commit(MemoryListener *listener)
 {
     BpfHvState *s = container_of(listener, BpfHvState, memory_listener);
-    BpfHvTranslateEntry *old_translate_entries;
-    int num_old_translate_entries;
+    BpfHvTranslateEntry *old_trans_entries;
+    int num_old_trans_entries;
     int i;
 
-    old_translate_entries = s->translate_entries;
-    num_old_translate_entries = s->num_translate_entries;
-    s->translate_entries = s->translate_entries_tmp;
-    s->num_translate_entries = s->num_translate_entries_tmp;
+    old_trans_entries = s->trans_entries;
+    num_old_trans_entries = s->num_trans_entries;
+    s->trans_entries = s->trans_entries_tmp;
+    s->num_trans_entries = s->num_trans_entries_tmp;
 
-    if (s->translate_entries && old_translate_entries &&
-        s->num_translate_entries == num_old_translate_entries &&
-        !memcmp(s->translate_entries, old_translate_entries,
-                sizeof(s->translate_entries[0]) * s->num_translate_entries)) {
+    if (s->trans_entries && old_trans_entries &&
+        s->num_trans_entries == num_old_trans_entries &&
+        !memcmp(s->trans_entries, old_trans_entries,
+                sizeof(s->trans_entries[0]) * s->num_trans_entries)) {
         /* Nothing changed. */
         goto out;
     }
 
 #ifdef BPFHV_DEBUG
-    for (i = 0; i < s->num_translate_entries; i++) {
-        BpfHvTranslateEntry *te = s->translate_entries + i;
+    for (i = 0; i < s->num_trans_entries; i++) {
+        BpfHvTranslateEntry *te = s->trans_entries + i;
         DBG("entry: gpa %lx-%lx size %lx hva_start %p\n",
             te->gpa_start, te->gpa_end, te->size, te->hva_start);
     }
 #endif
 out:
-    s->translate_entries_tmp = NULL;
-    s->num_translate_entries_tmp = 0;
-    for (i = 0; i < num_old_translate_entries; i++) {
-        BpfHvTranslateEntry *te = old_translate_entries + i;
+    s->trans_entries_tmp = NULL;
+    s->num_trans_entries_tmp = 0;
+    for (i = 0; i < num_old_trans_entries; i++) {
+        BpfHvTranslateEntry *te = old_trans_entries + i;
         memory_region_unref(te->mr);
     }
-    g_free(old_translate_entries);
+    g_free(old_trans_entries);
 }
 
 #ifdef BPFHV_MEMLI
 static inline void *
 bpfhv_translate_addr(BpfHvState *s, uint64_t gpa, uint64_t len)
 {
-    BpfHvTranslateEntry *te = s->translate_entries + 0;
+    BpfHvTranslateEntry *te = s->trans_entries + 0;
 
     if (unlikely(!(te->gpa_start <= gpa && gpa + len <= te->gpa_end))) {
         int i;
 
-        for (i = 1; i < s->num_translate_entries; i++) {
-            te = s->translate_entries + i;
+        for (i = 1; i < s->num_trans_entries; i++) {
+            te = s->trans_entries + i;
             if (te->gpa_start <= gpa && gpa + len <= te->gpa_end) {
                 /* Match. Move this entry to the first position. */
                 BpfHvTranslateEntry tmp = *te;
-                *te = s->translate_entries[0];
-                s->translate_entries[0] = tmp;
-                te = s->translate_entries + 0;
+                *te = s->trans_entries[0];
+                s->trans_entries[0] = tmp;
+                te = s->trans_entries + 0;
                 break;
             }
         }
-        assert(i < s->num_translate_entries);
+        assert(i < s->num_trans_entries);
     }
 
     return te->hva_start + (gpa - te->gpa_start);
