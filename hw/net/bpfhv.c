@@ -756,33 +756,30 @@ out:
 }
 
 #ifdef BPFHV_MEMLI
-static void *
+static inline void *
 bpfhv_translate_addr(BpfHvState *s, uint64_t gpa, uint64_t len)
 {
-    int i;
+    BpfHvTranslateEntry *te = s->translate_entries + 0;
 
-    for (i = 0; i < s->num_translate_entries; i++) {
-        BpfHvTranslateEntry *te = s->translate_entries + i;
+    if (unlikely(!(te->gpa_start <= gpa && gpa + len <= te->gpa_end))) {
+        int i;
 
-        if (likely(te->gpa_start <= gpa && gpa + len <= te->gpa_end)) {
-            /* Match. */
-
-            if (unlikely(i != 0)) {
-                /* Move this entry to the first position. */
+        for (i = 1; i < s->num_translate_entries; i++) {
+            te = s->translate_entries + i;
+            if (te->gpa_start <= gpa && gpa + len <= te->gpa_end) {
+                /* Match. Move this entry to the first position. */
                 BpfHvTranslateEntry tmp = *te;
-
                 *te = s->translate_entries[0];
+                s->translate_entries[0] = tmp;
                 te = s->translate_entries + 0;
-                *te = tmp;
+                break;
             }
-
-            return te->hva_start + (gpa - te->gpa_start);
         }
+        assert(i < s->num_translate_entries);
     }
 
-    assert(false);
+    return te->hva_start + (gpa - te->gpa_start);
 
-    return NULL;
 }
 #endif /* BPFHV_MEMLI */
 
