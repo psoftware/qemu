@@ -666,6 +666,7 @@ static void
 bpfhv_memli_begin(MemoryListener *listener)
 {
     BpfHvState *s = container_of(listener, BpfHvState, memory_listener);
+
     s->num_translate_entries_tmp = 0;
     s->translate_entries_tmp = NULL;
 }
@@ -720,27 +721,38 @@ static void
 bpfhv_memli_commit(MemoryListener *listener)
 {
     BpfHvState *s = container_of(listener, BpfHvState, memory_listener);
+    BpfHvTranslateEntry *old_translate_entries;
+    int num_old_translate_entries;
     int i;
 
+    old_translate_entries = s->translate_entries;
+    num_old_translate_entries = s->num_translate_entries;
     s->translate_entries = s->translate_entries_tmp;
     s->num_translate_entries = s->num_translate_entries_tmp;
+
+    if (s->translate_entries && old_translate_entries &&
+        s->num_translate_entries == num_old_translate_entries &&
+        !memcmp(s->translate_entries, old_translate_entries,
+                sizeof(s->translate_entries[0]) * s->num_translate_entries)) {
+        /* Nothing changed. */
+        goto out;
+    }
 
 #ifdef BPFHV_DEBUG
     for (i = 0; i < s->num_translate_entries; i++) {
         BpfHvTranslateEntry *te = s->translate_entries + i;
-        DBG("entry: gpa %lx-%lx size %lx hva_start %p",
+        DBG("entry: gpa %lx-%lx size %lx hva_start %p\n",
             te->gpa_start, te->gpa_end, te->size, te->hva_start);
     }
 #endif
-
-    for (i = 0; i < s->num_translate_entries_tmp; i++) {
-        BpfHvTranslateEntry *te = s->translate_entries_tmp + i;
-
-        memory_region_unref(te->mr);
-    }
-    g_free(s->translate_entries_tmp);
+out:
     s->translate_entries_tmp = NULL;
     s->num_translate_entries_tmp = 0;
+    for (i = 0; i < num_old_translate_entries; i++) {
+        BpfHvTranslateEntry *te = old_translate_entries + i;
+        memory_region_unref(te->mr);
+    }
+    g_free(old_translate_entries);
 }
 
 #ifdef BPFHV_MEMLI
