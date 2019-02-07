@@ -38,8 +38,30 @@
 #include "bpfhv_sring.h"
 #include "bpfhv_sring_hv.h"
 
-#define BPFHV_DEBUG_TIMER
-#undef BPFHV_DEBUG
+/*
+ * Compile-time tunables.
+ */
+
+/* Consume the memory listener interface to get updates about
+ * guest memory map. The updates are used to build a translation
+ * table to speed up the translation of descriptor addresses
+ * (GPA --> HVA). */
+#define BPFHV_MEMLI
+
+/* Let KVM handle the TX kicks in kernelspace, rather than
+ * have KVM return to QEMU and QEMU handling the TX kicks. */
+#define BPFHV_TX_IOEVENTFD
+
+/* Debug timer to show ring statistics. */
+#undef  BPFHV_DEBUG_TIMER
+
+/* Verbose debug information. */
+#undef  BPFHV_DEBUG
+
+/*
+ * End of tunables.
+ */
+
 #ifdef BPFHV_DEBUG
 #define DBG(fmt, ...) do { \
         fprintf(stderr, "bpfhv-if: " fmt "\n", ## __VA_ARGS__); \
@@ -47,8 +69,6 @@
 #else
 #define DBG(fmt, ...) do {} while (0)
 #endif
-
-#undef BPFHV_MEMLI
 
 static const char *regnames[] = {
     "STATUS",
@@ -88,6 +108,9 @@ typedef struct BpfHvTxQueue_st {
     NetClientState *nc;
     struct BpfHvState_st *parent;
     unsigned int vector;
+#ifdef BPFHV_TX_IOEVENTFD
+    EventNotifier ioeventfd;
+#endif /* BPFHV_TX_IOEVENTFD */
 } BpfHvTxQueue;
 
 typedef struct BpfHvRxQueue_st {
@@ -574,6 +597,19 @@ bpfhv_tx_bh(void *opaque)
     }
 }
 
+#ifdef BPFHV_TX_IOEVENTFD
+static void
+bpfhv_tx_evnotify(EventNotifier *ioeventfd)
+{
+    BpfHvTxQueue *txq = container_of(ioeventfd, BpfHvTxQueue, ioeventfd);
+
+    if (unlikely(!event_notifier_test_and_clear(ioeventfd))) {
+        return;
+    }
+    bpfhv_tx_bh(txq);
+}
+#endif /* BPFHV_TX_IOEVENTFD */
+
 static void
 bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 {
@@ -590,6 +626,7 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         sring_rxq_notification(s->rxq[doorbell].ctx, /*enable=*/false);
         qemu_flush_queued_packets(qemu_get_queue(s->nic));
     } else {
+        /* We never enter here if BPFHV_TX_IOEVENTFD is defined. */
         doorbell -= s->ioregs[BPFHV_REG(NUM_RX_QUEUES)];
         sring_txq_notification(s->txq[doorbell].ctx, /*enable=*/false);
         DBG("Doorbell TX#%u rung", doorbell);
@@ -979,6 +1016,21 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->txq = g_malloc0(s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]
 			* sizeof(s->txq[0]));
     for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
+#ifdef BPFHV_TX_IOEVENTFD
+        int ret;
+
+        /* Init a notifier that runs the TX bottom half code
+         * (bpfhv_tx_bh) every time it is triggered. */
+        ret = event_notifier_init(&s->txq[i].ioeventfd, 0);
+        if (ret) {
+            error_setg_errno(errp, errno, "Failed to initialize "
+                             "ioeventfd for TX#%d", i);
+            return;
+        }
+        event_notifier_set_handler(&s->txq[i].ioeventfd,
+                                   bpfhv_tx_evnotify);
+#endif /* BPFHV_TX_IOEVENTFD */
+
         s->txq[i].bh = qemu_bh_new(bpfhv_tx_bh, s->txq + i);
         s->txq[i].nc = nc;
         s->txq[i].parent = s;
@@ -1011,6 +1063,20 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         return;
     }
 
+#ifdef BPFHV_TX_IOEVENTFD
+    for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
+        /* Let KVM write into the event notifier, so that when
+         * QEMU wakes up it can directly run the TX bottom
+         * half, rather then going through, bpfhv_dbmmio_write(). */
+        hwaddr dbofs = (s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] + i)
+                     * s->ioregs[BPFHV_REG(DOORBELL_SIZE)];
+
+        memory_region_add_eventfd(&s->dbmmio, dbofs, 4, false, 0,
+                                  &s->txq[i].ioeventfd);
+    }
+#endif /* BPFHV_TX_IOEVENTFD */
+
+    /* Initialize MSI-X interrupts, one per queue. */
     for (i = 0; i < s->num_queues + 1; i++) {
         int ret = msix_vector_use(pci_dev, i);
 
@@ -1031,6 +1097,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->debug_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL, bpfhv_debug_timer, s);
 #endif /* BPFHV_DEBUG_TIMER */
 
+    /* Support for memory listener. */
     s->memory_listener.priority = 10,
     s->memory_listener.begin = bpfhv_memli_begin,
     s->memory_listener.commit = bpfhv_memli_commit,
@@ -1067,6 +1134,15 @@ pci_bpfhv_uninit(PCIDevice *dev)
     }
 
     for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
+#ifdef BPFHV_TX_IOEVENTFD
+        hwaddr dbofs = (s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] + i)
+                     * s->ioregs[BPFHV_REG(DOORBELL_SIZE)];
+
+        memory_region_del_eventfd(&s->dbmmio, dbofs, 4, false, 0,
+                                  &s->txq[i].ioeventfd);
+        event_notifier_set_handler(&s->txq[i].ioeventfd, NULL);
+        event_notifier_cleanup(&s->txq[i].ioeventfd);
+#endif /* BPFHV_TX_IOEVENTFD */
         qemu_bh_delete(s->txq[i].bh);
         s->txq[i].bh = NULL;
     }
