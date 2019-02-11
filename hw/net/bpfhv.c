@@ -30,6 +30,7 @@
 #include "qemu/iov.h"
 #include "qemu/range.h"
 #include "qapi/error.h"
+#include "linux/virtio_net.h"
 
 #include <libelf.h>
 #include <gelf.h>
@@ -90,6 +91,7 @@ static const char *regnames[] = {
     "DOORBELL_GVA_LO",
     "DOORBELL_GVA_HI",
     "VERSION",
+    "FEATURES",
 };
 
 typedef struct BpfHvProg_st {
@@ -155,6 +157,8 @@ typedef struct BpfHvState_st {
 
     BpfHvRxQueue *rxq;
     BpfHvTxQueue *txq;
+
+    int vnet_hdr_len;
 
 #ifdef BPFHV_DEBUG_TIMER
     QEMUTimer  *debug_timer;
@@ -500,6 +504,14 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         }
         s->ioregs[index] = val;
         s->ioregs[BPFHV_REG(PROG_SIZE)] = s->progs[val].num_insns;
+        break;
+
+    case BPFHV_REG_FEATURES:
+        if ((s->ioregs[index] | val) != s->ioregs[index]) {
+            DBG("Driver tried to select features unknown to the host");
+            break;
+        }
+        s->ioregs[index] = val;
         break;
 
     default:
@@ -988,6 +1000,13 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     nc = qemu_get_queue(s->nic);
     qemu_format_nic_info_str(nc, s->conf.macaddr.a);
 
+    /* Check if backend supports virtio-net offloadings. */
+    s->vnet_hdr_len = 0;
+    if (qemu_has_vnet_hdr(nc->peer) &&
+        qemu_has_vnet_hdr_len(nc->peer, sizeof(struct virtio_net_hdr_v1))) {
+        s->vnet_hdr_len = sizeof(struct virtio_net_hdr_v1);
+    }
+
     /* Initialize device registers. */
     memset(s->ioregs, 0, sizeof(s->ioregs));
     s->ioregs[BPFHV_REG(VERSION)] = BPFHV_VERSION;
@@ -1000,6 +1019,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->ioregs[BPFHV_REG(TX_CTX_SIZE)] = sizeof(struct bpfhv_tx_context)
         + sring_tx_ctx_size(s->ioregs[BPFHV_REG(NUM_TX_BUFS)]);
     s->ioregs[BPFHV_REG(DOORBELL_SIZE)] = 8; /* could be 4096 */
+    s->ioregs[BPFHV_REG(FEATURES)] = 0; /* none for now */
     s->num_queues = s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] +
                     s->ioregs[BPFHV_REG(NUM_TX_QUEUES)];
     s->doorbell_gva_changed = false;
@@ -1107,8 +1127,6 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 
     qemu_thread_create(&s->proc_th, "bpfhv", bpfhv_proc_thread,
                        s, QEMU_THREAD_JOINABLE);
-
-    DBG("%s(%p)", __func__, s);
 }
 
 static void
@@ -1154,8 +1172,6 @@ pci_bpfhv_uninit(PCIDevice *dev)
     }
     msix_uninit_exclusive_bar(PCI_DEVICE(s));
     qemu_del_nic(s->nic);
-
-    DBG("%s: %p", __func__, s);
 }
 
 static void qdev_bpfhv_reset(DeviceState *dev)

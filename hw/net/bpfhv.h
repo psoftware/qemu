@@ -121,6 +121,7 @@ struct bpfhv_rx_context {
 #define BPFHV_HELPER_MAGIC	0x4b8f0000
 enum bpfhv_helper_id {
 	BPFHV_FUNC_rx_pkt_alloc = BPFHV_HELPER_MAGIC,
+	BPFHV_FUNC_pkt_l4_csum_md_get,
 };
 
 #ifndef BPFHV_FUNC
@@ -253,6 +254,15 @@ enum {
  * check that it was compiled with this same header file as the hypervisor. */
 #define BPFHV_REG_VERSION		72
 #define		BPFHV_VERSION	1
+
+/* A register for features negotiation (offloads). Driver reads from
+ * this register to learn what the host is able to do, and acknowledges
+ * the features that it is able to use. */
+#define BPFHV_REG_FEATURES		76
+/* Host handles tx packets with partial l4 csum. */
+#define		BPFHV_F_TX_CSUM	(1 << 0)
+/* Guest handles rx packets with partial l4 csum. */
+#define		BPFHV_F_RX_CSUM	(1 << 1)
 
 /* Marker for the end of valid registers, and size of the I/O region. */
 #define BPFHV_REG_END			76
