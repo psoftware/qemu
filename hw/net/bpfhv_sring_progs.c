@@ -9,6 +9,12 @@
 #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
 #define compiler_barrier() __asm__ __volatile__ ("");
 
+#define WITH_OFFLOADS
+
+static int BPFHV_FUNC(rx_pkt_alloc, struct bpfhv_rx_context *ctx);
+static int BPFHV_FUNC(pkt_l4_csum_md_get, struct bpfhv_tx_context *ctx,
+                      uint16_t *csum_start, uint16_t *csum_offset);
+
 __section("txp")
 int sring_txp(struct bpfhv_tx_context *ctx)
 {
@@ -31,6 +37,11 @@ int sring_txp(struct bpfhv_tx_context *ctx)
         txd->flags = 0;
     }
     txd->flags = SRING_DESC_F_EOP;
+#ifdef WITH_OFFLOADS
+    if (pkt_l4_csum_md_get(ctx, &txd->csum_start, &txd->csum_offset)) {
+        txd->flags |= SRING_DESC_F_NEEDS_CSUM;
+    }
+#endif /* WITH_OFFLOADS */
     compiler_barrier();
     ACCESS_ONCE(priv->prod) = prod;
     compiler_barrier();
@@ -154,8 +165,6 @@ int sring_rxp(struct bpfhv_rx_context *ctx)
 
     return 0;
 }
-
-static int BPFHV_FUNC(rx_pkt_alloc, struct bpfhv_rx_context *ctx);
 
 __section("rxc")
 int sring_rxc(struct bpfhv_rx_context *ctx)

@@ -24,7 +24,8 @@
 
 #include <stdint.h>
 
-#define SRING_DESC_F_EOP     (1 << 0)
+#define SRING_DESC_F_EOP            (1 << 0)
+#define SRING_DESC_F_NEEDS_CSUM     (1 << 1)
 
 struct sring_tx_desc {
     uint64_t cookie;
