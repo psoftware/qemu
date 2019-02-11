@@ -14,6 +14,8 @@
 static int BPFHV_FUNC(rx_pkt_alloc, struct bpfhv_rx_context *ctx);
 static int BPFHV_FUNC(pkt_l4_csum_md_get, struct bpfhv_tx_context *ctx,
                       uint16_t *csum_start, uint16_t *csum_offset);
+static int BPFHV_FUNC(pkt_l4_csum_md_set, struct bpfhv_rx_context *ctx,
+                      uint16_t csum_start, uint16_t csum_offset);
 
 __section("txp")
 int sring_txp(struct bpfhv_tx_context *ctx)
@@ -172,6 +174,7 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
     struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
     uint32_t clear = priv->clear;
     uint32_t cons = ACCESS_ONCE(priv->cons);
+    struct sring_rx_desc *rxd;
     uint32_t i;
     int ret;
 
@@ -182,7 +185,6 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
     /* Prepare the input arguments for rx_pkt_alloc(). */
     for (i = 0; clear != cons && i < BPFHV_MAX_RX_BUFS;) {
         struct bpfhv_rx_buf *rxb = ctx->bufs + i;
-        struct sring_rx_desc *rxd;
 
         rxd = priv->desc + (clear % priv->num_slots);
         clear++;
@@ -203,6 +205,12 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
     if (ret < 0) {
         return ret;
     }
+
+#ifdef WITH_OFFLOADS
+    if (rxd->flags & SRING_DESC_F_NEEDS_CSUM) {
+        pkt_l4_csum_md_set(ctx, rxd->csum_start, rxd->csum_offset);
+    }
+#endif /* WITH_OFFLOADS */
 
     /* Now ctx->packet contains the allocated OS packet. Return 1 to tell
      * the driver that ctx->packet is valid. Also set ctx->oflags to tell
