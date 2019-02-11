@@ -985,6 +985,8 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     const char *implname = "sring";
     DeviceState *dev = DEVICE(pci_dev);
     BpfHvState *s = BPFHV(pci_dev);
+    unsigned int num_tx_queues;
+    unsigned int num_rx_queues;
     NetClientState *nc;
     uint8_t *pci_conf;
     int i;
@@ -1010,8 +1012,8 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     /* Initialize device registers. */
     memset(s->ioregs, 0, sizeof(s->ioregs));
     s->ioregs[BPFHV_REG(VERSION)] = BPFHV_VERSION;
-    s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] = 1;
-    s->ioregs[BPFHV_REG(NUM_TX_QUEUES)] = 1;
+    s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] = num_rx_queues = 1;
+    s->ioregs[BPFHV_REG(NUM_TX_QUEUES)] = num_tx_queues = 1;
     s->ioregs[BPFHV_REG(NUM_RX_BUFS)] = 256;
     s->ioregs[BPFHV_REG(NUM_TX_BUFS)] = 256;
     s->ioregs[BPFHV_REG(RX_CTX_SIZE)] = sizeof(struct bpfhv_rx_context)
@@ -1020,8 +1022,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         + sring_tx_ctx_size(s->ioregs[BPFHV_REG(NUM_TX_BUFS)]);
     s->ioregs[BPFHV_REG(DOORBELL_SIZE)] = 8; /* could be 4096 */
     s->ioregs[BPFHV_REG(FEATURES)] = 0; /* none for now */
-    s->num_queues = s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] +
-                    s->ioregs[BPFHV_REG(NUM_TX_QUEUES)];
+    s->num_queues = num_rx_queues + num_tx_queues;
     s->doorbell_gva_changed = false;
     s->rx_contexts_ready = s->tx_contexts_ready = false;
 
@@ -1031,11 +1032,9 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     }
 
     /* Initialize device queues. */
-    s->rxq = g_malloc0(s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]
-			* sizeof(s->rxq[0]));
-    s->txq = g_malloc0(s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]
-			* sizeof(s->txq[0]));
-    for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
+    s->rxq = g_malloc0(num_rx_queues * sizeof(s->rxq[0]));
+    s->txq = g_malloc0(num_tx_queues * sizeof(s->txq[0]));
+    for (i = 0; i < num_tx_queues; i++) {
 #ifdef BPFHV_TX_IOEVENTFD
         int ret;
 
@@ -1084,11 +1083,11 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     }
 
 #ifdef BPFHV_TX_IOEVENTFD
-    for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
+    for (i = 0; i < num_tx_queues; i++) {
         /* Let KVM write into the event notifier, so that when
          * QEMU wakes up it can directly run the TX bottom
          * half, rather then going through, bpfhv_dbmmio_write(). */
-        hwaddr dbofs = (s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] + i)
+        hwaddr dbofs = (num_rx_queues + i)
                      * s->ioregs[BPFHV_REG(DOORBELL_SIZE)];
 
         memory_region_add_eventfd(&s->dbmmio, dbofs, 4, false, 0,
