@@ -22,6 +22,8 @@
 #include "net/net.h"
 #include "exec/memory.h"
 #include "qemu/atomic.h"
+#include "linux/virtio_net.h"
+#include "qemu/error-report.h"
 
 #include "bpfhv.h"
 #include "bpfhv_sring.h"
@@ -55,14 +57,15 @@ sring_tx_ctx_init(struct bpfhv_tx_context *ctx, size_t num_tx_bufs)
 ssize_t
 sring_txq_drain(struct BpfHvState_st *s, NetClientState *nc,
                 struct bpfhv_tx_context *ctx,
-                NetPacketSent *complete_cb, bool *notify)
+                NetPacketSent *complete_cb,
+                int vnet_hdr_len, bool *notify)
 {
     struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
     struct iovec iov[BPFHV_MAX_TX_BUFS];
     uint32_t prod = ACCESS_ONCE(priv->prod);
     uint32_t cons = priv->cons;
     uint32_t first = cons;
-    int iovcnt = 0;
+    int iovcnt = vnet_hdr_len != 0 ? 1 : 0;
     int count = 0;
     int i;
 
@@ -83,7 +86,21 @@ sring_txq_drain(struct BpfHvState_st *s, NetClientState *nc,
         }
 
         if (txd->flags & SRING_DESC_F_EOP) {
-            int ret = qemu_sendv_packet_async(nc, iov, iovcnt,
+            struct virtio_net_hdr_v1 hdr;
+            int ret;
+
+            if (vnet_hdr_len != 0) {
+                memset(&hdr, 0, sizeof(hdr));
+                if (txd->flags & SRING_DESC_F_NEEDS_CSUM) {
+                    hdr.flags = VIRTIO_NET_HDR_F_NEEDS_CSUM;
+                    hdr.csum_start = txd->csum_start;
+                    hdr.csum_offset = txd->csum_offset;
+                }
+                iov[0].iov_base = &hdr;
+                iov[0].iov_len = sizeof(hdr);
+            }
+
+            ret = qemu_sendv_packet_async(nc, iov, iovcnt,
                                             /*sent_cb=*/complete_cb);
 
             for (i = 0; i < iovcnt; i++) {
@@ -102,7 +119,7 @@ sring_txq_drain(struct BpfHvState_st *s, NetClientState *nc,
                 break;
             }
 
-            iovcnt = 0;
+            iovcnt = vnet_hdr_len != 0 ? 1 : 0;;
             first = cons;
         }
     }
@@ -145,19 +162,31 @@ sring_can_receive(struct bpfhv_rx_context *ctx)
 
 ssize_t
 sring_receive_iov(struct BpfHvState_st *s, struct bpfhv_rx_context *ctx,
-                  const struct iovec *iov, int iovcnt, bool *notify)
+                  const struct iovec *iov, int iovcnt, int vnet_hdr_len,
+                  bool *notify)
 {
     struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
     const struct iovec *const iov_end = iov + iovcnt;
     uint32_t cons = priv->cons;
     const uint32_t prod = ACCESS_ONCE(priv->prod);
     struct sring_rx_desc *rxd = priv->desc + (cons % priv->num_slots);
+    struct virtio_net_hdr_v1 *hdr = NULL;
     hwaddr sspace = iov->iov_len;
     void *sbuf = iov->iov_base;
     hwaddr dspace = rxd->len;
     ssize_t totlen = 0;
     void *dbuf = NULL;
     size_t dofs = 0;
+
+    if (unlikely(sspace < vnet_hdr_len)) {
+        error_report("Fatal: first iov entry is less than %d", vnet_hdr_len);
+        abort();
+    }
+    if (vnet_hdr_len != 0) {
+        hdr = (struct virtio_net_hdr_v1 *)sbuf;
+        sspace -= sizeof(*hdr);
+        sbuf += sizeof(*hdr);
+    }
 
     while (cons != prod) {
         size_t copy = sspace < dspace ? sspace : dspace;
@@ -190,6 +219,11 @@ sring_receive_iov(struct BpfHvState_st *s, struct bpfhv_rx_context *ctx,
             if (iov == iov_end) {
                 rxd->len -= dspace;
                 rxd->flags = SRING_DESC_F_EOP;
+                if (vnet_hdr_len != 0) {
+                    rxd->flags |= SRING_DESC_F_NEEDS_CSUM;
+                    rxd->csum_start = hdr->csum_start;
+                    rxd->csum_offset = hdr->csum_offset;
+                }
                 break;
             }
             rxd->flags = 0;

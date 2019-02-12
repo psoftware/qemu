@@ -158,7 +158,12 @@ typedef struct BpfHvState_st {
     BpfHvRxQueue *rxq;
     BpfHvTxQueue *txq;
 
+    /* Length of the virtio net header that we are using to implement
+     * the offloads supported by the backend. */
     int vnet_hdr_len;
+
+    /* The features that we expose to the guest. */
+    uint32_t hv_features;
 
 #ifdef BPFHV_DEBUG_TIMER
     QEMUTimer  *debug_timer;
@@ -241,7 +246,8 @@ bpfhv_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
     }
 
     /* We only support a single receive queue for now. */
-    ret = sring_receive_iov(s, s->rxq[0].ctx, iov, iovcnt, &notify);
+    ret = sring_receive_iov(s, s->rxq[0].ctx, iov, iovcnt, s->vnet_hdr_len,
+                            &notify);
     if (ret > 0 && notify) {
         msix_notify(PCI_DEVICE(s), 0);
     }
@@ -507,8 +513,9 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         break;
 
     case BPFHV_REG_FEATURES:
-        if ((s->ioregs[index] | val) != s->ioregs[index]) {
-            DBG("Driver tried to select features unknown to the host");
+        /* Check that 'val' is a subset of s->hv_features. */
+        if ((s->hv_features | val) != s->hv_features) {
+            DBG("Driver tried to select features unknown to the hv");
             break;
         }
         s->ioregs[index] = val;
@@ -558,7 +565,8 @@ bpfhv_tx_complete(NetClientState *nc, ssize_t len)
 
         sring_txq_notification(s->txq[i].ctx, /*enable=*/true);
 
-        sring_txq_drain(s, nc, s->txq[i].ctx, bpfhv_tx_complete, &notify);
+        sring_txq_drain(s, nc, s->txq[i].ctx, bpfhv_tx_complete,
+                        s->vnet_hdr_len, &notify);
         if (notify) {
 	    msix_notify(PCI_DEVICE(s), s->txq[i].vector);
         }
@@ -577,7 +585,8 @@ bpfhv_tx_bh(void *opaque)
         return;
     }
 
-    ret = sring_txq_drain(s, txq->nc, txq->ctx, bpfhv_tx_complete, &notify);
+    ret = sring_txq_drain(s, txq->nc, txq->ctx, bpfhv_tx_complete,
+                          s->vnet_hdr_len, &notify);
     if (notify) {
 	    msix_notify(PCI_DEVICE(s), txq->vector);
     }
@@ -597,7 +606,8 @@ bpfhv_tx_bh(void *opaque)
      * If we find something, assume the guest is still active and
      * reschedule. */
     sring_txq_notification(txq->ctx, /*enable=*/true);
-    ret = sring_txq_drain(s, txq->nc, txq->ctx, bpfhv_tx_complete, &notify);
+    ret = sring_txq_drain(s, txq->nc, txq->ctx, bpfhv_tx_complete,
+                          s->vnet_hdr_len, &notify);
     if (notify) {
 	    msix_notify(PCI_DEVICE(s), txq->vector);
     }
@@ -1004,9 +1014,15 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 
     /* Check if backend supports virtio-net offloadings. */
     s->vnet_hdr_len = 0;
+    s->hv_features = 0;
     if (qemu_has_vnet_hdr(nc->peer) &&
         qemu_has_vnet_hdr_len(nc->peer, sizeof(struct virtio_net_hdr_v1))) {
         s->vnet_hdr_len = sizeof(struct virtio_net_hdr_v1);
+        qemu_set_vnet_hdr_len(nc->peer, s->vnet_hdr_len);
+        qemu_using_vnet_hdr(nc->peer, true);
+        qemu_set_offload(nc->peer, /*csum=*/true, /*tso4=*/false,
+                         /*tso6=*/false, /*ecn=*/false, /*ufo=*/false);
+        s->hv_features = BPFHV_F_TX_CSUM | BPFHV_F_RX_CSUM;
     }
 
     /* Initialize device registers. */
@@ -1021,7 +1037,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->ioregs[BPFHV_REG(TX_CTX_SIZE)] = sizeof(struct bpfhv_tx_context)
         + sring_tx_ctx_size(s->ioregs[BPFHV_REG(NUM_TX_BUFS)]);
     s->ioregs[BPFHV_REG(DOORBELL_SIZE)] = 8; /* could be 4096 */
-    s->ioregs[BPFHV_REG(FEATURES)] = 0; /* none for now */
+    s->ioregs[BPFHV_REG(FEATURES)] = s->hv_features;
     s->num_queues = num_rx_queues + num_tx_queues;
     s->doorbell_gva_changed = false;
     s->rx_contexts_ready = s->tx_contexts_ready = false;
