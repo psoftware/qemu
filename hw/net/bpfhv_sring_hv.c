@@ -98,6 +98,11 @@ sring_txq_drain(struct BpfHvState_st *s, NetClientState *nc,
                 hdr.gso_size = txd->gso_size;
                 hdr.gso_type = txd->gso_type;
                 hdr.num_buffers = 0;
+#if 0
+                printf("tx hdr: {fl %x, cs %u, co %u, hl %u, gs %u, gt %u}\n",
+                        hdr.flags, hdr.csum_start, hdr.csum_offset,
+                        hdr.hdr_len, hdr.gso_size, hdr.gso_type);
+#endif
                 iov[0].iov_base = &hdr;
                 iov[0].iov_len = sizeof(hdr);
             }
@@ -222,6 +227,12 @@ sring_receive_iov(struct BpfHvState_st *s, struct bpfhv_rx_context *ctx,
                 rxd->len -= dspace;
                 rxd->flags = SRING_DESC_F_EOP;
                 if (vnet_hdr_len != 0) {
+#if 0
+                    printf("rx hdr: {fl %x, cs %u, co %u, hl %u, gs %u, "
+                            "gt %u}\n",
+                            hdr->flags, hdr->csum_start, hdr->csum_offset,
+                            hdr->hdr_len, hdr->gso_size, hdr->gso_type);
+#endif
                     rxd->csum_start = hdr->csum_start;
                     rxd->csum_offset = hdr->csum_offset;
                     rxd->hdr_len = hdr->hdr_len;
