@@ -170,11 +170,13 @@ typedef struct BpfHvState_st {
 #define BPFHV_DEBUG_TIMER_MS	2000
 #endif /* BPFHV_DEBUG_TIMER */
 
+#ifdef BPFHV_MEMLI
     MemoryListener memory_listener;
     BpfHvTranslateEntry *trans_entries;
     unsigned int num_trans_entries;
     BpfHvTranslateEntry *trans_entries_tmp;
     unsigned int num_trans_entries_tmp;
+#endif /* BPFHV_MEMLI */
 
     QemuThread proc_th;
 } BpfHvState;
@@ -723,6 +725,7 @@ static const MemoryRegionOps bpfhv_progmmio_ops = {
     },
 };
 
+#ifdef BPFHV_MEMLI
 static void
 bpfhv_memli_begin(MemoryListener *listener)
 {
@@ -816,7 +819,6 @@ out:
     g_free(old_trans_entries);
 }
 
-#ifdef BPFHV_MEMLI
 static inline void *
 bpfhv_translate_addr(BpfHvState *s, uint64_t gpa, uint64_t len)
 {
@@ -1132,6 +1134,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->debug_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL, bpfhv_debug_timer, s);
 #endif /* BPFHV_DEBUG_TIMER */
 
+#ifdef BPFHV_MEMLI
     /* Support for memory listener. */
     s->memory_listener.priority = 10,
     s->memory_listener.begin = bpfhv_memli_begin,
@@ -1139,6 +1142,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->memory_listener.region_add = bpfhv_memli_region_add,
     s->memory_listener.region_nop = bpfhv_memli_region_add,
     memory_listener_register(&s->memory_listener, &address_space_memory);
+#endif /* BPFHV_MEMLI */
 
     qemu_thread_create(&s->proc_th, "bpfhv", bpfhv_proc_thread,
                        s, QEMU_THREAD_JOINABLE);
@@ -1152,7 +1156,9 @@ pci_bpfhv_uninit(PCIDevice *dev)
 
     qemu_thread_join(&s->proc_th);
 
+#ifdef BPFHV_MEMLI
     memory_listener_unregister(&s->memory_listener);
+#endif /* BPFHV_MEMLI */
 
 #ifdef BPFHV_DEBUG_TIMER
     timer_del(s->debug_timer);
