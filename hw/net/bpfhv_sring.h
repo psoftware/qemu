@@ -31,9 +31,15 @@ struct sring_tx_desc {
     uint64_t cookie;
     uint64_t paddr;
     uint16_t len;
+    uint16_t flags;
+    /* Checksum offloads. */
     uint16_t csum_start;
     uint16_t csum_offset;
-    uint16_t flags;
+    /* TSO, UFO and LRO. */
+    uint16_t hdr_len;
+    uint16_t gso_size;
+    uint16_t gso_type;
+    uint16_t reserved;
 };
 
 struct sring_tx_context {
@@ -52,9 +58,15 @@ struct sring_rx_desc {
     uint64_t cookie;
     uint64_t paddr;
     uint16_t len;
+    uint16_t flags;
+    /* Checksum offloads. */
     uint16_t csum_start;
     uint16_t csum_offset;
-    uint16_t flags;
+    /* TSO, UFO and LRO. */
+    uint16_t gso_size;
+    uint16_t hdr_len;
+    uint16_t gso_type;
+    uint16_t reserved;
 };
 
 struct sring_rx_context {

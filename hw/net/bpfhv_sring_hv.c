@@ -90,12 +90,14 @@ sring_txq_drain(struct BpfHvState_st *s, NetClientState *nc,
             int ret;
 
             if (vnet_hdr_len != 0) {
-                memset(&hdr, 0, sizeof(hdr));
-                if (txd->flags & SRING_DESC_F_NEEDS_CSUM) {
-                    hdr.flags = VIRTIO_NET_HDR_F_NEEDS_CSUM;
-                    hdr.csum_start = txd->csum_start;
-                    hdr.csum_offset = txd->csum_offset;
-                }
+                hdr.flags = (txd->flags & SRING_DESC_F_NEEDS_CSUM) ?
+                    VIRTIO_NET_HDR_F_NEEDS_CSUM : 0;
+                hdr.csum_start = txd->csum_start;
+                hdr.csum_offset = txd->csum_offset;
+                hdr.hdr_len = txd->hdr_len;
+                hdr.gso_size = txd->gso_size;
+                hdr.gso_type = txd->gso_type;
+                hdr.num_buffers = 0;
                 iov[0].iov_base = &hdr;
                 iov[0].iov_len = sizeof(hdr);
             }
@@ -220,9 +222,14 @@ sring_receive_iov(struct BpfHvState_st *s, struct bpfhv_rx_context *ctx,
                 rxd->len -= dspace;
                 rxd->flags = SRING_DESC_F_EOP;
                 if (vnet_hdr_len != 0) {
-                    rxd->flags |= SRING_DESC_F_NEEDS_CSUM;
                     rxd->csum_start = hdr->csum_start;
                     rxd->csum_offset = hdr->csum_offset;
+                    rxd->hdr_len = hdr->hdr_len;
+                    rxd->gso_size = hdr->gso_size;
+                    rxd->gso_type = hdr->gso_type;
+                    if (hdr->flags & VIRTIO_NET_HDR_F_NEEDS_CSUM) {
+                        rxd->flags |= SRING_DESC_F_NEEDS_CSUM;
+                    }
                 }
                 break;
             }

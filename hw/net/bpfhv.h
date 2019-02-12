@@ -123,6 +123,8 @@ enum bpfhv_helper_id {
 	BPFHV_FUNC_rx_pkt_alloc = BPFHV_HELPER_MAGIC,
 	BPFHV_FUNC_pkt_l4_csum_md_get,
 	BPFHV_FUNC_pkt_l4_csum_md_set,
+	BPFHV_FUNC_pkt_virtio_net_md_get,
+	BPFHV_FUNC_pkt_virtio_net_md_set,
 };
 
 #ifndef BPFHV_FUNC
@@ -261,9 +263,21 @@ enum {
  * the features that it is able to use. */
 #define BPFHV_REG_FEATURES		76
 /* Host handles tx packets with partial l4 csum. */
-#define		BPFHV_F_TX_CSUM	(1 << 0)
+#define		BPFHV_F_TX_CSUM		(1 << 0)
 /* Guest handles rx packets with partial l4 csum. */
-#define		BPFHV_F_RX_CSUM	(1 << 1)
+#define		BPFHV_F_RX_CSUM		(1 << 1)
+/* Host handles TSOv4 packets (TCPv4 transmission). */
+#define		BPFHV_F_TSOv4		(1 << 2)
+/* Guest handles LRO packets (TCPv4 reception). */
+#define		BPFHV_F_TCPv4_LRO	(1 << 3)
+/* Host handles TSOv6 packets (TCPv6 transmission). */
+#define		BPFHV_F_TSOv6		(1 << 4)
+/* Guest handles LRO packets (TCPv6 reception). */
+#define		BPFHV_F_TCPv6_LRO	(1 << 5)
+/* Host handles UFO packets (UDP transmission). */
+#define		BPFHV_F_UFO		(1 << 6)
+/* Guest handles LRO packets (UDP reception). */
+#define		BPFHV_F_UDP_LRO		(1 << 7)
 
 /* Marker for the end of valid registers, and size of the I/O region. */
 #define BPFHV_REG_END			80

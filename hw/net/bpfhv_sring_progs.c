@@ -1,4 +1,6 @@
 #include "bpfhv.h"
+#define WITH_CSUM
+#define WITH_GSO
 #include "bpfhv_sring.h"
 
 #ifndef __section
@@ -9,13 +11,38 @@
 #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
 #define compiler_barrier() __asm__ __volatile__ ("");
 
-#define WITH_OFFLOADS
+#if defined(WITH_CSUM) || defined(WITH_GSO)
+/* Imported from Linux (include/uapi/linux/virtio_net.h). */
+struct virtio_net_hdr {
+#define VIRTIO_NET_HDR_F_NEEDS_CSUM     1       /* Use csum_start, csum_offset */
+#define VIRTIO_NET_HDR_F_DATA_VALID     2       /* Csum is valid */
+    uint8_t flags;
+#define VIRTIO_NET_HDR_GSO_NONE         0       /* Not a GSO frame */
+#define VIRTIO_NET_HDR_GSO_TCPV4        1       /* GSO frame, IPv4 TCP (TSO) */
+#define VIRTIO_NET_HDR_GSO_UDP          3       /* GSO frame, IPv4 UDP (UFO) */
+#define VIRTIO_NET_HDR_GSO_TCPV6        4       /* GSO frame, IPv6 TCP */
+#define VIRTIO_NET_HDR_GSO_ECN          0x80    /* TCP has ECN set */
+    uint8_t gso_type;
+    uint16_t hdr_len;             /* Ethernet + IP + tcp/udp hdrs */
+    uint16_t gso_size;            /* Bytes to append to hdr_len per frame */
+    uint16_t csum_start;  /* Position to start checksumming from */
+    uint16_t csum_offset; /* Offset after that to place checksum */
+};
+#endif
 
 static int BPFHV_FUNC(rx_pkt_alloc, struct bpfhv_rx_context *ctx);
+#ifdef WITH_CSUM
 static int BPFHV_FUNC(pkt_l4_csum_md_get, struct bpfhv_tx_context *ctx,
                       uint16_t *csum_start, uint16_t *csum_offset);
 static int BPFHV_FUNC(pkt_l4_csum_md_set, struct bpfhv_rx_context *ctx,
                       uint16_t csum_start, uint16_t csum_offset);
+#endif
+#ifdef WITH_GSO
+static int BPFHV_FUNC(pkt_virtio_net_md_get, struct bpfhv_tx_context *ctx,
+                      struct virtio_net_hdr *hdr);
+static int BPFHV_FUNC(pkt_virtio_net_md_set, struct bpfhv_rx_context *ctx,
+                      const struct virtio_net_hdr *hdr);
+#endif
 
 __section("txp")
 int sring_txp(struct bpfhv_tx_context *ctx)
@@ -39,11 +66,25 @@ int sring_txp(struct bpfhv_tx_context *ctx)
         txd->flags = 0;
     }
     txd->flags = SRING_DESC_F_EOP;
-#ifdef WITH_OFFLOADS
+#ifdef WITH_GSO
+    {
+        struct virtio_net_hdr hdr;
+
+        pkt_virtio_net_md_get(ctx, &hdr);
+        txd->csum_start = hdr.csum_start;
+        txd->csum_offset = hdr.csum_offset;
+        txd->hdr_len = hdr.hdr_len;
+        txd->gso_size = hdr.gso_size;
+        txd->gso_type = hdr.gso_type;
+        if (hdr.flags & VIRTIO_NET_HDR_F_NEEDS_CSUM) {
+            txd->flags |= SRING_DESC_F_NEEDS_CSUM;
+        }
+    }
+#elif defined(WITH_CSUM)
     if (pkt_l4_csum_md_get(ctx, &txd->csum_start, &txd->csum_offset)) {
         txd->flags |= SRING_DESC_F_NEEDS_CSUM;
     }
-#endif /* WITH_OFFLOADS */
+#endif
     compiler_barrier();
     ACCESS_ONCE(priv->prod) = prod;
     compiler_barrier();
@@ -206,11 +247,24 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
         return ret;
     }
 
-#ifdef WITH_OFFLOADS
+#ifdef WITH_GSO
+    {
+        struct virtio_net_hdr hdr;
+
+        hdr.flags = (rxd->flags & SRING_DESC_F_NEEDS_CSUM) ?
+                    VIRTIO_NET_HDR_F_NEEDS_CSUM : 0;
+        hdr.csum_start = rxd->csum_start;
+        hdr.csum_offset = rxd->csum_offset;
+        hdr.hdr_len = rxd->hdr_len;
+        hdr.gso_size = rxd->gso_size;
+        hdr.gso_type = rxd->gso_type;
+        pkt_virtio_net_md_set(ctx, &hdr);
+    }
+#elif defined(WITH_CSUM)
     if (rxd->flags & SRING_DESC_F_NEEDS_CSUM) {
         pkt_l4_csum_md_set(ctx, rxd->csum_start, rxd->csum_offset);
     }
-#endif /* WITH_OFFLOADS */
+#endif
 
     /* Now ctx->packet contains the allocated OS packet. Return 1 to tell
      * the driver that ctx->packet is valid. Also set ctx->oflags to tell
