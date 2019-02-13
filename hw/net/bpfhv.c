@@ -1024,7 +1024,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         qemu_using_vnet_hdr(nc->peer, true);
         qemu_set_offload(nc->peer, /*csum=*/true, /*tso4=*/false,
                          /*tso6=*/false, /*ecn=*/false, /*ufo=*/false);
-        s->hv_features = BPFHV_F_TX_CSUM | BPFHV_F_RX_CSUM;
+        s->hv_features = BPFHV_F_SG | BPFHV_F_TX_CSUM | BPFHV_F_RX_CSUM;
     }
 
     /* Initialize device registers. */
