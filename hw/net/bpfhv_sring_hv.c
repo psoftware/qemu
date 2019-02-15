@@ -66,7 +66,8 @@ sring_txq_drain(struct BpfHvState_st *s, NetClientState *nc,
     uint32_t prod = ACCESS_ONCE(priv->prod);
     uint32_t cons = priv->cons;
     uint32_t first = cons;
-    int iovcnt = vnet_hdr_len != 0 ? 1 : 0;
+    int iovcnt_start = vnet_hdr_len != 0 ? 1 : 0;
+    int iovcnt = iovcnt_start;
     int count = 0;
     int i;
 
@@ -111,7 +112,7 @@ sring_txq_drain(struct BpfHvState_st *s, NetClientState *nc,
             ret = qemu_sendv_packet_async(nc, iov, iovcnt,
                                             /*sent_cb=*/complete_cb);
 
-            for (i = 0; i < iovcnt; i++) {
+            for (i = iovcnt_start; i < iovcnt; i++) {
                 bpfhv_mem_unmap(s, iov[i].iov_base, iov[i].iov_len,
                                 /*is_write=*/0);
             }
@@ -127,7 +128,7 @@ sring_txq_drain(struct BpfHvState_st *s, NetClientState *nc,
                 break;
             }
 
-            iovcnt = vnet_hdr_len != 0 ? 1 : 0;;
+            iovcnt = iovcnt_start;
             first = cons;
         }
     }
