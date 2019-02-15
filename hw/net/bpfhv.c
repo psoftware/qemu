@@ -36,7 +36,6 @@
 #include <gelf.h>
 
 #include "bpfhv.h"
-#include "bpfhv_sring.h"
 #include "bpfhv_sring_hv.h"
 
 /*
@@ -170,6 +169,9 @@ typedef struct BpfHvState_st {
 
     /* The features that we expose to the guest. */
     uint32_t hv_features;
+
+    /* Name of the set of eBPF programs currently in use. */
+    const char *progsname;
 
 #ifdef BPFHV_DEBUG_TIMER
     QEMUTimer  *debug_timer;
@@ -310,7 +312,7 @@ static NetClientInfo net_bpfhv_info = {
     .link_status_changed = bpfhv_backend_link_status_changed,
 };
 
-static int bpfhv_progs_load(BpfHvState *s, const char *implname, Error **errp);
+static int bpfhv_progs_load(BpfHvState *s, const char *progsname, Error **errp);
 
 static void
 bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
@@ -374,12 +376,11 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
         if (!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_UPGRADE)) {
             /* No upgrade is pending, hence we ignore this request. */
         } else {
-            const char *implname = "sring";
             Error *local_err = NULL;
 
             /* Perform the upgrade and clear the status bit. We currently
              * do not recover from upgrade failure. */
-            if (bpfhv_progs_load(s, implname, &local_err)) {
+            if (bpfhv_progs_load(s, s->progsname, &local_err)) {
                 error_propagate(&error_fatal, local_err);
                 return;
             }
@@ -529,6 +530,9 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 
     case BPFHV_REG_FEATURES: {
         NetClientState *peer = qemu_get_queue(s->nic)->peer;
+        Error *local_err = NULL;
+        const char *progsname;
+        int prev_hdr_len;
         bool csum, gso;
 
         /* Check that 'val' is a subset of s->hv_features. */
@@ -541,12 +545,34 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
          * on the features activated by the guest. */
         csum = val & BPFHV_CSUM_FEATURES;
         gso = val & BPFHV_GSO_FEATURES;
+        prev_hdr_len = s->vnet_hdr_len;
         s->vnet_hdr_len = (csum || gso) ? sizeof(struct virtio_net_hdr_v1) : 0;
-        qemu_set_vnet_hdr_len(peer, s->vnet_hdr_len);
-        qemu_using_vnet_hdr(peer, s->vnet_hdr_len != 0);
+        if ((s->vnet_hdr_len == 0 &&
+            peer->info->type == NET_CLIENT_DRIVER_TAP)) {
+            /* The tap backend does not support removing the virtio-net
+             * header once it has been set. However, the backend seems
+             * to have support for this case. So why the assert in
+             * tap_using_vnet_hdr()?. */
+            if (prev_hdr_len > 0) {
+                error_report("Error: cannot unset virtio-net header "
+                            "from the TAP backend");
+                /* Backend broken from now on ... */
+            }
+        } else {
+            qemu_set_vnet_hdr_len(peer, s->vnet_hdr_len);
+            qemu_using_vnet_hdr(peer, s->vnet_hdr_len != 0);
+        }
         qemu_set_offload(peer, /*csum=*/csum, /*tso4=*/gso,
                          /*tso6=*/gso, /*ecn=*/false, /*ufo=*/gso);
 
+        /* Load the corresponding eBPF programs. */
+        progsname = gso ? "sringgso" : (csum ? "sringcsum" : "sring");
+        if (bpfhv_progs_load(s, progsname, &local_err)) {
+            error_propagate(&error_fatal, local_err);
+            return;
+        }
+
+        /* Update the features register. */
         s->ioregs[index] = val;
         break;
     }
@@ -903,7 +929,7 @@ bpfhv_proc_thread(void *opaque)
 }
 
 static int
-bpfhv_progs_load(BpfHvState *s, const char *implname, Error **errp)
+bpfhv_progs_load(BpfHvState *s, const char *progsname, Error **errp)
 {
     const char *prog_names[BPFHV_PROG_MAX] = {"none",
                                               "rxp", "rxc", "rxi", "rxr",
@@ -924,7 +950,7 @@ bpfhv_progs_load(BpfHvState *s, const char *implname, Error **errp)
         s->progs[i].num_insns = 0;
     }
 
-    snprintf(filename, sizeof(filename), "bpfhv_%s_progs.o", implname);
+    snprintf(filename, sizeof(filename), "bpfhv_%s_progs.o", progsname);
     path = qemu_find_file(QEMU_FILE_TYPE_EBPF, filename);
     if (!path) {
         error_setg(errp, "Could not locate %s", filename);
@@ -1017,6 +1043,7 @@ bpfhv_progs_load(BpfHvState *s, const char *implname, Error **errp)
 
     ret = 0;
     elf_end(elf);
+    s->progsname = progsname;
 err:
     close(fd);
 
@@ -1026,7 +1053,6 @@ err:
 static void
 pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 {
-    const char *implname = "sring";
     DeviceState *dev = DEVICE(pci_dev);
     BpfHvState *s = BPFHV(pci_dev);
     unsigned int num_tx_queues;
@@ -1051,13 +1077,9 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     /* Check if backend supports virtio-net offloadings. */
     if (qemu_has_vnet_hdr(nc->peer) &&
         qemu_has_vnet_hdr_len(nc->peer, sizeof(struct virtio_net_hdr_v1))) {
-        bool csum = false;
-        bool gso = false;
-#ifdef WITH_GSO
-        csum = gso = true;
-#elif defined(WITH_CSUM)
-        csum = true;
-#endif
+        bool csum = true;
+        bool gso = true;
+
         if (csum) {
             s->hv_features |= BPFHV_CSUM_FEATURES;
         }
@@ -1083,8 +1105,8 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->doorbell_gva_changed = false;
     s->rx_contexts_ready = s->tx_contexts_ready = false;
 
-    /* Initialize eBPF programs. */
-    if (bpfhv_progs_load(s, implname, errp)) {
+    /* Initialize eBPF programs (default implementation). */
+    if (bpfhv_progs_load(s, "sring", errp)) {
         return;
     }
 

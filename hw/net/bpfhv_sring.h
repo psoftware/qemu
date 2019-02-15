@@ -24,9 +24,6 @@
 
 #include <stdint.h>
 
-#define WITH_CSUM
-#define WITH_GSO
-
 #define SRING_DESC_F_EOP            (1 << 0)
 #define SRING_DESC_F_NEEDS_CSUM     (1 << 1)
 
