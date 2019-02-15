@@ -219,7 +219,7 @@ bpfhv_can_receive(NetClientState *nc)
     BpfHvState *s = qemu_get_nic_opaque(nc);
     unsigned int i;
 
-    if (!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_RX_ENABLED)) {
+    if (unlikely(!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_RX_ENABLED))) {
         return false;
     }
 
