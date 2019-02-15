@@ -94,6 +94,12 @@ static const char *regnames[] = {
     "FEATURES",
 };
 
+#define BPFHV_CSUM_FEATURES (BPFHV_F_TX_CSUM | BPFHV_F_RX_CSUM)
+
+#define BPFHV_GSO_FEATURES (BPFHV_F_TSOv4   | BPFHV_F_TCPv4_LRO \
+                           |  BPFHV_F_TSOv6 | BPFHV_F_TCPv6_LRO \
+                           |  BPFHV_F_UFO   | BPFHV_F_UDP_LRO)
+
 typedef struct BpfHvProg_st {
     unsigned int num_insns;
     uint64_t *insns;
@@ -521,14 +527,29 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         s->ioregs[BPFHV_REG(PROG_SIZE)] = s->progs[val].num_insns;
         break;
 
-    case BPFHV_REG_FEATURES:
+    case BPFHV_REG_FEATURES: {
+        NetClientState *peer = qemu_get_queue(s->nic)->peer;
+        bool csum, gso;
+
         /* Check that 'val' is a subset of s->hv_features. */
         if ((s->hv_features | val) != s->hv_features) {
             DBG("Driver tried to select features unknown to the hv");
             break;
         }
+
+        /* Configure virtio-net header and offloads in the backend, depending
+         * on the features activated by the guest. */
+        csum = val & BPFHV_CSUM_FEATURES;
+        gso = val & BPFHV_GSO_FEATURES;
+        s->vnet_hdr_len = (csum || gso) ? sizeof(struct virtio_net_hdr_v1) : 0;
+        qemu_set_vnet_hdr_len(peer, s->vnet_hdr_len);
+        qemu_using_vnet_hdr(peer, s->vnet_hdr_len != 0);
+        qemu_set_offload(peer, /*csum=*/csum, /*tso4=*/gso,
+                         /*tso6=*/gso, /*ecn=*/false, /*ufo=*/gso);
+
         s->ioregs[index] = val;
         break;
+    }
 
     default:
         DBG("I/O write to %s ignored, val=0x%08" PRIx64,
@@ -1025,31 +1046,23 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     nc = qemu_get_queue(s->nic);
     qemu_format_nic_info_str(nc, s->conf.macaddr.a);
 
-    /* Check if backend supports virtio-net offloadings. */
     s->vnet_hdr_len = 0;
     s->hv_features = BPFHV_F_SG;
+    /* Check if backend supports virtio-net offloadings. */
     if (qemu_has_vnet_hdr(nc->peer) &&
         qemu_has_vnet_hdr_len(nc->peer, sizeof(struct virtio_net_hdr_v1))) {
         bool csum = false;
         bool gso = false;
-
 #ifdef WITH_GSO
         csum = gso = true;
 #elif defined(WITH_CSUM)
         csum = true;
 #endif
-        s->vnet_hdr_len = sizeof(struct virtio_net_hdr_v1);
-        qemu_set_vnet_hdr_len(nc->peer, s->vnet_hdr_len);
-        qemu_using_vnet_hdr(nc->peer, true);
-        qemu_set_offload(nc->peer, /*csum=*/csum, /*tso4=*/gso,
-                         /*tso6=*/gso, /*ecn=*/false, /*ufo=*/gso);
         if (csum) {
-            s->hv_features |= BPFHV_F_TX_CSUM | BPFHV_F_RX_CSUM;
+            s->hv_features |= BPFHV_CSUM_FEATURES;
         }
         if (gso) {
-            s->hv_features |= BPFHV_F_TSOv4   | BPFHV_F_TCPv4_LRO
-                           |  BPFHV_F_TSOv6   | BPFHV_F_TCPv6_LRO
-                           |  BPFHV_F_UFO     | BPFHV_F_UDP_LRO;
+            s->hv_features |= BPFHV_GSO_FEATURES;
         }
     }
 
