@@ -227,6 +227,8 @@ bpfhv_can_receive(NetClientState *nc)
         if (sring_can_receive(s->rxq[i].ctx)) {
             return true;
         }
+        /* We don't have enough RX descriptors, and thus we need to enable
+         * RX kicks on this queue. */
         sring_rxq_notification(s->rxq[i].ctx, /*enable=*/true);
         break; /* We only support a single receive queue for now. */
     }
@@ -274,10 +276,12 @@ bpfhv_link_status_update(BpfHvState *s)
     DBG("Link status goes %s", new_status ? "up" : "down");
     s->ioregs[BPFHV_REG(STATUS)] ^= BPFHV_STATUS_LINK;
     if (new_status) {
+        /* Link status goes up, which means that bpfhv_can_receive()
+         * may return true, hence we need to wake up the backend. */
         qemu_flush_queued_packets(nc);
 #ifdef BPFHV_DEBUG_TIMER
-    timer_mod(s->debug_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) +
-              BPFHV_DEBUG_TIMER_MS);
+        timer_mod(s->debug_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) +
+                BPFHV_DEBUG_TIMER_MS);
     } else {
         timer_del(s->debug_timer);
 #endif /* BPFHV_DEBUG_TIMER */
@@ -321,6 +325,9 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
                 for (i = 0; i < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]; i++) {
                     sring_rxq_notification(s->rxq[i].ctx, /*enable=*/true);
                 }
+                /* Guest enabled receive operation, which means that
+                 * bpfhv_can_receive() may return true, hence we need to wake
+                 * up the backend. */
                 qemu_flush_queued_packets(qemu_get_queue(s->nic));
                 DBG("Receive enabled");
             }
@@ -647,7 +654,11 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     }
     if (doorbell < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]) {
         DBG("Doorbell RX#%u rung", doorbell);
+        /* Immediately disable RX kicks on this queue. */
         sring_rxq_notification(s->rxq[doorbell].ctx, /*enable=*/false);
+        /* Guest provided more RX descriptors, which means that
+         * bpfhv_can_receive() may return true, hence we need to wake
+         * up the backend. */
         qemu_flush_queued_packets(qemu_get_queue(s->nic));
     } else {
         /* We never enter here if BPFHV_TX_IOEVENTFD is defined. */

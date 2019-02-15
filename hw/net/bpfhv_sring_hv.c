@@ -177,7 +177,6 @@ sring_receive_iov(struct BpfHvState_st *s, struct bpfhv_rx_context *ctx,
     struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
     const struct iovec *const iov_end = iov + iovcnt;
     uint32_t cons = priv->cons;
-    uint32_t cons_prev = cons;
     uint32_t prod = ACCESS_ONCE(priv->prod);
     struct sring_rx_desc *rxd = priv->desc + (cons % priv->num_slots);
     struct virtio_net_hdr_v1 *hdr = NULL;
@@ -202,17 +201,19 @@ sring_receive_iov(struct BpfHvState_st *s, struct bpfhv_rx_context *ctx,
         size_t copy = sspace < dspace ? sspace : dspace;
 
         if (unlikely(cons == prod)) {
-            /* We ran out of RX descriptors. Double check for more space. */
+            /* We ran out of RX descriptors. Enable RX kicks and double
+             * check for more available descriptors. */
+            sring_rxq_notification(ctx, true);
             prod = ACCESS_ONCE(priv->prod);
-            smp_mb();
             if (cons == prod) {
-                /* Not enough space, we must drop. */
-                cons = cons_prev;
+                /* Not enough space, we must send a backpressure signal
+                 * to the net backend, by setting the return value to 0. */
 #if 0
                 printf("drop (totlen %zd)\n", totlen);
 #endif
-                break;
+                return 0;
             }
+            sring_rxq_notification(ctx, false);
         }
 
         if (!dbuf) {
