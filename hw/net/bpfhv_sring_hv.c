@@ -24,6 +24,7 @@
 #include "qemu/atomic.h"
 #include "linux/virtio_net.h"
 #include "qemu/error-report.h"
+#include "qemu/iov.h"
 
 #include "bpfhv.h"
 #include "bpfhv_sring.h"
@@ -167,6 +168,7 @@ sring_can_receive(struct bpfhv_rx_context *ctx)
     return (priv->cons != ACCESS_ONCE(priv->prod));
 }
 
+
 ssize_t
 sring_receive_iov(struct BpfHvState_st *s, struct bpfhv_rx_context *ctx,
                   const struct iovec *iov, int iovcnt, int vnet_hdr_len,
@@ -175,7 +177,8 @@ sring_receive_iov(struct BpfHvState_st *s, struct bpfhv_rx_context *ctx,
     struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
     const struct iovec *const iov_end = iov + iovcnt;
     uint32_t cons = priv->cons;
-    const uint32_t prod = ACCESS_ONCE(priv->prod);
+    uint32_t cons_prev = cons;
+    uint32_t prod = ACCESS_ONCE(priv->prod);
     struct sring_rx_desc *rxd = priv->desc + (cons % priv->num_slots);
     struct virtio_net_hdr_v1 *hdr = NULL;
     hwaddr sspace = iov->iov_len;
@@ -195,8 +198,22 @@ sring_receive_iov(struct BpfHvState_st *s, struct bpfhv_rx_context *ctx,
         sbuf += sizeof(*hdr);
     }
 
-    while (cons != prod) {
+    for (;;) {
         size_t copy = sspace < dspace ? sspace : dspace;
+
+        if (unlikely(cons == prod)) {
+            /* We ran out of RX descriptors. Double check for more space. */
+            prod = ACCESS_ONCE(priv->prod);
+            smp_mb();
+            if (cons == prod) {
+                /* Not enough space, we must drop. */
+                cons = cons_prev;
+#if 0
+                printf("drop (totlen %zd)\n", totlen);
+#endif
+                break;
+            }
+        }
 
         if (!dbuf) {
             dbuf = bpfhv_mem_map(s, rxd->paddr, &dspace, /*is_write*/1);

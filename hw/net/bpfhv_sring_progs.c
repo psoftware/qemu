@@ -1,6 +1,4 @@
 #include "bpfhv.h"
-#define WITH_CSUM
-#define WITH_GSO
 #include "bpfhv_sring.h"
 
 #ifndef __section

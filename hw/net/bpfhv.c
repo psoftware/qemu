@@ -1016,15 +1016,30 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 
     /* Check if backend supports virtio-net offloadings. */
     s->vnet_hdr_len = 0;
-    s->hv_features = 0;
+    s->hv_features = BPFHV_F_SG;
     if (qemu_has_vnet_hdr(nc->peer) &&
         qemu_has_vnet_hdr_len(nc->peer, sizeof(struct virtio_net_hdr_v1))) {
+        bool csum = false;
+        bool gso = false;
+
+#ifdef WITH_GSO
+        csum = gso = true;
+#elif defined(WITH_CSUM)
+        csum = true;
+#endif
         s->vnet_hdr_len = sizeof(struct virtio_net_hdr_v1);
         qemu_set_vnet_hdr_len(nc->peer, s->vnet_hdr_len);
         qemu_using_vnet_hdr(nc->peer, true);
-        qemu_set_offload(nc->peer, /*csum=*/true, /*tso4=*/false,
-                         /*tso6=*/false, /*ecn=*/false, /*ufo=*/false);
-        s->hv_features = BPFHV_F_SG | BPFHV_F_TX_CSUM | BPFHV_F_RX_CSUM;
+        qemu_set_offload(nc->peer, /*csum=*/csum, /*tso4=*/gso,
+                         /*tso6=*/gso, /*ecn=*/false, /*ufo=*/gso);
+        if (csum) {
+            s->hv_features |= BPFHV_F_TX_CSUM | BPFHV_F_RX_CSUM;
+        }
+        if (gso) {
+            s->hv_features |= BPFHV_F_TSOv4   | BPFHV_F_TCPv4_LRO
+                           |  BPFHV_F_TSOv6   | BPFHV_F_TCPv6_LRO
+                           |  BPFHV_F_UFO     | BPFHV_F_UDP_LRO;
+        }
     }
 
     /* Initialize device registers. */
