@@ -57,7 +57,7 @@ int sring_txp(struct bpfhv_tx_context *ctx)
     for (i = 0; i < ctx->num_bufs; i++, prod++) {
         struct bpfhv_tx_buf *txb = ctx->bufs + i;
 
-        txd = priv->desc + (prod % priv->num_slots);
+        txd = priv->desc + (prod & priv->qmask);
         txd->cookie = txb->cookie;
         txd->paddr = txb->paddr;
         txd->len = txb->len;
@@ -102,7 +102,7 @@ sring_tx_get_one(struct bpfhv_tx_context *ctx,
         struct bpfhv_tx_buf *txb = ctx->bufs + i;
         struct sring_tx_desc *txd;
 
-        txd = priv->desc + (start % priv->num_slots);
+        txd = priv->desc + (start & priv->qmask);
         start++;
         i++;
         txb->paddr = txd->paddr;
@@ -192,7 +192,7 @@ int sring_rxp(struct bpfhv_rx_context *ctx)
     for (i = 0; i < ctx->num_bufs; i++, prod++) {
         struct bpfhv_rx_buf *rxb = ctx->bufs + i;
 
-        rxd = priv->desc + (prod % priv->num_slots);
+        rxd = priv->desc + (prod & priv->qmask);
         rxd->cookie = rxb->cookie;
         rxd->paddr = rxb->paddr;
         rxd->len = rxb->len;
@@ -225,7 +225,7 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
     for (i = 0; clear != cons && i < BPFHV_MAX_RX_BUFS;) {
         struct bpfhv_rx_buf *rxb = ctx->bufs + i;
 
-        rxd = priv->desc + (clear % priv->num_slots);
+        rxd = priv->desc + (clear & priv->qmask);
         clear++;
         i++;
         rxb->cookie = rxd->cookie;
@@ -288,7 +288,7 @@ int sring_rxr(struct bpfhv_rx_context *ctx)
         struct bpfhv_rx_buf *rxb = ctx->bufs + i;
         struct sring_rx_desc *rxd;
 
-        rxd = priv->desc + (cons % priv->num_slots);
+        rxd = priv->desc + (cons & priv->qmask);
         cons++;
         rxb->cookie = rxd->cookie;
         rxb->paddr = rxd->paddr;

@@ -43,7 +43,7 @@ struct sring_tx_desc {
 };
 
 struct sring_tx_context {
-    uint32_t num_slots;
+    uint32_t qmask;
     uint32_t prod;
     uint32_t clear;
     uint32_t intr_enabled;
@@ -70,7 +70,7 @@ struct sring_rx_desc {
 };
 
 struct sring_rx_context {
-    uint32_t num_slots;
+    uint32_t qmask;
     uint32_t prod;
     uint32_t clear;
     uint32_t intr_enabled;

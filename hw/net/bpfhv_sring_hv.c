@@ -36,9 +36,10 @@
 void
 sring_rx_ctx_init(struct bpfhv_rx_context *ctx, size_t num_rx_bufs)
 {
-    struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
+    struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
 
-    priv->num_slots = num_rx_bufs;
+    assert((num_rx_bufs & (num_rx_bufs - 1)) == 0);
+    priv->qmask = num_rx_bufs - 1;
     priv->prod = priv->cons = priv->clear = 0;
     priv->kick_enabled = priv->intr_enabled = 1;
     memset(priv->desc, 0, num_rx_bufs * sizeof(priv->desc[0]));
@@ -49,7 +50,8 @@ sring_tx_ctx_init(struct bpfhv_tx_context *ctx, size_t num_tx_bufs)
 {
     struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
 
-    priv->num_slots = num_tx_bufs;
+    assert((num_tx_bufs & (num_tx_bufs - 1)) == 0);
+    priv->qmask = num_tx_bufs - 1;
     priv->prod = priv->cons = priv->clear = 0;
     priv->kick_enabled = priv->intr_enabled = 1;
     memset(priv->desc, 0, num_tx_bufs * sizeof(priv->desc[0]));
@@ -72,7 +74,7 @@ sring_txq_drain(struct BpfHvState_st *s, NetClientState *nc,
     int i;
 
     while (cons != prod) {
-        struct sring_tx_desc *txd = priv->desc + (cons % priv->num_slots);
+        struct sring_tx_desc *txd = priv->desc + (cons & priv->qmask);
         hwaddr len;
 
         cons++;
@@ -179,7 +181,7 @@ sring_receive_iov(struct BpfHvState_st *s, struct bpfhv_rx_context *ctx,
     const struct iovec *const iov_end = iov + iovcnt;
     uint32_t cons = priv->cons;
     uint32_t prod = ACCESS_ONCE(priv->prod);
-    struct sring_rx_desc *rxd = priv->desc + (cons % priv->num_slots);
+    struct sring_rx_desc *rxd = priv->desc + (cons & priv->qmask);
     struct virtio_net_hdr_v1 *hdr = NULL;
     hwaddr sspace = iov->iov_len;
     void *sbuf = iov->iov_base;
@@ -264,7 +266,7 @@ sring_receive_iov(struct BpfHvState_st *s, struct bpfhv_rx_context *ctx,
                 break;
             }
             rxd->flags = 0;
-            rxd = priv->desc + (cons % priv->num_slots);
+            rxd = priv->desc + (cons & priv->qmask);
             dspace = rxd->len;
             dbuf = NULL;
             dofs = 0;
