@@ -419,6 +419,8 @@
   'data': {
     'ifname':     'str',
     '*passthrough': 'bool',
+    '*klooptx': 'bool',
+    '*klooprx': 'bool',
     '*devname':    'str' } }
 
 ##

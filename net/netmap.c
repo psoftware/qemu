@@ -52,6 +52,8 @@ typedef struct NetmapState {
     struct netmap_ring  *rx;
     bool                read_poll;
     bool                write_poll;
+    bool                klooptx;
+    bool                klooprx;
     struct iovec        iov[IOV_MAX];
     int                 vnet_hdr_len;  /* Current virtio-net header length. */
     QTAILQ_ENTRY(NetmapState) next;
@@ -595,7 +597,12 @@ static void *ptnetmap_sync_kloop_worker(void *opaque)
     modeopt.nro_opt.nro_next = (uintptr_t)evopt;
     modeopt.nro_opt.nro_reqtype = NETMAP_REQ_OPT_SYNC_KLOOP_MODE;
     modeopt.mode = 0;
-    //modeopt.mode = NM_OPT_SYNC_KLOOP_DIRECT_TX | NM_OPT_SYNC_KLOOP_DIRECT_RX;
+    if (!s->klooptx) {
+        modeopt.mode |= NM_OPT_SYNC_KLOOP_DIRECT_TX;
+    }
+    if (!s->klooprx) {
+        modeopt.mode |= NM_OPT_SYNC_KLOOP_DIRECT_RX;
+    }
 
     /* Prepare the request and link the options. */
     nmreq_hdr_init(&hdr, s->ifname);
@@ -720,6 +727,14 @@ int net_init_netmap(const Netdev *netdev,
         ifname += strlen(nmpref);
     }
     pstrcpy(s->ifname, sizeof(s->ifname), ifname);
+
+    s->klooptx = s->klooprx = true; /* default values */
+    if (netmap_opts->has_klooptx) {
+        s->klooptx = netmap_opts->klooptx;
+    }
+    if (netmap_opts->has_klooprx) {
+        s->klooprx = netmap_opts->klooprx;
+    }
 
     /* Open a netmap control device and bind it to 's->ifname'. This must
      * be done before all the subsequent ioctl() operations. */
