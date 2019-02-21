@@ -550,18 +550,12 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         if ((s->vnet_hdr_len == 0 &&
             peer->info->type == NET_CLIENT_DRIVER_TAP)) {
             /* The tap backend does not support removing the virtio-net
-             * header once it has been set. However, the backend seems
-             * to have support for this case. So why the assert in
-             * tap_using_vnet_hdr()?. */
-            if (prev_hdr_len > 0) {
-                error_report("Error: cannot unset virtio-net header "
-                            "from the TAP backend");
-                /* Backend broken from now on ... */
-            }
+             * header once it has been set. However, we can unnegotiate
+             * the header --> qemu_using_vnet_hdr(peer, false). */
         } else {
             qemu_set_vnet_hdr_len(peer, s->vnet_hdr_len);
-            qemu_using_vnet_hdr(peer, s->vnet_hdr_len != 0);
         }
+        qemu_using_vnet_hdr(peer, s->vnet_hdr_len != 0);
         qemu_set_offload(peer, /*csum=*/csum, /*tso4=*/gso,
                          /*tso6=*/gso, /*ecn=*/false, /*ufo=*/gso);
 
