@@ -75,7 +75,7 @@ ssize_t sring_receive_iov(struct BpfHvState_st *s,
                           const struct iovec *iov, int iovcnt,
                           int vnet_hdr_len, bool *notify);
 void sring_rxq_notification(struct bpfhv_rx_context *ctx, int enable);
-void sring_rxq_dump(struct bpfhv_rx_context *ctx);
+char *sring_rxq_dump(struct bpfhv_rx_context *ctx);
 
 #define BPFHV_HV_TX_BUDGET      64
 ssize_t sring_txq_drain(struct BpfHvState_st *s, NetClientState *nc,
@@ -83,6 +83,6 @@ ssize_t sring_txq_drain(struct BpfHvState_st *s, NetClientState *nc,
                         NetPacketSent *complete_cb, int vnet_hdr_len,
                         bool *notify);
 void sring_txq_notification(struct bpfhv_tx_context *ctx, int enable);
-void sring_txq_dump(struct bpfhv_tx_context *ctx);
+char *sring_txq_dump(struct bpfhv_tx_context *ctx);
 
 #endif  /*__BPFHV_SRING_HV_H__ */

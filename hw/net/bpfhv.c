@@ -26,6 +26,7 @@
 #include "net/net.h"
 #include "sysemu/sysemu.h"
 #include "sysemu/kvm.h"
+#include "qemu/cutils.h"
 #include "qemu/error-report.h"
 #include "qemu/iov.h"
 #include "qemu/range.h"
@@ -91,6 +92,9 @@ static const char *regnames[] = {
     "DOORBELL_GVA_HI",
     "VERSION",
     "FEATURES",
+    "DUMP_LEN",
+    "DUMP_INPUT",
+    "DUMP_OFS",
 };
 
 #define BPFHV_CSUM_FEATURES (BPFHV_F_TX_CSUM | BPFHV_F_RX_CSUM)
@@ -173,6 +177,9 @@ typedef struct BpfHvState_st {
     /* Name of the set of eBPF programs currently in use. */
     const char *progsname;
 
+    /* Current dump of queues status to be exposed to the guest. */
+    char *curdump;
+
 #ifdef BPFHV_DEBUG_TIMER
     QEMUTimer  *debug_timer;
 #define BPFHV_DEBUG_TIMER_MS	2000
@@ -197,24 +204,60 @@ typedef struct BpfHvState_st {
 #define BPFHV(obj) \
             OBJECT_CHECK(BpfHvState, (obj), TYPE_BPFHV_PCI)
 
-#ifdef BPFHV_DEBUG_TIMER
-static void
-bpfhv_debug_timer(void *opaque)
+static char *
+bpfhv_dump_realloc(char *tot, size_t *totlen, const char *append)
 {
-    BpfHvState *s = opaque;
+    if (strlen(tot) + strlen(append) >= *totlen) {
+        *totlen += strlen(append) * 2;
+        tot = g_realloc(tot, *totlen);
+    }
+
+    return tot;
+}
+
+static char *
+bpfhv_dump_string(BpfHvState *s)
+{
+    char *result = NULL;
+    size_t totlen = 64;
     int i;
+
+    result = g_realloc(result, totlen);
+    result[0] = '\0';
 
     if (s->rx_contexts_ready) {
         for (i = 0; i < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]; i++) {
-            sring_rxq_dump(s->rxq[i].ctx);
+            char *dump = sring_rxq_dump(s->rxq[i].ctx);
+            result = bpfhv_dump_realloc(result, &totlen, dump);
+            pstrcat(result, totlen, dump);
+            g_free(dump);
         }
     }
 
     if (s->tx_contexts_ready) {
         for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
-            sring_txq_dump(s->txq[i].ctx);
+            char *dump = sring_txq_dump(s->txq[i].ctx);
+            result = bpfhv_dump_realloc(result, &totlen, dump);
+            pstrcat(result, totlen, dump);
+            g_free(dump);
         }
     }
+
+    memset(result + strlen(result), 0, totlen - strlen(result));
+
+    return result;
+}
+
+#ifdef BPFHV_DEBUG_TIMER
+static void
+bpfhv_debug_timer(void *opaque)
+{
+    BpfHvState *s = opaque;
+    char *dump;
+
+    dump = bpfhv_dump_string(s);
+    printf("%s", dump);
+    g_free(dump);
 
     timer_mod(s->debug_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) +
               BPFHV_DEBUG_TIMER_MS);
@@ -388,6 +431,14 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
         }
     }
 
+    if (changed & BPFHV_CTRL_QUEUES_DUMP) {
+        if (s->curdump != NULL) {
+            g_free(s->curdump);
+        }
+        s->curdump = bpfhv_dump_string(s);
+        s->ioregs[BPFHV_REG(DUMP_LEN)] = strlen(s->curdump) + 1;
+    }
+
     /* Temporary hack to play with program upgrade. We trigger
      * and upgrade interrupt if the guest writes to bit 31 of
      * the control register. */
@@ -532,7 +583,6 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         NetClientState *peer = qemu_get_queue(s->nic)->peer;
         Error *local_err = NULL;
         const char *progsname;
-        int prev_hdr_len;
         bool csum, gso;
 
         /* Check that 'val' is a subset of s->hv_features. */
@@ -545,7 +595,6 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
          * on the features activated by the guest. */
         csum = val & BPFHV_CSUM_FEATURES;
         gso = val & BPFHV_GSO_FEATURES;
-        prev_hdr_len = s->vnet_hdr_len;
         s->vnet_hdr_len = (csum || gso) ? sizeof(struct virtio_net_hdr_v1) : 0;
         if ((s->vnet_hdr_len == 0 &&
             peer->info->type == NET_CLIENT_DRIVER_TAP)) {
@@ -570,6 +619,16 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         s->ioregs[index] = val;
         break;
     }
+
+    case BPFHV_REG_DUMP_OFS:
+        if (val >= s->ioregs[BPFHV_REG(DUMP_LEN)]) {
+            DBG("Driver tried to set out of bounds dump offset %lu", val);
+            break;
+        }
+        val &= ~((hwaddr)3);
+        s->ioregs[index] = val;
+        s->ioregs[BPFHV_REG(DUMP_INPUT)] = *((uint32_t *)(s->curdump + val));
+        break;
 
     default:
         DBG("I/O write to %s ignored, val=0x%08" PRIx64,
@@ -1098,6 +1157,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->num_queues = num_rx_queues + num_tx_queues;
     s->doorbell_gva_changed = false;
     s->rx_contexts_ready = s->tx_contexts_ready = false;
+    s->curdump = NULL;
 
     /* Initialize eBPF programs (default implementation). */
     if (bpfhv_progs_load(s, "sring", errp)) {
@@ -1247,6 +1307,7 @@ pci_bpfhv_uninit(PCIDevice *dev)
         msix_vector_unuse(PCI_DEVICE(s), i);
     }
     msix_uninit_exclusive_bar(PCI_DEVICE(s));
+    g_free(s->curdump);
     qemu_del_nic(s->nic);
 }
 

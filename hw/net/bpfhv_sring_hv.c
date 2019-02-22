@@ -154,13 +154,19 @@ sring_txq_notification(struct bpfhv_tx_context *ctx, int enable)
     }
 }
 
-void
+char *
 sring_txq_dump(struct bpfhv_tx_context *ctx)
 {
     struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
+    size_t left = 100;
+    char *dump;
 
-    printf("sring.txq cl %u co %u pr %u kick %u intr %u\n", priv->clear,
-           priv->cons, priv->prod, priv->kick_enabled, priv->intr_enabled);
+    dump = g_malloc(left);
+    snprintf(dump, left, "sring.txq cl %u co %u pr %u kick %u intr %u\n",
+            priv->clear, priv->cons, priv->prod, priv->kick_enabled,
+            priv->intr_enabled);
+
+    return dump;
 }
 
 bool
@@ -292,11 +298,17 @@ sring_rxq_notification(struct bpfhv_rx_context *ctx, int enable)
     }
 }
 
-void
+char *
 sring_rxq_dump(struct bpfhv_rx_context *ctx)
 {
     struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
+    size_t left = 100;
+    char *dump;
 
-    printf("sring.rxq cl %u co %u pr %u kick %u intr %u\n", priv->clear,
-           priv->cons, priv->prod, priv->kick_enabled, priv->intr_enabled);
+    dump = g_malloc(left);
+    snprintf(dump, left, "sring.rxq cl %u co %u pr %u kick %u intr %u\n",
+            priv->clear, priv->cons, priv->prod, priv->kick_enabled,
+            priv->intr_enabled);
+
+    return dump;
 }
