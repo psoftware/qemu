@@ -59,6 +59,9 @@
 /* Verbose debug information. */
 #undef  BPFHV_DEBUG
 
+/* Periodically issue upgrade interrupts (for debugging). */
+#undef  BPFHV_UPGRADE_TIMER
+
 /*
  * End of tunables.
  */
@@ -181,9 +184,14 @@ typedef struct BpfHvState_st {
     char *curdump;
 
 #ifdef BPFHV_DEBUG_TIMER
-    QEMUTimer  *debug_timer;
+    QEMUTimer *debug_timer;
 #define BPFHV_DEBUG_TIMER_MS	2000
 #endif /* BPFHV_DEBUG_TIMER */
+
+#ifdef BPFHV_UPGRADE_TIMER
+    QEMUTimer *upgrade_timer;
+#define BPFHV_UPGRADE_TIMER_MS	10000
+#endif /* BPFHV_UPGRADE_TIMER */
 
 #ifdef BPFHV_MEMLI
     MemoryListener memory_listener;
@@ -192,8 +200,6 @@ typedef struct BpfHvState_st {
     BpfHvTranslateEntry *trans_entries_tmp;
     unsigned int num_trans_entries_tmp;
 #endif /* BPFHV_MEMLI */
-
-    QemuThread proc_th;
 } BpfHvState;
 
 /* Macro to generate I/O register indices. */
@@ -264,6 +270,20 @@ bpfhv_debug_timer(void *opaque)
 }
 #endif /* BPFHV_DEBUG_TIMER */
 
+#ifdef BPFHV_UPGRADE_TIMER
+static void
+bpfhv_upgrade_timer(void *opaque)
+{
+    BpfHvState *s = opaque;
+
+    s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_UPGRADE;
+    msix_notify(PCI_DEVICE(s), s->num_queues);
+
+    timer_mod(s->upgrade_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) +
+              BPFHV_UPGRADE_TIMER_MS);
+}
+#endif /* BPFHV_UPGRADE_TIMER */
+
 static int
 bpfhv_can_receive(NetClientState *nc)
 {
@@ -333,9 +353,18 @@ bpfhv_link_status_update(BpfHvState *s)
 #ifdef BPFHV_DEBUG_TIMER
         timer_mod(s->debug_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) +
                 BPFHV_DEBUG_TIMER_MS);
+#endif /* BPFHV_DEBUG_TIMER */
+#ifdef BPFHV_UPGRADE_TIMER
+        timer_mod(s->upgrade_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) +
+                  BPFHV_UPGRADE_TIMER_MS);
+#endif /* BPFHV_UPGRADE_TIMER */
     } else {
+#ifdef BPFHV_DEBUG_TIMER
         timer_del(s->debug_timer);
 #endif /* BPFHV_DEBUG_TIMER */
+#ifdef BPFHV_UPGRADE_TIMER
+        timer_del(s->upgrade_timer);
+#endif /* BPFHV_UPGRADE_TIMER */
     }
 }
 
@@ -975,11 +1004,6 @@ bpfhv_mem_unmap(BpfHvState *s, void *buffer, hwaddr len, int is_write)
                               /*access_len=*/len);
 #endif /* !BPFHV_MEMLI */
 }
-static void *
-bpfhv_proc_thread(void *opaque)
-{
-    return NULL;
-}
 
 static int
 bpfhv_progs_load(BpfHvState *s, const char *progsname, Error **errp)
@@ -1249,6 +1273,10 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->debug_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL, bpfhv_debug_timer, s);
 #endif /* BPFHV_DEBUG_TIMER */
 
+#ifdef BPFHV_UPGRADE_TIMER
+    s->upgrade_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL, bpfhv_upgrade_timer, s);
+#endif /* BPFHV_UPGRADE_TIMER */
+
 #ifdef BPFHV_MEMLI
     /* Support for memory listener. */
     s->memory_listener.priority = 10,
@@ -1258,9 +1286,6 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->memory_listener.region_nop = bpfhv_memli_region_add,
     memory_listener_register(&s->memory_listener, &address_space_memory);
 #endif /* BPFHV_MEMLI */
-
-    qemu_thread_create(&s->proc_th, "bpfhv", bpfhv_proc_thread,
-                       s, QEMU_THREAD_JOINABLE);
 }
 
 static void
@@ -1268,8 +1293,6 @@ pci_bpfhv_uninit(PCIDevice *dev)
 {
     BpfHvState *s = BPFHV(dev);
     int i;
-
-    qemu_thread_join(&s->proc_th);
 
 #ifdef BPFHV_MEMLI
     memory_listener_unregister(&s->memory_listener);
@@ -1279,6 +1302,11 @@ pci_bpfhv_uninit(PCIDevice *dev)
     timer_del(s->debug_timer);
     timer_free(s->debug_timer);
 #endif /* BPFHV_DEBUG_TIMER */
+
+#ifdef BPFHV_UPGRADE_TIMER
+    timer_del(s->upgrade_timer);
+    timer_free(s->upgrade_timer);
+#endif /* BPFHV_UPGRADE_TIMER */
 
     for (i = 0; i < BPFHV_PROG_MAX; i++) {
         if (s->progs[i].insns != NULL) {
