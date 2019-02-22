@@ -276,6 +276,7 @@ bpfhv_upgrade_timer(void *opaque)
 {
     BpfHvState *s = opaque;
 
+    /* Pretend an upgrade happened and inform the guest about that. */
     s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_UPGRADE;
     msix_notify(PCI_DEVICE(s), s->num_queues);
 
@@ -466,15 +467,6 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
         }
         s->curdump = bpfhv_dump_string(s);
         s->ioregs[BPFHV_REG(DUMP_LEN)] = strlen(s->curdump) + 1;
-    }
-
-    /* Temporary hack to play with program upgrade. We trigger
-     * and upgrade interrupt if the guest writes to bit 31 of
-     * the control register. */
-    if (changed & (1 << 31)) {
-        s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_UPGRADE;
-        newval &= ~(1 << 31);
-        msix_notify(PCI_DEVICE(s), s->num_queues);
     }
 
     s->ioregs[BPFHV_REG(CTRL)] = newval;
