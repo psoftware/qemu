@@ -123,11 +123,12 @@ int sring_txc(struct bpfhv_tx_context *ctx)
 {
     struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
     uint32_t clear = priv->clear;
-    uint32_t cons = priv->cons;
+    uint32_t cons = ACCESS_ONCE(priv->cons);
 
     if (clear == cons) {
         return 0;
     }
+    compiler_barrier();
 
     priv->clear = sring_tx_get_one(ctx, priv, clear);
     ctx->oflags = 0;
@@ -139,14 +140,15 @@ __section("txr")
 int sring_txr(struct bpfhv_tx_context *ctx)
 {
     struct sring_tx_context *priv = (struct sring_tx_context *)ctx->opaque;
-    uint32_t cons = priv->cons;
+    uint32_t cons = ACCESS_ONCE(priv->cons);
     uint32_t prod = priv->prod;
 
     if (cons == prod) {
         return 0;
     }
+    compiler_barrier();
 
-    priv->cons = priv->clear = sring_tx_get_one(ctx, priv, cons);
+    ACCESS_ONCE(priv->cons) = priv->clear = sring_tx_get_one(ctx, priv, cons);
     ctx->oflags = 0;
 
     return 1;
@@ -220,6 +222,7 @@ int sring_rxc(struct bpfhv_rx_context *ctx)
     if (clear == cons) {
         return 0;
     }
+    compiler_barrier();
 
     /* Prepare the input arguments for rx_pkt_alloc(). */
     for (i = 0; clear != cons && i < BPFHV_MAX_RX_BUFS;) {
@@ -276,13 +279,14 @@ __section("rxr")
 int sring_rxr(struct bpfhv_rx_context *ctx)
 {
     struct sring_rx_context *priv = (struct sring_rx_context *)ctx->opaque;
-    uint32_t cons = priv->cons;
+    uint32_t cons = ACCESS_ONCE(priv->cons);
     uint32_t prod = priv->prod;
     uint32_t i = 0;
 
     if (cons == prod) {
         return 0;
     }
+    compiler_barrier();
 
     for (; cons != prod && i < BPFHV_MAX_RX_BUFS; i++) {
         struct bpfhv_rx_buf *rxb = ctx->bufs + i;
@@ -295,7 +299,7 @@ int sring_rxr(struct bpfhv_rx_context *ctx)
         rxb->len = rxd->len;
     }
 
-    priv->cons = priv->clear = cons;
+    ACCESS_ONCE(priv->cons) = priv->clear = cons;
     ctx->num_bufs = i;
     ctx->oflags = 0;
 
