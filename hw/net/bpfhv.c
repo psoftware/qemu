@@ -388,64 +388,57 @@ static NetClientInfo net_bpfhv_info = {
 static int bpfhv_progs_load(BpfHvState *s, const char *progsname, Error **errp);
 
 static void
-bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
+bpfhv_ctrl_update(BpfHvState *s, uint32_t cmd)
 {
-    uint32_t changed = s->ioregs[BPFHV_REG(CTRL)] ^ newval;
     int i;
 
-    if (changed & BPFHV_CTRL_RX_ENABLE) {
-        if (newval & BPFHV_CTRL_RX_ENABLE) {
-            /* Guest asked to enable receive operation. We can accept
-             * that only if all the receive contexts are present. */
-            if (!s->rx_contexts_ready) {
-                newval &= ~BPFHV_CTRL_RX_ENABLE;
-            } else {
-                /* Set the status bit before flushing queued packets,
-                 * otherwise can_receive will return false. */
-                s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_RX_ENABLED;
-                for (i = 0; i < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]; i++) {
-                    sring_rxq_notification(s->rxq[i].ctx, /*enable=*/true);
-                }
-                /* Guest enabled receive operation, which means that
-                 * bpfhv_can_receive() may return true, hence we need to wake
-                 * up the backend. */
-                qemu_flush_queued_packets(qemu_get_queue(s->nic));
-                DBG("Receive enabled");
+    if (cmd & BPFHV_CTRL_RX_ENABLE) {
+        /* Guest asked to enable receive operation. We can accept
+         * that only if all the receive contexts are present. */
+        if (s->rx_contexts_ready) {
+            /* Set the status bit before flushing queued packets,
+             * otherwise can_receive will return false. */
+            s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_RX_ENABLED;
+            for (i = 0; i < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]; i++) {
+                sring_rxq_notification(s->rxq[i].ctx, /*enable=*/true);
             }
-        } else {
-            /* Guest asked to disable receive operation. */
-            s->ioregs[BPFHV_REG(STATUS)] &= ~BPFHV_STATUS_RX_ENABLED;
-            DBG("Receive disabled");
+            /* Guest enabled receive operation, which means that
+             * bpfhv_can_receive() may return true, hence we need to wake
+             * up the backend. */
+            qemu_flush_queued_packets(qemu_get_queue(s->nic));
+            DBG("Receive enabled");
         }
     }
 
-    if (changed & BPFHV_CTRL_TX_ENABLE) {
-        if (newval & BPFHV_CTRL_TX_ENABLE) {
-            /* Guest asked to enable transmit operation. We can accept
-             * that only if all the transmit contexts are present. */
-            if (!s->tx_contexts_ready) {
-                newval &= ~BPFHV_CTRL_TX_ENABLE;
-            } else {
-                s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_TX_ENABLED;
-                for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
-                    qemu_bh_schedule(s->txq[i].bh);
-                }
-                DBG("Transmit enabled");
-            }
-        } else {
-            /* Guest asked to disable transmit operation. */
-            s->ioregs[BPFHV_REG(STATUS)] &= ~BPFHV_STATUS_TX_ENABLED;
+    if (cmd & BPFHV_CTRL_RX_DISABLE) {
+        /* Guest asked to disable receive operation. */
+        s->ioregs[BPFHV_REG(STATUS)] &= ~BPFHV_STATUS_RX_ENABLED;
+        DBG("Receive disabled");
+    }
+
+    if (cmd & BPFHV_CTRL_TX_ENABLE) {
+        /* Guest asked to enable transmit operation. We can accept
+         * that only if all the transmit contexts are present. */
+        if (s->tx_contexts_ready) {
+            s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_TX_ENABLED;
             for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
-                qemu_bh_cancel(s->txq[i].bh);
+                qemu_bh_schedule(s->txq[i].bh);
             }
-            DBG("Transmit disabled");
+            DBG("Transmit enabled");
         }
     }
 
-    if (changed & BPFHV_CTRL_UPGRADE_READY) {
-        /* Guest says it is ready to upgrade. First, reset the
-         * bit as we don't store it. */
-        newval &= ~BPFHV_CTRL_UPGRADE_READY;
+    if (cmd & BPFHV_CTRL_TX_DISABLE) {
+        /* Guest asked to disable transmit operation. */
+        s->ioregs[BPFHV_REG(STATUS)] &= ~BPFHV_STATUS_TX_ENABLED;
+        for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
+            qemu_bh_cancel(s->txq[i].bh);
+        }
+        DBG("Transmit disabled");
+    }
+
+    if (cmd & BPFHV_CTRL_UPGRADE_READY) {
+        /* Guest says it is ready to upgrade. */
         if (!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_UPGRADE)) {
             /* No upgrade is pending, hence we ignore this request. */
         } else {
@@ -461,15 +454,13 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t newval)
         }
     }
 
-    if (changed & BPFHV_CTRL_QUEUES_DUMP) {
+    if (cmd & BPFHV_CTRL_QUEUES_DUMP) {
         if (s->curdump != NULL) {
             g_free(s->curdump);
         }
         s->curdump = bpfhv_dump_string(s);
         s->ioregs[BPFHV_REG(DUMP_LEN)] = strlen(s->curdump) + 1;
     }
-
-    s->ioregs[BPFHV_REG(CTRL)] = newval;
 }
 
 static void
