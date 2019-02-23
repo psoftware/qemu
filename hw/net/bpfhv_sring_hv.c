@@ -163,8 +163,9 @@ sring_txq_dump(struct bpfhv_tx_context *ctx)
 
     dump = g_malloc(left);
     snprintf(dump, left, "sring.txq cl %u co %u pr %u kick %u intr %u\n",
-            priv->clear, priv->cons, priv->prod, priv->kick_enabled,
-            priv->intr_enabled);
+            ACCESS_ONCE(priv->clear), ACCESS_ONCE(priv->cons),
+            ACCESS_ONCE(priv->prod), ACCESS_ONCE(priv->kick_enabled),
+            ACCESS_ONCE(priv->intr_enabled));
 
     return dump;
 }
@@ -307,8 +308,9 @@ sring_rxq_dump(struct bpfhv_rx_context *ctx)
 
     dump = g_malloc(left);
     snprintf(dump, left, "sring.rxq cl %u co %u pr %u kick %u intr %u\n",
-            priv->clear, priv->cons, priv->prod, priv->kick_enabled,
-            priv->intr_enabled);
+            ACCESS_ONCE(priv->clear), ACCESS_ONCE(priv->cons),
+            ACCESS_ONCE(priv->prod), ACCESS_ONCE(priv->kick_enabled),
+            ACCESS_ONCE(priv->intr_enabled));
 
     return dump;
 }
