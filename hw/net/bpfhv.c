@@ -55,12 +55,14 @@
 
 /* Debug timer to show ring statistics. */
 #undef  BPFHV_DEBUG_TIMER
+#define BPFHV_DEBUG_TIMER_MS	2000
 
 /* Verbose debug information. */
 #undef  BPFHV_DEBUG
 
 /* Periodically issue upgrade interrupts (for debugging). */
-#undef  BPFHV_UPGRADE_TIMER
+#undef	BPFHV_UPGRADE_TIMER
+#define BPFHV_UPGRADE_TIMER_MS	2000
 
 /*
  * End of tunables.
@@ -185,12 +187,10 @@ typedef struct BpfHvState_st {
 
 #ifdef BPFHV_DEBUG_TIMER
     QEMUTimer *debug_timer;
-#define BPFHV_DEBUG_TIMER_MS	2000
 #endif /* BPFHV_DEBUG_TIMER */
 
 #ifdef BPFHV_UPGRADE_TIMER
     QEMUTimer *upgrade_timer;
-#define BPFHV_UPGRADE_TIMER_MS	10000
 #endif /* BPFHV_UPGRADE_TIMER */
 
 #ifdef BPFHV_MEMLI
@@ -995,13 +995,22 @@ bpfhv_mem_unmap(BpfHvState *s, void *buffer, hwaddr len, int is_write)
 #endif /* !BPFHV_MEMLI */
 }
 
+static char *
+bpfhv_progpath(const char *progsname)
+{
+    char filename[64];
+
+    snprintf(filename, sizeof(filename), "bpfhv_%s_progs.o", progsname);
+
+    return qemu_find_file(QEMU_FILE_TYPE_EBPF, filename);
+}
+
 static int
 bpfhv_progs_load(BpfHvState *s, const char *progsname, Error **errp)
 {
     const char *prog_names[BPFHV_PROG_MAX] = {"none",
                                               "rxp", "rxc", "rxi", "rxr",
                                               "txp", "txc", "txi", "txr"};
-    char filename[64];
     GElf_Ehdr ehdr;
     int ret = -1;
     char *path;
@@ -1017,19 +1026,16 @@ bpfhv_progs_load(BpfHvState *s, const char *progsname, Error **errp)
         s->progs[i].num_insns = 0;
     }
 
-    snprintf(filename, sizeof(filename), "bpfhv_%s_progs.o", progsname);
-    path = qemu_find_file(QEMU_FILE_TYPE_EBPF, filename);
+    path = bpfhv_progpath(progsname);
     if (!path) {
-        error_setg(errp, "Could not locate %s", filename);
+        error_setg(errp, "Could not locate bpfhv_%s_progs.o", progsname);
         return -1;
     }
 
     fd = open(path, O_RDONLY, 0);
-    g_free(path);
-    path = NULL;
     if (fd < 0) {
-        error_setg_errno(errp, errno, "Failed to open %s", filename);
-        return -1;
+        error_setg_errno(errp, errno, "Failed to open %s", path);
+        goto err;
     }
     if (elf_version(EV_CURRENT) == EV_NONE) {
         error_setg(errp, "ELF version mismatch");
@@ -1037,12 +1043,12 @@ bpfhv_progs_load(BpfHvState *s, const char *progsname, Error **errp)
     }
     elf = elf_begin(fd, ELF_C_READ, NULL);
     if (!elf) {
-        error_setg(errp, "Failed to initialize ELF library for %s", filename);
+        error_setg(errp, "Failed to initialize ELF library for %s", path);
         goto err;
     }
 
     if (gelf_getehdr(elf, &ehdr) != &ehdr) {
-        error_setg(errp, "Failed to get ELF header for %s", filename);
+        error_setg(errp, "Failed to get ELF header for %s", path);
         goto err;
     }
 
@@ -1090,7 +1096,7 @@ bpfhv_progs_load(BpfHvState *s, const char *progsname, Error **errp)
 
             if (s->progs[j].insns != NULL) {
                 DBG("warning: %s contains more sections with name %s",
-                    filename, prog_names[j]);
+                    path, prog_names[j]);
                 continue;
             }
 
@@ -1103,7 +1109,7 @@ bpfhv_progs_load(BpfHvState *s, const char *progsname, Error **errp)
     for (i = BPFHV_PROG_NONE + 1; i < BPFHV_PROG_MAX; i++) {
         if (s->progs[i].insns == NULL || s->progs[i].num_insns == 0) {
             error_setg(errp, "Program %s missing in ELF '%s'",
-                       prog_names[i], filename);
+                       prog_names[i], path);
             goto err;
         }
     }
@@ -1113,6 +1119,7 @@ bpfhv_progs_load(BpfHvState *s, const char *progsname, Error **errp)
     s->progsname = progsname;
 err:
     close(fd);
+    g_free(path);
 
     return ret;
 }
