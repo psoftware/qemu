@@ -429,11 +429,18 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t cmd)
     }
 
     if (cmd & BPFHV_CTRL_TX_DISABLE) {
-        /* Guest asked to disable transmit operation. */
-        s->ioregs[BPFHV_REG(STATUS)] &= ~BPFHV_STATUS_TX_ENABLED;
+        /* Guest asked to disable transmit operation, so we need to stop the
+         * bottom halves and clear the TX_ENABLED status bit.
+         * Before doing that, we drain the transmit queues to avoid dropping
+         * guest packets. */
         for (i = 0; i < s->ioregs[BPFHV_REG(NUM_TX_QUEUES)]; i++) {
+            bool notify;
+
+            sring_txq_drain(s, s->txq[i].nc, s->txq[i].ctx, /*callback=*/NULL,
+                            s->vnet_hdr_len, &notify);
             qemu_bh_cancel(s->txq[i].bh);
         }
+        s->ioregs[BPFHV_REG(STATUS)] &= ~BPFHV_STATUS_TX_ENABLED;
         DBG("Transmit disabled");
     }
 
