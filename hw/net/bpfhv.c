@@ -62,8 +62,8 @@
 #undef  BPFHV_DEBUG
 
 /* Periodically issue upgrade interrupts (for debugging). */
-#undef	BPFHV_UPGRADE_TIMER
-#define BPFHV_UPGRADE_TIMER_MS	2000
+#undef  BPFHV_UPGRADE_TIMER
+#define BPFHV_UPGRADE_TIMER_MS	10000
 
 /*
  * End of tunables.
@@ -354,8 +354,9 @@ bpfhv_upgrade_timer(void *opaque)
         s->crc = crc;
     }
 
-    /* Trigger program change (oscillating between GSO and no-GSO). */
-    if (!strcmp(s->progsname, "sringgso") &&
+    /* Trigger program change (oscillating between no offloads,
+     * CSUM offloads and CSUM+GSO offloads). */
+    if (!strcmp(s->progsname, "sring") &&
         (s->hv_features & BPFHV_CSUM_FEATURES) == BPFHV_CSUM_FEATURES) {
         s->progsname_next = "sringcsum";
         s->ioregs[BPFHV_REG(FEATURES)] = BPFHV_F_SG | BPFHV_CSUM_FEATURES;
@@ -364,6 +365,9 @@ bpfhv_upgrade_timer(void *opaque)
                (s->hv_features & BPFHV_CSUM_FEATURES) == BPFHV_CSUM_FEATURES) {
         s->progsname_next = "sringgso";
         s->ioregs[BPFHV_REG(FEATURES)] = s->hv_features;
+    } else if (!strcmp(s->progsname, "sringgso")) {
+        s->progsname_next = "sring";
+        s->ioregs[BPFHV_REG(FEATURES)] = BPFHV_F_SG;
     }
 
     /* Pretend an upgrade happened and inform the guest about that. */
