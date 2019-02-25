@@ -343,11 +343,24 @@ bpfhv_upgrade_timer(void *opaque)
     BpfHvState *s = opaque;
     uint32_t crc;
 
-    /* Try to detect changes in the current programs object file. */
+    /* Try to detect changes in the current programs object file.
+     * Currently useless. */
     crc = bpfhv_progs_crc(s);
     if (crc != s->crc) {
         DBG("CRC32 %x --> %x\n", s->crc, crc);
         s->crc = crc;
+    }
+
+    /* Trigger program change (oscillating between GSO and no-GSO). */
+    if (!strcmp(s->progsname, "sringgso") &&
+        (s->hv_features & BPFHV_CSUM_FEATURES) == BPFHV_CSUM_FEATURES) {
+        s->progsname = "sringcsum";
+        s->ioregs[BPFHV_REG(FEATURES)] = BPFHV_F_SG | BPFHV_CSUM_FEATURES;
+    } else if (!strcmp(s->progsname, "sringcsum") &&
+               (s->hv_features & BPFHV_GSO_FEATURES) == BPFHV_GSO_FEATURES &&
+               (s->hv_features & BPFHV_CSUM_FEATURES) == BPFHV_CSUM_FEATURES) {
+        s->progsname = "sringgso";
+        s->ioregs[BPFHV_REG(FEATURES)] = s->hv_features;
     }
 
     /* Pretend an upgrade happened and inform the guest about that. */
