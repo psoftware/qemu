@@ -183,6 +183,9 @@ typedef struct BpfHvState_st {
     /* Name of the set of eBPF programs currently in use. */
     const char *progsname;
 
+    /* Name of the set of eBPF programs to load next. */
+    const char *progsname_next;
+
     /* Current dump of queues status to be exposed to the guest. */
     char *curdump;
 
@@ -354,12 +357,12 @@ bpfhv_upgrade_timer(void *opaque)
     /* Trigger program change (oscillating between GSO and no-GSO). */
     if (!strcmp(s->progsname, "sringgso") &&
         (s->hv_features & BPFHV_CSUM_FEATURES) == BPFHV_CSUM_FEATURES) {
-        s->progsname = "sringcsum";
+        s->progsname_next = "sringcsum";
         s->ioregs[BPFHV_REG(FEATURES)] = BPFHV_F_SG | BPFHV_CSUM_FEATURES;
     } else if (!strcmp(s->progsname, "sringcsum") &&
                (s->hv_features & BPFHV_GSO_FEATURES) == BPFHV_GSO_FEATURES &&
                (s->hv_features & BPFHV_CSUM_FEATURES) == BPFHV_CSUM_FEATURES) {
-        s->progsname = "sringgso";
+        s->progsname_next = "sringgso";
         s->ioregs[BPFHV_REG(FEATURES)] = s->hv_features;
     }
 
@@ -540,7 +543,7 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t cmd)
 
             /* Perform the upgrade and clear the status bit. We currently
              * do not recover from upgrade failure. */
-            if (bpfhv_progs_load(s, s->progsname, &local_err)) {
+            if (bpfhv_progs_load(s, s->progsname_next, &local_err)) {
                 error_propagate(&error_fatal, local_err);
                 return;
             }
@@ -1095,6 +1098,10 @@ bpfhv_progs_load(BpfHvState *s, const char *progsname, Error **errp)
     int fd;
     int i;
 
+    if (progsname == s->progsname) {
+        return 0;
+    }
+
     for (i = 0; i < BPFHV_PROG_MAX; i++) {
         if (s->progs[i].insns != NULL) {
             g_free(s->progs[i].insns);
@@ -1194,6 +1201,7 @@ bpfhv_progs_load(BpfHvState *s, const char *progsname, Error **errp)
     ret = 0;
     elf_end(elf);
     s->progsname = progsname;
+    DBG("Loaded program: %s", s->progsname);
 err:
     close(fd);
     g_free(path);
@@ -1258,7 +1266,8 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->curdump = NULL;
 
     /* Initialize eBPF programs (default implementation). */
-    if (bpfhv_progs_load(s, "sring", errp)) {
+    s->progsname_next = "sring";
+    if (bpfhv_progs_load(s, s->progsname_next, errp)) {
         return;
     }
 
