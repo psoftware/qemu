@@ -1009,7 +1009,7 @@ bpfhv_memli_commit(MemoryListener *listener)
 #ifdef BPFHV_DEBUG
     for (i = 0; i < s->num_trans_entries; i++) {
         BpfHvTranslateEntry *te = s->trans_entries + i;
-        DBG("entry: gpa %lx-%lx size %lx hva_start %p\n",
+        DBG("entry: gpa %lx-%lx size %lx hva_start %p",
             te->gpa_start, te->gpa_end, te->size, te->hva_start);
     }
 #endif
@@ -1442,7 +1442,7 @@ static void bpfhv_class_init(ObjectClass *klass, void *data)
     k->device_id = BPFHV_PCI_DEVICE_ID;
     k->class_id = PCI_CLASS_NETWORK_ETHERNET;
     set_bit(DEVICE_CATEGORY_NETWORK, dc->categories);
-    dc->desc = "BPF network device";
+    dc->desc = "BPF paravirtual network device";
     dc->reset = qdev_bpfhv_reset;
     dc->vmsd = &vmstate_bpfhv;
     dc->props = bpfhv_properties;
