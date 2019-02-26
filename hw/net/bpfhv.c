@@ -388,21 +388,21 @@ static int
 bpfhv_can_receive(NetClientState *nc)
 {
     BpfHvState *s = qemu_get_nic_opaque(nc);
-    unsigned int i;
+    BpfHvRxQueue *rxq;
 
     if (unlikely(!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_RX_ENABLED))) {
         return false;
     }
 
-    for (i = 0; i < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]; i++) {
-        if (sring_can_receive(s->rxq[i].ctx)) {
-            return true;
-        }
-        /* We don't have enough RX descriptors, and thus we need to enable
-         * RX kicks on this queue. */
-        sring_rxq_notification(s->rxq[i].ctx, /*enable=*/true);
-        break; /* We only support a single receive queue for now. */
+    rxq = s->rxq + nc->queue_index;
+
+    if (sring_can_receive(rxq->ctx)) {
+        return true;
     }
+
+    /* We don't have enough RX descriptors, and thus we need to enable
+     * RX kicks on this queue. */
+    sring_rxq_notification(rxq->ctx, /*enable=*/true);
 
     return false;
 }
@@ -411,6 +411,7 @@ static ssize_t
 bpfhv_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
 {
     BpfHvState *s = qemu_get_nic_opaque(nc);
+    BpfHvRxQueue *rxq;
     bool notify;
     ssize_t ret;
 
@@ -420,11 +421,12 @@ bpfhv_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
         return 0;
     }
 
-    /* We only support a single receive queue for now. */
-    ret = sring_receive_iov(s, s->rxq[0].ctx, iov, iovcnt, s->vnet_hdr_len,
+    rxq = s->rxq + nc->queue_index;
+
+    ret = sring_receive_iov(s, rxq->ctx, iov, iovcnt, s->vnet_hdr_len,
                             &notify);
     if (ret > 0 && notify) {
-        msix_notify(PCI_DEVICE(s), 0);
+        msix_notify(PCI_DEVICE(s), nc->queue_index);
     }
 
     return ret;
@@ -447,9 +449,13 @@ bpfhv_link_status_update(BpfHvState *s)
     DBG("Link status goes %s", new_status ? "up" : "down");
     s->ioregs[BPFHV_REG(STATUS)] ^= BPFHV_STATUS_LINK;
     if (new_status) {
+        unsigned int i;
+
         /* Link status goes up, which means that bpfhv_can_receive()
          * may return true, hence we need to wake up the backend. */
-        qemu_flush_queued_packets(nc);
+        for (i = 0; i < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]; i++) {
+            qemu_flush_queued_packets(qemu_get_subqueue(s->nic, i));
+        }
 #ifdef BPFHV_DEBUG_TIMER
         timer_mod(s->debug_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) +
                 BPFHV_DEBUG_TIMER_MS);
@@ -500,11 +506,11 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t cmd)
             s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_RX_ENABLED;
             for (i = 0; i < s->ioregs[BPFHV_REG(NUM_RX_QUEUES)]; i++) {
                 sring_rxq_notification(s->rxq[i].ctx, /*enable=*/true);
+                /* Guest enabled receive operation, which means that
+                 * bpfhv_can_receive() may return true, hence we need to wake
+                 * up the backend. */
+                qemu_flush_queued_packets(qemu_get_subqueue(s->nic, i));
             }
-            /* Guest enabled receive operation, which means that
-             * bpfhv_can_receive() may return true, hence we need to wake
-             * up the backend. */
-            qemu_flush_queued_packets(qemu_get_queue(s->nic));
             DBG("Receive enabled");
         }
     }
@@ -877,7 +883,7 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         /* Guest provided more RX descriptors, which means that
          * bpfhv_can_receive() may return true, hence we need to wake
          * up the backend. */
-        qemu_flush_queued_packets(qemu_get_queue(s->nic));
+        qemu_flush_queued_packets(qemu_get_subqueue(s->nic, doorbell));
     } else {
         /* We never enter here if BPFHV_TX_IOEVENTFD is defined. */
         doorbell -= s->ioregs[BPFHV_REG(NUM_RX_QUEUES)];
@@ -1329,7 +1335,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 #endif /* BPFHV_TX_IOEVENTFD */
 
         s->txq[i].bh = qemu_bh_new(bpfhv_tx_bh, s->txq + i);
-        s->txq[i].nc = nc;
+        s->txq[i].nc = qemu_get_subqueue(s->nic, i);
         s->txq[i].parent = s;
         s->txq[i].vector = s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] + i;
     }
