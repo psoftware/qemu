@@ -54,16 +54,16 @@
  * have KVM return to QEMU and QEMU handling the TX kicks. */
 #define BPFHV_TX_IOEVENTFD
 
-/* Debug timer to show ring statistics. */
-#undef  BPFHV_DEBUG_TIMER
-#define BPFHV_DEBUG_TIMER_MS	2000
-
 /* Verbose debug information. */
 #undef  BPFHV_DEBUG
 
 /* Periodically issue upgrade interrupts (for debugging). */
 #undef  BPFHV_UPGRADE_TIMER
 #define BPFHV_UPGRADE_TIMER_MS	10000
+
+/* Debug timer to show ring statistics. */
+#undef  BPFHV_DEBUG_TIMER
+#define BPFHV_DEBUG_TIMER_MS	2000
 
 /*
  * End of tunables.
