@@ -147,7 +147,7 @@ typedef struct BpfHvState_st {
     PCIDevice pci_device;
 
     NICState *nic;
-    NICConf conf;
+    NICConf nic_conf;
     MemoryRegion regs;
     MemoryRegion dbmmio;
     MemoryRegion progmmio;
@@ -188,6 +188,11 @@ typedef struct BpfHvState_st {
 
     /* Current dump of queues status to be exposed to the guest. */
     char *curdump;
+
+    struct {
+        uint16_t num_rx_bufs;
+        uint16_t num_tx_bufs;
+    } net_conf;
 
 #ifdef BPFHV_DEBUG_TIMER
     QEMUTimer *debug_timer;
@@ -1213,11 +1218,22 @@ err:
     return ret;
 }
 
+static bool
+bpfhv_num_bufs_validate(unsigned num_bufs)
+{
+    if (num_bufs < 16 || num_bufs > 8192 ||
+            (num_bufs & (num_bufs - 1)) != 0) {
+        return false;
+    }
+    return true;
+}
+
 static void
 pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 {
     DeviceState *dev = DEVICE(pci_dev);
     BpfHvState *s = BPFHV(pci_dev);
+    unsigned int num_queue_pairs;
     unsigned int num_tx_queues;
     unsigned int num_rx_queues;
     NetClientState *nc;
@@ -1229,11 +1245,11 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     pci_conf[PCI_INTERRUPT_PIN] = 1; /* interrupt pin A */
 
     /* Initializations related to QEMU networking. */
-    qemu_macaddr_default_if_unset(&s->conf.macaddr);
-    s->nic = qemu_new_nic(&net_bpfhv_info, &s->conf,
+    qemu_macaddr_default_if_unset(&s->nic_conf.macaddr);
+    s->nic = qemu_new_nic(&net_bpfhv_info, &s->nic_conf,
                           object_get_typename(OBJECT(s)), dev->id, s);
     nc = qemu_get_queue(s->nic);
-    qemu_format_nic_info_str(nc, s->conf.macaddr.a);
+    qemu_format_nic_info_str(nc, s->nic_conf.macaddr.a);
 
     s->vnet_hdr_len = 0;
     s->hv_features = BPFHV_F_SG;
@@ -1251,13 +1267,31 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         }
     }
 
+    num_queue_pairs = MAX(s->nic_conf.peers.queues, 1);
+    if (num_queue_pairs > 32) {
+        error_setg(errp, "Too many queue pairs %u", num_queue_pairs);
+        return;
+    }
+
+    if (!bpfhv_num_bufs_validate(s->net_conf.num_rx_bufs)) {
+        error_setg(errp, "Invalid number of rx bufs: %u",
+                   s->net_conf.num_rx_bufs);
+        return;
+    }
+
+    if (!bpfhv_num_bufs_validate(s->net_conf.num_tx_bufs)) {
+        error_setg(errp, "Invalid number of tx bufs: %u",
+                   s->net_conf.num_tx_bufs);
+        return;
+    }
+
     /* Initialize device registers. */
     memset(s->ioregs, 0, sizeof(s->ioregs));
     s->ioregs[BPFHV_REG(VERSION)] = BPFHV_VERSION;
-    s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] = num_rx_queues = 1;
-    s->ioregs[BPFHV_REG(NUM_TX_QUEUES)] = num_tx_queues = 1;
-    s->ioregs[BPFHV_REG(NUM_RX_BUFS)] = 256;
-    s->ioregs[BPFHV_REG(NUM_TX_BUFS)] = 256;
+    s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] = num_rx_queues = num_queue_pairs;
+    s->ioregs[BPFHV_REG(NUM_TX_QUEUES)] = num_tx_queues = num_queue_pairs;
+    s->ioregs[BPFHV_REG(NUM_RX_BUFS)] = s->net_conf.num_rx_bufs;
+    s->ioregs[BPFHV_REG(NUM_TX_BUFS)] = s->net_conf.num_tx_bufs;
     s->ioregs[BPFHV_REG(RX_CTX_SIZE)] = sizeof(struct bpfhv_rx_context)
         + sring_rx_ctx_size(s->ioregs[BPFHV_REG(NUM_RX_BUFS)]);
     s->ioregs[BPFHV_REG(TX_CTX_SIZE)] = sizeof(struct bpfhv_tx_context)
@@ -1433,7 +1467,7 @@ static void qdev_bpfhv_reset(DeviceState *dev)
     uint8_t *macaddr;
 
     /* Init MAC address registers. */
-    macaddr = s->conf.macaddr.a;
+    macaddr = s->nic_conf.macaddr.a;
     s->ioregs[BPFHV_REG(MAC_HI)] = (macaddr[0] << 8) | macaddr[1];
     s->ioregs[BPFHV_REG(MAC_LO)] = (macaddr[2] << 24) | (macaddr[3] << 16)
                                  | (macaddr[4] << 8) | macaddr[5];
@@ -1453,7 +1487,9 @@ static const VMStateDescription vmstate_bpfhv = {
 };
 
 static Property bpfhv_properties[] = {
-    DEFINE_NIC_PROPERTIES(BpfHvState, conf),
+    DEFINE_NIC_PROPERTIES(BpfHvState, nic_conf),
+    DEFINE_PROP_UINT16("num_rx_bufs", BpfHvState, net_conf.num_rx_bufs, 256),
+    DEFINE_PROP_UINT16("num_tx_bufs", BpfHvState, net_conf.num_tx_bufs, 256),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -1477,7 +1513,7 @@ static void bpfhv_class_init(ObjectClass *klass, void *data)
 static void bpfhv_instance_init(Object *obj)
 {
     BpfHvState *s = BPFHV(obj);
-    device_add_bootindex_property(obj, &s->conf.bootindex,
+    device_add_bootindex_property(obj, &s->nic_conf.bootindex,
                                   "bootindex", "/ethernet-phy@0",
                                   DEVICE(s), NULL);
 }
