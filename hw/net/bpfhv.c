@@ -110,40 +110,40 @@ static const char *regnames[] = {
                            |  BPFHV_F_TSOv6 | BPFHV_F_TCPv6_LRO \
                            |  BPFHV_F_UFO   | BPFHV_F_UDP_LRO)
 
-typedef struct BpfHvProg_st {
+typedef struct BpfhvProg_st {
     unsigned int num_insns;
     uint64_t *insns;
-} BpfHvProg;
+} BpfhvProg;
 
 /* Each eBPF instruction is 8 bytes wide. */
 #define BPF_INSN_SIZE   8
 
-struct BpfHvState_st;
+struct BpfhvState_st;
 
-typedef struct BpfHvTxQueue_st {
+typedef struct BpfhvTxQueue_st {
     struct bpfhv_tx_context *ctx;
     QEMUBH *bh;
     NetClientState *nc;
-    struct BpfHvState_st *parent;
+    struct BpfhvState_st *parent;
     unsigned int vector;
 #ifdef BPFHV_TX_IOEVENTFD
     EventNotifier ioeventfd;
 #endif /* BPFHV_TX_IOEVENTFD */
-} BpfHvTxQueue;
+} BpfhvTxQueue;
 
-typedef struct BpfHvRxQueue_st {
+typedef struct BpfhvRxQueue_st {
     struct bpfhv_rx_context *ctx;
-} BpfHvRxQueue;
+} BpfhvRxQueue;
 
-typedef struct BpfHvTranslateEntry_st {
+typedef struct BpfhvTranslateEntry_st {
     uint64_t gpa_start;
     uint64_t gpa_end;
     uint64_t size;
     void *hva_start;
     MemoryRegion *mr;
-} BpfHvTranslateEntry;
+} BpfhvTranslateEntry;
 
-typedef struct BpfHvState_st {
+typedef struct BpfhvState_st {
     /* Parent class. This is a private field, and it cannot be used. */
     PCIDevice pci_device;
 
@@ -165,7 +165,7 @@ typedef struct BpfHvState_st {
     uint32_t num_queues;
 
     /* eBPF programs associated to this device. */
-    BpfHvProg progs[BPFHV_PROG_MAX];
+    BpfhvProg progs[BPFHV_PROG_MAX];
 
     /* True if the guest provided all the receive (or ransmit) contexts. */
     bool rx_contexts_ready;
@@ -175,8 +175,8 @@ typedef struct BpfHvState_st {
      * to relocate the eBPF programs before the guest reads them. */
     bool doorbell_gva_changed;
 
-    BpfHvRxQueue *rxq;
-    BpfHvTxQueue *txq;
+    BpfhvRxQueue *rxq;
+    BpfhvTxQueue *txq;
 
     /* Length of the virtio net header that we are using to implement
      * the offloads supported by the backend. */
@@ -212,12 +212,12 @@ typedef struct BpfHvState_st {
 
 #ifdef BPFHV_MEMLI
     MemoryListener memory_listener;
-    BpfHvTranslateEntry *trans_entries;
+    BpfhvTranslateEntry *trans_entries;
     unsigned int num_trans_entries;
-    BpfHvTranslateEntry *trans_entries_tmp;
+    BpfhvTranslateEntry *trans_entries_tmp;
     unsigned int num_trans_entries_tmp;
 #endif /* BPFHV_MEMLI */
-} BpfHvState;
+} BpfhvState;
 
 /* Macro to generate I/O register indices. */
 #define BPFHV_REG(x) ((BPFHV_REG_ ## x) >> 2)
@@ -225,7 +225,7 @@ typedef struct BpfHvState_st {
 #define TYPE_BPFHV_PCI  "bpfhv-pci"
 
 #define BPFHV(obj) \
-            OBJECT_CHECK(BpfHvState, (obj), TYPE_BPFHV_PCI)
+            OBJECT_CHECK(BpfhvState, (obj), TYPE_BPFHV_PCI)
 
 static char *
 bpfhv_dump_realloc(char *tot, size_t *totlen, const char *append)
@@ -239,7 +239,7 @@ bpfhv_dump_realloc(char *tot, size_t *totlen, const char *append)
 }
 
 static char *
-bpfhv_dump_string(BpfHvState *s)
+bpfhv_dump_string(BpfhvState *s)
 {
     char *result = NULL;
     size_t totlen = 64;
@@ -285,7 +285,7 @@ bpfhv_progpath(const char *progsname)
 static void
 bpfhv_debug_timer(void *opaque)
 {
-    BpfHvState *s = opaque;
+    BpfhvState *s = opaque;
     char *dump;
 
     dump = bpfhv_dump_string(s);
@@ -301,7 +301,7 @@ bpfhv_debug_timer(void *opaque)
 static void
 bpfhv_upgrade_timer(void *opaque)
 {
-    BpfHvState *s = opaque;
+    BpfhvState *s = opaque;
 
     /* Trigger program change (oscillating between no offloads,
      * CSUM offloads and CSUM+GSO offloads). */
@@ -331,8 +331,8 @@ bpfhv_upgrade_timer(void *opaque)
 static int
 bpfhv_can_receive(NetClientState *nc)
 {
-    BpfHvState *s = qemu_get_nic_opaque(nc);
-    BpfHvRxQueue *rxq;
+    BpfhvState *s = qemu_get_nic_opaque(nc);
+    BpfhvRxQueue *rxq;
 
     if (unlikely(!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_RX_ENABLED))) {
         return false;
@@ -354,8 +354,8 @@ bpfhv_can_receive(NetClientState *nc)
 static ssize_t
 bpfhv_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
 {
-    BpfHvState *s = qemu_get_nic_opaque(nc);
-    BpfHvRxQueue *rxq;
+    BpfhvState *s = qemu_get_nic_opaque(nc);
+    BpfhvRxQueue *rxq;
     bool notify;
     ssize_t ret;
 
@@ -379,7 +379,7 @@ bpfhv_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
 /* Device link status is up iff all the receive contexts are valid and
  * the network backend link status is up. */
 static void
-bpfhv_link_status_update(BpfHvState *s)
+bpfhv_link_status_update(BpfhvState *s)
 {
     bool status = !!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_LINK);
     NetClientState *nc = qemu_get_queue(s->nic);
@@ -426,7 +426,7 @@ bpfhv_link_status_update(BpfHvState *s)
 static void
 bpfhv_backend_link_status_changed(NetClientState *nc)
 {
-    BpfHvState *s = qemu_get_nic_opaque(nc);
+    BpfhvState *s = qemu_get_nic_opaque(nc);
 
     bpfhv_link_status_update(s);
 }
@@ -439,10 +439,10 @@ static NetClientInfo net_bpfhv_info = {
     .link_status_changed = bpfhv_backend_link_status_changed,
 };
 
-static int bpfhv_progs_load(BpfHvState *s, const char *progsname, Error **errp);
+static int bpfhv_progs_load(BpfhvState *s, const char *progsname, Error **errp);
 
 static void
-bpfhv_ctrl_update(BpfHvState *s, uint32_t cmd)
+bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
 {
     int i;
 
@@ -525,7 +525,7 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t cmd)
 }
 
 static void
-bpfhv_ctx_remap(BpfHvState *s)
+bpfhv_ctx_remap(BpfhvState *s)
 {
     unsigned int qsel = s->ioregs[BPFHV_REG(QUEUE_SELECT)];
     bool rx = false;
@@ -599,7 +599,7 @@ bpfhv_ctx_remap(BpfHvState *s)
 static void
 bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 {
-    BpfHvState *s = opaque;
+    BpfhvState *s = opaque;
     unsigned int index;
 
     addr = addr & BPFHV_REG_MASK;
@@ -721,7 +721,7 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 static uint64_t
 bpfhv_io_read(void *opaque, hwaddr addr, unsigned size)
 {
-    BpfHvState *s = opaque;
+    BpfhvState *s = opaque;
     unsigned int index;
 
     addr = addr & BPFHV_REG_MASK;
@@ -742,7 +742,7 @@ bpfhv_io_read(void *opaque, hwaddr addr, unsigned size)
 static void
 bpfhv_tx_complete(NetClientState *nc, ssize_t len)
 {
-    BpfHvState *s = qemu_get_nic_opaque(nc);
+    BpfhvState *s = qemu_get_nic_opaque(nc);
     int i;
 
     if (!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_TX_ENABLED)) {
@@ -765,8 +765,8 @@ bpfhv_tx_complete(NetClientState *nc, ssize_t len)
 static void
 bpfhv_tx_bh(void *opaque)
 {
-    BpfHvTxQueue *txq = opaque;
-    BpfHvState *s = txq->parent;
+    BpfhvTxQueue *txq = opaque;
+    BpfhvState *s = txq->parent;
     bool notify;
     ssize_t ret;
 
@@ -812,7 +812,7 @@ bpfhv_tx_bh(void *opaque)
 static void
 bpfhv_tx_evnotify(EventNotifier *ioeventfd)
 {
-    BpfHvTxQueue *txq = container_of(ioeventfd, BpfHvTxQueue, ioeventfd);
+    BpfhvTxQueue *txq = container_of(ioeventfd, BpfhvTxQueue, ioeventfd);
 
     if (unlikely(!event_notifier_test_and_clear(ioeventfd))) {
         return;
@@ -824,7 +824,7 @@ bpfhv_tx_evnotify(EventNotifier *ioeventfd)
 static void
 bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
 {
-    BpfHvState *s = opaque;
+    BpfhvState *s = opaque;
     unsigned int doorbell;
 
     doorbell = addr / BPFHV_DOORBELL_SIZE;
@@ -875,9 +875,9 @@ static const MemoryRegionOps bpfhv_dbmmio_ops = {
 static uint64_t
 bpfhv_progmmio_read(void *opaque, hwaddr addr, unsigned size)
 {
-    BpfHvState *s = opaque;
+    BpfhvState *s = opaque;
     unsigned int progsel;
-    BpfHvProg *prog;
+    BpfhvProg *prog;
     uint32_t *readp;
 
     progsel = s->ioregs[BPFHV_REG(PROG_SELECT)];
@@ -920,7 +920,7 @@ static const MemoryRegionOps bpfhv_progmmio_ops = {
 static void
 bpfhv_memli_begin(MemoryListener *listener)
 {
-    BpfHvState *s = container_of(listener, BpfHvState, memory_listener);
+    BpfhvState *s = container_of(listener, BpfhvState, memory_listener);
 
     s->num_trans_entries_tmp = 0;
     s->trans_entries_tmp = NULL;
@@ -930,12 +930,12 @@ static void
 bpfhv_memli_region_add(MemoryListener *listener,
                        MemoryRegionSection *section)
 {
-    BpfHvState *s = container_of(listener, BpfHvState, memory_listener);
+    BpfhvState *s = container_of(listener, BpfhvState, memory_listener);
     uint64_t size = int128_get64(section->size);
     uint64_t gpa_start = section->offset_within_address_space;
     uint64_t gpa_end = range_get_last(gpa_start, size) + 1;
     void *hva_start;
-    BpfHvTranslateEntry *last = NULL;
+    BpfhvTranslateEntry *last = NULL;
     bool add_entry = true;
 
     if (!memory_region_is_ram(section->mr)) {
@@ -958,7 +958,7 @@ bpfhv_memli_region_add(MemoryListener *listener,
 
     if (add_entry) {
         s->num_trans_entries_tmp++;
-        s->trans_entries_tmp = g_renew(BpfHvTranslateEntry,
+        s->trans_entries_tmp = g_renew(BpfhvTranslateEntry,
             s->trans_entries_tmp, s->num_trans_entries_tmp);
         last = s->trans_entries_tmp + s->num_trans_entries_tmp - 1;
         last->gpa_start = gpa_start;
@@ -975,8 +975,8 @@ bpfhv_memli_region_add(MemoryListener *listener,
 static void
 bpfhv_memli_commit(MemoryListener *listener)
 {
-    BpfHvState *s = container_of(listener, BpfHvState, memory_listener);
-    BpfHvTranslateEntry *old_trans_entries;
+    BpfhvState *s = container_of(listener, BpfhvState, memory_listener);
+    BpfhvTranslateEntry *old_trans_entries;
     int num_old_trans_entries;
     int i;
 
@@ -995,7 +995,7 @@ bpfhv_memli_commit(MemoryListener *listener)
 
 #ifdef BPFHV_DEBUG
     for (i = 0; i < s->num_trans_entries; i++) {
-        BpfHvTranslateEntry *te = s->trans_entries + i;
+        BpfhvTranslateEntry *te = s->trans_entries + i;
         DBG("entry: gpa %lx-%lx size %lx hva_start %p",
             te->gpa_start, te->gpa_end, te->size, te->hva_start);
     }
@@ -1004,16 +1004,16 @@ out:
     s->trans_entries_tmp = NULL;
     s->num_trans_entries_tmp = 0;
     for (i = 0; i < num_old_trans_entries; i++) {
-        BpfHvTranslateEntry *te = old_trans_entries + i;
+        BpfhvTranslateEntry *te = old_trans_entries + i;
         memory_region_unref(te->mr);
     }
     g_free(old_trans_entries);
 }
 
 static inline void *
-bpfhv_translate_addr(BpfHvState *s, uint64_t gpa, uint64_t len)
+bpfhv_translate_addr(BpfhvState *s, uint64_t gpa, uint64_t len)
 {
-    BpfHvTranslateEntry *te = s->trans_entries + 0;
+    BpfhvTranslateEntry *te = s->trans_entries + 0;
 
     if (unlikely(!(te->gpa_start <= gpa && gpa + len <= te->gpa_end))) {
         int i;
@@ -1022,7 +1022,7 @@ bpfhv_translate_addr(BpfHvState *s, uint64_t gpa, uint64_t len)
             te = s->trans_entries + i;
             if (te->gpa_start <= gpa && gpa + len <= te->gpa_end) {
                 /* Match. Move this entry to the first position. */
-                BpfHvTranslateEntry tmp = *te;
+                BpfhvTranslateEntry tmp = *te;
                 *te = s->trans_entries[0];
                 s->trans_entries[0] = tmp;
                 te = s->trans_entries + 0;
@@ -1038,7 +1038,7 @@ bpfhv_translate_addr(BpfHvState *s, uint64_t gpa, uint64_t len)
 #endif /* BPFHV_MEMLI */
 
 void *
-bpfhv_mem_map(BpfHvState *s, hwaddr paddr, hwaddr *plen, int is_write)
+bpfhv_mem_map(BpfhvState *s, hwaddr paddr, hwaddr *plen, int is_write)
 {
 #ifdef BPFHV_MEMLI
     return bpfhv_translate_addr(s, paddr, *plen);
@@ -1048,7 +1048,7 @@ bpfhv_mem_map(BpfHvState *s, hwaddr paddr, hwaddr *plen, int is_write)
 }
 
 void
-bpfhv_mem_unmap(BpfHvState *s, void *buffer, hwaddr len, int is_write)
+bpfhv_mem_unmap(BpfhvState *s, void *buffer, hwaddr len, int is_write)
 {
 #ifndef BPFHV_MEMLI
     cpu_physical_memory_unmap(buffer, /*len=*/len, is_write,
@@ -1057,7 +1057,7 @@ bpfhv_mem_unmap(BpfHvState *s, void *buffer, hwaddr len, int is_write)
 }
 
 static int
-bpfhv_progs_load(BpfHvState *s, const char *progsname, Error **errp)
+bpfhv_progs_load(BpfhvState *s, const char *progsname, Error **errp)
 {
     const char *prog_names[BPFHV_PROG_MAX] = {"none",
                                               "rxp", "rxc", "rxi", "rxr",
@@ -1194,7 +1194,7 @@ static void
 pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 {
     DeviceState *dev = DEVICE(pci_dev);
-    BpfHvState *s = BPFHV(pci_dev);
+    BpfhvState *s = BPFHV(pci_dev);
     NetClientState *nc;
     uint8_t *pci_conf;
     int i;
@@ -1345,7 +1345,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 static void
 pci_bpfhv_uninit(PCIDevice *dev)
 {
-    BpfHvState *s = BPFHV(dev);
+    BpfhvState *s = BPFHV(dev);
     int i;
 
 #ifdef BPFHV_MEMLI
@@ -1395,7 +1395,7 @@ pci_bpfhv_uninit(PCIDevice *dev)
 
 static void qdev_bpfhv_reset(DeviceState *dev)
 {
-    BpfHvState *s = BPFHV(dev);
+    BpfhvState *s = BPFHV(dev);
     Error *local_err = NULL;
     uint8_t *macaddr;
 
@@ -1438,27 +1438,27 @@ static const VMStateDescription vmstate_bpfhv = {
 //  .pre_save = bpfhv_pre_save,
 //  .post_load = bpfhv_post_load,
     .fields = (VMStateField[]) {
-        VMSTATE_PCI_DEVICE(pci_device, BpfHvState),
-        VMSTATE_UINT32_ARRAY(ioregs, BpfHvState, BPFHV_REG_END >> 2),
-        VMSTATE_UINT32(num_queue_pairs, BpfHvState),
-        VMSTATE_UINT32(num_queues, BpfHvState),
-        VMSTATE_BOOL(rx_contexts_ready, BpfHvState),
-        VMSTATE_BOOL(tx_contexts_ready, BpfHvState),
-        VMSTATE_BOOL(doorbell_gva_changed, BpfHvState),
-//      VMSTATE_STRUCT_POINTER(rxq, BpfHvState, ...),
-//      VMSTATE_STRUCT_POINTER(rxq, BpfHvState, ...),
-        VMSTATE_INT32(vnet_hdr_len, BpfHvState),
-        VMSTATE_UINT32(hv_features, BpfHvState),
+        VMSTATE_PCI_DEVICE(pci_device, BpfhvState),
+        VMSTATE_UINT32_ARRAY(ioregs, BpfhvState, BPFHV_REG_END >> 2),
+        VMSTATE_UINT32(num_queue_pairs, BpfhvState),
+        VMSTATE_UINT32(num_queues, BpfhvState),
+        VMSTATE_BOOL(rx_contexts_ready, BpfhvState),
+        VMSTATE_BOOL(tx_contexts_ready, BpfhvState),
+        VMSTATE_BOOL(doorbell_gva_changed, BpfhvState),
+//      VMSTATE_STRUCT_POINTER(rxq, BpfhvState, ...),
+//      VMSTATE_STRUCT_POINTER(rxq, BpfhvState, ...),
+        VMSTATE_INT32(vnet_hdr_len, BpfhvState),
+        VMSTATE_UINT32(hv_features, BpfhvState),
         VMSTATE_END_OF_LIST()
     }
 };
 
 static Property bpfhv_properties[] = {
-    DEFINE_NIC_PROPERTIES(BpfHvState, nic_conf),
-    DEFINE_PROP_UINT16("num_rx_bufs", BpfHvState, net_conf.num_rx_bufs, 256),
-    DEFINE_PROP_UINT16("num_tx_bufs", BpfHvState, net_conf.num_tx_bufs, 256),
-    DEFINE_PROP_BOOL("csum", BpfHvState, net_conf.csum, true),
-    DEFINE_PROP_BOOL("gso", BpfHvState, net_conf.gso, true),
+    DEFINE_NIC_PROPERTIES(BpfhvState, nic_conf),
+    DEFINE_PROP_UINT16("num_rx_bufs", BpfhvState, net_conf.num_rx_bufs, 256),
+    DEFINE_PROP_UINT16("num_tx_bufs", BpfhvState, net_conf.num_tx_bufs, 256),
+    DEFINE_PROP_BOOL("csum", BpfhvState, net_conf.csum, true),
+    DEFINE_PROP_BOOL("gso", BpfhvState, net_conf.gso, true),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -1481,7 +1481,7 @@ static void bpfhv_class_init(ObjectClass *klass, void *data)
 
 static void bpfhv_instance_init(Object *obj)
 {
-    BpfHvState *s = BPFHV(obj);
+    BpfhvState *s = BPFHV(obj);
     device_add_bootindex_property(obj, &s->nic_conf.bootindex,
                                   "bootindex", "/ethernet-phy@0",
                                   DEVICE(s), NULL);
@@ -1490,7 +1490,7 @@ static void bpfhv_instance_init(Object *obj)
 static const TypeInfo bpfhv_info = {
     .name          = TYPE_BPFHV_PCI,
     .parent        = TYPE_PCI_DEVICE,
-    .instance_size = sizeof(BpfHvState),
+    .instance_size = sizeof(BpfhvState),
     .instance_init = bpfhv_instance_init,
     .class_init    = bpfhv_class_init,
     .interfaces = (InterfaceInfo[]) {
