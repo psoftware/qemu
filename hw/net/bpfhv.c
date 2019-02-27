@@ -53,6 +53,8 @@
  * have KVM return to QEMU and QEMU handling the TX kicks. */
 #define BPFHV_TX_IOEVENTFD
 
+#define BPFHV_DOORBELL_SIZE     8  /* could be 4096 */
+
 /* Verbose debug information. */
 #undef  BPFHV_DEBUG
 
@@ -155,15 +157,12 @@ typedef struct BpfHvState_st {
     uint32_t ioregs[BPFHV_REG_END >> 2];
 
     /* Total number of queue pairs. For the moment being we assume that
-     * num_tx_queues == num_rx_queues. */
+     * we have an equal number of transmit and receive queues. */
     uint32_t num_queue_pairs;
 
     /* Total number of queues, including both receive and transmit
      * ones (this is twice as num_queue_pairs). */
     uint32_t num_queues;
-
-#define num_rx_queues   ioregs[BPFHV_REG(NUM_RX_QUEUES)]
-#define num_tx_queues   ioregs[BPFHV_REG(NUM_TX_QUEUES)]
 
     /* eBPF programs associated to this device. */
     BpfHvProg progs[BPFHV_PROG_MAX];
@@ -250,7 +249,7 @@ bpfhv_dump_string(BpfHvState *s)
     result[0] = '\0';
 
     if (s->rx_contexts_ready) {
-        for (i = 0; i < s->num_rx_queues; i++) {
+        for (i = 0; i < s->num_queue_pairs; i++) {
             char *dump = sring_rxq_dump(s->rxq[i].ctx);
             result = bpfhv_dump_realloc(result, &totlen, dump);
             pstrcat(result, totlen, dump);
@@ -259,7 +258,7 @@ bpfhv_dump_string(BpfHvState *s)
     }
 
     if (s->tx_contexts_ready) {
-        for (i = 0; i < s->num_tx_queues; i++) {
+        for (i = 0; i < s->num_queue_pairs; i++) {
             char *dump = sring_txq_dump(s->txq[i].ctx);
             result = bpfhv_dump_realloc(result, &totlen, dump);
             pstrcat(result, totlen, dump);
@@ -398,7 +397,7 @@ bpfhv_link_status_update(BpfHvState *s)
 
         /* Link status goes up, which means that bpfhv_can_receive()
          * may return true, hence we need to wake up the backend. */
-        for (i = 0; i < s->num_rx_queues; i++) {
+        for (i = 0; i < s->num_queue_pairs; i++) {
             qemu_flush_queued_packets(qemu_get_subqueue(s->nic, i));
         }
 #ifdef BPFHV_DEBUG_TIMER
@@ -449,7 +448,7 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t cmd)
             /* Set the status bit before flushing queued packets,
              * otherwise can_receive will return false. */
             s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_RX_ENABLED;
-            for (i = 0; i < s->num_rx_queues; i++) {
+            for (i = 0; i < s->num_queue_pairs; i++) {
                 sring_rxq_notification(s->rxq[i].ctx, /*enable=*/true);
                 /* Guest enabled receive operation, which means that
                  * bpfhv_can_receive() may return true, hence we need to wake
@@ -471,7 +470,7 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t cmd)
          * that only if all the transmit contexts are present. */
         if (s->tx_contexts_ready) {
             s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_TX_ENABLED;
-            for (i = 0; i < s->num_tx_queues; i++) {
+            for (i = 0; i < s->num_queue_pairs; i++) {
                 qemu_bh_schedule(s->txq[i].bh);
             }
             DBG("Transmit enabled");
@@ -483,7 +482,7 @@ bpfhv_ctrl_update(BpfHvState *s, uint32_t cmd)
          * bottom halves and clear the TX_ENABLED status bit.
          * Before doing that, we drain the transmit queues to avoid dropping
          * guest packets. */
-        for (i = 0; i < s->num_tx_queues; i++) {
+        for (i = 0; i < s->num_queue_pairs; i++) {
             bool notify;
 
             sring_txq_drain(s, s->txq[i].nc, s->txq[i].ctx, /*callback=*/NULL,
@@ -531,12 +530,12 @@ bpfhv_ctx_remap(BpfHvState *s)
     base = (((uint64_t)s->ioregs[BPFHV_REG(CTX_PADDR_HI)]) << 32ULL) |
                     (uint64_t)s->ioregs[BPFHV_REG(CTX_PADDR_LO)];
 
-    if (qsel < s->num_rx_queues) {
+    if (qsel < s->num_queue_pairs) {
         pvaddr = (void **)&s->rxq[qsel].ctx;
         len = s->ioregs[BPFHV_REG(RX_CTX_SIZE)];
         rx = true;
     } else {
-        qsel -= s->num_rx_queues;
+        qsel -= s->num_queue_pairs;
         pvaddr = (void **) &s->txq[qsel].ctx;
         len = s->ioregs[BPFHV_REG(TX_CTX_SIZE)];
         rx = false;
@@ -569,7 +568,7 @@ bpfhv_ctx_remap(BpfHvState *s)
         int i;
 
         s->rx_contexts_ready = true;
-        for (i = 0; i < s->num_rx_queues; i++) {
+        for (i = 0; i < s->num_queue_pairs; i++) {
             if (s->rxq[i].ctx == NULL) {
                 s->rx_contexts_ready = false;
                 break;
@@ -583,7 +582,7 @@ bpfhv_ctx_remap(BpfHvState *s)
         int i;
 
         s->tx_contexts_ready = true;
-        for (i = 0; i < s->num_tx_queues; i++) {
+        for (i = 0; i < s->num_queue_pairs; i++) {
             if (s->txq[i].ctx == NULL) {
                 s->tx_contexts_ready = false;
                 break;
@@ -745,7 +744,7 @@ bpfhv_tx_complete(NetClientState *nc, ssize_t len)
         return;
     }
 
-    for (i = 0; i < s->num_tx_queues; i++) {
+    for (i = 0; i < s->num_queue_pairs; i++) {
         bool notify;
 
         sring_txq_notification(s->txq[i].ctx, /*enable=*/true);
@@ -828,7 +827,7 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         DBG("Invalid doorbell write, addr=0x%08"PRIx64, addr);
         return;
     }
-    if (doorbell < s->num_rx_queues) {
+    if (doorbell < s->num_queue_pairs) {
         DBG("Doorbell RX#%u rung", doorbell);
         /* Immediately disable RX kicks on this queue. */
         sring_rxq_notification(s->rxq[doorbell].ctx, /*enable=*/false);
@@ -838,7 +837,7 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         qemu_flush_queued_packets(qemu_get_subqueue(s->nic, doorbell));
     } else {
         /* We never enter here if BPFHV_TX_IOEVENTFD is defined. */
-        doorbell -= s->num_rx_queues;
+        doorbell -= s->num_queue_pairs;
         sring_txq_notification(s->txq[doorbell].ctx, /*enable=*/false);
         DBG("Doorbell TX#%u rung", doorbell);
         qemu_bh_schedule(s->txq[doorbell].bh);
@@ -1224,6 +1223,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         error_setg(errp, "Too many queue pairs %u", s->num_queue_pairs);
         return;
     }
+    s->num_queues = s->num_queue_pairs + s->num_queue_pairs;
 
     if (!bpfhv_num_bufs_validate(s->net_conf.num_rx_bufs)) {
         error_setg(errp, "Invalid number of rx bufs: %u",
@@ -1237,34 +1237,10 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         return;
     }
 
-    /* Initialize device registers. */
-    memset(s->ioregs, 0, sizeof(s->ioregs));
-    s->ioregs[BPFHV_REG(VERSION)] = BPFHV_VERSION;
-    s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] = s->num_queue_pairs;
-    s->ioregs[BPFHV_REG(NUM_TX_QUEUES)] = s->num_queue_pairs;
-    s->ioregs[BPFHV_REG(NUM_RX_BUFS)] = s->net_conf.num_rx_bufs;
-    s->ioregs[BPFHV_REG(NUM_TX_BUFS)] = s->net_conf.num_tx_bufs;
-    s->ioregs[BPFHV_REG(RX_CTX_SIZE)] = sizeof(struct bpfhv_rx_context)
-        + sring_rx_ctx_size(s->ioregs[BPFHV_REG(NUM_RX_BUFS)]);
-    s->ioregs[BPFHV_REG(TX_CTX_SIZE)] = sizeof(struct bpfhv_tx_context)
-        + sring_tx_ctx_size(s->ioregs[BPFHV_REG(NUM_TX_BUFS)]);
-    s->ioregs[BPFHV_REG(DOORBELL_SIZE)] = 8; /* could be 4096 */
-    s->ioregs[BPFHV_REG(FEATURES)] = s->hv_features;
-    s->num_queues = s->num_rx_queues + s->num_tx_queues;
-    s->doorbell_gva_changed = false;
-    s->rx_contexts_ready = s->tx_contexts_ready = false;
-    s->curdump = NULL;
-
-    /* Initialize eBPF programs (default implementation). */
-    pstrcpy(s->progsname_next, sizeof(s->progsname_next), "sring");
-    if (bpfhv_progs_load(s, s->progsname_next, errp)) {
-        return;
-    }
-
     /* Initialize device queues. */
-    s->rxq = g_malloc0(s->num_rx_queues * sizeof(s->rxq[0]));
-    s->txq = g_malloc0(s->num_tx_queues * sizeof(s->txq[0]));
-    for (i = 0; i < s->num_tx_queues; i++) {
+    s->rxq = g_malloc0(s->num_queue_pairs * sizeof(s->rxq[0]));
+    s->txq = g_malloc0(s->num_queue_pairs * sizeof(s->txq[0]));
+    for (i = 0; i < s->num_queue_pairs; i++) {
 #ifdef BPFHV_TX_IOEVENTFD
         int ret;
 
@@ -1283,7 +1259,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         s->txq[i].bh = qemu_bh_new(bpfhv_tx_bh, s->txq + i);
         s->txq[i].nc = qemu_get_subqueue(s->nic, i);
         s->txq[i].parent = s;
-        s->txq[i].vector = s->num_rx_queues + i;
+        s->txq[i].vector = s->num_queue_pairs + i;
     }
 
     /* Init I/O mapped memory region, exposing bpfhv registers. */
@@ -1295,7 +1271,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     /* Init memory mapped memory region, to expose doorbells. */
     memory_region_init_io(&s->dbmmio, OBJECT(s), &bpfhv_dbmmio_ops, s,
                           "bpfhv-doorbell",
-                          s->ioregs[BPFHV_REG(DOORBELL_SIZE)] * s->num_queues);
+                          BPFHV_DOORBELL_SIZE * s->num_queues);
     pci_register_bar(pci_dev, BPFHV_DOORBELL_PCI_BAR,
                      PCI_BASE_ADDRESS_SPACE_MEMORY, &s->dbmmio);
 
@@ -1313,12 +1289,11 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     }
 
 #ifdef BPFHV_TX_IOEVENTFD
-    for (i = 0; i < s->num_tx_queues; i++) {
+    for (i = 0; i < s->num_queue_pairs; i++) {
         /* Let KVM write into the event notifier, so that when
          * QEMU wakes up it can directly run the TX bottom
          * half, rather then going through, bpfhv_dbmmio_write(). */
-        hwaddr dbofs = (s->num_rx_queues + i)
-                     * s->ioregs[BPFHV_REG(DOORBELL_SIZE)];
+        hwaddr dbofs = (s->num_queue_pairs + i) * BPFHV_DOORBELL_SIZE;
 
         memory_region_add_eventfd(&s->dbmmio, dbofs, 4, false, 0,
                                   &s->txq[i].ioeventfd);
@@ -1359,6 +1334,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->memory_listener.region_nop = bpfhv_memli_region_add,
     memory_listener_register(&s->memory_listener, &address_space_memory);
 #endif /* BPFHV_MEMLI */
+    DBG("**** device realized ****");
 }
 
 static void
@@ -1388,10 +1364,9 @@ pci_bpfhv_uninit(PCIDevice *dev)
         }
     }
 
-    for (i = 0; i < s->num_tx_queues; i++) {
+    for (i = 0; i < s->num_queue_pairs; i++) {
 #ifdef BPFHV_TX_IOEVENTFD
-        hwaddr dbofs = (s->num_rx_queues + i)
-                     * s->ioregs[BPFHV_REG(DOORBELL_SIZE)];
+        hwaddr dbofs = (s->num_queue_pairs + i) * BPFHV_DOORBELL_SIZE;
 
         memory_region_del_eventfd(&s->dbmmio, dbofs, 4, false, 0,
                                   &s->txq[i].ioeventfd);
@@ -1410,20 +1385,45 @@ pci_bpfhv_uninit(PCIDevice *dev)
     msix_uninit_exclusive_bar(PCI_DEVICE(s));
     g_free(s->curdump);
     qemu_del_nic(s->nic);
+    DBG("**** device unrealized ****");
 }
 
 static void qdev_bpfhv_reset(DeviceState *dev)
 {
     BpfHvState *s = BPFHV(dev);
+    Error *local_err = NULL;
     uint8_t *macaddr;
 
-    /* Init MAC address registers. */
+    /* Initialize device registers. */
+    memset(s->ioregs, 0, sizeof(s->ioregs));
+    s->ioregs[BPFHV_REG(VERSION)] = BPFHV_VERSION;
+    s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] = s->num_queue_pairs;
+    s->ioregs[BPFHV_REG(NUM_TX_QUEUES)] = s->num_queue_pairs;
+    s->ioregs[BPFHV_REG(NUM_RX_BUFS)] = s->net_conf.num_rx_bufs;
+    s->ioregs[BPFHV_REG(NUM_TX_BUFS)] = s->net_conf.num_tx_bufs;
+    s->ioregs[BPFHV_REG(RX_CTX_SIZE)] = sizeof(struct bpfhv_rx_context)
+        + sring_rx_ctx_size(s->ioregs[BPFHV_REG(NUM_RX_BUFS)]);
+    s->ioregs[BPFHV_REG(TX_CTX_SIZE)] = sizeof(struct bpfhv_tx_context)
+        + sring_tx_ctx_size(s->ioregs[BPFHV_REG(NUM_TX_BUFS)]);
+    s->ioregs[BPFHV_REG(DOORBELL_SIZE)] = BPFHV_DOORBELL_SIZE;
+    s->ioregs[BPFHV_REG(FEATURES)] = s->hv_features;
     macaddr = s->nic_conf.macaddr.a;
     s->ioregs[BPFHV_REG(MAC_HI)] = (macaddr[0] << 8) | macaddr[1];
     s->ioregs[BPFHV_REG(MAC_LO)] = (macaddr[2] << 24) | (macaddr[3] << 16)
                                  | (macaddr[4] << 8) | macaddr[5];
 
-    DBG("%s(%p)", __func__, s);
+    s->doorbell_gva_changed = false;
+    s->rx_contexts_ready = s->tx_contexts_ready = false;
+    s->curdump = NULL;
+
+    /* Initialize eBPF programs (default implementation). */
+    pstrcpy(s->progsname_next, sizeof(s->progsname_next), "sring");
+    if (bpfhv_progs_load(s, s->progsname_next, &local_err)) {
+        error_propagate(&error_fatal, local_err);
+        return;
+    }
+
+    DBG("**** device reset ****");
 }
 
 static const VMStateDescription vmstate_bpfhv = {
