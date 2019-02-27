@@ -384,6 +384,7 @@ bpfhv_link_status_update(BpfHvState *s)
     bool status = !!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_LINK);
     NetClientState *nc = qemu_get_queue(s->nic);
     bool new_status;
+    unsigned int i;
 
     new_status = !(nc->link_down) && s->rx_contexts_ready;
     if (new_status == status) {
@@ -393,8 +394,6 @@ bpfhv_link_status_update(BpfHvState *s)
     DBG("Link status goes %s", new_status ? "up" : "down");
     s->ioregs[BPFHV_REG(STATUS)] ^= BPFHV_STATUS_LINK;
     if (new_status) {
-        unsigned int i;
-
         /* Link status goes up, which means that bpfhv_can_receive()
          * may return true, hence we need to wake up the backend. */
         for (i = 0; i < s->num_queue_pairs; i++) {
@@ -409,6 +408,12 @@ bpfhv_link_status_update(BpfHvState *s)
                   BPFHV_UPGRADE_TIMER_MS);
 #endif /* BPFHV_UPGRADE_TIMER */
     } else {
+        /* Link status goes down, so we stop the transmit bottom halves
+         * and purge any packets queued for receive. */
+        for (i = 0; i < s->num_queue_pairs; i++) {
+            qemu_bh_cancel(s->txq[i].bh);
+            qemu_purge_queued_packets(qemu_get_subqueue(s->nic, i));
+        }
 #ifdef BPFHV_DEBUG_TIMER
         timer_del(s->debug_timer);
 #endif /* BPFHV_DEBUG_TIMER */
@@ -822,7 +827,7 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     BpfHvState *s = opaque;
     unsigned int doorbell;
 
-    doorbell = addr / s->ioregs[BPFHV_REG(DOORBELL_SIZE)];
+    doorbell = addr / BPFHV_DOORBELL_SIZE;
     if (doorbell >= s->num_queues) {
         DBG("Invalid doorbell write, addr=0x%08"PRIx64, addr);
         return;
