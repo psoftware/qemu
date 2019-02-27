@@ -39,7 +39,7 @@ bpfhv_proxy_start(BpfhvProxyState *s)
 }
 
 static void
-net_bpfhv_proxy_cleanup(NetClientState *nc)
+bpfhv_proxy_cleanup(NetClientState *nc)
 {
     BpfhvProxyState *s = DO_UPCAST(BpfhvProxyState, nc, nc);
 
@@ -74,13 +74,13 @@ bpfhv_proxy_has_ufo(NetClientState *nc)
 static NetClientInfo net_bpfhv_proxy_info = {
         .type = NET_CLIENT_DRIVER_BPFHV_PROXY,
         .size = sizeof(BpfhvProxyState),
-        .cleanup = net_bpfhv_proxy_cleanup,
+        .cleanup = bpfhv_proxy_cleanup,
         .has_vnet_hdr = bpfhv_proxy_has_vnet_hdr,
         .has_ufo = bpfhv_proxy_has_ufo,
 };
 
 static gboolean
-net_bpfhv_proxy_watch(GIOChannel *chan, GIOCondition cond,
+bpfhv_proxy_watch(GIOChannel *chan, GIOCondition cond,
                                            void *opaque)
 {
     BpfhvProxyState *s = opaque;
@@ -91,7 +91,7 @@ net_bpfhv_proxy_watch(GIOChannel *chan, GIOCondition cond,
 }
 
 static void
-net_bpfhv_proxy_event(void *opaque, int event)
+bpfhv_proxy_event(void *opaque, int event)
 {
     const char *name = opaque;
     NetClientState *nc;
@@ -110,7 +110,7 @@ net_bpfhv_proxy_event(void *opaque, int event)
             return;
         }
         s->watch = qemu_chr_fe_add_watch(&s->chr, G_IO_HUP,
-                                         net_bpfhv_proxy_watch, s);
+                                         bpfhv_proxy_watch, s);
         qmp_set_link(name, true, &err);
         s->started = true;
         break;
@@ -118,7 +118,7 @@ net_bpfhv_proxy_event(void *opaque, int event)
         qmp_set_link(name, false, &err);
         bpfhv_proxy_stop(s);
 
-        qemu_chr_fe_set_handlers(&s->chr, NULL, NULL, net_bpfhv_proxy_event,
+        qemu_chr_fe_set_handlers(&s->chr, NULL, NULL, bpfhv_proxy_event,
                 NULL, opaque, NULL, true);
     }
 
@@ -128,8 +128,7 @@ net_bpfhv_proxy_event(void *opaque, int event)
 }
 
 static int
-net_bpfhv_proxy_init(NetClientState *peer, const char *device,
-                     const char *name, Chardev *chr)
+bpfhv_proxy_init(NetClientState *peer, const char *name, Chardev *chr)
 {
     Error *err = NULL;
     NetClientState *nc;
@@ -138,7 +137,7 @@ net_bpfhv_proxy_init(NetClientState *peer, const char *device,
 
     assert(name);
 
-    nc = qemu_new_net_client(&net_bpfhv_proxy_info, peer, device, name);
+    nc = qemu_new_net_client(&net_bpfhv_proxy_info, peer, "bpfhv_proxy", name);
     snprintf(nc->info_str, sizeof(nc->info_str), "bpfhv-proxy%d to %s",
              i, chr->label);
     nc->queue_index = i;
@@ -154,7 +153,7 @@ net_bpfhv_proxy_init(NetClientState *peer, const char *device,
             goto err;
         }
         qemu_chr_fe_set_handlers(&s->chr, NULL, NULL,
-                                 net_bpfhv_proxy_event, NULL, nc->name, NULL,
+                                 bpfhv_proxy_event, NULL, nc->name, NULL,
                                  true);
     } while (!s->started);
 
@@ -168,32 +167,8 @@ err:
     return -1;
 }
 
-static Chardev *
-bpfhv_proxy_claim_chardev(const NetdevBpfhvProxyOptions *opts, Error **errp)
-{
-    Chardev *chr = qemu_chr_find(opts->chardev);
-
-    if (chr == NULL) {
-        error_setg(errp, "chardev \"%s\" not found", opts->chardev);
-        return NULL;
-    }
-
-    if (!qemu_chr_has_feature(chr, QEMU_CHAR_FEATURE_RECONNECTABLE)) {
-        error_setg(errp, "chardev \"%s\" is not reconnectable",
-                   opts->chardev);
-        return NULL;
-    }
-    if (!qemu_chr_has_feature(chr, QEMU_CHAR_FEATURE_FD_PASS)) {
-        error_setg(errp, "chardev \"%s\" does not support FD passing",
-                   opts->chardev);
-        return NULL;
-    }
-
-    return chr;
-}
-
 static int
-bpfhv_proxy_check_net(void *opaque, QemuOpts *opts, Error **errp)
+bpfhv_proxy_check_net_frontend(void *opaque, QemuOpts *opts, Error **errp)
 {
     const char *name = opaque;
     const char *driver, *netdev;
@@ -218,22 +193,36 @@ int
 net_init_bpfhv_proxy(const Netdev *netdev, const char *name,
                         NetClientState *peer, Error **errp)
 {
-    const NetdevBpfhvProxyOptions *bpfhv_proxy_opts;
+    const NetdevBpfhvProxyOptions *opts;
     Chardev *chr;
 
     assert(netdev->type == NET_CLIENT_DRIVER_BPFHV_PROXY);
-    bpfhv_proxy_opts = &netdev->u.bpfhv_proxy;
+    opts = &netdev->u.bpfhv_proxy;
 
-    chr = bpfhv_proxy_claim_chardev(bpfhv_proxy_opts, errp);
-    if (!chr) {
+    chr = qemu_chr_find(opts->chardev);
+    if (chr == NULL) {
+        error_setg(errp, "chardev \"%s\" not found", opts->chardev);
+        return -1;
+    }
+
+    if (!qemu_chr_has_feature(chr, QEMU_CHAR_FEATURE_RECONNECTABLE)) {
+        error_setg(errp, "chardev \"%s\" is not reconnectable",
+                   opts->chardev);
+        return -1;
+    }
+
+    if (!qemu_chr_has_feature(chr, QEMU_CHAR_FEATURE_FD_PASS)) {
+        error_setg(errp, "chardev \"%s\" does not support FD passing",
+                   opts->chardev);
         return -1;
     }
 
     /* Check that network fronted is what we expect. */
-    if (qemu_opts_foreach(qemu_find_opts("device"), bpfhv_proxy_check_net,
+    if (qemu_opts_foreach(qemu_find_opts("device"),
+                          bpfhv_proxy_check_net_frontend,
                           (char *)name, errp)) {
         return -1;
     }
 
-    return net_bpfhv_proxy_init(peer, "bpfhv_proxy", name, chr);
+    return bpfhv_proxy_init(peer, name, chr);
 }
