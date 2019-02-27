@@ -196,9 +196,12 @@ typedef struct BpfHvState_st {
     /* Current dump of queues status to be exposed to the guest. */
     char *curdump;
 
+    /* Tunables exposed to the user. */
     struct {
         uint16_t num_rx_bufs;
         uint16_t num_tx_bufs;
+        bool csum;
+        bool gso;
     } net_conf;
 
 #ifdef BPFHV_DEBUG_TIMER
@@ -1273,13 +1276,10 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     /* Check if backend supports virtio-net offloadings. */
     if (qemu_has_vnet_hdr(nc->peer) &&
         qemu_has_vnet_hdr_len(nc->peer, sizeof(struct virtio_net_hdr_v1))) {
-        bool csum = true;
-        bool gso = true;
-
-        if (csum) {
+        if (s->net_conf.csum) {
             s->hv_features |= BPFHV_CSUM_FEATURES;
         }
-        if (gso) {
+        if (s->net_conf.gso) {
             s->hv_features |= BPFHV_GSO_FEATURES;
         }
     }
@@ -1507,6 +1507,8 @@ static Property bpfhv_properties[] = {
     DEFINE_NIC_PROPERTIES(BpfHvState, nic_conf),
     DEFINE_PROP_UINT16("num_rx_bufs", BpfHvState, net_conf.num_rx_bufs, 256),
     DEFINE_PROP_UINT16("num_tx_bufs", BpfHvState, net_conf.num_tx_bufs, 256),
+    DEFINE_PROP_BOOL("csum", BpfHvState, net_conf.csum, true),
+    DEFINE_PROP_BOOL("gso", BpfHvState, net_conf.gso, true),
     DEFINE_PROP_END_OF_LIST(),
 };
 
