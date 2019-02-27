@@ -157,11 +157,11 @@ typedef struct BpfHvState_st {
 
     /* Total number of queue pairs. For the moment being we assume that
      * num_tx_queues == num_rx_queues. */
-    unsigned int num_queue_pairs;
+    uint32_t num_queue_pairs;
 
     /* Total number of queues, including both receive and transmit
      * ones (this is twice as num_queue_pairs). */
-    unsigned int num_queues;
+    uint32_t num_queues;
 
 #define num_rx_queues   ioregs[BPFHV_REG(NUM_RX_QUEUES)]
 #define num_tx_queues   ioregs[BPFHV_REG(NUM_TX_QUEUES)]
@@ -182,16 +182,16 @@ typedef struct BpfHvState_st {
 
     /* Length of the virtio net header that we are using to implement
      * the offloads supported by the backend. */
-    int vnet_hdr_len;
+    int32_t vnet_hdr_len;
 
     /* The features that we expose to the guest. */
     uint32_t hv_features;
 
     /* Name of the set of eBPF programs currently in use. */
-    const char *progsname;
+    char progsname[32];
 
     /* Name of the set of eBPF programs to load next. */
-    const char *progsname_next;
+    char progsname_next[32];
 
     /* Current dump of queues status to be exposed to the guest. */
     char *curdump;
@@ -373,15 +373,15 @@ bpfhv_upgrade_timer(void *opaque)
      * CSUM offloads and CSUM+GSO offloads). */
     if (!strcmp(s->progsname, "sring") &&
         (s->hv_features & BPFHV_CSUM_FEATURES) == BPFHV_CSUM_FEATURES) {
-        s->progsname_next = "sringcsum";
+        pstrcpy(s->progsname_next, sizeof(s->progsname_next), "sringcsum");
         s->ioregs[BPFHV_REG(FEATURES)] = BPFHV_F_SG | BPFHV_CSUM_FEATURES;
     } else if (!strcmp(s->progsname, "sringcsum") &&
                (s->hv_features & BPFHV_GSO_FEATURES) == BPFHV_GSO_FEATURES &&
                (s->hv_features & BPFHV_CSUM_FEATURES) == BPFHV_CSUM_FEATURES) {
-        s->progsname_next = "sringgso";
+        pstrcpy(s->progsname_next, sizeof(s->progsname_next), "sringgso");
         s->ioregs[BPFHV_REG(FEATURES)] = s->hv_features;
     } else if (!strcmp(s->progsname, "sringgso")) {
-        s->progsname_next = "sring";
+        pstrcpy(s->progsname_next, sizeof(s->progsname_next), "sring");
         s->ioregs[BPFHV_REG(FEATURES)] = BPFHV_F_SG;
     }
 
@@ -1130,7 +1130,7 @@ bpfhv_progs_load(BpfHvState *s, const char *progsname, Error **errp)
     int fd;
     int i;
 
-    if (progsname == s->progsname) {
+    if (!strncmp(progsname, s->progsname, sizeof(s->progsname))) {
         return 0;
     }
 
@@ -1232,7 +1232,7 @@ bpfhv_progs_load(BpfHvState *s, const char *progsname, Error **errp)
 
     ret = 0;
     elf_end(elf);
-    s->progsname = progsname;
+    pstrcpy(s->progsname, sizeof(s->progsname), progsname);
     DBG("Loaded program: %s", s->progsname);
 err:
     close(fd);
@@ -1321,7 +1321,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->curdump = NULL;
 
     /* Initialize eBPF programs (default implementation). */
-    s->progsname_next = "sring";
+    pstrcpy(s->progsname_next, sizeof(s->progsname_next), "sring");
     if (bpfhv_progs_load(s, s->progsname_next, errp)) {
         return;
     }
@@ -1496,9 +1496,20 @@ static const VMStateDescription vmstate_bpfhv = {
     .name = "bpfhv",
     .version_id = 1,
     .minimum_version_id = 1,
+//  .pre_save = bpfhv_pre_save,
+//  .post_load = bpfhv_post_load,
     .fields = (VMStateField[]) {
         VMSTATE_PCI_DEVICE(pci_device, BpfHvState),
-        VMSTATE_UINT32(ioregs[0], BpfHvState),
+        VMSTATE_UINT32_ARRAY(ioregs, BpfHvState, BPFHV_REG_END >> 2),
+        VMSTATE_UINT32(num_queue_pairs, BpfHvState),
+        VMSTATE_UINT32(num_queues, BpfHvState),
+        VMSTATE_BOOL(rx_contexts_ready, BpfHvState),
+        VMSTATE_BOOL(tx_contexts_ready, BpfHvState),
+        VMSTATE_BOOL(doorbell_gva_changed, BpfHvState),
+//      VMSTATE_STRUCT_POINTER(rxq, BpfHvState, ...),
+//      VMSTATE_STRUCT_POINTER(rxq, BpfHvState, ...),
+        VMSTATE_INT32(vnet_hdr_len, BpfHvState),
+        VMSTATE_UINT32(hv_features, BpfHvState),
         VMSTATE_END_OF_LIST()
     }
 };
