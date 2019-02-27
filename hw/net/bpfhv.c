@@ -30,7 +30,6 @@
 #include "qemu/error-report.h"
 #include "qemu/iov.h"
 #include "qemu/range.h"
-#include "qemu/crc32c.h"
 #include "qapi/error.h"
 #include "linux/virtio_net.h"
 
@@ -210,7 +209,6 @@ typedef struct BpfHvState_st {
 
 #ifdef BPFHV_UPGRADE_TIMER
     QEMUTimer *upgrade_timer;
-    uint32_t crc;
 #endif /* BPFHV_UPGRADE_TIMER */
 
 #ifdef BPFHV_MEMLI
@@ -301,73 +299,10 @@ bpfhv_debug_timer(void *opaque)
 #endif /* BPFHV_DEBUG_TIMER */
 
 #ifdef BPFHV_UPGRADE_TIMER
-static uint32_t
-bpfhv_progs_crc(BpfHvState *s)
-{
-    char *path = bpfhv_progpath(s->progsname);
-    uint32_t crc = s->crc;
-    size_t ofs = 0, left;
-    uint8_t *data = NULL;
-    struct stat st;
-    int fd = -1;
-
-    /* Open the object file that contains the current programs. */
-    fd = open(path, O_RDONLY, 0);
-    if (fd < 0) {
-        error_report("Failed to open(%s)", path);
-        goto err;
-    }
-
-    /* Get the file size and allocate a buffer to hold that space. */
-    if (fstat(fd, &st)) {
-        error_report("Failed to stat(%s)", path);
-        goto err;
-    }
-
-    left = st.st_size;
-    data = g_malloc(left);
-
-    /* Read the whole file content. */
-    while (left > 0) {
-        ssize_t n = read(fd, data + ofs, left);
-
-        if (n < 0) {
-            error_report("Failed to read(%s)", path);
-            goto err;
-        }
-        left -= n;
-        ofs += n;
-    }
-
-    /* Compute the CRC32 over the data. */
-    crc = crc32c(0xffffffff, data, st.st_size);
-err:
-    if (path != NULL) {
-        g_free(path);
-    }
-    if (data != NULL) {
-        g_free(data);
-    }
-    if (fd >= 0) {
-        close(fd);
-    }
-
-    return crc;
-}
-
 static void
 bpfhv_upgrade_timer(void *opaque)
 {
     BpfHvState *s = opaque;
-    uint32_t crc;
-
-    /* Try to detect changes in the current programs object file.
-     * Currently useless. */
-    crc = bpfhv_progs_crc(s);
-    if (crc != s->crc) {
-        DBG("CRC32 %x --> %x\n", s->crc, crc);
-        s->crc = crc;
-    }
 
     /* Trigger program change (oscillating between no offloads,
      * CSUM offloads and CSUM+GSO offloads). */
@@ -1413,7 +1348,6 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 
 #ifdef BPFHV_UPGRADE_TIMER
     s->upgrade_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL, bpfhv_upgrade_timer, s);
-    s->crc = bpfhv_progs_crc(s);
 #endif /* BPFHV_UPGRADE_TIMER */
 
 #ifdef BPFHV_MEMLI
