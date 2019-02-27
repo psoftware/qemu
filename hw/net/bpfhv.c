@@ -155,9 +155,14 @@ typedef struct BpfHvState_st {
     /* Storage for the I/O registers. */
     uint32_t ioregs[BPFHV_REG_END >> 2];
 
+    /* Total number of queue pairs. For the moment being we assume that
+     * num_tx_queues == num_rx_queues. */
+    unsigned int num_queue_pairs;
+
     /* Total number of queues, including both receive and transmit
-     * ones. */
+     * ones (this is twice as num_queue_pairs). */
     unsigned int num_queues;
+
 #define num_rx_queues   ioregs[BPFHV_REG(NUM_RX_QUEUES)]
 #define num_tx_queues   ioregs[BPFHV_REG(NUM_TX_QUEUES)]
 
@@ -706,9 +711,10 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         break;
 
     case BPFHV_REG_FEATURES: {
-        NetClientState *peer = qemu_get_queue(s->nic)->peer;
+        NetClientState *peer0 = qemu_get_queue(s->nic)->peer;
         Error *local_err = NULL;
         const char *progsname;
+        unsigned int i;
         bool csum, gso;
 
         /* Check that 'val' is a subset of s->hv_features. */
@@ -723,15 +729,21 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         gso = val & BPFHV_GSO_FEATURES;
         s->vnet_hdr_len = (csum || gso) ? sizeof(struct virtio_net_hdr_v1) : 0;
         if ((s->vnet_hdr_len == 0 &&
-            peer->info->type == NET_CLIENT_DRIVER_TAP)) {
+            peer0->info->type == NET_CLIENT_DRIVER_TAP)) {
             /* The tap backend does not support removing the virtio-net
              * header once it has been set. However, we can unnegotiate
              * the header --> qemu_using_vnet_hdr(peer, false). */
         } else {
-            qemu_set_vnet_hdr_len(peer, s->vnet_hdr_len);
+            for (i = 0; i < s->num_queue_pairs; i++) {
+                qemu_set_vnet_hdr_len(qemu_get_subqueue(s->nic, i)->peer,
+                                      s->vnet_hdr_len);
+            }
         }
-        qemu_using_vnet_hdr(peer, s->vnet_hdr_len != 0);
-        qemu_set_offload(peer, /*csum=*/csum, /*tso4=*/gso,
+        for (i = 0; i < s->num_queue_pairs; i++) {
+            qemu_using_vnet_hdr(qemu_get_subqueue(s->nic, i)->peer,
+                                s->vnet_hdr_len != 0);
+        }
+        qemu_set_offload(peer0, /*csum=*/csum, /*tso4=*/gso,
                          /*tso6=*/gso, /*ecn=*/false, /*ufo=*/gso);
 
         /* Load the corresponding eBPF programs. */
@@ -1241,7 +1253,6 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 {
     DeviceState *dev = DEVICE(pci_dev);
     BpfHvState *s = BPFHV(pci_dev);
-    unsigned int num_queue_pairs;
     NetClientState *nc;
     uint8_t *pci_conf;
     int i;
@@ -1273,9 +1284,9 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         }
     }
 
-    num_queue_pairs = MAX(s->nic_conf.peers.queues, 1);
-    if (num_queue_pairs > 32) {
-        error_setg(errp, "Too many queue pairs %u", num_queue_pairs);
+    s->num_queue_pairs = MAX(s->nic_conf.peers.queues, 1);
+    if (s->num_queue_pairs > 32) {
+        error_setg(errp, "Too many queue pairs %u", s->num_queue_pairs);
         return;
     }
 
@@ -1294,8 +1305,8 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     /* Initialize device registers. */
     memset(s->ioregs, 0, sizeof(s->ioregs));
     s->ioregs[BPFHV_REG(VERSION)] = BPFHV_VERSION;
-    s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] = num_queue_pairs;
-    s->ioregs[BPFHV_REG(NUM_TX_QUEUES)] = num_queue_pairs;
+    s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] = s->num_queue_pairs;
+    s->ioregs[BPFHV_REG(NUM_TX_QUEUES)] = s->num_queue_pairs;
     s->ioregs[BPFHV_REG(NUM_RX_BUFS)] = s->net_conf.num_rx_bufs;
     s->ioregs[BPFHV_REG(NUM_TX_BUFS)] = s->net_conf.num_tx_bufs;
     s->ioregs[BPFHV_REG(RX_CTX_SIZE)] = sizeof(struct bpfhv_rx_context)
