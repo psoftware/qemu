@@ -61,4 +61,9 @@ int net_init_netmap(const Netdev *netdev, const char *name,
 int net_init_vhost_user(const Netdev *netdev, const char *name,
                         NetClientState *peer, Error **errp);
 
+#ifdef CONFIG_BPFHV
+int net_init_bpfhv_proxy(const Netdev *netdev, const char *name,
+                         NetClientState *peer, Error **errp);
+#endif
+
 #endif /* QEMU_NET_CLIENTS_H */

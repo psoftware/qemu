@@ -967,6 +967,9 @@ static int (* const net_client_init_fun[NET_CLIENT_DRIVER__MAX])(
 #ifdef CONFIG_L2TPV3
         [NET_CLIENT_DRIVER_L2TPV3]    = net_init_l2tpv3,
 #endif
+#ifdef CONFIG_BPFHV
+        [NET_CLIENT_DRIVER_BPFHV_PROXY] = net_init_bpfhv_proxy,
+#endif
 };
 
 
