@@ -128,52 +128,12 @@ bpfhv_proxy_event(void *opaque, int event)
         bpfhv_proxy_stop(s);
 
         qemu_chr_fe_set_handlers(&s->chr, NULL, NULL, bpfhv_proxy_event,
-                NULL, opaque, NULL, true);
+                                 NULL, opaque, NULL, true);
     }
 
     if (err) {
         error_report_err(err);
     }
-}
-
-static int
-bpfhv_proxy_init(NetClientState *peer, const char *name, Chardev *chr)
-{
-    Error *err = NULL;
-    NetClientState *nc;
-    BpfhvProxyState *s = NULL;
-    int i = 0;
-
-    assert(name);
-
-    nc = qemu_new_net_client(&net_bpfhv_proxy_info, peer, "bpfhv_proxy", name);
-    snprintf(nc->info_str, sizeof(nc->info_str), "bpfhv-proxy%d to %s",
-             i, chr->label);
-    nc->queue_index = i;
-    s = DO_UPCAST(BpfhvProxyState, nc, nc);
-    if (!qemu_chr_fe_init(&s->chr, chr, &err)) {
-        error_report_err(err);
-        goto err;
-    }
-
-    do {
-        if (qemu_chr_fe_wait_connected(&s->chr, &err) < 0) {
-            error_report_err(err);
-            goto err;
-        }
-        qemu_chr_fe_set_handlers(&s->chr, NULL, NULL,
-                                 bpfhv_proxy_event, NULL, nc->name, NULL,
-                                 true);
-    } while (!s->started);
-
-    return 0;
-
-err:
-    if (nc) {
-        qemu_del_net_client(nc);
-    }
-
-    return -1;
 }
 
 static int
@@ -203,7 +163,11 @@ net_init_bpfhv_proxy(const Netdev *netdev, const char *name,
                         NetClientState *peer, Error **errp)
 {
     const NetdevBpfhvProxyOptions *opts;
+    NetClientState *nc = NULL;
+    Error *err = NULL;
+    BpfhvProxyState *s;
     Chardev *chr;
+    int idx = 0;
 
     assert(netdev->type == NET_CLIENT_DRIVER_BPFHV_PROXY);
     opts = &netdev->u.bpfhv_proxy;
@@ -233,5 +197,31 @@ net_init_bpfhv_proxy(const Netdev *netdev, const char *name,
         return -1;
     }
 
-    return bpfhv_proxy_init(peer, name, chr);
+    nc = qemu_new_net_client(&net_bpfhv_proxy_info, peer, "bpfhv_proxy", name);
+    snprintf(nc->info_str, sizeof(nc->info_str), "bpfhv-proxy%d to %s",
+             idx, chr->label);
+    nc->queue_index = idx;
+    s = DO_UPCAST(BpfhvProxyState, nc, nc);
+    if (!qemu_chr_fe_init(&s->chr, chr, &err)) {
+        error_report_err(err);
+        goto err;
+    }
+
+    do {
+        if (qemu_chr_fe_wait_connected(&s->chr, &err) < 0) {
+            error_report_err(err);
+            goto err;
+        }
+        qemu_chr_fe_set_handlers(&s->chr, NULL, NULL, bpfhv_proxy_event,
+                                 NULL, nc->name, NULL, true);
+    } while (!s->started);
+
+    return 0;
+
+err:
+    if (nc) {
+        qemu_del_net_client(nc);
+    }
+
+    return -1;
 }
