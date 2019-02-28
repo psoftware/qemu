@@ -71,12 +71,21 @@ bpfhv_proxy_has_ufo(NetClientState *nc)
     return true;
 }
 
+static ssize_t
+bpfhv_proxy_receive(NetClientState *nc, const uint8_t *buf, size_t size)
+{
+    /* Silently drop packets. */
+    printf("dropping packet (len=%zu)\n", size);
+
+    return size;
+}
 static NetClientInfo net_bpfhv_proxy_info = {
-        .type = NET_CLIENT_DRIVER_BPFHV_PROXY,
-        .size = sizeof(BpfhvProxyState),
-        .cleanup = bpfhv_proxy_cleanup,
-        .has_vnet_hdr = bpfhv_proxy_has_vnet_hdr,
-        .has_ufo = bpfhv_proxy_has_ufo,
+    .type = NET_CLIENT_DRIVER_BPFHV_PROXY,
+    .size = sizeof(BpfhvProxyState),
+    .cleanup = bpfhv_proxy_cleanup,
+    .has_vnet_hdr = bpfhv_proxy_has_vnet_hdr,
+    .has_ufo = bpfhv_proxy_has_ufo,
+    .receive = bpfhv_proxy_receive,
 };
 
 static gboolean
