@@ -123,12 +123,13 @@ bpfhv_proxy_event(void *opaque, int event)
         qmp_set_link(name, true, &err);
         s->started = true;
         break;
+
     case CHR_EVENT_CLOSED:
+        g_source_remove(s->watch);
+        s->watch = 0;
         qmp_set_link(name, false, &err);
         bpfhv_proxy_stop(s);
-
-        qemu_chr_fe_set_handlers(&s->chr, NULL, NULL, bpfhv_proxy_event,
-                                 NULL, opaque, NULL, true);
+        break;
     }
 
     if (err) {
