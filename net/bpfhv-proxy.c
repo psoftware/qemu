@@ -18,23 +18,100 @@
 #include "qemu/option.h"
 #include "trace.h"
 
+#include "bpfhv-proxy.h"
+
 typedef struct BpfhvProxyState {
     NetClientState nc;
     CharBackend chr; /* only queue index 0 */
     guint watch;
-    bool started;
+    bool active;
 } BpfhvProxyState;
+
+static int
+bpfhv_proxy_sendmsg(BpfhvProxyState *s, const BpfhvProxyMessage *msg)
+{
+    size_t size = sizeof(msg->hdr) + msg->hdr.size;
+    int ret;
+
+#if 0
+    if (qemu_chr_fe_set_msgfds(chr, fds, fd_num) < 0) {
+        error_report("Failed to set msg fds.");
+        return -1;
+    }
+#endif
+
+    ret = qemu_chr_fe_write_all(&s->chr, (const uint8_t *)msg, size);
+    if (ret != size) {
+        error_report("Failed to write msg."
+                     " Wrote %d instead of %zu.", ret, size);
+        return -1;
+    }
+
+    return 0;
+}
+
+static int
+bpfhv_proxy_recvmsg(BpfhvProxyState *s, BpfhvProxyMessage *msg)
+{
+    int size = sizeof(msg->hdr), ret;
+
+    /* Read message header. */
+    ret = qemu_chr_fe_read_all(&s->chr, (uint8_t *)&msg->hdr, size);
+    if (ret != size) {
+        error_report("Failed to read msg header. Read %d instead of %d.",
+                     ret, size);
+        return -1;
+    }
+
+    /* Validate payload size. */
+    if (msg->hdr.size > sizeof(msg->payload)) {
+        error_report("Failed to read msg header. "
+                "Size %u exceeds the maximum %zu.", msg->hdr.size,
+                sizeof(msg->payload));
+        return -1;
+    }
+
+    if (msg->hdr.size > 0) {
+        memset(&msg->payload, 0, sizeof(msg->payload));
+        size = msg->hdr.size;
+        ret = qemu_chr_fe_read_all(&s->chr, (uint8_t *)&msg->payload, size);
+        if (ret != size) {
+            error_report("Failed to read msg payload."
+                         " Read %u instead of %u.", ret, msg->hdr.size);
+            return -1;
+        }
+    }
+
+    return 0;
+}
 
 static void
 bpfhv_proxy_stop(BpfhvProxyState *s)
 {
-    /* TODO start */
+    /* TODO stop */
 }
 
 static int
 bpfhv_proxy_start(BpfhvProxyState *s)
 {
-    /* TODO start */
+    BpfhvProxyMessage msg;
+    int ret;
+
+    memset(&msg, 0, sizeof(msg));
+    msg.hdr.reqtype = BPFHV_PROXY_REQ_GET_FEATURES;
+
+    ret = bpfhv_proxy_sendmsg(s, &msg);
+    if (ret) {
+        return ret;
+    }
+
+    ret = bpfhv_proxy_recvmsg(s, &msg);
+    if (ret) {
+        return ret;
+    }
+
+    printf("negotiated features %lx\n", msg.payload.u64);
+
     return 0;
 }
 
@@ -43,7 +120,6 @@ bpfhv_proxy_cleanup(NetClientState *nc)
 {
     BpfhvProxyState *s = DO_UPCAST(BpfhvProxyState, nc, nc);
 
-    (void)s;
     if (nc->queue_index == 0) {
         if (s->watch) {
             g_source_remove(s->watch);
@@ -121,13 +197,16 @@ bpfhv_proxy_event(void *opaque, int event)
         s->watch = qemu_chr_fe_add_watch(&s->chr, G_IO_HUP,
                                          bpfhv_proxy_watch, s);
         qmp_set_link(name, true, &err);
-        s->started = true;
+        s->active = true;
         break;
 
     case CHR_EVENT_CLOSED:
-        g_source_remove(s->watch);
-        s->watch = 0;
+        if (s->watch) {
+            g_source_remove(s->watch);
+            s->watch = 0;
+        }
         qmp_set_link(name, false, &err);
+        s->active = false;
         bpfhv_proxy_stop(s);
         break;
     }
@@ -215,7 +294,7 @@ net_init_bpfhv_proxy(const Netdev *netdev, const char *name,
         }
         qemu_chr_fe_set_handlers(&s->chr, NULL, NULL, bpfhv_proxy_event,
                                  NULL, nc->name, NULL, true);
-    } while (!s->started);
+    } while (!s->active);
 
     return 0;
 
