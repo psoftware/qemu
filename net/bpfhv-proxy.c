@@ -262,6 +262,8 @@ bpfhv_proxy_memli_region_add(MemoryListener *listener,
 
     hva_start = memory_region_get_ram_ptr(section->mr) +
                       section->offset_within_region;
+    DBG("new memory section %lx-%lx sz %lx %p",
+        gpa_start, gpa_end, size, hva_start);
     if (s->num_mem_regs_next > 0) {
         /* Check if we can coalasce the last MemoryRegionSection to
          * the current one. */
@@ -289,8 +291,6 @@ bpfhv_proxy_memli_region_add(MemoryListener *listener,
         last->mr = section->mr;
         memory_region_ref(last->mr);
     }
-    DBG("append memory section %lx-%lx sz %lx %p", gpa_start, gpa_end,
-        size, hva_start);
 }
 
 static void
@@ -312,22 +312,15 @@ bpfhv_proxy_memli_commit(MemoryListener *listener)
         s->num_mem_regs_next = num_mem_regs_tmp;
     }
 
-    if (s->mem_regs && s->mem_regs_next &&
-        s->num_mem_regs == s->num_mem_regs_next &&
-        !memcmp(s->mem_regs, s->mem_regs_next,
-                sizeof(s->mem_regs[0]) * s->num_mem_regs)) {
-        /* Nothing changed. */
-        goto out;
-    }
-
 #ifdef BPFHV_DEBUG
+    DBG("Memtable:");
     for (i = 0; i < s->num_mem_regs; i++) {
         BpfhvProxyMemliRegion *me = s->mem_regs + i;
-        DBG("entry: gpa %lx-%lx size %lx hva_start %p",
+        DBG("    entry #%d: gpa %lx-%lx size %lx hva_start %p", i,
             me->gpa_start, me->gpa_end, me->size, me->hva_start);
     }
 #endif
-out:
+
     /* Free the (previously) current map. */
     for (i = 0; i < s->num_mem_regs_next; i++) {
         BpfhvProxyMemliRegion *me = s->mem_regs_next + i;
