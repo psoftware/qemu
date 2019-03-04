@@ -18,8 +18,8 @@
 #include "qemu/option.h"
 #include "trace.h"
 
-#include "bpfhv-proxy.h"
-#include "../hw/net/bpfhv.h"
+#include "bpfhv/bpfhv-proxy.h"
+#include "bpfhv/bpfhv.h"
 
 /* Verbose debug information. */
 #define BPFHV_DEBUG

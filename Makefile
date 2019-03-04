@@ -876,12 +876,12 @@ ui/shader.o: $(SRC_PATH)/ui/shader.c \
 
 ifdef CONFIG_BPFHV
 bpfhv: hw/net/bpfhv_sring_progs.o hw/net/bpfhv_sringcsum_progs.o hw/net/bpfhv_sringgso_progs.o
-hw/net/bpfhv_sring_progs.o : $(SRC_PATH)/hw/net/bpfhv_sring_progs.c $(SRC_PATH)/hw/net/bpfhv.h $(SRC_PATH)/hw/net/bpfhv_sring.h
-	clang -O2 -Wall -target bpf -c $< -o $@
-hw/net/bpfhv_sringcsum_progs.o : $(SRC_PATH)/hw/net/bpfhv_sringcsum_progs.c $(SRC_PATH)/hw/net/bpfhv_sring_progs.c $(SRC_PATH)/hw/net/bpfhv.h $(SRC_PATH)/hw/net/bpfhv_sring.h
-	clang -O2 -Wall -target bpf -c $< -o $@
-hw/net/bpfhv_sringgso_progs.o : $(SRC_PATH)/hw/net/bpfhv_sringgso_progs.c $(SRC_PATH)/hw/net/bpfhv_sring_progs.c $(SRC_PATH)/hw/net/bpfhv.h $(SRC_PATH)/hw/net/bpfhv_sring.h
-	clang -O2 -Wall -target bpf -c $< -o $@
+hw/net/bpfhv_sring_progs.o : $(SRC_PATH)/hw/net/bpfhv_sring_progs.c $(SRC_PATH)/include/bpfhv/bpfhv.h $(SRC_PATH)/hw/net/bpfhv_sring.h
+	clang -O2 -Wall -I $(SRC_PATH)/include -target bpf -c $< -o $@
+hw/net/bpfhv_sringcsum_progs.o : $(SRC_PATH)/hw/net/bpfhv_sringcsum_progs.c $(SRC_PATH)/hw/net/bpfhv_sring_progs.c $(SRC_PATH)/include/bpfhv/bpfhv.h $(SRC_PATH)/hw/net/bpfhv_sring.h
+	clang -O2 -Wall -I $(SRC_PATH)/include -target bpf -c $< -o $@
+hw/net/bpfhv_sringgso_progs.o : $(SRC_PATH)/hw/net/bpfhv_sringgso_progs.c $(SRC_PATH)/hw/net/bpfhv_sring_progs.c $(SRC_PATH)/include/bpfhv/bpfhv.h $(SRC_PATH)/hw/net/bpfhv_sring.h
+	clang -O2 -Wall -I $(SRC_PATH)/include -target bpf -c $< -o $@
 else
 bpfhv:
 endif

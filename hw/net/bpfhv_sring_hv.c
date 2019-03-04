@@ -26,7 +26,7 @@
 #include "qemu/error-report.h"
 #include "qemu/iov.h"
 
-#include "bpfhv.h"
+#include "bpfhv/bpfhv.h"
 #include "bpfhv_sring.h"
 #include "bpfhv_sring_hv.h"
 

@@ -36,7 +36,7 @@
 #include <libelf.h>
 #include <gelf.h>
 
-#include "bpfhv.h"
+#include "bpfhv/bpfhv.h"
 #include "bpfhv_sring_hv.h"
 
 /*
