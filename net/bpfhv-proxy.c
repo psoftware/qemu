@@ -298,6 +298,7 @@ static void
 bpfhv_proxy_memli_commit(MemoryListener *listener)
 {
     BpfhvProxyState *s = container_of(listener, BpfhvProxyState, memory_listener);
+    bool changed;
     int i;
 
     /* Swap current map with the next map. */
@@ -321,8 +322,11 @@ bpfhv_proxy_memli_commit(MemoryListener *listener)
             me->gpa_start, me->gpa_end, me->size, me->hva_start);
     }
 #endif
+    changed = s->num_mem_regs != s->num_mem_regs_next ||
+              memcmp(s->mem_regs, s->mem_regs_next,
+                sizeof(s->mem_regs[0]) * s->num_mem_regs);
 
-    if (s->active) {
+    if (s->active && changed) {
         int fds[BPFHV_PROXY_MAX_REGIONS];
         size_t num_fds = 0;
         BpfhvProxyMessage msg;
