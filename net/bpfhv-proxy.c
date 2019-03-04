@@ -19,6 +19,18 @@
 #include "trace.h"
 
 #include "bpfhv-proxy.h"
+#include "../hw/net/bpfhv.h"
+
+/* Verbose debug information. */
+#define BPFHV_DEBUG
+
+#ifdef BPFHV_DEBUG
+#define DBG(fmt, ...) do { \
+        fprintf(stderr, "bpfhv-if: " fmt "\n", ## __VA_ARGS__); \
+    } while (0)
+#else
+#define DBG(fmt, ...) do {} while (0)
+#endif
 
 typedef struct BpfhvProxyState {
     NetClientState nc;
@@ -85,14 +97,8 @@ bpfhv_proxy_recvmsg(BpfhvProxyState *s, BpfhvProxyMessage *msg)
     return 0;
 }
 
-static void
-bpfhv_proxy_stop(BpfhvProxyState *s)
-{
-    /* TODO stop */
-}
-
 static int
-bpfhv_proxy_start(BpfhvProxyState *s)
+bpfhv_proxy_get_features(BpfhvProxyState *s, uint64_t *features)
 {
     BpfhvProxyMessage msg;
     int ret;
@@ -110,9 +116,52 @@ bpfhv_proxy_start(BpfhvProxyState *s)
         return ret;
     }
 
-    printf("negotiated features %lx\n", msg.payload.u64);
+    *features = msg.payload.u64;
+
+    DBG("Got features %llx", (long long unsigned)*features);
 
     return 0;
+}
+
+static int
+bpfhv_proxy_set_features(BpfhvProxyState *s, uint64_t features)
+{
+    BpfhvProxyMessage msg;
+    int ret;
+
+    memset(&msg, 0, sizeof(msg));
+    msg.hdr.reqtype = BPFHV_PROXY_REQ_SET_FEATURES;
+    msg.hdr.size = sizeof(msg.payload.u64);
+    msg.payload.u64 = features;
+
+    ret = bpfhv_proxy_sendmsg(s, &msg);
+
+    if (ret == 0) {
+        DBG("Set features %llx", (long long unsigned)features);
+    }
+
+    return ret;
+}
+
+static void
+bpfhv_proxy_stop(BpfhvProxyState *s)
+{
+    /* TODO stop */
+}
+
+static int
+bpfhv_proxy_start(BpfhvProxyState *s)
+{
+    uint64_t guest_features = BPFHV_F_SG;
+    uint64_t be_features = 0;
+    int ret;
+
+    ret = bpfhv_proxy_get_features(s, &be_features);
+    if (ret) {
+        return ret;
+    }
+
+    return bpfhv_proxy_set_features(s, be_features & guest_features);
 }
 
 static void
@@ -190,6 +239,7 @@ bpfhv_proxy_event(void *opaque, int event)
 //  Chardev *chr = qemu_chr_fe_get_driver(&s->chr);
     switch (event) {
     case CHR_EVENT_OPENED:
+        DBG("Backend connected (label=%s)", s->chr.chr->label);
         if (bpfhv_proxy_start(s) < 0) {
             qemu_chr_fe_disconnect(&s->chr);
             return;
@@ -208,6 +258,7 @@ bpfhv_proxy_event(void *opaque, int event)
         qmp_set_link(name, false, &err);
         s->active = false;
         bpfhv_proxy_stop(s);
+        DBG("Backend disconnected (label=%s)", s->chr.chr->label);
         break;
     }
 

@@ -72,7 +72,7 @@
 
 #ifdef BPFHV_DEBUG
 #define DBG(fmt, ...) do { \
-        fprintf(stderr, "bpfhv-if: " fmt "\n", ## __VA_ARGS__); \
+        fprintf(stderr, "bpfhv-proxy: " fmt "\n", ## __VA_ARGS__); \
     } while (0)
 #else
 #define DBG(fmt, ...) do {} while (0)
