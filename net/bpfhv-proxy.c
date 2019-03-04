@@ -16,6 +16,9 @@
 #include "qemu/config-file.h"
 #include "qemu/error-report.h"
 #include "qemu/option.h"
+#include "qemu/range.h"
+#include "exec/memory.h"
+#include "exec/address-spaces.h"
 #include "trace.h"
 
 #include "bpfhv/bpfhv-proxy.h"
@@ -32,11 +35,30 @@
 #define DBG(fmt, ...) do {} while (0)
 #endif
 
+typedef struct BpfhvProxyMemliRegion {
+    uint64_t gpa_start;
+    uint64_t gpa_end;
+    uint64_t size;
+    void *hva_start;
+    MemoryRegion *mr;
+} BpfhvProxyMemliRegion;
+
 typedef struct BpfhvProxyState {
     NetClientState nc;
     CharBackend chr; /* only queue index 0 */
     guint watch;
+
+    /* True if we have an active backend. */
     bool active;
+
+    /* Data structures needed to receive updates on the
+     * guest memory map. */
+    MemoryListener memory_listener;
+    BpfhvProxyMemliRegion mem_regs_arr[2][BPFHV_PROXY_MAX_REGIONS];
+    BpfhvProxyMemliRegion *mem_regs_next;
+    BpfhvProxyMemliRegion *mem_regs;
+    size_t num_mem_regs;
+    size_t num_mem_regs_next;
 } BpfhvProxyState;
 
 static int
@@ -213,6 +235,106 @@ static NetClientInfo net_bpfhv_proxy_info = {
     .receive = bpfhv_proxy_receive,
 };
 
+static void
+bpfhv_proxy_memli_begin(MemoryListener *listener)
+{
+    BpfhvProxyState *s = container_of(listener, BpfhvProxyState, memory_listener);
+
+    s->num_mem_regs_next = 0;
+}
+
+static void
+bpfhv_proxy_memli_region_add(MemoryListener *listener,
+                       MemoryRegionSection *section)
+{
+    BpfhvProxyState *s = container_of(listener, BpfhvProxyState, memory_listener);
+    uint64_t size = int128_get64(section->size);
+    uint64_t gpa_start = section->offset_within_address_space;
+    uint64_t gpa_end = range_get_last(gpa_start, size) + 1;
+    void *hva_start;
+    BpfhvProxyMemliRegion *last = NULL;
+    bool add_entry = true;
+
+    if (!memory_region_is_ram(section->mr) ||
+            memory_region_get_fd(section->mr) < 0) {
+        return;
+    }
+
+    hva_start = memory_region_get_ram_ptr(section->mr) +
+                      section->offset_within_region;
+    if (s->num_mem_regs_next > 0) {
+        /* Check if we can coalasce the last MemoryRegionSection to
+         * the current one. */
+        last = s->mem_regs_next + s->num_mem_regs_next - 1;
+        if (gpa_start == last->gpa_end &&
+            hva_start == last->hva_start + last->size) {
+            add_entry = false;
+            last->gpa_end = gpa_end;
+            last->size += size;
+        }
+    }
+
+    if (add_entry) {
+        if (s->num_mem_regs_next >= BPFHV_PROXY_MAX_REGIONS) {
+            error_report("Error: Guest memory map has more than "
+                         "%zu memory regions.", s->num_mem_regs_next);
+            return;
+        }
+        s->num_mem_regs_next++;
+        last = s->mem_regs_next + s->num_mem_regs_next - 1;
+        last->gpa_start = gpa_start;
+        last->gpa_end = gpa_end;
+        last->size = size;
+        last->hva_start = hva_start;
+        last->mr = section->mr;
+        memory_region_ref(last->mr);
+    }
+    DBG("append memory section %lx-%lx sz %lx %p", gpa_start, gpa_end,
+        size, hva_start);
+}
+
+static void
+bpfhv_proxy_memli_commit(MemoryListener *listener)
+{
+    BpfhvProxyState *s = container_of(listener, BpfhvProxyState, memory_listener);
+    int i;
+
+    /* Swap current map with the next map. */
+    {
+        BpfhvProxyMemliRegion *mem_regs_tmp;
+        int num_mem_regs_tmp;
+
+        mem_regs_tmp = s->mem_regs;
+        s->mem_regs = s->mem_regs_next;
+        s->mem_regs_next = mem_regs_tmp;
+        num_mem_regs_tmp = s->num_mem_regs;
+        s->num_mem_regs = s->num_mem_regs_next;
+        s->num_mem_regs_next = num_mem_regs_tmp;
+    }
+
+    if (s->mem_regs && s->mem_regs_next &&
+        s->num_mem_regs == s->num_mem_regs_next &&
+        !memcmp(s->mem_regs, s->mem_regs_next,
+                sizeof(s->mem_regs[0]) * s->num_mem_regs)) {
+        /* Nothing changed. */
+        goto out;
+    }
+
+#ifdef BPFHV_DEBUG
+    for (i = 0; i < s->num_mem_regs; i++) {
+        BpfhvProxyMemliRegion *me = s->mem_regs + i;
+        DBG("entry: gpa %lx-%lx size %lx hva_start %p",
+            me->gpa_start, me->gpa_end, me->size, me->hva_start);
+    }
+#endif
+out:
+    /* Free the (previously) current map. */
+    for (i = 0; i < s->num_mem_regs_next; i++) {
+        BpfhvProxyMemliRegion *me = s->mem_regs_next + i;
+        memory_region_unref(me->mr);
+    }
+}
+
 static gboolean
 bpfhv_proxy_watch(GIOChannel *chan, GIOCondition cond,
                                            void *opaque)
@@ -346,6 +468,16 @@ net_init_bpfhv_proxy(const Netdev *netdev, const char *name,
         qemu_chr_fe_set_handlers(&s->chr, NULL, NULL, bpfhv_proxy_event,
                                  NULL, nc->name, NULL, true);
     } while (!s->active);
+
+    /* Initialize memory listener. */
+    s->mem_regs_next = s->mem_regs_arr[0];
+    s->mem_regs = s->mem_regs_arr[1];
+    s->memory_listener.priority = 10,
+    s->memory_listener.begin = bpfhv_proxy_memli_begin,
+    s->memory_listener.commit = bpfhv_proxy_memli_commit,
+    s->memory_listener.region_add = bpfhv_proxy_memli_region_add,
+    s->memory_listener.region_nop = bpfhv_proxy_memli_region_add,
+    memory_listener_register(&s->memory_listener, &address_space_memory);
 
     return 0;
 
