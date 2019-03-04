@@ -944,6 +944,8 @@ bpfhv_memli_region_add(MemoryListener *listener,
 
     hva_start = memory_region_get_ram_ptr(section->mr) +
                       section->offset_within_region;
+    DBG("new memory section %lx-%lx sz %lx %p", gpa_start, gpa_end,
+        size, hva_start);
     if (s->num_trans_entries_tmp > 0) {
         /* Check if we can coalasce the last MemoryRegionSection to
          * the current one. */
@@ -968,8 +970,6 @@ bpfhv_memli_region_add(MemoryListener *listener,
         last->mr = section->mr;
         memory_region_ref(last->mr);
     }
-    DBG("append memory section %lx-%lx sz %lx %p", gpa_start, gpa_end,
-        size, hva_start);
 }
 
 static void
@@ -985,22 +985,14 @@ bpfhv_memli_commit(MemoryListener *listener)
     s->trans_entries = s->trans_entries_tmp;
     s->num_trans_entries = s->num_trans_entries_tmp;
 
-    if (s->trans_entries && old_trans_entries &&
-        s->num_trans_entries == num_old_trans_entries &&
-        !memcmp(s->trans_entries, old_trans_entries,
-                sizeof(s->trans_entries[0]) * s->num_trans_entries)) {
-        /* Nothing changed. */
-        goto out;
-    }
-
 #ifdef BPFHV_DEBUG
     for (i = 0; i < s->num_trans_entries; i++) {
         BpfhvTranslateEntry *te = s->trans_entries + i;
-        DBG("entry: gpa %lx-%lx size %lx hva_start %p",
+        DBG("    entry %d: gpa %lx-%lx size %lx hva_start %p", i,
             te->gpa_start, te->gpa_end, te->size, te->hva_start);
     }
 #endif
-out:
+
     s->trans_entries_tmp = NULL;
     s->num_trans_entries_tmp = 0;
     for (i = 0; i < num_old_trans_entries; i++) {
