@@ -62,17 +62,18 @@ typedef struct BpfhvProxyState {
 } BpfhvProxyState;
 
 static int
-bpfhv_proxy_sendmsg(BpfhvProxyState *s, const BpfhvProxyMessage *msg)
+bpfhv_proxy_sendmsg(BpfhvProxyState *s, const BpfhvProxyMessage *msg,
+                    int *fds, size_t num_fds)
 {
     size_t size = sizeof(msg->hdr) + msg->hdr.size;
     int ret;
 
-#if 0
-    if (qemu_chr_fe_set_msgfds(chr, fds, fd_num) < 0) {
-        error_report("Failed to set msg fds.");
-        return -1;
+    if (fds != NULL && num_fds > 0) {
+        if (qemu_chr_fe_set_msgfds(&s->chr, fds, num_fds) < 0) {
+            error_report("Failed to set msg fds.");
+            return -1;
+        }
     }
-#endif
 
     ret = qemu_chr_fe_write_all(&s->chr, (const uint8_t *)msg, size);
     if (ret != size) {
@@ -128,7 +129,7 @@ bpfhv_proxy_get_features(BpfhvProxyState *s, uint64_t *features)
     memset(&msg, 0, sizeof(msg));
     msg.hdr.reqtype = BPFHV_PROXY_REQ_GET_FEATURES;
 
-    ret = bpfhv_proxy_sendmsg(s, &msg);
+    ret = bpfhv_proxy_sendmsg(s, &msg, NULL, 0);
     if (ret) {
         return ret;
     }
@@ -156,7 +157,7 @@ bpfhv_proxy_set_features(BpfhvProxyState *s, uint64_t features)
     msg.hdr.size = sizeof(msg.payload.u64);
     msg.payload.u64 = features;
 
-    ret = bpfhv_proxy_sendmsg(s, &msg);
+    ret = bpfhv_proxy_sendmsg(s, &msg, NULL, 0);
 
     if (ret == 0) {
         DBG("Set features %llx", (long long unsigned)features);
@@ -322,6 +323,8 @@ bpfhv_proxy_memli_commit(MemoryListener *listener)
 #endif
 
     if (s->active) {
+        int fds[BPFHV_PROXY_MAX_REGIONS];
+        size_t num_fds = 0;
         BpfhvProxyMessage msg;
 
         memset(&msg, 0, sizeof(msg));
@@ -330,15 +333,27 @@ bpfhv_proxy_memli_commit(MemoryListener *listener)
 
         msg.payload.memory_map.num_regions = s->num_mem_regs;
         for (i = 0; i < s->num_mem_regs; i++) {
+            ram_addr_t offset;
+            MemoryRegion *mr;
+            int fd;
+
+            mr = memory_region_from_host(s->mem_regs[i].hva_start,
+                                         &offset);
+            assert(mr != NULL);
+            fd = memory_region_get_fd(mr);
+            assert(fd >= 0);
+
+            assert(i < BPFHV_PROXY_MAX_REGIONS);
             msg.payload.memory_map.regions[i].guest_physical_addr =
                 s->mem_regs[i].gpa_start;
             msg.payload.memory_map.regions[i].size = s->mem_regs[i].size;
             msg.payload.memory_map.regions[i].hypervisor_virtual_addr =
                 (uintptr_t)s->mem_regs[i].hva_start;
-            msg.payload.memory_map.regions[i].mmap_offset = 0; /* TODO */
+            msg.payload.memory_map.regions[i].mmap_offset = offset;
+            fds[num_fds++] = fd;
         }
 
-        bpfhv_proxy_sendmsg(s, &msg);
+        bpfhv_proxy_sendmsg(s, &msg, fds, num_fds);
     }
 
     /* Free the (previously) current map. */
