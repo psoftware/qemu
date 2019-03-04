@@ -321,6 +321,26 @@ bpfhv_proxy_memli_commit(MemoryListener *listener)
     }
 #endif
 
+    if (s->active) {
+        BpfhvProxyMessage msg;
+
+        memset(&msg, 0, sizeof(msg));
+        msg.hdr.reqtype = BPFHV_PROXY_REQ_SET_MEM_TABLE;
+        msg.hdr.size = sizeof(msg.payload.memory_map);
+
+        msg.payload.memory_map.num_regions = s->num_mem_regs;
+        for (i = 0; i < s->num_mem_regs; i++) {
+            msg.payload.memory_map.regions[i].guest_physical_addr =
+                s->mem_regs[i].gpa_start;
+            msg.payload.memory_map.regions[i].size = s->mem_regs[i].size;
+            msg.payload.memory_map.regions[i].hypervisor_virtual_addr =
+                (uintptr_t)s->mem_regs[i].hva_start;
+            msg.payload.memory_map.regions[i].mmap_offset = 0; /* TODO */
+        }
+
+        bpfhv_proxy_sendmsg(s, &msg);
+    }
+
     /* Free the (previously) current map. */
     for (i = 0; i < s->num_mem_regs_next; i++) {
         BpfhvProxyMemliRegion *me = s->mem_regs_next + i;
@@ -329,8 +349,7 @@ bpfhv_proxy_memli_commit(MemoryListener *listener)
 }
 
 static gboolean
-bpfhv_proxy_watch(GIOChannel *chan, GIOCondition cond,
-                                           void *opaque)
+bpfhv_proxy_watch(GIOChannel *chan, GIOCondition cond, void *opaque)
 {
     BpfhvProxyState *s = opaque;
 
