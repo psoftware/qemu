@@ -187,6 +187,42 @@ bpfhv_proxy_set_features(BpfhvProxyState *s, uint64_t features)
 }
 
 static int
+bpfhv_proxy_set_num_queues(BpfhvProxyState *s, unsigned int *num_queues)
+{
+    unsigned int requested = *num_queues;
+    BpfhvProxyMessage msg;
+    int ret;
+
+    memset(&msg, 0, sizeof(msg));
+    msg.hdr.reqtype = BPFHV_PROXY_REQ_SET_NUM_QUEUES;
+    msg.hdr.size = sizeof(msg.payload.u64);
+    msg.payload.u64 = (uint64_t)*num_queues;
+
+    ret = bpfhv_proxy_sendmsg(s, &msg, NULL, 0);
+    if (ret) {
+        return ret;
+    }
+
+    ret = bpfhv_proxy_recvmsg(s, &msg, NULL, 0);
+    if (ret) {
+        return ret;
+    }
+
+    *num_queues = (unsigned int)msg.payload.u64;
+
+    if (*num_queues > requested || *num_queues < 1) {
+        error_report("Got invalid number of queues %u (requested %u)",
+                     *num_queues, requested);
+        *num_queues = requested;
+        return -1;
+    }
+
+    DBG("Negotiated %u queue pairs", (unsigned int)(*num_queues));
+
+    return 0;
+}
+
+static int
 bpfhv_proxy_get_programs(BpfhvProxyState *s)
 {
     BpfhvProxyMessage msg;
@@ -295,14 +331,22 @@ bpfhv_proxy_start(BpfhvProxyState *s)
 {
     uint64_t guest_features = BPFHV_F_SG;
     uint64_t be_features = 0;
+    unsigned int num_queues = 1;
     int ret;
 
+    /* Negotiate features. */
     ret = bpfhv_proxy_get_features(s, &be_features);
     if (ret) {
         return ret;
     }
 
     ret = bpfhv_proxy_set_features(s, be_features & guest_features);
+    if (ret) {
+        return ret;
+    }
+
+    /* Set number of queues. */
+    ret = bpfhv_proxy_set_num_queues(s, /*num_queues=*/&num_queues);
     if (ret) {
         return ret;
     }
