@@ -259,6 +259,31 @@ bpfhv_proxy_set_mem_table(BpfhvProxyState *s)
     return bpfhv_proxy_sendmsg(s, &msg, fds, num_fds);
 }
 
+static int
+bpfhv_proxy_set_queue_ctx(BpfhvProxyState *s, unsigned int queue_idx,
+                          bool is_rx, hwaddr gpa)
+{
+    BpfhvProxyMessage msg;
+    int ret;
+
+    memset(&msg, 0, sizeof(msg));
+    msg.hdr.reqtype = BPFHV_PROXY_REQ_SET_QUEUE_CTX;
+    msg.hdr.size = sizeof(msg.payload.queue_ctx);
+
+    msg.payload.queue_ctx.queue_idx = queue_idx;
+    msg.payload.queue_ctx.direction =
+        is_rx ? BPFHV_PROXY_DIR_RX : BPFHV_PROXY_DIR_TX;
+    msg.payload.queue_ctx.guest_physical_addr = gpa;
+
+    ret = bpfhv_proxy_sendmsg(s, &msg, NULL, 0);
+    if (ret == 0) {
+        DBG("Set queue ctx %s%u %"PRIx64"", is_rx ? "RX" : "TX",
+            queue_idx, gpa);
+    }
+
+    return ret;
+}
+
 static void
 bpfhv_proxy_stop(BpfhvProxyState *s)
 {
@@ -287,7 +312,22 @@ bpfhv_proxy_start(BpfhvProxyState *s)
         return ret;
     }
 
-    return bpfhv_proxy_set_mem_table(s);
+    ret = bpfhv_proxy_set_mem_table(s);
+    if (ret) {
+        return ret;
+    }
+
+    ret = bpfhv_proxy_set_queue_ctx(s, /*queue_idx=*/0, /*is_rx=*/true, /*gpa=*/0);
+    if (ret) {
+        return ret;
+    }
+
+    ret = bpfhv_proxy_set_queue_ctx(s, /*queue_idx=*/0, /*is_rx=*/false, /*gpa=*/0);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
 }
 
 static void
