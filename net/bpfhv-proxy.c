@@ -166,6 +166,47 @@ bpfhv_proxy_set_features(BpfhvProxyState *s, uint64_t features)
     return ret;
 }
 
+static int
+bpfhv_proxy_set_mem_table(BpfhvProxyState *s)
+{
+    int fds[BPFHV_PROXY_MAX_REGIONS];
+    BpfhvProxyMessage msg;
+    size_t num_fds = 0;
+    int i;
+
+    if (s->num_mem_regs == 0) {
+        return 0;  /* Nothing to do. */
+    }
+
+    memset(&msg, 0, sizeof(msg));
+    msg.hdr.reqtype = BPFHV_PROXY_REQ_SET_MEM_TABLE;
+    msg.hdr.size = sizeof(msg.payload.memory_map);
+
+    msg.payload.memory_map.num_regions = s->num_mem_regs;
+    for (i = 0; i < s->num_mem_regs; i++) {
+        ram_addr_t offset;
+        MemoryRegion *mr;
+        int fd;
+
+        mr = memory_region_from_host(s->mem_regs[i].hva_start,
+                                     &offset);
+        assert(mr != NULL);
+        fd = memory_region_get_fd(mr);
+        assert(fd >= 0);
+
+        assert(i < BPFHV_PROXY_MAX_REGIONS);
+        msg.payload.memory_map.regions[i].guest_physical_addr =
+            s->mem_regs[i].gpa_start;
+        msg.payload.memory_map.regions[i].size = s->mem_regs[i].size;
+        msg.payload.memory_map.regions[i].hypervisor_virtual_addr =
+            (uintptr_t)s->mem_regs[i].hva_start;
+        msg.payload.memory_map.regions[i].mmap_offset = offset;
+        fds[num_fds++] = fd;
+    }
+
+    return bpfhv_proxy_sendmsg(s, &msg, fds, num_fds);
+}
+
 static void
 bpfhv_proxy_stop(BpfhvProxyState *s)
 {
@@ -184,7 +225,12 @@ bpfhv_proxy_start(BpfhvProxyState *s)
         return ret;
     }
 
-    return bpfhv_proxy_set_features(s, be_features & guest_features);
+    ret = bpfhv_proxy_set_features(s, be_features & guest_features);
+    if (ret) {
+        return ret;
+    }
+
+    return bpfhv_proxy_set_mem_table(s);
 }
 
 static void
@@ -327,37 +373,7 @@ bpfhv_proxy_memli_commit(MemoryListener *listener)
                 sizeof(s->mem_regs[0]) * s->num_mem_regs);
 
     if (s->active && changed) {
-        int fds[BPFHV_PROXY_MAX_REGIONS];
-        size_t num_fds = 0;
-        BpfhvProxyMessage msg;
-
-        memset(&msg, 0, sizeof(msg));
-        msg.hdr.reqtype = BPFHV_PROXY_REQ_SET_MEM_TABLE;
-        msg.hdr.size = sizeof(msg.payload.memory_map);
-
-        msg.payload.memory_map.num_regions = s->num_mem_regs;
-        for (i = 0; i < s->num_mem_regs; i++) {
-            ram_addr_t offset;
-            MemoryRegion *mr;
-            int fd;
-
-            mr = memory_region_from_host(s->mem_regs[i].hva_start,
-                                         &offset);
-            assert(mr != NULL);
-            fd = memory_region_get_fd(mr);
-            assert(fd >= 0);
-
-            assert(i < BPFHV_PROXY_MAX_REGIONS);
-            msg.payload.memory_map.regions[i].guest_physical_addr =
-                s->mem_regs[i].gpa_start;
-            msg.payload.memory_map.regions[i].size = s->mem_regs[i].size;
-            msg.payload.memory_map.regions[i].hypervisor_virtual_addr =
-                (uintptr_t)s->mem_regs[i].hva_start;
-            msg.payload.memory_map.regions[i].mmap_offset = offset;
-            fds[num_fds++] = fd;
-        }
-
-        bpfhv_proxy_sendmsg(s, &msg, fds, num_fds);
+        bpfhv_proxy_set_mem_table(s);
     }
 
     /* Free the (previously) current map. */
