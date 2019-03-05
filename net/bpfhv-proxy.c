@@ -59,6 +59,10 @@ typedef struct BpfhvProxyState {
     BpfhvProxyMemliRegion *mem_regs;
     size_t num_mem_regs;
     size_t num_mem_regs_next;
+
+    /* File descriptor of an open file from which the eBPF programs
+     * can be read. */
+    int progfd;
 } BpfhvProxyState;
 
 static int
@@ -86,8 +90,10 @@ bpfhv_proxy_sendmsg(BpfhvProxyState *s, const BpfhvProxyMessage *msg,
 }
 
 static int
-bpfhv_proxy_recvmsg(BpfhvProxyState *s, BpfhvProxyMessage *msg)
+bpfhv_proxy_recvmsg(BpfhvProxyState *s, BpfhvProxyMessage *msg,
+                    int *fds, size_t num_fds)
 {
+    BpfhvProxyReqType reqtype_sent = msg->hdr.reqtype;
     int size = sizeof(msg->hdr), ret;
 
     /* Read message header. */
@@ -95,6 +101,20 @@ bpfhv_proxy_recvmsg(BpfhvProxyState *s, BpfhvProxyMessage *msg)
     if (ret != size) {
         error_report("Failed to read msg header. Read %d instead of %d.",
                      ret, size);
+        return -1;
+    }
+
+    if (fds != NULL && num_fds > 0) {
+        if (qemu_chr_fe_get_msgfds(&s->chr, fds, num_fds) < 0) {
+            error_report("Failed to get msg fds.");
+            return -1;
+        }
+    }
+
+    /* Validate request type. */
+    if (msg->hdr.reqtype != reqtype_sent) {
+        error_report("Request type mismatch. Expected %u, got %u.",
+                reqtype_sent, msg->hdr.reqtype);
         return -1;
     }
 
@@ -134,7 +154,7 @@ bpfhv_proxy_get_features(BpfhvProxyState *s, uint64_t *features)
         return ret;
     }
 
-    ret = bpfhv_proxy_recvmsg(s, &msg);
+    ret = bpfhv_proxy_recvmsg(s, &msg, NULL, 0);
     if (ret) {
         return ret;
     }
@@ -164,6 +184,38 @@ bpfhv_proxy_set_features(BpfhvProxyState *s, uint64_t features)
     }
 
     return ret;
+}
+
+static int
+bpfhv_proxy_get_programs(BpfhvProxyState *s)
+{
+    BpfhvProxyMessage msg;
+    int progfd = -1;
+    int ret;
+
+    memset(&msg, 0, sizeof(msg));
+    msg.hdr.reqtype = BPFHV_PROXY_REQ_GET_PROGRAMS;
+    msg.hdr.size = 0;
+
+    ret = bpfhv_proxy_sendmsg(s, &msg, NULL, 0);
+    if (ret) {
+        return ret;
+    }
+
+    ret = bpfhv_proxy_recvmsg(s, &msg, &progfd, 1);
+    if (ret) {
+        return ret;
+    }
+
+    if (s->progfd >= 0) {
+        close(s->progfd);
+    }
+    s->progfd = progfd;
+
+    DBG("Got program fd (%d)", s->progfd);
+
+    return 0;
+
 }
 
 static int
@@ -226,6 +278,11 @@ bpfhv_proxy_start(BpfhvProxyState *s)
     }
 
     ret = bpfhv_proxy_set_features(s, be_features & guest_features);
+    if (ret) {
+        return ret;
+    }
+
+    ret = bpfhv_proxy_get_programs(s);
     if (ret) {
         return ret;
     }
@@ -415,16 +472,18 @@ bpfhv_proxy_event(void *opaque, int event)
         }
         s->watch = qemu_chr_fe_add_watch(&s->chr, G_IO_HUP,
                                          bpfhv_proxy_watch, s);
-        qmp_set_link(name, true, &err);
         s->active = true;
+        /* Notify the front-end about the link status going up. */
+        qmp_set_link(name, true, &err);
         break;
 
     case CHR_EVENT_CLOSED:
+        /* Notify the front-end about the link status going down. */
+        qmp_set_link(name, false, &err);
         if (s->watch) {
             g_source_remove(s->watch);
             s->watch = 0;
         }
-        qmp_set_link(name, false, &err);
         s->active = false;
         bpfhv_proxy_stop(s);
         DBG("Backend disconnected (label=%s)", s->chr.chr->label);
@@ -525,6 +584,8 @@ net_init_bpfhv_proxy(const Netdev *netdev, const char *name,
     s->memory_listener.region_add = bpfhv_proxy_memli_region_add,
     s->memory_listener.region_nop = bpfhv_proxy_memli_region_add,
     memory_listener_register(&s->memory_listener, &address_space_memory);
+
+    s->progfd = -1;
 
     return 0;
 
