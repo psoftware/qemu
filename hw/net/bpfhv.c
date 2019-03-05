@@ -1173,7 +1173,7 @@ err:
 }
 
 static bool
-bpfhv_num_bufs_validate(unsigned num_bufs)
+bpfhv_num_bufs_validate(unsigned int num_bufs)
 {
     if (num_bufs < 16 || num_bufs > 8192 ||
             (num_bufs & (num_bufs - 1)) != 0) {

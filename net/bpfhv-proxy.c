@@ -187,16 +187,19 @@ bpfhv_proxy_set_features(BpfhvProxyState *s, uint64_t features)
 }
 
 static int
-bpfhv_proxy_set_num_queues(BpfhvProxyState *s, unsigned int *num_queues)
+bpfhv_proxy_set_parameters(BpfhvProxyState *s, unsigned int num_queues,
+                           unsigned int num_rx_bufs, unsigned int num_tx_bufs)
 {
-    unsigned int requested = *num_queues;
     BpfhvProxyMessage msg;
     int ret;
 
     memset(&msg, 0, sizeof(msg));
-    msg.hdr.reqtype = BPFHV_PROXY_REQ_SET_NUM_QUEUES;
-    msg.hdr.size = sizeof(msg.payload.u64);
-    msg.payload.u64 = (uint64_t)*num_queues;
+    msg.hdr.reqtype = BPFHV_PROXY_REQ_SET_PARAMETERS;
+    msg.hdr.size = sizeof(msg.payload.params);
+    msg.payload.params.num_rx_queues =
+        msg.payload.params.num_tx_queues = num_queues;
+    msg.payload.params.num_rx_bufs = num_rx_bufs;
+    msg.payload.params.num_tx_bufs = num_tx_bufs;
 
     ret = bpfhv_proxy_sendmsg(s, &msg, NULL, 0);
     if (ret) {
@@ -208,16 +211,13 @@ bpfhv_proxy_set_num_queues(BpfhvProxyState *s, unsigned int *num_queues)
         return ret;
     }
 
-    *num_queues = (unsigned int)msg.payload.u64;
-
-    if (*num_queues > requested || *num_queues < 1) {
-        error_report("Got invalid number of queues %u (requested %u)",
-                     *num_queues, requested);
-        *num_queues = requested;
+    if (msg.payload.u64 != 0) {
+        error_report("Failed to set queue parameters");
         return -1;
     }
 
-    DBG("Negotiated %u queue pairs", (unsigned int)(*num_queues));
+    DBG("Set queue parameters: %u queue pairs, %u rx bufs, %u tx bufs",
+        num_queues, num_rx_bufs, num_tx_bufs);
 
     return 0;
 }
@@ -332,6 +332,7 @@ bpfhv_proxy_start(BpfhvProxyState *s)
     uint64_t guest_features = BPFHV_F_SG;
     uint64_t be_features = 0;
     unsigned int num_queues = 1;
+    unsigned int num_bufs = 256;
     int ret;
 
     /* Negotiate features. */
@@ -346,7 +347,8 @@ bpfhv_proxy_start(BpfhvProxyState *s)
     }
 
     /* Set number of queues. */
-    ret = bpfhv_proxy_set_num_queues(s, /*num_queues=*/&num_queues);
+    ret = bpfhv_proxy_set_parameters(s, num_queues, /*rx=*/num_bufs,
+                                     /*tx=*/num_bufs);
     if (ret) {
         return ret;
     }
