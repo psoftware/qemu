@@ -29,7 +29,7 @@
 
 #ifdef BPFHV_DEBUG
 #define DBG(fmt, ...) do { \
-        fprintf(stderr, "bpfhv-if: " fmt "\n", ## __VA_ARGS__); \
+        fprintf(stderr, "bpfhv-proxy: " fmt "\n", ## __VA_ARGS__); \
     } while (0)
 #else
 #define DBG(fmt, ...) do {} while (0)
@@ -63,6 +63,11 @@ typedef struct BpfhvProxyState {
     /* File descriptor of an open file from which the eBPF programs
      * can be read. */
     int progfd;
+
+    /* Size of the RX and TX contexts (including the initial part
+     * visible to the guest. */
+    size_t rx_ctx_size;
+    size_t tx_ctx_size;
 } BpfhvProxyState;
 
 static int
@@ -223,6 +228,48 @@ bpfhv_proxy_set_parameters(BpfhvProxyState *s, unsigned int num_queues,
 }
 
 static int
+bpfhv_proxy_get_ctx_sizes(BpfhvProxyState *s)
+{
+    BpfhvProxyMessage msg;
+    int ret;
+
+    memset(&msg, 0, sizeof(msg));
+    msg.hdr.reqtype = BPFHV_PROXY_REQ_GET_CTX_SIZES;
+    msg.hdr.size = 0;
+
+    ret = bpfhv_proxy_sendmsg(s, &msg, NULL, 0);
+    if (ret) {
+        return ret;
+    }
+
+    ret = bpfhv_proxy_recvmsg(s, &msg, NULL, 0);
+    if (ret) {
+        return ret;
+    }
+
+    if (msg.payload.ctx_sizes.rx_ctx_size < sizeof(struct bpfhv_rx_context) ||
+            msg.payload.ctx_sizes.rx_ctx_size > (1 << 24)) {
+        error_report("Invalid RX ctx size %u",
+                     msg.payload.ctx_sizes.rx_ctx_size);
+        return -1;
+    }
+
+    if (msg.payload.ctx_sizes.tx_ctx_size < sizeof(struct bpfhv_tx_context) ||
+            msg.payload.ctx_sizes.tx_ctx_size > (1 << 24)) {
+        error_report("Invalid TX ctx size %u",
+                     msg.payload.ctx_sizes.tx_ctx_size);
+        return -1;
+    }
+
+    s->rx_ctx_size = (size_t)msg.payload.ctx_sizes.rx_ctx_size;
+    s->tx_ctx_size = (size_t)msg.payload.ctx_sizes.tx_ctx_size;
+
+    DBG("Got context sizes: RX %zu, TX %zu", s->rx_ctx_size, s->tx_ctx_size);
+
+    return 0;
+}
+
+static int
 bpfhv_proxy_get_programs(BpfhvProxyState *s)
 {
     BpfhvProxyMessage msg;
@@ -340,7 +387,6 @@ bpfhv_proxy_start(BpfhvProxyState *s)
     if (ret) {
         return ret;
     }
-
     ret = bpfhv_proxy_set_features(s, be_features & guest_features);
     if (ret) {
         return ret;
@@ -353,21 +399,29 @@ bpfhv_proxy_start(BpfhvProxyState *s)
         return ret;
     }
 
+    /* Get size of RX and TX contexts. */
+    ret = bpfhv_proxy_get_ctx_sizes(s);
+    if (ret) {
+        return ret;
+    }
+
+    /* Get the eBPF programs to be injected to the guest. */
     ret = bpfhv_proxy_get_programs(s);
     if (ret) {
         return ret;
     }
 
+    /* Set the guest memory map. */
     ret = bpfhv_proxy_set_mem_table(s);
     if (ret) {
         return ret;
     }
 
+    /* Set the physical address of RX and TX queues. */
     ret = bpfhv_proxy_set_queue_ctx(s, /*queue_idx=*/0, /*is_rx=*/true, /*gpa=*/0);
     if (ret) {
         return ret;
     }
-
     ret = bpfhv_proxy_set_queue_ctx(s, /*queue_idx=*/0, /*is_rx=*/false, /*gpa=*/0);
     if (ret) {
         return ret;
