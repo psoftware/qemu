@@ -162,6 +162,19 @@ bpfhv_proxy_recvmsg(BpfhvProxyState *s, BpfhvProxyMessage *msg,
 }
 
 static int
+bpfhv_proxy_sendrecv(BpfhvProxyState *s, BpfhvProxyMessage *msg,
+                     int *fds, size_t num_fds)
+{
+    int ret = bpfhv_proxy_sendmsg(s, msg, fds, num_fds);
+
+    if (ret) {
+        return ret;
+    }
+
+    return bpfhv_proxy_recvmsg(s, msg, NULL, 0);
+}
+
+static int
 bpfhv_proxy_get_features(BpfhvProxyState *s, uint64_t *features)
 {
     BpfhvProxyMessage msg;
@@ -170,12 +183,7 @@ bpfhv_proxy_get_features(BpfhvProxyState *s, uint64_t *features)
     memset(&msg, 0, sizeof(msg));
     msg.hdr.reqtype = BPFHV_PROXY_REQ_GET_FEATURES;
 
-    ret = bpfhv_proxy_sendmsg(s, &msg, NULL, 0);
-    if (ret) {
-        return ret;
-    }
-
-    ret = bpfhv_proxy_recvmsg(s, &msg, NULL, 0);
+    ret = bpfhv_proxy_sendrecv(s, &msg, NULL, 0);
     if (ret) {
         return ret;
     }
@@ -198,12 +206,7 @@ bpfhv_proxy_set_features(BpfhvProxyState *s, uint64_t features)
     msg.hdr.size = sizeof(msg.payload.u64);
     msg.payload.u64 = features;
 
-    ret = bpfhv_proxy_sendmsg(s, &msg, NULL, 0);
-    if (ret) {
-        return ret;
-    }
-
-    ret = bpfhv_proxy_recvmsg(s, &msg, NULL, 0);
+    ret = bpfhv_proxy_sendrecv(s, &msg, NULL, 0);
     if (ret) {
         return ret;
     }
@@ -228,12 +231,7 @@ bpfhv_proxy_set_parameters(BpfhvProxyState *s, unsigned int num_queues,
     msg.payload.params.num_rx_bufs = num_rx_bufs;
     msg.payload.params.num_tx_bufs = num_tx_bufs;
 
-    ret = bpfhv_proxy_sendmsg(s, &msg, NULL, 0);
-    if (ret) {
-        return ret;
-    }
-
-    ret = bpfhv_proxy_recvmsg(s, &msg, NULL, 0);
+    ret = bpfhv_proxy_sendrecv(s, &msg, NULL, 0);
     if (ret) {
         return ret;
     }
@@ -254,12 +252,7 @@ bpfhv_proxy_get_ctx_sizes(BpfhvProxyState *s)
     msg.hdr.reqtype = BPFHV_PROXY_REQ_GET_CTX_SIZES;
     msg.hdr.size = 0;
 
-    ret = bpfhv_proxy_sendmsg(s, &msg, NULL, 0);
-    if (ret) {
-        return ret;
-    }
-
-    ret = bpfhv_proxy_recvmsg(s, &msg, NULL, 0);
+    ret = bpfhv_proxy_sendrecv(s, &msg, NULL, 0);
     if (ret) {
         return ret;
     }
@@ -357,12 +350,7 @@ bpfhv_proxy_set_mem_table(BpfhvProxyState *s)
         fds[num_fds++] = fd;
     }
 
-    ret = bpfhv_proxy_sendmsg(s, &msg, fds, num_fds);
-    if (ret) {
-        return ret;
-    }
-
-    ret = bpfhv_proxy_recvmsg(s, &msg, NULL, 0);
+    ret = bpfhv_proxy_sendrecv(s, &msg, fds, num_fds);
     if (ret) {
         return ret;
     }
@@ -386,12 +374,7 @@ bpfhv_proxy_set_queue_ctx(BpfhvProxyState *s, unsigned int queue_idx,
         is_rx ? BPFHV_PROXY_DIR_RX : BPFHV_PROXY_DIR_TX;
     msg.payload.queue_ctx.guest_physical_addr = gpa;
 
-    ret = bpfhv_proxy_sendmsg(s, &msg, NULL, 0);
-    if (ret) {
-        return ret;
-    }
-
-    ret = bpfhv_proxy_recvmsg(s, &msg, NULL, 0);
+    ret = bpfhv_proxy_sendrecv(s, &msg, NULL, 0);
     if (ret) {
         return ret;
     }
