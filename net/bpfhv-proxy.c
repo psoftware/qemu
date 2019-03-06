@@ -419,10 +419,30 @@ bpfhv_proxy_set_queue_irqfd(BpfhvProxyState *s, unsigned int queue_idx,
                                     queue_idx, fd);
 }
 
-static void
-bpfhv_proxy_stop(BpfhvProxyState *s)
+static int
+bpfhv_proxy_enable(BpfhvProxyState *s, bool is_rx, bool enable)
 {
-    /* TODO stop */
+    BpfhvProxyMessage msg;
+    int ret;
+
+    memset(&msg, 0, sizeof(msg));
+    if (is_rx) {
+        msg.hdr.reqtype = enable ? BPFHV_PROXY_REQ_RX_ENABLE :
+                                   BPFHV_PROXY_REQ_RX_DISABLE;
+    } else {
+        msg.hdr.reqtype = enable ? BPFHV_PROXY_REQ_TX_ENABLE :
+                                   BPFHV_PROXY_REQ_TX_DISABLE;
+    }
+
+    ret = bpfhv_proxy_sendrecv(s, &msg, NULL, 0);
+    if (ret) {
+        return ret;
+    }
+
+    DBG("%s %sabled", is_rx ? "Receive" : "Transmit",
+        enable ? "en" : "dis");
+
+    return 0;
 }
 
 static int
@@ -488,6 +508,16 @@ bpfhv_proxy_start(BpfhvProxyState *s)
         return ret;
     }
     ret = bpfhv_proxy_set_queue_irqfd(s, /*queue_idx=*/1, /*fd=*/1);
+    if (ret) {
+        return ret;
+    }
+
+    /* Enable receive and transmit operation. */
+    ret = bpfhv_proxy_enable(s, /*is_rx=*/true, /*enable=*/true);
+    if (ret) {
+        return ret;
+    }
+    ret = bpfhv_proxy_enable(s, /*is_rx=*/false, /*enable=*/true);
     if (ret) {
         return ret;
     }
@@ -690,7 +720,6 @@ bpfhv_proxy_event(void *opaque, int event)
             s->watch = 0;
         }
         s->active = false;
-        bpfhv_proxy_stop(s);
         DBG("Backend disconnected (label=%s)", s->chr.chr->label);
         break;
     }
