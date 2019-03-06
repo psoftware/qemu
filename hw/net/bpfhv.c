@@ -134,6 +134,7 @@ typedef struct BpfhvTxQueue_st {
 
 typedef struct BpfhvRxQueue_st {
     struct bpfhv_rx_context *ctx;
+    EventNotifier ioeventfd;
 } BpfhvRxQueue;
 
 typedef struct BpfhvTranslateEntry_st {
@@ -202,6 +203,9 @@ typedef struct BpfhvState_st {
         bool csum;
         bool gso;
     } net_conf;
+
+    /* An opaque pointer to the proxy net backend, if present. */
+    struct BpfhvProxyState *proxy;
 
 #ifdef BPFHV_DEBUG_TIMER
     QEMUTimer *debug_timer;
@@ -1235,6 +1239,11 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         return;
     }
 
+    s->proxy = bpfhv_proxy_get(nc->peer);
+    if (s->proxy != NULL) {
+        DBG("Found proxy net backend");
+    }
+
     /* Initialize device queues. */
     s->rxq = g_malloc0(s->num_queue_pairs * sizeof(s->rxq[0]));
     s->txq = g_malloc0(s->num_queue_pairs * sizeof(s->txq[0]));
@@ -1242,8 +1251,10 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 #ifdef BPFHV_TX_IOEVENTFD
         int ret;
 
-        /* Init a notifier that runs the TX bottom half code
-         * (bpfhv_tx_bh) every time it is triggered. */
+        /* Init a notifier to be triggered by guest TX kicks. If there is
+         * no proxy, the TX bottom half code (bpfhv_tx_bh) is executed
+         * in response to a kick. Otherwise the kick is handled by the
+         * proxy backend. */
         ret = event_notifier_init(&s->txq[i].ioeventfd, 0);
         if (ret) {
             error_setg_errno(errp, errno, "Failed to initialize "
@@ -1251,7 +1262,19 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
             return;
         }
         event_notifier_set_handler(&s->txq[i].ioeventfd,
-                                   bpfhv_tx_evnotify);
+                                   s->proxy ? NULL : bpfhv_tx_evnotify);
+
+        /* In case of proxy we also initialize a notifier for RX kicks,
+         * to be handled by the proxy backend. */
+        if (s->proxy) {
+            ret = event_notifier_init(&s->rxq[i].ioeventfd, 0);
+            if (ret) {
+                error_setg_errno(errp, errno, "Failed to initialize "
+                                 "ioeventfd for RX#%d", i);
+                return;
+            }
+            event_notifier_set_handler(&s->rxq[i].ioeventfd, NULL);
+        }
 #endif /* BPFHV_TX_IOEVENTFD */
 
         s->txq[i].bh = qemu_bh_new(bpfhv_tx_bh, s->txq + i);
@@ -1288,13 +1311,18 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 
 #ifdef BPFHV_TX_IOEVENTFD
     for (i = 0; i < s->num_queue_pairs; i++) {
-        /* Let KVM write into the event notifier, so that when
-         * QEMU wakes up it can directly run the TX bottom
-         * half, rather then going through, bpfhv_dbmmio_write(). */
-        hwaddr dbofs = (s->num_queue_pairs + i) * BPFHV_DOORBELL_SIZE;
+        /* Let KVM write into the event notifier, so that with no proxy
+         * QEMU can wake up and directly run the TX bottom half, rather
+         * than going through bpfhv_dbmmio_write(). */
+        hwaddr txdbofs = (s->num_queue_pairs + i) * BPFHV_DOORBELL_SIZE;
+        hwaddr rxdbofs = i * BPFHV_DOORBELL_SIZE;
 
-        memory_region_add_eventfd(&s->dbmmio, dbofs, 4, false, 0,
+        memory_region_add_eventfd(&s->dbmmio, txdbofs, 4, false, 0,
                                   &s->txq[i].ioeventfd);
+        if (s->proxy) {
+            memory_region_add_eventfd(&s->dbmmio, rxdbofs, 4, false, 0,
+                                      &s->rxq[i].ioeventfd);
+        }
     }
 #endif /* BPFHV_TX_IOEVENTFD */
 
@@ -1364,12 +1392,20 @@ pci_bpfhv_uninit(PCIDevice *dev)
 
     for (i = 0; i < s->num_queue_pairs; i++) {
 #ifdef BPFHV_TX_IOEVENTFD
-        hwaddr dbofs = (s->num_queue_pairs + i) * BPFHV_DOORBELL_SIZE;
+        hwaddr txdbofs = (s->num_queue_pairs + i) * BPFHV_DOORBELL_SIZE;
+        hwaddr rxdbofs = i * BPFHV_DOORBELL_SIZE;
 
-        memory_region_del_eventfd(&s->dbmmio, dbofs, 4, false, 0,
+        memory_region_del_eventfd(&s->dbmmio, txdbofs, 4, false, 0,
                                   &s->txq[i].ioeventfd);
         event_notifier_set_handler(&s->txq[i].ioeventfd, NULL);
         event_notifier_cleanup(&s->txq[i].ioeventfd);
+
+        if (s->proxy) {
+            memory_region_del_eventfd(&s->dbmmio, rxdbofs, 4, false, 0,
+                                      &s->rxq[i].ioeventfd);
+            event_notifier_set_handler(&s->rxq[i].ioeventfd, NULL);
+            event_notifier_cleanup(&s->rxq[i].ioeventfd);
+        }
 #endif /* BPFHV_TX_IOEVENTFD */
         qemu_bh_delete(s->txq[i].bh);
         s->txq[i].bh = NULL;

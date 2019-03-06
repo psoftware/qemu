@@ -22,4 +22,10 @@
 #ifndef __BPFHV_NETPROXY_H__
 #define __BPFHV_NETPROXY_H__
 
+#include "net/net.h"
+
+struct BpfhvProxyState;
+
+struct BpfhvProxyState *bpfhv_proxy_get(NetClientState *nc);
+
 #endif  /* __BPFHV_NETPROXY_H__ */

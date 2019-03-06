@@ -74,6 +74,16 @@ typedef struct BpfhvProxyState {
     size_t tx_ctx_size;
 } BpfhvProxyState;
 
+BpfhvProxyState *
+bpfhv_proxy_get(NetClientState *nc)
+{
+    if (nc->info->type != NET_CLIENT_DRIVER_BPFHV_PROXY) {
+        return NULL;
+    }
+
+    return DO_UPCAST(BpfhvProxyState, nc, nc);
+}
+
 static int
 bpfhv_proxy_sendmsg(BpfhvProxyState *s, BpfhvProxyMessage *msg,
                     int *fds, size_t num_fds)
