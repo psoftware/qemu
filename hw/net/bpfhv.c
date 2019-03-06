@@ -50,10 +50,6 @@
  * (GPA --> HVA). */
 #define BPFHV_MEMLI
 
-/* Let KVM handle the TX kicks in kernelspace, rather than
- * have KVM return to QEMU and QEMU handling the TX kicks. */
-#define BPFHV_TX_IOEVENTFD
-
 #define BPFHV_DOORBELL_SIZE     8  /* could be 4096 */
 
 /* Verbose debug information. */
@@ -127,9 +123,9 @@ typedef struct BpfhvTxQueue_st {
     NetClientState *nc;
     struct BpfhvState_st *parent;
     unsigned int vector;
-#ifdef BPFHV_TX_IOEVENTFD
+    /* We let KVM handle the TX kicks in kernelspace, rather than
+     * have KVM return to QEMU and QEMU handling the TX kicks. */
     EventNotifier ioeventfd;
-#endif /* BPFHV_TX_IOEVENTFD */
 } BpfhvTxQueue;
 
 typedef struct BpfhvRxQueue_st {
@@ -813,7 +809,6 @@ bpfhv_tx_bh(void *opaque)
     }
 }
 
-#ifdef BPFHV_TX_IOEVENTFD
 static void
 bpfhv_tx_evnotify(EventNotifier *ioeventfd)
 {
@@ -824,7 +819,6 @@ bpfhv_tx_evnotify(EventNotifier *ioeventfd)
     }
     bpfhv_tx_bh(txq);
 }
-#endif /* BPFHV_TX_IOEVENTFD */
 
 static void
 bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
@@ -846,7 +840,8 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
          * up the backend. */
         qemu_flush_queued_packets(qemu_get_subqueue(s->nic, doorbell));
     } else {
-        /* We never enter here if BPFHV_TX_IOEVENTFD is defined. */
+        /* We never enter here if because we use the ioeventfd approach
+         * (bpfhv_tx_evnotify). */
         doorbell -= s->num_queue_pairs;
         sring_txq_notification(s->txq[doorbell].ctx, /*enable=*/false);
         DBG("Doorbell TX#%u rung", doorbell);
@@ -1248,7 +1243,6 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->rxq = g_malloc0(s->num_queue_pairs * sizeof(s->rxq[0]));
     s->txq = g_malloc0(s->num_queue_pairs * sizeof(s->txq[0]));
     for (i = 0; i < s->num_queue_pairs; i++) {
-#ifdef BPFHV_TX_IOEVENTFD
         int ret;
 
         /* Init a notifier to be triggered by guest TX kicks. If there is
@@ -1275,7 +1269,6 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
             }
             event_notifier_set_handler(&s->rxq[i].ioeventfd, NULL);
         }
-#endif /* BPFHV_TX_IOEVENTFD */
 
         s->txq[i].bh = qemu_bh_new(bpfhv_tx_bh, s->txq + i);
         s->txq[i].nc = qemu_get_subqueue(s->nic, i);
@@ -1309,7 +1302,6 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         return;
     }
 
-#ifdef BPFHV_TX_IOEVENTFD
     for (i = 0; i < s->num_queue_pairs; i++) {
         /* Let KVM write into the event notifier, so that with no proxy
          * QEMU can wake up and directly run the TX bottom half, rather
@@ -1324,7 +1316,6 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
                                       &s->rxq[i].ioeventfd);
         }
     }
-#endif /* BPFHV_TX_IOEVENTFD */
 
     /* Initialize MSI-X interrupts, one per queue. */
     for (i = 0; i < s->num_queues + 1; i++) {
@@ -1391,7 +1382,6 @@ pci_bpfhv_uninit(PCIDevice *dev)
     }
 
     for (i = 0; i < s->num_queue_pairs; i++) {
-#ifdef BPFHV_TX_IOEVENTFD
         hwaddr txdbofs = (s->num_queue_pairs + i) * BPFHV_DOORBELL_SIZE;
         hwaddr rxdbofs = i * BPFHV_DOORBELL_SIZE;
 
@@ -1406,7 +1396,6 @@ pci_bpfhv_uninit(PCIDevice *dev)
             event_notifier_set_handler(&s->rxq[i].ioeventfd, NULL);
             event_notifier_cleanup(&s->rxq[i].ioeventfd);
         }
-#endif /* BPFHV_TX_IOEVENTFD */
         qemu_bh_delete(s->txq[i].bh);
         s->txq[i].bh = NULL;
     }
