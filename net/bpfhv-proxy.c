@@ -22,6 +22,7 @@
 #include "trace.h"
 
 #include "bpfhv/bpfhv-proxy.h"
+#include "bpfhv/netproxy.h"
 #include "bpfhv/bpfhv.h"
 
 /* Verbose debug information. */

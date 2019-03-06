@@ -38,6 +38,7 @@
 
 #include "bpfhv/bpfhv.h"
 #include "bpfhv/sring_hv.h"
+#include "bpfhv/netproxy.h"
 
 /*
  * Compile-time tunables.
