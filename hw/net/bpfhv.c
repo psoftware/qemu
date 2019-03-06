@@ -335,6 +335,12 @@ bpfhv_can_receive(NetClientState *nc)
     BpfhvState *s = qemu_get_nic_opaque(nc);
     BpfhvRxQueue *rxq;
 
+    if (unlikely(s->proxy != NULL)) {
+        /* For some reason this is called even if the peer never sends
+         * anything. */
+        return false;
+    }
+
     if (unlikely(!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_RX_ENABLED))) {
         return false;
     }
@@ -360,7 +366,9 @@ bpfhv_receive_iov(NetClientState *nc, const struct iovec *iov, int iovcnt)
     bool notify;
     ssize_t ret;
 
-    if (!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_RX_ENABLED)) {
+    assert(s->proxy == NULL);
+
+    if (unlikely(!(s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_RX_ENABLED))) {
         /* This should never happen, because we exported the can_receive
          * method. */
         return 0;
@@ -409,11 +417,14 @@ bpfhv_link_status_update(BpfhvState *s)
                   BPFHV_UPGRADE_TIMER_MS);
 #endif /* BPFHV_UPGRADE_TIMER */
     } else {
-        /* Link status goes down, so we stop the transmit bottom halves
-         * and purge any packets queued for receive. */
-        for (i = 0; i < s->num_queue_pairs; i++) {
-            qemu_bh_cancel(s->txq[i].bh);
-            qemu_purge_queued_packets(qemu_get_subqueue(s->nic, i));
+        if (s->proxy) {
+        } else {
+            /* Link status goes down, so we stop the transmit bottom halves
+             * and purge any packets queued for receive. */
+            for (i = 0; i < s->num_queue_pairs; i++) {
+                qemu_bh_cancel(s->txq[i].bh);
+                qemu_purge_queued_packets(qemu_get_subqueue(s->nic, i));
+            }
         }
 #ifdef BPFHV_DEBUG_TIMER
         timer_del(s->debug_timer);
@@ -454,12 +465,15 @@ bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
             /* Set the status bit before flushing queued packets,
              * otherwise can_receive will return false. */
             s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_RX_ENABLED;
-            for (i = 0; i < s->num_queue_pairs; i++) {
-                sring_rxq_notification(s->rxq[i].ctx, /*enable=*/true);
-                /* Guest enabled receive operation, which means that
-                 * bpfhv_can_receive() may return true, hence we need to wake
-                 * up the backend. */
-                qemu_flush_queued_packets(qemu_get_subqueue(s->nic, i));
+            if (s->proxy) {
+            } else {
+                for (i = 0; i < s->num_queue_pairs; i++) {
+                    sring_rxq_notification(s->rxq[i].ctx, /*enable=*/true);
+                    /* Guest enabled receive operation, which means that
+                     * bpfhv_can_receive() may return true, hence we need
+                     * to wake up the backend. */
+                    qemu_flush_queued_packets(qemu_get_subqueue(s->nic, i));
+                }
             }
             DBG("Receive enabled");
         }
@@ -476,24 +490,30 @@ bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
          * that only if all the transmit contexts are present. */
         if (s->tx_contexts_ready) {
             s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_TX_ENABLED;
-            for (i = 0; i < s->num_queue_pairs; i++) {
-                qemu_bh_schedule(s->txq[i].bh);
+            if (s->proxy) {
+            } else {
+                for (i = 0; i < s->num_queue_pairs; i++) {
+                    qemu_bh_schedule(s->txq[i].bh);
+                }
             }
             DBG("Transmit enabled");
         }
     }
 
     if (cmd & BPFHV_CTRL_TX_DISABLE) {
-        /* Guest asked to disable transmit operation, so we need to stop the
-         * bottom halves and clear the TX_ENABLED status bit.
-         * Before doing that, we drain the transmit queues to avoid dropping
-         * guest packets. */
-        for (i = 0; i < s->num_queue_pairs; i++) {
-            bool notify;
+        if (s->proxy) {
+        } else {
+            /* Guest asked to disable transmit operation, so we need to stop the
+             * bottom halves and clear the TX_ENABLED status bit.
+             * Before doing that, we drain the transmit queues to avoid dropping
+             * guest packets. */
+            for (i = 0; i < s->num_queue_pairs; i++) {
+                bool notify;
 
-            sring_txq_drain(s, s->txq[i].nc, s->txq[i].ctx, /*callback=*/NULL,
-                            s->vnet_hdr_len, &notify);
-            qemu_bh_cancel(s->txq[i].bh);
+                sring_txq_drain(s, s->txq[i].nc, s->txq[i].ctx, /*callback=*/NULL,
+                                s->vnet_hdr_len, &notify);
+                qemu_bh_cancel(s->txq[i].bh);
+            }
         }
         s->ioregs[BPFHV_REG(STATUS)] &= ~BPFHV_STATUS_TX_ENABLED;
         DBG("Transmit disabled");
@@ -831,6 +851,11 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         DBG("Invalid doorbell write, addr=0x%08"PRIx64, addr);
         return;
     }
+
+    /* In case of proxy all the kicks must be diverted to a separate
+     * process, hence we cannot get here. */
+    assert(s->proxy == NULL);
+
     if (doorbell < s->num_queue_pairs) {
         DBG("Doorbell RX#%u rung", doorbell);
         /* Immediately disable RX kicks on this queue. */
@@ -842,6 +867,7 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     } else {
         /* We never enter here if because we use the ioeventfd approach
          * (bpfhv_tx_evnotify). */
+        assert(false);
         doorbell -= s->num_queue_pairs;
         sring_txq_notification(s->txq[doorbell].ctx, /*enable=*/false);
         DBG("Doorbell TX#%u rung", doorbell);
@@ -1270,7 +1296,11 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
             event_notifier_set_handler(&s->rxq[i].ioeventfd, NULL);
         }
 
-        s->txq[i].bh = qemu_bh_new(bpfhv_tx_bh, s->txq + i);
+        if (s->proxy) {
+            s->txq[i].bh = NULL;
+        } else {
+            s->txq[i].bh = qemu_bh_new(bpfhv_tx_bh, s->txq + i);
+        }
         s->txq[i].nc = qemu_get_subqueue(s->nic, i);
         s->txq[i].parent = s;
         s->txq[i].vector = s->num_queue_pairs + i;
@@ -1396,8 +1426,11 @@ pci_bpfhv_uninit(PCIDevice *dev)
             event_notifier_set_handler(&s->rxq[i].ioeventfd, NULL);
             event_notifier_cleanup(&s->rxq[i].ioeventfd);
         }
-        qemu_bh_delete(s->txq[i].bh);
-        s->txq[i].bh = NULL;
+
+        if (s->txq[i].bh) {
+            qemu_bh_delete(s->txq[i].bh);
+            s->txq[i].bh = NULL;
+        }
     }
 
     g_free(s->rxq);
