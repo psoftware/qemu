@@ -1,0 +1,1 @@
+common-obj-$(CONFIG_BPFHV) += bpfhv_sring_hv.o

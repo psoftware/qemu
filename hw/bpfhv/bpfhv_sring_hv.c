@@ -27,8 +27,8 @@
 #include "qemu/iov.h"
 
 #include "bpfhv/bpfhv.h"
-#include "bpfhv_sring.h"
-#include "bpfhv_sring_hv.h"
+#include "bpfhv/bpfhv_sring.h"
+#include "bpfhv/bpfhv_sring_hv.h"
 
 #define ACCESS_ONCE(x) (*(volatile typeof(x) *)&(x))
 #define compiler_barrier() __asm__ __volatile__ ("");
