@@ -50,8 +50,6 @@
  * (GPA --> HVA). */
 #define BPFHV_MEMLI
 
-#define BPFHV_DOORBELL_SIZE     8  /* could be 4096 */
-
 /* Verbose debug information. */
 #undef  BPFHV_DEBUG
 
@@ -199,6 +197,7 @@ typedef struct BpfhvState_st {
         bool csum;
         bool gso;
     } net_conf;
+    uint32_t doorbell_size;
 
     /* An opaque pointer to the proxy net backend, if present. */
     struct BpfhvProxyState *proxy;
@@ -859,7 +858,7 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     BpfhvState *s = opaque;
     unsigned int doorbell;
 
-    doorbell = addr / BPFHV_DOORBELL_SIZE;
+    doorbell = addr / s->doorbell_size;
     if (doorbell >= s->num_queues) {
         DBG("Invalid doorbell write, addr=0x%08"PRIx64, addr);
         return;
@@ -1221,6 +1220,16 @@ bpfhv_num_bufs_validate(unsigned int num_bufs)
     return true;
 }
 
+static bool
+bpfhv_doorbell_size_validate(unsigned int db_size)
+{
+    if (db_size < 8 || db_size > (1 << 21) ||
+            (db_size & (db_size - 1)) != 0) {
+        return false;
+    }
+    return true;
+}
+
 static void
 pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 {
@@ -1270,6 +1279,11 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     if (!bpfhv_num_bufs_validate(s->net_conf.num_tx_bufs)) {
         error_setg(errp, "Invalid number of tx bufs: %u",
                    s->net_conf.num_tx_bufs);
+        return;
+    }
+
+    if (!bpfhv_doorbell_size_validate(s->doorbell_size)) {
+        error_setg(errp, "Invalid doorbell size: %u", s->doorbell_size);
         return;
     }
 
@@ -1328,7 +1342,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     /* Init memory mapped memory region, to expose doorbells. */
     memory_region_init_io(&s->dbmmio, OBJECT(s), &bpfhv_dbmmio_ops, s,
                           "bpfhv-doorbell",
-                          BPFHV_DOORBELL_SIZE * s->num_queues);
+                          s->doorbell_size * s->num_queues);
     pci_register_bar(pci_dev, BPFHV_DOORBELL_PCI_BAR,
                      PCI_BASE_ADDRESS_SPACE_MEMORY, &s->dbmmio);
 
@@ -1349,8 +1363,8 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         /* Let KVM write into the event notifier, so that with no proxy
          * QEMU can wake up and directly run the TX bottom half, rather
          * than going through bpfhv_dbmmio_write(). */
-        hwaddr txdbofs = (s->num_queue_pairs + i) * BPFHV_DOORBELL_SIZE;
-        hwaddr rxdbofs = i * BPFHV_DOORBELL_SIZE;
+        hwaddr txdbofs = (s->num_queue_pairs + i) * s->doorbell_size;
+        hwaddr rxdbofs = i * s->doorbell_size;
 
         memory_region_add_eventfd(&s->dbmmio, txdbofs, 4, false, 0,
                                   &s->txq[i].ioeventfd);
@@ -1435,8 +1449,8 @@ pci_bpfhv_uninit(PCIDevice *dev)
     }
 
     for (i = 0; i < s->num_queue_pairs; i++) {
-        hwaddr txdbofs = (s->num_queue_pairs + i) * BPFHV_DOORBELL_SIZE;
-        hwaddr rxdbofs = i * BPFHV_DOORBELL_SIZE;
+        hwaddr txdbofs = (s->num_queue_pairs + i) * s->doorbell_size;
+        hwaddr rxdbofs = i * s->doorbell_size;
 
         memory_region_del_eventfd(&s->dbmmio, txdbofs, 4, false, 0,
                                   &s->txq[i].ioeventfd);
@@ -1484,7 +1498,7 @@ static void qdev_bpfhv_reset(DeviceState *dev)
         + sring_rx_ctx_size(s->ioregs[BPFHV_REG(NUM_RX_BUFS)]);
     s->ioregs[BPFHV_REG(TX_CTX_SIZE)] = sizeof(struct bpfhv_tx_context)
         + sring_tx_ctx_size(s->ioregs[BPFHV_REG(NUM_TX_BUFS)]);
-    s->ioregs[BPFHV_REG(DOORBELL_SIZE)] = BPFHV_DOORBELL_SIZE;
+    s->ioregs[BPFHV_REG(DOORBELL_SIZE)] = s->doorbell_size;
     s->ioregs[BPFHV_REG(FEATURES)] = s->hv_features;
     macaddr = s->nic_conf.macaddr.a;
     s->ioregs[BPFHV_REG(MAC_HI)] = (macaddr[0] << 8) | macaddr[1];
@@ -1529,6 +1543,7 @@ static const VMStateDescription vmstate_bpfhv = {
 
 static Property bpfhv_properties[] = {
     DEFINE_NIC_PROPERTIES(BpfhvState, nic_conf),
+    DEFINE_PROP_UINT32("doorbell_size", BpfhvState, doorbell_size, 8),
     DEFINE_PROP_UINT16("num_rx_bufs", BpfhvState, net_conf.num_rx_bufs, 256),
     DEFINE_PROP_UINT16("num_tx_bufs", BpfhvState, net_conf.num_tx_bufs, 256),
     DEFINE_PROP_BOOL("csum", BpfhvState, net_conf.csum, true),
