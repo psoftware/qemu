@@ -236,27 +236,6 @@ bpfhv_proxy_set_parameters(BpfhvProxyState *s, unsigned int num_queues,
         return ret;
     }
 
-    DBG("Set queue parameters: %u queue pairs, %u rx bufs, %u tx bufs",
-        num_queues, num_rx_bufs, num_tx_bufs);
-
-    return 0;
-}
-
-static int
-bpfhv_proxy_get_ctx_sizes(BpfhvProxyState *s)
-{
-    BpfhvProxyMessage msg;
-    int ret;
-
-    memset(&msg, 0, sizeof(msg));
-    msg.hdr.reqtype = BPFHV_PROXY_REQ_GET_CTX_SIZES;
-    msg.hdr.size = 0;
-
-    ret = bpfhv_proxy_sendrecv(s, &msg, NULL, 0);
-    if (ret) {
-        return ret;
-    }
-
     if (msg.payload.ctx_sizes.rx_ctx_size < sizeof(struct bpfhv_rx_context) ||
             msg.payload.ctx_sizes.rx_ctx_size > (1 << 24)) {
         error_report("Invalid RX ctx size %u",
@@ -274,6 +253,8 @@ bpfhv_proxy_get_ctx_sizes(BpfhvProxyState *s)
     s->rx_ctx_size = (size_t)msg.payload.ctx_sizes.rx_ctx_size;
     s->tx_ctx_size = (size_t)msg.payload.ctx_sizes.tx_ctx_size;
 
+    DBG("Set queue parameters: %u queue pairs, %u rx bufs, %u tx bufs",
+        num_queues, num_rx_bufs, num_tx_bufs);
     DBG("Got context sizes: RX %zu, TX %zu", s->rx_ctx_size, s->tx_ctx_size);
 
     return 0;
@@ -410,15 +391,9 @@ bpfhv_proxy_start(BpfhvProxyState *s)
         return ret;
     }
 
-    /* Set number of queues. */
+    /* Set number of queues. and get size of RX and TX contexts. */
     ret = bpfhv_proxy_set_parameters(s, num_queues, /*rx=*/num_bufs,
                                      /*tx=*/num_bufs);
-    if (ret) {
-        return ret;
-    }
-
-    /* Get size of RX and TX contexts. */
-    ret = bpfhv_proxy_get_ctx_sizes(s);
     if (ret) {
         return ret;
     }
