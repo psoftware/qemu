@@ -60,6 +60,9 @@ typedef struct BpfhvProxyState {
     size_t num_mem_regs;
     size_t num_mem_regs_next;
 
+    /* Number of queue pairs. */
+    unsigned int num_queues;
+
     /* File descriptor of an open file from which the eBPF programs
      * can be read. */
     int progfd;
@@ -341,8 +344,9 @@ bpfhv_proxy_set_mem_table(BpfhvProxyState *s)
 
 static int
 bpfhv_proxy_set_queue_ctx(BpfhvProxyState *s, unsigned int queue_idx,
-                          bool is_rx, hwaddr gpa)
+                          hwaddr gpa)
 {
+    bool is_rx = queue_idx < s->num_queues;
     BpfhvProxyMessage msg;
     int ret;
 
@@ -351,8 +355,6 @@ bpfhv_proxy_set_queue_ctx(BpfhvProxyState *s, unsigned int queue_idx,
     msg.hdr.size = sizeof(msg.payload.queue_ctx);
 
     msg.payload.queue_ctx.queue_idx = queue_idx;
-    msg.payload.queue_ctx.direction =
-        is_rx ? BPFHV_PROXY_DIR_RX : BPFHV_PROXY_DIR_TX;
     msg.payload.queue_ctx.guest_physical_addr = gpa;
 
     ret = bpfhv_proxy_sendrecv(s, &msg, NULL, 0);
@@ -360,6 +362,9 @@ bpfhv_proxy_set_queue_ctx(BpfhvProxyState *s, unsigned int queue_idx,
         return ret;
     }
 
+    if (!is_rx) {
+        queue_idx -= s->num_queues;
+    }
     DBG("Set queue ctx %s%u %"PRIx64"", is_rx ? "RX" : "TX",
             queue_idx, gpa);
 
@@ -377,7 +382,6 @@ bpfhv_proxy_start(BpfhvProxyState *s)
 {
     uint64_t guest_features = BPFHV_F_SG;
     uint64_t be_features = 0;
-    unsigned int num_queues = 1;
     unsigned int num_bufs = 256;
     int ret;
 
@@ -392,7 +396,7 @@ bpfhv_proxy_start(BpfhvProxyState *s)
     }
 
     /* Set number of queues. and get size of RX and TX contexts. */
-    ret = bpfhv_proxy_set_parameters(s, num_queues, /*rx=*/num_bufs,
+    ret = bpfhv_proxy_set_parameters(s, s->num_queues, /*rx=*/num_bufs,
                                      /*tx=*/num_bufs);
     if (ret) {
         return ret;
@@ -411,11 +415,11 @@ bpfhv_proxy_start(BpfhvProxyState *s)
     }
 
     /* Set the physical address of RX and TX queues. */
-    ret = bpfhv_proxy_set_queue_ctx(s, /*queue_idx=*/0, /*is_rx=*/true, /*gpa=*/0);
+    ret = bpfhv_proxy_set_queue_ctx(s, /*queue_idx=*/0, /*gpa=*/0);
     if (ret) {
         return ret;
     }
-    ret = bpfhv_proxy_set_queue_ctx(s, /*queue_idx=*/0, /*is_rx=*/false, /*gpa=*/0);
+    ret = bpfhv_proxy_set_queue_ctx(s, /*queue_idx=*/1, /*gpa=*/0);
     if (ret) {
         return ret;
     }
@@ -699,14 +703,8 @@ net_init_bpfhv_proxy(const Netdev *netdev, const char *name,
         goto err;
     }
 
-    do {
-        if (qemu_chr_fe_wait_connected(&s->chr, &err) < 0) {
-            error_report_err(err);
-            goto err;
-        }
-        qemu_chr_fe_set_handlers(&s->chr, NULL, NULL, bpfhv_proxy_event,
-                                 NULL, nc->name, NULL, true);
-    } while (!s->active);
+    s->progfd = -1;
+    s->num_queues = 1;
 
     /* Initialize memory listener. */
     s->mem_regs_next = s->mem_regs_arr[0];
@@ -718,7 +716,15 @@ net_init_bpfhv_proxy(const Netdev *netdev, const char *name,
     s->memory_listener.region_nop = bpfhv_proxy_memli_region_add,
     memory_listener_register(&s->memory_listener, &address_space_memory);
 
-    s->progfd = -1;
+    do {
+        if (qemu_chr_fe_wait_connected(&s->chr, &err) < 0) {
+            error_report_err(err);
+            memory_listener_unregister(&s->memory_listener);
+            goto err;
+        }
+        qemu_chr_fe_set_handlers(&s->chr, NULL, NULL, bpfhv_proxy_event,
+                                 NULL, nc->name, NULL, true);
+    } while (!s->active);
 
     return 0;
 
