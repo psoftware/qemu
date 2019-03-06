@@ -71,11 +71,13 @@ typedef struct BpfhvProxyState {
 } BpfhvProxyState;
 
 static int
-bpfhv_proxy_sendmsg(BpfhvProxyState *s, const BpfhvProxyMessage *msg,
+bpfhv_proxy_sendmsg(BpfhvProxyState *s, BpfhvProxyMessage *msg,
                     int *fds, size_t num_fds)
 {
     size_t size = sizeof(msg->hdr) + msg->hdr.size;
     int ret;
+
+    msg->hdr.flags |= BPFHV_PROXY_VERSION;
 
     if (fds != NULL && num_fds > 0) {
         if (qemu_chr_fe_set_msgfds(&s->chr, fds, num_fds) < 0) {
@@ -116,6 +118,14 @@ bpfhv_proxy_recvmsg(BpfhvProxyState *s, BpfhvProxyMessage *msg,
         }
     }
 
+    /* Validate version. */
+    if ((msg->hdr.flags & BPFHV_PROXY_F_VERSION_MASK) != BPFHV_PROXY_VERSION) {
+        error_report("Request version mismatch. Expected %u, got %u.",
+                     BPFHV_PROXY_VERSION,
+                     msg->hdr.flags & BPFHV_PROXY_F_VERSION_MASK);
+        return -1;
+    }
+
     /* Validate request type. */
     if (msg->hdr.reqtype != reqtype_sent) {
         error_report("Request type mismatch. Expected %u, got %u.",
@@ -128,6 +138,12 @@ bpfhv_proxy_recvmsg(BpfhvProxyState *s, BpfhvProxyMessage *msg,
         error_report("Failed to read msg header. "
                 "Size %u exceeds the maximum %zu.", msg->hdr.size,
                 sizeof(msg->payload));
+        return -1;
+    }
+
+    /* Check for errors */
+    if (msg->hdr.flags & BPFHV_PROXY_F_ERROR) {
+        error_report("Backend reported an error.");
         return -1;
     }
 
@@ -183,12 +199,18 @@ bpfhv_proxy_set_features(BpfhvProxyState *s, uint64_t features)
     msg.payload.u64 = features;
 
     ret = bpfhv_proxy_sendmsg(s, &msg, NULL, 0);
-
-    if (ret == 0) {
-        DBG("Set features %llx", (long long unsigned)features);
+    if (ret) {
+        return ret;
     }
 
-    return ret;
+    ret = bpfhv_proxy_recvmsg(s, &msg, NULL, 0);
+    if (ret) {
+        return ret;
+    }
+
+    DBG("Set features %llx", (long long unsigned)features);
+
+    return 0;
 }
 
 static int
@@ -214,11 +236,6 @@ bpfhv_proxy_set_parameters(BpfhvProxyState *s, unsigned int num_queues,
     ret = bpfhv_proxy_recvmsg(s, &msg, NULL, 0);
     if (ret) {
         return ret;
-    }
-
-    if (msg.payload.u64 != 0) {
-        error_report("Failed to set queue parameters");
-        return -1;
     }
 
     DBG("Set queue parameters: %u queue pairs, %u rx bufs, %u tx bufs",
@@ -307,6 +324,7 @@ bpfhv_proxy_set_mem_table(BpfhvProxyState *s)
     int fds[BPFHV_PROXY_MAX_REGIONS];
     BpfhvProxyMessage msg;
     size_t num_fds = 0;
+    int ret;
     int i;
 
     if (s->num_mem_regs == 0) {
@@ -339,7 +357,17 @@ bpfhv_proxy_set_mem_table(BpfhvProxyState *s)
         fds[num_fds++] = fd;
     }
 
-    return bpfhv_proxy_sendmsg(s, &msg, fds, num_fds);
+    ret = bpfhv_proxy_sendmsg(s, &msg, fds, num_fds);
+    if (ret) {
+        return ret;
+    }
+
+    ret = bpfhv_proxy_recvmsg(s, &msg, NULL, 0);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
 }
 
 static int
@@ -359,12 +387,19 @@ bpfhv_proxy_set_queue_ctx(BpfhvProxyState *s, unsigned int queue_idx,
     msg.payload.queue_ctx.guest_physical_addr = gpa;
 
     ret = bpfhv_proxy_sendmsg(s, &msg, NULL, 0);
-    if (ret == 0) {
-        DBG("Set queue ctx %s%u %"PRIx64"", is_rx ? "RX" : "TX",
-            queue_idx, gpa);
+    if (ret) {
+        return ret;
     }
 
-    return ret;
+    ret = bpfhv_proxy_recvmsg(s, &msg, NULL, 0);
+    if (ret) {
+        return ret;
+    }
+
+    DBG("Set queue ctx %s%u %"PRIx64"", is_rx ? "RX" : "TX",
+            queue_idx, gpa);
+
+    return 0;
 }
 
 static void
