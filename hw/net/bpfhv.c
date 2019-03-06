@@ -306,6 +306,8 @@ bpfhv_upgrade_timer(void *opaque)
 {
     BpfhvState *s = opaque;
 
+    assert(s->proxy == NULL);
+
     /* Trigger program change (oscillating between no offloads,
      * CSUM offloads and CSUM+GSO offloads). */
     if (!strcmp(s->progsname, "sring") &&
@@ -419,8 +421,10 @@ bpfhv_link_status_update(BpfhvState *s)
         }
 #endif /* BPFHV_DEBUG_TIMER */
 #ifdef BPFHV_UPGRADE_TIMER
-        timer_mod(s->upgrade_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) +
-                  BPFHV_UPGRADE_TIMER_MS);
+        if (s->upgrade_timer) {
+            timer_mod(s->upgrade_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) +
+                                        BPFHV_UPGRADE_TIMER_MS);
+        }
 #endif /* BPFHV_UPGRADE_TIMER */
     } else {
         if (!s->proxy) {
@@ -437,7 +441,9 @@ bpfhv_link_status_update(BpfhvState *s)
         }
 #endif /* BPFHV_DEBUG_TIMER */
 #ifdef BPFHV_UPGRADE_TIMER
-        timer_del(s->upgrade_timer);
+        if (s->upgrade_timer) {
+            timer_del(s->upgrade_timer);
+        }
 #endif /* BPFHV_UPGRADE_TIMER */
     }
 }
@@ -1379,7 +1385,10 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 #endif /* BPFHV_DEBUG_TIMER */
 
 #ifdef BPFHV_UPGRADE_TIMER
-    s->upgrade_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL, bpfhv_upgrade_timer, s);
+    if (!s->proxy) {
+        s->upgrade_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL,
+                                        bpfhv_upgrade_timer, s);
+    }
 #endif /* BPFHV_UPGRADE_TIMER */
 
 #ifdef BPFHV_MEMLI
@@ -1412,8 +1421,10 @@ pci_bpfhv_uninit(PCIDevice *dev)
 #endif /* BPFHV_DEBUG_TIMER */
 
 #ifdef BPFHV_UPGRADE_TIMER
-    timer_del(s->upgrade_timer);
-    timer_free(s->upgrade_timer);
+    if (s->upgrade_timer) {
+        timer_del(s->upgrade_timer);
+        timer_free(s->upgrade_timer);
+    }
 #endif /* BPFHV_UPGRADE_TIMER */
 
     for (i = 0; i < BPFHV_PROG_MAX; i++) {
