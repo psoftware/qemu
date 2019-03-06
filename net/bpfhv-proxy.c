@@ -371,6 +371,54 @@ bpfhv_proxy_set_queue_ctx(BpfhvProxyState *s, unsigned int queue_idx,
     return 0;
 }
 
+static int
+bpfhv_proxy_set_queue_fd(BpfhvProxyState *s, BpfhvProxyReqType reqtype,
+                             unsigned int queue_idx, int fd)
+{
+    bool is_rx = queue_idx < s->num_queues;
+    BpfhvProxyMessage msg;
+    int ret;
+
+    assert(reqtype == BPFHV_PROXY_REQ_SET_QUEUE_KICK ||
+           reqtype == BPFHV_PROXY_REQ_SET_QUEUE_IRQ);
+
+    memset(&msg, 0, sizeof(msg));
+    msg.hdr.reqtype = reqtype;
+    msg.hdr.size = sizeof(msg.payload.notify);
+
+    msg.payload.notify.queue_idx = queue_idx;
+
+    ret = bpfhv_proxy_sendrecv(s, &msg, &fd, 1);
+    if (ret) {
+        return ret;
+    }
+
+    if (!is_rx) {
+        queue_idx -= s->num_queues;
+    }
+    DBG("Set queue %s%u %sfd to %d", is_rx ? "RX" : "TX",
+        queue_idx, reqtype == BPFHV_PROXY_REQ_SET_QUEUE_KICK ? "kick" : "irq",
+        fd);
+
+    return 0;
+}
+
+static int
+bpfhv_proxy_set_queue_kickfd(BpfhvProxyState *s, unsigned int queue_idx,
+                             int fd)
+{
+    return bpfhv_proxy_set_queue_fd(s, BPFHV_PROXY_REQ_SET_QUEUE_KICK,
+                                    queue_idx, fd);
+}
+
+static int
+bpfhv_proxy_set_queue_irqfd(BpfhvProxyState *s, unsigned int queue_idx,
+                            int fd)
+{
+    return bpfhv_proxy_set_queue_fd(s, BPFHV_PROXY_REQ_SET_QUEUE_IRQ,
+                                    queue_idx, fd);
+}
+
 static void
 bpfhv_proxy_stop(BpfhvProxyState *s)
 {
@@ -420,6 +468,26 @@ bpfhv_proxy_start(BpfhvProxyState *s)
         return ret;
     }
     ret = bpfhv_proxy_set_queue_ctx(s, /*queue_idx=*/1, /*gpa=*/0);
+    if (ret) {
+        return ret;
+    }
+
+    /* Set kick file descriptors. */
+    ret = bpfhv_proxy_set_queue_kickfd(s, /*queue_idx=*/0, /*fd=*/0);
+    if (ret) {
+        return ret;
+    }
+    ret = bpfhv_proxy_set_queue_kickfd(s, /*queue_idx=*/1, /*fd=*/0);
+    if (ret) {
+        return ret;
+    }
+
+    /* Set irq file descriptors. */
+    ret = bpfhv_proxy_set_queue_irqfd(s, /*queue_idx=*/0, /*fd=*/1);
+    if (ret) {
+        return ret;
+    }
+    ret = bpfhv_proxy_set_queue_irqfd(s, /*queue_idx=*/1, /*fd=*/1);
     if (ret) {
         return ret;
     }
