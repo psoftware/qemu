@@ -289,6 +289,8 @@ bpfhv_debug_timer(void *opaque)
     BpfhvState *s = opaque;
     char *dump;
 
+    assert(s->proxy == NULL);
+
     dump = bpfhv_dump_string(s);
     printf("%s", dump);
     g_free(dump);
@@ -403,22 +405,25 @@ bpfhv_link_status_update(BpfhvState *s)
     DBG("Link status goes %s", new_status ? "up" : "down");
     s->ioregs[BPFHV_REG(STATUS)] ^= BPFHV_STATUS_LINK;
     if (new_status) {
-        /* Link status goes up, which means that bpfhv_can_receive()
-         * may return true, hence we need to wake up the backend. */
-        for (i = 0; i < s->num_queue_pairs; i++) {
-            qemu_flush_queued_packets(qemu_get_subqueue(s->nic, i));
+        if (!s->proxy) {
+            /* Link status goes up, which means that bpfhv_can_receive()
+             * may return true, hence we need to wake up the backend. */
+            for (i = 0; i < s->num_queue_pairs; i++) {
+                qemu_flush_queued_packets(qemu_get_subqueue(s->nic, i));
+            }
         }
 #ifdef BPFHV_DEBUG_TIMER
-        timer_mod(s->debug_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) +
-                BPFHV_DEBUG_TIMER_MS);
+        if (s->debug_timer) {
+            timer_mod(s->debug_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) +
+                                      BPFHV_DEBUG_TIMER_MS);
+        }
 #endif /* BPFHV_DEBUG_TIMER */
 #ifdef BPFHV_UPGRADE_TIMER
         timer_mod(s->upgrade_timer, qemu_clock_get_ms(QEMU_CLOCK_VIRTUAL) +
                   BPFHV_UPGRADE_TIMER_MS);
 #endif /* BPFHV_UPGRADE_TIMER */
     } else {
-        if (s->proxy) {
-        } else {
+        if (!s->proxy) {
             /* Link status goes down, so we stop the transmit bottom halves
              * and purge any packets queued for receive. */
             for (i = 0; i < s->num_queue_pairs; i++) {
@@ -427,7 +432,9 @@ bpfhv_link_status_update(BpfhvState *s)
             }
         }
 #ifdef BPFHV_DEBUG_TIMER
-        timer_del(s->debug_timer);
+        if (s->debug_timer) {
+            timer_del(s->debug_timer);
+        }
 #endif /* BPFHV_DEBUG_TIMER */
 #ifdef BPFHV_UPGRADE_TIMER
         timer_del(s->upgrade_timer);
@@ -536,7 +543,7 @@ bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
         }
     }
 
-    if (cmd & BPFHV_CTRL_QUEUES_DUMP) {
+    if ((cmd & BPFHV_CTRL_QUEUES_DUMP) && !s->proxy) {
         if (s->curdump != NULL) {
             g_free(s->curdump);
         }
@@ -1365,7 +1372,10 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     }
 
 #ifdef BPFHV_DEBUG_TIMER
-    s->debug_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL, bpfhv_debug_timer, s);
+    if (!s->proxy) {
+        s->debug_timer = timer_new_ms(QEMU_CLOCK_VIRTUAL,
+                                      bpfhv_debug_timer, s);
+    }
 #endif /* BPFHV_DEBUG_TIMER */
 
 #ifdef BPFHV_UPGRADE_TIMER
@@ -1395,8 +1405,10 @@ pci_bpfhv_uninit(PCIDevice *dev)
 #endif /* BPFHV_MEMLI */
 
 #ifdef BPFHV_DEBUG_TIMER
-    timer_del(s->debug_timer);
-    timer_free(s->debug_timer);
+    if (s->debug_timer) {
+        timer_del(s->debug_timer);
+        timer_free(s->debug_timer);
+    }
 #endif /* BPFHV_DEBUG_TIMER */
 
 #ifdef BPFHV_UPGRADE_TIMER
