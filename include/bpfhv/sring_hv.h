@@ -22,7 +22,7 @@
 #ifndef __BPFHV_SRING_HV_H__
 #define __BPFHV_SRING_HV_H__
 
-#include "bpfhv_sring.h"
+#include "sring.h"
 
 struct BpfhvState_st;
 void *bpfhv_mem_map(struct BpfhvState_st *s,

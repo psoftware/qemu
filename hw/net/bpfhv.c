@@ -37,7 +37,7 @@
 #include <gelf.h>
 
 #include "bpfhv/bpfhv.h"
-#include "bpfhv/bpfhv_sring_hv.h"
+#include "bpfhv/sring_hv.h"
 
 /*
  * Compile-time tunables.

@@ -513,11 +513,11 @@ bpfhv_proxy_start(BpfhvProxyState *s)
     }
 
     /* Enable receive and transmit operation. */
-    ret = bpfhv_proxy_enable(s, /*is_rx=*/true, /*enable=*/true);
+    ret = bpfhv_proxy_enable(s, /*is_rx=*/true, /*enable=*/false);
     if (ret) {
         return ret;
     }
-    ret = bpfhv_proxy_enable(s, /*is_rx=*/false, /*enable=*/true);
+    ret = bpfhv_proxy_enable(s, /*is_rx=*/false, /*enable=*/false);
     if (ret) {
         return ret;
     }

@@ -826,7 +826,7 @@ endif
 ifdef CONFIG_BPFHV
 	$(INSTALL_DIR) "$(DESTDIR)$(qemu_datadir)/ebpf"
 	set -e; for x in "sring" "sringcsum" "sringgso"; do \
-		$(INSTALL_DATA) $(SRC_PATH)/hw/bpfhv/bpfhv_$${x}_progs.o "$(DESTDIR)$(qemu_datadir)/ebpf"; \
+		$(INSTALL_DATA) $(SRC_PATH)/hw/bpfhv/$${x}_progs.o "$(DESTDIR)$(qemu_datadir)/ebpf"; \
 	done
 endif
 ifdef CONFIG_GTK
@@ -875,12 +875,12 @@ ui/shader.o: $(SRC_PATH)/ui/shader.c \
 	ui/shader/texture-blit-frag.h
 
 ifdef CONFIG_BPFHV
-bpfhv: hw/bpfhv/bpfhv_sring_progs.o hw/bpfhv/bpfhv_sringcsum_progs.o hw/bpfhv/bpfhv_sringgso_progs.o
-hw/bpfhv/bpfhv_sring_progs.o : $(SRC_PATH)/hw/bpfhv/bpfhv_sring_progs.c $(SRC_PATH)/include/bpfhv/bpfhv.h $(SRC_PATH)/include/bpfhv/bpfhv_sring.h
+bpfhv: hw/bpfhv/sring_progs.o hw/bpfhv/sringcsum_progs.o hw/bpfhv/sringgso_progs.o
+hw/bpfhv/sring_progs.o : $(SRC_PATH)/hw/bpfhv/sring_progs.c $(SRC_PATH)/include/bpfhv/bpfhv.h $(SRC_PATH)/include/bpfhv/sring.h
 	clang -O2 -Wall -I $(SRC_PATH)/include -target bpf -c $< -o $@
-hw/bpfhv/bpfhv_sringcsum_progs.o : $(SRC_PATH)/hw/bpfhv/bpfhv_sringcsum_progs.c $(SRC_PATH)/hw/bpfhv/bpfhv_sring_progs.c $(SRC_PATH)/include/bpfhv/bpfhv.h $(SRC_PATH)/include/bpfhv/bpfhv_sring.h
+hw/bpfhv/sringcsum_progs.o : $(SRC_PATH)/hw/bpfhv/sringcsum_progs.c $(SRC_PATH)/hw/bpfhv/sring_progs.c $(SRC_PATH)/include/bpfhv/bpfhv.h $(SRC_PATH)/include/bpfhv/sring.h
 	clang -O2 -Wall -I $(SRC_PATH)/include -target bpf -c $< -o $@
-hw/bpfhv/bpfhv_sringgso_progs.o : $(SRC_PATH)/hw/bpfhv/bpfhv_sringgso_progs.c $(SRC_PATH)/hw/bpfhv/bpfhv_sring_progs.c $(SRC_PATH)/include/bpfhv/bpfhv.h $(SRC_PATH)/include/bpfhv/bpfhv_sring.h
+hw/bpfhv/sringgso_progs.o : $(SRC_PATH)/hw/bpfhv/sringgso_progs.c $(SRC_PATH)/hw/bpfhv/sring_progs.c $(SRC_PATH)/include/bpfhv/bpfhv.h $(SRC_PATH)/include/bpfhv/sring.h
 	clang -O2 -Wall -I $(SRC_PATH)/include -target bpf -c $< -o $@
 else
 bpfhv:

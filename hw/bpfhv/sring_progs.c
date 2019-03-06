@@ -1,5 +1,5 @@
 #include "bpfhv/bpfhv.h"
-#include "bpfhv/bpfhv_sring.h"
+#include "bpfhv/sring.h"
 
 #ifndef __section
 # define __section(NAME)                  \
