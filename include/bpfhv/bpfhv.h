@@ -30,6 +30,10 @@
 #include <stdint.h>
 #endif /* !__KERNEL__ */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct bpfhv_tx_buf {
 	uint64_t cookie;
 	uint64_t paddr;
@@ -127,6 +131,10 @@ enum bpfhv_helper_id {
 	BPFHV_FUNC_pkt_l4_csum_md_set,
 	BPFHV_FUNC_pkt_virtio_net_md_get,
 	BPFHV_FUNC_pkt_virtio_net_md_set,
+	BPFHV_FUNC_rx_buf_dma_map,
+	BPFHV_FUNC_rx_buf_dma_unmap,
+	BPFHV_FUNC_tx_buf_dma_map,
+	BPFHV_FUNC_tx_buf_dma_unmap,
 };
 
 #ifndef BPFHV_FUNC
@@ -299,5 +307,9 @@ enum {
 /* Marker for the end of valid registers, and size of the I/O region. */
 #define BPFHV_REG_END			92
 #define BPFHV_REG_MASK			0xff
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif  /* __BPFHV_H__ */
