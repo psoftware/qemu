@@ -452,6 +452,13 @@ bpfhv_backend_link_status_changed(NetClientState *nc)
 {
     BpfhvState *s = qemu_get_nic_opaque(nc);
 
+    /* In case of proxy, link going up means that the backend
+     * process just reconnected (or signalled that an upgrade
+     * is necessary). */
+    if (s->proxy && !nc->link_down) {
+        s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_UPGRADE;
+    }
+
     bpfhv_link_status_update(s);
 }
 
