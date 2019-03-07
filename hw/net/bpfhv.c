@@ -1280,6 +1280,12 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     nc = qemu_get_queue(s->nic);
     qemu_format_nic_info_str(nc, s->nic_conf.macaddr.a);
 
+    /* Check if the net backend is a proxy to a separate process. */
+    s->proxy = bpfhv_proxy_get(nc->peer);
+    if (s->proxy != NULL) {
+        DBG("Found proxy net backend");
+    }
+
     s->vnet_hdr_len = 0;
     s->hv_features = 0;
     if (s->proxy) {
@@ -1320,12 +1326,6 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     if (!bpfhv_doorbell_size_validate(s->doorbell_size)) {
         error_setg(errp, "Invalid doorbell size: %u", s->doorbell_size);
         return;
-    }
-
-    /* Check if the net backend is a proxy to a separate process. */
-    s->proxy = bpfhv_proxy_get(nc->peer);
-    if (s->proxy != NULL) {
-        DBG("Found proxy net backend");
     }
 
     /* Initialize device queues. */
