@@ -58,7 +58,7 @@ sring_tx_ctx_init(struct bpfhv_tx_context *ctx, size_t num_tx_bufs)
 }
 
 ssize_t
-sring_txq_drain(struct BpfhvState_st *s, NetClientState *nc,
+sring_txq_drain(struct BpfhvState *s, NetClientState *nc,
                 struct bpfhv_tx_context *ctx,
                 NetPacketSent *complete_cb,
                 int vnet_hdr_len, bool *notify)
@@ -180,7 +180,7 @@ sring_can_receive(struct bpfhv_rx_context *ctx)
 
 
 ssize_t
-sring_receive_iov(struct BpfhvState_st *s, struct bpfhv_rx_context *ctx,
+sring_receive_iov(struct BpfhvState *s, struct bpfhv_rx_context *ctx,
                   const struct iovec *iov, int iovcnt, int vnet_hdr_len,
                   bool *notify)
 {

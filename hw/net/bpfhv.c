@@ -105,7 +105,7 @@ static const char *regnames[] = {
                            |  BPFHV_F_TSOv6 | BPFHV_F_TCPv6_LRO \
                            |  BPFHV_F_UFO   | BPFHV_F_UDP_LRO)
 
-typedef struct BpfhvProg_st {
+typedef struct BpfhvProg {
     unsigned int num_insns;
     uint64_t *insns;
 } BpfhvProg;
@@ -113,25 +113,25 @@ typedef struct BpfhvProg_st {
 /* Each eBPF instruction is 8 bytes wide. */
 #define BPF_INSN_SIZE   8
 
-struct BpfhvState_st;
+struct BpfhvState;
 
-typedef struct BpfhvTxQueue_st {
+typedef struct BpfhvTxQueue {
     struct bpfhv_tx_context *ctx;
     QEMUBH *bh;
     NetClientState *nc;
-    struct BpfhvState_st *parent;
+    struct BpfhvState *parent;
     unsigned int vector;
     /* We let KVM handle the TX kicks in kernelspace, rather than
      * have KVM return to QEMU and QEMU handling the TX kicks. */
     EventNotifier ioeventfd;
 } BpfhvTxQueue;
 
-typedef struct BpfhvRxQueue_st {
+typedef struct BpfhvRxQueue {
     struct bpfhv_rx_context *ctx;
     EventNotifier ioeventfd;
 } BpfhvRxQueue;
 
-typedef struct BpfhvTranslateEntry_st {
+typedef struct BpfhvTranslateEntry {
     uint64_t gpa_start;
     uint64_t gpa_end;
     uint64_t size;
@@ -139,7 +139,7 @@ typedef struct BpfhvTranslateEntry_st {
     MemoryRegion *mr;
 } BpfhvTranslateEntry;
 
-typedef struct BpfhvState_st {
+typedef struct BpfhvState {
     /* Parent class. This is a private field, and it cannot be used. */
     PCIDevice pci_device;
 
@@ -1263,6 +1263,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         }
     }
 
+    /* Validate the tunable parameters. */
     s->num_queue_pairs = MAX(s->nic_conf.peers.queues, 1);
     if (s->num_queue_pairs > 32) {
         error_setg(errp, "Too many queue pairs %u", s->num_queue_pairs);
@@ -1287,6 +1288,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         return;
     }
 
+    /* Check if the net backend is a proxy to a separate process. */
     s->proxy = bpfhv_proxy_get(nc->peer);
     if (s->proxy != NULL) {
         DBG("Found proxy net backend");
