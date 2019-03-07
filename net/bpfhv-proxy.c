@@ -64,10 +64,6 @@ typedef struct BpfhvProxyState {
     /* Number of queue pairs. */
     unsigned int num_queues;
 
-    /* File descriptor of an open file from which the eBPF programs
-     * can be read. */
-    int progfd;
-
     /* Size of the RX and TX contexts (including the initial part
      * visible to the guest. */
     size_t rx_ctx_size;
@@ -295,12 +291,7 @@ bpfhv_proxy_get_programs(BpfhvProxyState *s)
         return ret;
     }
 
-    if (s->progfd >= 0) {
-        close(s->progfd);
-    }
-    s->progfd = progfd;
-
-    DBG("Got program fd (%d)", s->progfd);
+    DBG("Got program fd (%d)", progfd);
 
     return progfd;
 
@@ -479,13 +470,6 @@ bpfhv_proxy_start(BpfhvProxyState *s)
     if (ret) {
         return ret;
     }
-
-    /* Get the eBPF programs to be injected to the guest. */
-    ret = bpfhv_proxy_get_programs(s);
-    if (ret < 0) {
-        return ret;
-    }
-    ret = 0;
 
     /* Set the guest memory map. */
     ret = bpfhv_proxy_set_mem_table(s);
@@ -811,7 +795,6 @@ net_init_bpfhv_proxy(const Netdev *netdev, const char *name,
         goto err;
     }
 
-    s->progfd = -1;
     s->num_queues = 1;
 
     /* Initialize memory listener. */

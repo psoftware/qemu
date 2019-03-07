@@ -343,6 +343,7 @@ bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
     const char *progpath = "bpfhv_proxy_progs.o";
     uint64_t be_features;
     int progfd;
+    int ret;
 
     if (bpfhv_proxy_get_features(s->proxy, &be_features)) {
         error_setg(errp, "Failed to get proxy features");
@@ -362,8 +363,10 @@ bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
         return -1;
     }
 
-    if (bpfhv_progs_load_fd(s, progfd, "proxy", progpath, errp)) {
-        return -1;
+    ret = bpfhv_progs_load_fd(s, progfd, "proxy", progpath, errp);
+    close(progfd);
+    if (ret) {
+        return ret;
     }
 
     return 0;
