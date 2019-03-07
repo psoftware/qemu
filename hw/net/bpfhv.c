@@ -701,8 +701,6 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         NetClientState *peer0 = qemu_get_queue(s->nic)->peer;
         Error *local_err = NULL;
         const char *progsname;
-        unsigned int i;
-        bool csum, gso;
 
         /* Check that 'val' is a subset of s->hv_features. */
         if ((s->hv_features | val) != s->hv_features) {
@@ -710,32 +708,35 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
             break;
         }
 
-        /* Configure virtio-net header and offloads in the backend, depending
-         * on the features activated by the guest. */
-        csum = val & BPFHV_CSUM_FEATURES;
-        gso = val & BPFHV_GSO_FEATURES;
-        s->vnet_hdr_len = (csum || gso) ? sizeof(struct virtio_net_hdr_v1) : 0;
-        if ((s->vnet_hdr_len == 0 &&
-            peer0->info->type == NET_CLIENT_DRIVER_TAP)) {
-            /* The tap backend does not support removing the virtio-net
-             * header once it has been set. However, we can unnegotiate
-             * the header --> qemu_using_vnet_hdr(peer, false). */
-        } else {
-            for (i = 0; i < s->num_queue_pairs; i++) {
-                qemu_set_vnet_hdr_len(qemu_get_subqueue(s->nic, i)->peer,
-                                      s->vnet_hdr_len);
-            }
-        }
-        for (i = 0; i < s->num_queue_pairs; i++) {
-            qemu_using_vnet_hdr(qemu_get_subqueue(s->nic, i)->peer,
-                                s->vnet_hdr_len != 0);
-        }
-        qemu_set_offload(peer0, /*csum=*/csum, /*tso4=*/gso,
-                         /*tso6=*/gso, /*ecn=*/false, /*ufo=*/gso);
-
-        /* Load the corresponding eBPF programs. */
         if (s->proxy) {
         } else {
+            /* Configure virtio-net header and offloads in the backend,
+             * depending on the features activated by the guest. */
+            unsigned int i;
+            bool csum, gso;
+
+            csum = val & BPFHV_CSUM_FEATURES;
+            gso = val & BPFHV_GSO_FEATURES;
+            s->vnet_hdr_len = (csum || gso) ? sizeof(struct virtio_net_hdr_v1) : 0;
+            if ((s->vnet_hdr_len == 0 &&
+                peer0->info->type == NET_CLIENT_DRIVER_TAP)) {
+                /* The tap backend does not support removing the virtio-net
+                 * header once it has been set. However, we can unnegotiate
+                 * the header --> qemu_using_vnet_hdr(peer, false). */
+            } else {
+                for (i = 0; i < s->num_queue_pairs; i++) {
+                    qemu_set_vnet_hdr_len(qemu_get_subqueue(s->nic, i)->peer,
+                                          s->vnet_hdr_len);
+                }
+            }
+            for (i = 0; i < s->num_queue_pairs; i++) {
+                qemu_using_vnet_hdr(qemu_get_subqueue(s->nic, i)->peer,
+                                    s->vnet_hdr_len != 0);
+            }
+            qemu_set_offload(peer0, /*csum=*/csum, /*tso4=*/gso,
+                             /*tso6=*/gso, /*ecn=*/false, /*ufo=*/gso);
+
+            /* Load the corresponding eBPF programs. */
             progsname = gso ? "sringgso" : (csum ? "sringcsum" : "sring");
             if (bpfhv_progs_load(s, progsname, &local_err)) {
                 error_propagate(&error_fatal, local_err);
@@ -1267,15 +1268,19 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     qemu_format_nic_info_str(nc, s->nic_conf.macaddr.a);
 
     s->vnet_hdr_len = 0;
-    s->hv_features = BPFHV_F_SG;
-    /* Check if backend supports virtio-net offloadings. */
-    if (qemu_has_vnet_hdr(nc->peer) &&
-        qemu_has_vnet_hdr_len(nc->peer, sizeof(struct virtio_net_hdr_v1))) {
-        if (s->net_conf.csum) {
-            s->hv_features |= BPFHV_CSUM_FEATURES;
-        }
-        if (s->net_conf.gso) {
-            s->hv_features |= BPFHV_GSO_FEATURES;
+    s->hv_features = 0;
+    if (s->proxy) {
+    } else {
+        /* Check if backend supports virtio-net offloadings. */
+        s->hv_features = BPFHV_F_SG;
+        if (qemu_has_vnet_hdr(nc->peer) &&
+            qemu_has_vnet_hdr_len(nc->peer, sizeof(struct virtio_net_hdr_v1))) {
+            if (s->net_conf.csum) {
+                s->hv_features |= BPFHV_CSUM_FEATURES;
+            }
+            if (s->net_conf.gso) {
+                s->hv_features |= BPFHV_GSO_FEATURES;
+            }
         }
     }
 
