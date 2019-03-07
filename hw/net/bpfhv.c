@@ -354,6 +354,14 @@ bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
     }
     s->hv_features = be_features & 0xffffffff;
 
+    /* We set the features in case they did not change so the
+     * guest won't write to the features register. */
+    if (bpfhv_proxy_set_features(s->proxy,
+            s->hv_features & s->ioregs[BPFHV_REG(FEATURES)])) {
+        error_setg(errp, "Failed to set proxy features");
+        return -1;
+    }
+
     if (bpfhv_proxy_set_parameters(s->proxy, s->net_conf.num_rx_bufs,
                                    s->net_conf.num_tx_bufs)) {
         error_setg(errp, "Failed to set proxy parameters");
@@ -517,6 +525,7 @@ bpfhv_backend_link_status_changed(NetClientState *nc)
             return;
         }
         s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_UPGRADE;
+        msix_notify(PCI_DEVICE(s), s->num_queues);
     }
 
     bpfhv_link_status_update(s);
