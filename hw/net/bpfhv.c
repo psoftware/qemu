@@ -117,6 +117,7 @@ struct BpfhvState;
 
 typedef struct BpfhvTxQueue {
     struct bpfhv_tx_context *ctx;
+    hwaddr ctx_gpa;
     QEMUBH *bh;
     NetClientState *nc;
     struct BpfhvState *parent;
@@ -128,6 +129,7 @@ typedef struct BpfhvTxQueue {
 
 typedef struct BpfhvRxQueue {
     struct bpfhv_rx_context *ctx;
+    hwaddr ctx_gpa;
     EventNotifier ioeventfd;
 } BpfhvRxQueue;
 
@@ -343,6 +345,7 @@ bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
     const char *progpath = "bpfhv_proxy_progs.o";
     uint64_t be_features;
     int progfd;
+    uint32_t i;
     int ret;
 
     if (bpfhv_proxy_get_features(s->proxy, &be_features)) {
@@ -367,6 +370,17 @@ bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
     close(progfd);
     if (ret) {
         return ret;
+    }
+
+    for (i = 0; i < s->num_queues; i++) {
+        hwaddr gpa = i < s->num_queue_pairs ? s->rxq[i].ctx_gpa :
+                    s->txq[i-s->num_queue_pairs].ctx_gpa;
+
+        if (bpfhv_proxy_set_queue_ctx(s->proxy, i, gpa)) {
+            error_setg(errp, "Failed to set queue #%u context "
+                       "gpa to %"PRIx64"", i, gpa);
+            return -1;
+        }
     }
 
     return 0;
@@ -621,13 +635,22 @@ bpfhv_ctx_remap(BpfhvState *s)
     base = (((uint64_t)s->ioregs[BPFHV_REG(CTX_PADDR_HI)]) << 32ULL) |
                     (uint64_t)s->ioregs[BPFHV_REG(CTX_PADDR_LO)];
 
+    if (s->proxy) {
+        if (bpfhv_proxy_set_queue_ctx(s->proxy, qsel, base)) {
+            error_report("Failed to set queue #%u context gpa to %"PRIx64"",
+                         qsel, base);
+        }
+    }
+
     if (qsel < s->num_queue_pairs) {
         pvaddr = (void **)&s->rxq[qsel].ctx;
+        s->rxq[qsel].ctx_gpa = base;
         len = s->ioregs[BPFHV_REG(RX_CTX_SIZE)];
         rx = true;
     } else {
         qsel -= s->num_queue_pairs;
         pvaddr = (void **) &s->txq[qsel].ctx;
+        s->txq[qsel].ctx_gpa = base;
         len = s->ioregs[BPFHV_REG(TX_CTX_SIZE)];
         rx = false;
     }
@@ -667,7 +690,7 @@ bpfhv_ctx_remap(BpfhvState *s)
         }
 
         /* Possibly update link status, which depends on
-         * rx_contexs_ready. */
+         * rx_contexts_ready. */
         bpfhv_link_status_update(s);
     } else {
         int i;
@@ -679,9 +702,6 @@ bpfhv_ctx_remap(BpfhvState *s)
                 break;
             }
         }
-    }
-
-    if (s->proxy) {
     }
 }
 

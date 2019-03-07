@@ -344,7 +344,7 @@ bpfhv_proxy_set_mem_table(BpfhvProxyState *s)
     return 0;
 }
 
-static int
+int
 bpfhv_proxy_set_queue_ctx(BpfhvProxyState *s, unsigned int queue_idx,
                           hwaddr gpa)
 {
@@ -450,26 +450,7 @@ bpfhv_proxy_enable(BpfhvProxyState *s, bool is_rx, bool enable)
 static int
 bpfhv_proxy_start(BpfhvProxyState *s)
 {
-    uint64_t guest_features = BPFHV_F_SG;
-    uint64_t be_features = 0;
-    unsigned int num_bufs = 256;
     int ret;
-
-    /* Negotiate features. */
-    ret = bpfhv_proxy_get_features(s, &be_features);
-    if (ret) {
-        return ret;
-    }
-    ret = bpfhv_proxy_set_features(s, be_features & guest_features);
-    if (ret) {
-        return ret;
-    }
-
-    /* Set number of queues, and get size of RX and TX contexts. */
-    ret = bpfhv_proxy_set_parameters(s, /*rx=*/num_bufs, /*tx=*/num_bufs);
-    if (ret) {
-        return ret;
-    }
 
     /* Set the guest memory map. */
     ret = bpfhv_proxy_set_mem_table(s);
@@ -477,16 +458,7 @@ bpfhv_proxy_start(BpfhvProxyState *s)
         return ret;
     }
 
-    /* Set the physical address of RX and TX queues. */
-    ret = bpfhv_proxy_set_queue_ctx(s, /*queue_idx=*/0, /*gpa=*/0);
-    if (ret) {
-        return ret;
-    }
-    ret = bpfhv_proxy_set_queue_ctx(s, /*queue_idx=*/1, /*gpa=*/0);
-    if (ret) {
-        return ret;
-    }
-
+#if 0
     /* Set kick file descriptors. */
     ret = bpfhv_proxy_set_queue_kickfd(s, /*queue_idx=*/0, /*fd=*/0);
     if (ret) {
@@ -516,6 +488,7 @@ bpfhv_proxy_start(BpfhvProxyState *s)
     if (ret) {
         return ret;
     }
+#endif
 
     return 0;
 }
