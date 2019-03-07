@@ -573,6 +573,7 @@ bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
              * otherwise can_receive will return false. */
             s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_RX_ENABLED;
             if (s->proxy) {
+                bpfhv_proxy_enable(s->proxy, /*is_rx=*/true, /*enable=*/true);
             } else {
                 for (i = 0; i < s->num_queue_pairs; i++) {
                     sring_rxq_notification(s->rxq[i].ctx, /*enable=*/true);
@@ -590,6 +591,7 @@ bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
         /* Guest asked to disable receive operation. */
         s->ioregs[BPFHV_REG(STATUS)] &= ~BPFHV_STATUS_RX_ENABLED;
         if (s->proxy) {
+            bpfhv_proxy_enable(s->proxy, /*is_rx=*/true, /*enable=*/false);
         }
         DBG("Receive disabled");
     }
@@ -600,6 +602,7 @@ bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
         if (s->tx_contexts_ready) {
             s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_TX_ENABLED;
             if (s->proxy) {
+                bpfhv_proxy_enable(s->proxy, /*is_rx=*/false, /*enable=*/true);
             } else {
                 for (i = 0; i < s->num_queue_pairs; i++) {
                     qemu_bh_schedule(s->txq[i].bh);
@@ -611,6 +614,7 @@ bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
 
     if (cmd & BPFHV_CTRL_TX_DISABLE) {
         if (s->proxy) {
+            bpfhv_proxy_enable(s->proxy, /*is_rx=*/false, /*enable=*/false);
         } else {
             /* Guest asked to disable transmit operation, so we need to stop the
              * bottom halves and clear the TX_ENABLED status bit.

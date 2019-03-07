@@ -153,7 +153,7 @@ bpfhv_proxy_recvmsg(BpfhvProxyState *s, BpfhvProxyMessage *msg,
 
     /* Check for errors */
     if (msg->hdr.flags & BPFHV_PROXY_F_ERROR) {
-        error_report("Backend reported an error.");
+        error_report("Backend reported an error (reqtype=%u).", reqtype_sent);
         return -1;
     }
 
