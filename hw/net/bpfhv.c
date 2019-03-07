@@ -1357,11 +1357,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 
     s->vnet_hdr_len = 0;
     s->hv_features = 0;
-    if (s->proxy) {
-        if (bpfhv_proxy_reinit(s, errp)) {
-            return;
-        }
-    } else {
+    if (!s->proxy) {
         /* Check if backend supports virtio-net offloadings. */
         s->hv_features = BPFHV_F_SG;
         if (qemu_has_vnet_hdr(nc->peer) &&
@@ -1522,6 +1518,13 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         memory_listener_register(&s->memory_listener, &address_space_memory);
     }
 #endif /* BPFHV_MEMLI */
+
+    if (s->proxy) {
+        if (bpfhv_proxy_reinit(s, errp)) {
+            return;
+        }
+    }
+
     DBG("**** device realized ****");
 }
 
