@@ -230,8 +230,8 @@ bpfhv_proxy_set_features(BpfhvProxyState *s, uint64_t features)
     return 0;
 }
 
-static int
-bpfhv_proxy_set_parameters(BpfhvProxyState *s, unsigned int num_queues,
+int
+bpfhv_proxy_set_parameters(BpfhvProxyState *s,
                            unsigned int num_rx_bufs, unsigned int num_tx_bufs)
 {
     BpfhvProxyMessage msg;
@@ -241,7 +241,7 @@ bpfhv_proxy_set_parameters(BpfhvProxyState *s, unsigned int num_queues,
     msg.hdr.reqtype = BPFHV_PROXY_REQ_SET_PARAMETERS;
     msg.hdr.size = sizeof(msg.payload.params);
     msg.payload.params.num_rx_queues =
-        msg.payload.params.num_tx_queues = num_queues;
+        msg.payload.params.num_tx_queues = s->num_queues;
     msg.payload.params.num_rx_bufs = num_rx_bufs;
     msg.payload.params.num_tx_bufs = num_tx_bufs;
 
@@ -268,7 +268,7 @@ bpfhv_proxy_set_parameters(BpfhvProxyState *s, unsigned int num_queues,
     s->tx_ctx_size = (size_t)msg.payload.ctx_sizes.tx_ctx_size;
 
     DBG("Set queue parameters: %u queue pairs, %u rx bufs, %u tx bufs",
-        num_queues, num_rx_bufs, num_tx_bufs);
+        s->num_queues, num_rx_bufs, num_tx_bufs);
     DBG("Got context sizes: RX %zu, TX %zu", s->rx_ctx_size, s->tx_ctx_size);
 
     return 0;
@@ -474,9 +474,8 @@ bpfhv_proxy_start(BpfhvProxyState *s)
         return ret;
     }
 
-    /* Set number of queues. and get size of RX and TX contexts. */
-    ret = bpfhv_proxy_set_parameters(s, s->num_queues, /*rx=*/num_bufs,
-                                     /*tx=*/num_bufs);
+    /* Set number of queues, and get size of RX and TX contexts. */
+    ret = bpfhv_proxy_set_parameters(s, /*rx=*/num_bufs, /*tx=*/num_bufs);
     if (ret) {
         return ret;
     }

@@ -333,6 +333,26 @@ bpfhv_upgrade_timer(void *opaque)
 #endif /* BPFHV_UPGRADE_TIMER */
 
 static int
+bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
+{
+    uint64_t be_features;
+
+    if (bpfhv_proxy_get_features(s->proxy, &be_features)) {
+        error_setg(errp, "Failed to get proxy features");
+        return -1;
+    }
+    s->hv_features = be_features & 0xffffffff;
+
+    if (bpfhv_proxy_set_parameters(s->proxy, s->net_conf.num_rx_bufs,
+                                   s->net_conf.num_tx_bufs)) {
+        error_setg(errp, "Failed to set proxy parameters");
+        return -1;
+    }
+
+    return 0;
+}
+
+static int
 bpfhv_can_receive(NetClientState *nc)
 {
     BpfhvState *s = qemu_get_nic_opaque(nc);
@@ -457,16 +477,12 @@ bpfhv_backend_link_status_changed(NetClientState *nc)
      * is necessary). */
     if (s->proxy && !nc->link_down) {
         Error *local_err = NULL;
-        uint64_t be_features;
 
-        s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_UPGRADE;
-
-        if (bpfhv_proxy_get_features(s->proxy, &be_features)) {
-            error_setg(&local_err, "Failed to get proxy features");
+        if (bpfhv_proxy_reinit(s, &local_err)) {
             error_propagate(&error_fatal, local_err);
             return;
         }
-        s->hv_features = be_features & 0xffffffff;
+        s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_UPGRADE;
     }
 
     bpfhv_link_status_update(s);
@@ -1304,13 +1320,9 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->vnet_hdr_len = 0;
     s->hv_features = 0;
     if (s->proxy) {
-        uint64_t be_features;
-
-        if (bpfhv_proxy_get_features(s->proxy, &be_features)) {
-            error_setg(errp, "Failed to get proxy features");
+        if (bpfhv_proxy_reinit(s, errp)) {
             return;
         }
-        s->hv_features = be_features & 0xffffffff;
     } else {
         /* Check if backend supports virtio-net offloadings. */
         s->hv_features = BPFHV_F_SG;

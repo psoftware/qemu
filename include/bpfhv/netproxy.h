@@ -30,4 +30,7 @@ struct BpfhvProxyState *bpfhv_proxy_get(NetClientState *nc);
 
 int bpfhv_proxy_get_features(struct BpfhvProxyState *s, uint64_t *features);
 int bpfhv_proxy_set_features(struct BpfhvProxyState *s, uint64_t features);
+int bpfhv_proxy_set_parameters(struct BpfhvProxyState *s,
+                               unsigned int num_rx_bufs,
+                               unsigned int num_tx_bufs);
 #endif  /* __BPFHV_NETPROXY_H__ */
