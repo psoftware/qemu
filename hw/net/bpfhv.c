@@ -456,7 +456,17 @@ bpfhv_backend_link_status_changed(NetClientState *nc)
      * process just reconnected (or signalled that an upgrade
      * is necessary). */
     if (s->proxy && !nc->link_down) {
+        Error *local_err = NULL;
+        uint64_t be_features;
+
         s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_UPGRADE;
+
+        if (bpfhv_proxy_get_features(s->proxy, &be_features)) {
+            error_setg(&local_err, "Failed to get proxy features");
+            error_propagate(&error_fatal, local_err);
+            return;
+        }
+        s->hv_features = be_features & 0xffffffff;
     }
 
     bpfhv_link_status_update(s);
@@ -709,6 +719,11 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         }
 
         if (s->proxy) {
+            if (bpfhv_proxy_set_features(s->proxy, val)) {
+                error_setg(&local_err, "Failed to set proxy features");
+                error_propagate(&error_fatal, local_err);
+                return;
+            }
         } else {
             /* Configure virtio-net header and offloads in the backend,
              * depending on the features activated by the guest. */
@@ -1289,6 +1304,13 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
     s->vnet_hdr_len = 0;
     s->hv_features = 0;
     if (s->proxy) {
+        uint64_t be_features;
+
+        if (bpfhv_proxy_get_features(s->proxy, &be_features)) {
+            error_setg(errp, "Failed to get proxy features");
+            return;
+        }
+        s->hv_features = be_features & 0xffffffff;
     } else {
         /* Check if backend supports virtio-net offloadings. */
         s->hv_features = BPFHV_F_SG;

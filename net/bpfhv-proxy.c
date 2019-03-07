@@ -188,7 +188,7 @@ bpfhv_proxy_sendrecv(BpfhvProxyState *s, BpfhvProxyMessage *msg,
     return bpfhv_proxy_recvmsg(s, msg, NULL, 0);
 }
 
-static int
+int
 bpfhv_proxy_get_features(BpfhvProxyState *s, uint64_t *features)
 {
     BpfhvProxyMessage msg;
@@ -209,7 +209,7 @@ bpfhv_proxy_get_features(BpfhvProxyState *s, uint64_t *features)
     return 0;
 }
 
-static int
+int
 bpfhv_proxy_set_features(BpfhvProxyState *s, uint64_t features)
 {
     BpfhvProxyMessage msg;
