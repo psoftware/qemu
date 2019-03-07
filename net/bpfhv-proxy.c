@@ -405,7 +405,7 @@ bpfhv_proxy_set_queue_fd(BpfhvProxyState *s, BpfhvProxyReqType reqtype,
     return 0;
 }
 
-static int
+int
 bpfhv_proxy_set_queue_kickfd(BpfhvProxyState *s, unsigned int queue_idx,
                              int fd)
 {
@@ -413,7 +413,7 @@ bpfhv_proxy_set_queue_kickfd(BpfhvProxyState *s, unsigned int queue_idx,
                                     queue_idx, fd);
 }
 
-static int
+int
 bpfhv_proxy_set_queue_irqfd(BpfhvProxyState *s, unsigned int queue_idx,
                             int fd)
 {
@@ -421,7 +421,7 @@ bpfhv_proxy_set_queue_irqfd(BpfhvProxyState *s, unsigned int queue_idx,
                                     queue_idx, fd);
 }
 
-static int
+int
 bpfhv_proxy_enable(BpfhvProxyState *s, bool is_rx, bool enable)
 {
     BpfhvProxyMessage msg;
@@ -459,16 +459,6 @@ bpfhv_proxy_start(BpfhvProxyState *s)
     }
 
 #if 0
-    /* Set kick file descriptors. */
-    ret = bpfhv_proxy_set_queue_kickfd(s, /*queue_idx=*/0, /*fd=*/0);
-    if (ret) {
-        return ret;
-    }
-    ret = bpfhv_proxy_set_queue_kickfd(s, /*queue_idx=*/1, /*fd=*/0);
-    if (ret) {
-        return ret;
-    }
-
     /* Set irq file descriptors. */
     ret = bpfhv_proxy_set_queue_irqfd(s, /*queue_idx=*/0, /*fd=*/1);
     if (ret) {

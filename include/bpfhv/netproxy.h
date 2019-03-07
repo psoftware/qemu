@@ -37,4 +37,10 @@ int bpfhv_proxy_get_programs(struct BpfhvProxyState *s);
 
 int bpfhv_proxy_set_queue_ctx(struct BpfhvProxyState *s,
                               unsigned int queue_idx, hwaddr gpa);
+int bpfhv_proxy_set_queue_kickfd(struct BpfhvProxyState *s,
+                                 unsigned int queue_idx, int fd);
+int bpfhv_proxy_set_queue_irqfd(struct BpfhvProxyState *s,
+                                unsigned int queue_idx, int fd);
+int bpfhv_proxy_enable(struct BpfhvProxyState *s, bool is_rx, bool enable);
+
 #endif  /* __BPFHV_NETPROXY_H__ */

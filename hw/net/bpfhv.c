@@ -381,12 +381,33 @@ bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
     }
 
     for (i = 0; i < s->num_queues; i++) {
-        hwaddr gpa = i < s->num_queue_pairs ? s->rxq[i].ctx_gpa :
-                    s->txq[i-s->num_queue_pairs].ctx_gpa;
+        uint32_t k = i;
+        int kickfd;
+        hwaddr gpa;
+        bool is_rx;
+
+        if (i < s->num_queue_pairs) {
+            gpa = s->rxq[k].ctx_gpa;
+            kickfd = event_notifier_get_fd(&s->rxq[k].ioeventfd);
+            is_rx = true;
+        } else {
+            k -= s->num_queue_pairs;
+            gpa = s->txq[k].ctx_gpa;
+            kickfd = event_notifier_get_fd(&s->txq[k].ioeventfd);
+            is_rx = false;
+        }
 
         if (bpfhv_proxy_set_queue_ctx(s->proxy, i, gpa)) {
-            error_setg(errp, "Failed to set queue #%u context "
-                       "gpa to %"PRIx64"", i, gpa);
+            error_setg(errp, "Failed to set queue #%s%u context "
+                       "gpa to %"PRIx64"", is_rx ? "RX" : "TX",
+                       k, gpa);
+            return -1;
+        }
+
+        if (bpfhv_proxy_set_queue_kickfd(s->proxy, i, kickfd)) {
+            error_setg(errp, "Failed to set queue #%s%u kickfd to "
+                       "%d", is_rx ? "RX" : "TX",
+                       k, kickfd);
             return -1;
         }
     }
