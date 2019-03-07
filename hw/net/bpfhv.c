@@ -332,10 +332,17 @@ bpfhv_upgrade_timer(void *opaque)
 }
 #endif /* BPFHV_UPGRADE_TIMER */
 
+// TODO get rid of these forward declarations
+static int bpfhv_progs_load(BpfhvState *s, const char *progsname, Error **errp);
+static int bpfhv_progs_load_fd(BpfhvState *s, int fd, const char *progsname,
+                    const char *path, Error **errp);
+
 static int
 bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
 {
+    const char *progpath = "bpfhv_proxy_progs.o";
     uint64_t be_features;
+    int progfd;
 
     if (bpfhv_proxy_get_features(s->proxy, &be_features)) {
         error_setg(errp, "Failed to get proxy features");
@@ -346,6 +353,16 @@ bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
     if (bpfhv_proxy_set_parameters(s->proxy, s->net_conf.num_rx_bufs,
                                    s->net_conf.num_tx_bufs)) {
         error_setg(errp, "Failed to set proxy parameters");
+        return -1;
+    }
+
+    progfd = bpfhv_proxy_get_programs(s->proxy);
+    if (progfd < 0) {
+        error_setg(errp, "Failed to get proxy programs");
+        return -1;
+    }
+
+    if (bpfhv_progs_load_fd(s, progfd, "proxy", progpath, errp)) {
         return -1;
     }
 
@@ -495,8 +512,6 @@ static NetClientInfo net_bpfhv_info = {
     .receive_iov = bpfhv_receive_iov,
     .link_status_changed = bpfhv_backend_link_status_changed,
 };
-
-static int bpfhv_progs_load(BpfhvState *s, const char *progsname, Error **errp);
 
 static void
 bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)

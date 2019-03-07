@@ -274,7 +274,7 @@ bpfhv_proxy_set_parameters(BpfhvProxyState *s,
     return 0;
 }
 
-static int
+int
 bpfhv_proxy_get_programs(BpfhvProxyState *s)
 {
     BpfhvProxyMessage msg;
@@ -302,7 +302,7 @@ bpfhv_proxy_get_programs(BpfhvProxyState *s)
 
     DBG("Got program fd (%d)", s->progfd);
 
-    return 0;
+    return progfd;
 
 }
 
@@ -482,9 +482,10 @@ bpfhv_proxy_start(BpfhvProxyState *s)
 
     /* Get the eBPF programs to be injected to the guest. */
     ret = bpfhv_proxy_get_programs(s);
-    if (ret) {
+    if (ret < 0) {
         return ret;
     }
+    ret = 0;
 
     /* Set the guest memory map. */
     ret = bpfhv_proxy_set_mem_table(s);
