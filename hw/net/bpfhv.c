@@ -1104,21 +1104,16 @@ bpfhv_mem_unmap(BpfhvState *s, void *buffer, hwaddr len, int is_write)
 }
 
 static int
-bpfhv_progs_load(BpfhvState *s, const char *progsname, Error **errp)
+bpfhv_progs_load_fd(BpfhvState *s, int fd, const char *progsname,
+                    const char *path, Error **errp)
 {
     const char *prog_names[BPFHV_PROG_MAX] = {"none",
                                               "rxp", "rxc", "rxi", "rxr",
                                               "txp", "txc", "txi", "txr"};
     GElf_Ehdr ehdr;
     int ret = -1;
-    char *path;
     Elf *elf;
-    int fd;
     int i;
-
-    if (!strncmp(progsname, s->progsname, sizeof(s->progsname))) {
-        return 0;
-    }
 
     for (i = 0; i < BPFHV_PROG_MAX; i++) {
         if (s->progs[i].insns != NULL) {
@@ -1128,25 +1123,14 @@ bpfhv_progs_load(BpfhvState *s, const char *progsname, Error **errp)
         s->progs[i].num_insns = 0;
     }
 
-    path = bpfhv_progpath(progsname);
-    if (!path) {
-        error_setg(errp, "Could not locate bpfhv_%s_progs.o", progsname);
-        return -1;
-    }
-
-    fd = open(path, O_RDONLY, 0);
-    if (fd < 0) {
-        error_setg_errno(errp, errno, "Failed to open %s", path);
-        goto err;
-    }
     if (elf_version(EV_CURRENT) == EV_NONE) {
         error_setg(errp, "ELF version mismatch");
-        goto err;
+        return -1;
     }
     elf = elf_begin(fd, ELF_C_READ, NULL);
     if (!elf) {
         error_setg(errp, "Failed to initialize ELF library for %s", path);
-        goto err;
+        return -1;
     }
 
     if (gelf_getehdr(elf, &ehdr) != &ehdr) {
@@ -1217,11 +1201,40 @@ bpfhv_progs_load(BpfhvState *s, const char *progsname, Error **errp)
     }
 
     ret = 0;
-    elf_end(elf);
     pstrcpy(s->progsname, sizeof(s->progsname), progsname);
     DBG("Loaded program: %s", s->progsname);
 err:
+    elf_end(elf);
+
+    return ret;
+}
+
+static int
+bpfhv_progs_load(BpfhvState *s, const char *progsname, Error **errp)
+{
+    int ret = -1;
+    char *path;
+    int fd;
+
+    if (!strncmp(progsname, s->progsname, sizeof(s->progsname))) {
+        return 0;
+    }
+
+    path = bpfhv_progpath(progsname);
+    if (!path) {
+        error_setg(errp, "Could not locate bpfhv_%s_progs.o", progsname);
+        return -1;
+    }
+
+    fd = open(path, O_RDONLY, 0);
+    if (fd < 0) {
+        error_setg_errno(errp, errno, "Failed to open %s", path);
+        goto err;
+    }
+
+    ret = bpfhv_progs_load_fd(s, fd, progsname, path, errp);
     close(fd);
+err:
     g_free(path);
 
     return ret;
