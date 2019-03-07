@@ -339,8 +339,8 @@ bpfhv_can_receive(NetClientState *nc)
     BpfhvRxQueue *rxq;
 
     if (unlikely(s->proxy != NULL)) {
-        /* For some reason this is called even if the peer never sends
-         * anything. */
+        /* For some reason this is called even if the proxy peer never
+         * sends anything. */
         return false;
     }
 
@@ -494,6 +494,8 @@ bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
     if (cmd & BPFHV_CTRL_RX_DISABLE) {
         /* Guest asked to disable receive operation. */
         s->ioregs[BPFHV_REG(STATUS)] &= ~BPFHV_STATUS_RX_ENABLED;
+        if (s->proxy) {
+        }
         DBG("Receive disabled");
     }
 
@@ -627,6 +629,9 @@ bpfhv_ctx_remap(BpfhvState *s)
             }
         }
     }
+
+    if (s->proxy) {
+    }
 }
 
 static void
@@ -722,10 +727,13 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
                          /*tso6=*/gso, /*ecn=*/false, /*ufo=*/gso);
 
         /* Load the corresponding eBPF programs. */
-        progsname = gso ? "sringgso" : (csum ? "sringcsum" : "sring");
-        if (bpfhv_progs_load(s, progsname, &local_err)) {
-            error_propagate(&error_fatal, local_err);
-            return;
+        if (s->proxy) {
+        } else {
+            progsname = gso ? "sringgso" : (csum ? "sringcsum" : "sring");
+            if (bpfhv_progs_load(s, progsname, &local_err)) {
+                error_propagate(&error_fatal, local_err);
+                return;
+            }
         }
 
         /* Update the features register. */
@@ -740,6 +748,7 @@ bpfhv_io_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
         }
         val &= ~((hwaddr)3);
         s->ioregs[index] = val;
+        assert(s->curdump != NULL);
         s->ioregs[BPFHV_REG(DUMP_INPUT)] = *((uint32_t *)(s->curdump + val));
         break;
 
@@ -865,7 +874,7 @@ bpfhv_dbmmio_write(void *opaque, hwaddr addr, uint64_t val, unsigned size)
     }
 
     /* In case of proxy all the kicks must be diverted to a separate
-     * process, hence we cannot get here. */
+     * process, thus we cannot get here. */
     assert(s->proxy == NULL);
 
     if (doorbell < s->num_queue_pairs) {
@@ -1325,9 +1334,7 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
             event_notifier_set_handler(&s->rxq[i].ioeventfd, NULL);
         }
 
-        if (s->proxy) {
-            s->txq[i].bh = NULL;
-        } else {
+        if (!s->proxy) {
             s->txq[i].bh = qemu_bh_new(bpfhv_tx_bh, s->txq + i);
         }
         s->txq[i].nc = qemu_get_subqueue(s->nic, i);
@@ -1408,13 +1415,15 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 #endif /* BPFHV_UPGRADE_TIMER */
 
 #ifdef BPFHV_MEMLI
-    /* Support for memory listener. */
-    s->memory_listener.priority = 10,
-    s->memory_listener.begin = bpfhv_memli_begin,
-    s->memory_listener.commit = bpfhv_memli_commit,
-    s->memory_listener.region_add = bpfhv_memli_region_add,
-    s->memory_listener.region_nop = bpfhv_memli_region_add,
-    memory_listener_register(&s->memory_listener, &address_space_memory);
+    /* Support for memory listener. Only used in case of no proxy. */
+    if (!s->proxy) {
+        s->memory_listener.priority = 10,
+        s->memory_listener.begin = bpfhv_memli_begin,
+        s->memory_listener.commit = bpfhv_memli_commit,
+        s->memory_listener.region_add = bpfhv_memli_region_add,
+        s->memory_listener.region_nop = bpfhv_memli_region_add,
+        memory_listener_register(&s->memory_listener, &address_space_memory);
+    }
 #endif /* BPFHV_MEMLI */
     DBG("**** device realized ****");
 }
@@ -1426,7 +1435,9 @@ pci_bpfhv_uninit(PCIDevice *dev)
     int i;
 
 #ifdef BPFHV_MEMLI
-    memory_listener_unregister(&s->memory_listener);
+    if (!s->proxy) {
+        memory_listener_unregister(&s->memory_listener);
+    }
 #endif /* BPFHV_MEMLI */
 
 #ifdef BPFHV_DEBUG_TIMER
@@ -1478,7 +1489,9 @@ pci_bpfhv_uninit(PCIDevice *dev)
         msix_vector_unuse(PCI_DEVICE(s), i);
     }
     msix_uninit_exclusive_bar(PCI_DEVICE(s));
-    g_free(s->curdump);
+    if (s->curdump) {
+        g_free(s->curdump);
+    }
     qemu_del_nic(s->nic);
     DBG("**** device unrealized ****");
 }
@@ -1509,6 +1522,9 @@ static void qdev_bpfhv_reset(DeviceState *dev)
 
     s->doorbell_gva_changed = false;
     s->rx_contexts_ready = s->tx_contexts_ready = false;
+    if (s->curdump) {
+        g_free(s->curdump);
+    }
     s->curdump = NULL;
 
     /* Initialize eBPF programs (default implementation). */
