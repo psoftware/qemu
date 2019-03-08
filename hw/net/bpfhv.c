@@ -700,7 +700,7 @@ static NetClientInfo net_bpfhv_info = {
 };
 
 static int
-bpfhv_guest_notifier_init(BpfhvState *s)
+bpfhv_guest_notifiers_init(BpfhvState *s)
 {
     uint32_t i;
 
@@ -710,25 +710,34 @@ bpfhv_guest_notifier_init(BpfhvState *s)
         /* Setup KVM irqfd, using an MSI-X entry and the eventfd
          * associated to this queue. */
         unsigned int vector = s->q[i].vector;
+        int fd = event_notifier_get_fd(&s->q[i].irqfd);
+        int virq = -1;
         int ret;
 
         msix_vector_use(PCI_DEVICE(s), vector);
 
-        ret = s->q[i].virq = kvm_irqchip_add_msi_route(kvm_state,
-                                                vector, PCI_DEVICE(s));
-        if (ret < 0) {
+        virq = kvm_irqchip_add_msi_route(kvm_state, vector, PCI_DEVICE(s));
+        if (virq < 0) {
             error_report("kvm_irqchip_add_msi_route() failed: %s",
-                         strerror(-ret));
+                         strerror(-virq));
             return -1;
         }
 
         ret = kvm_irqchip_add_irqfd_notifier_gsi(kvm_state, &s->q[i].irqfd,
-                                                 NULL, s->q[i].virq);
+                                                 NULL, virq);
         if (ret) {
-            kvm_irqchip_release_virq(kvm_state, s->q[i].virq);
+            kvm_irqchip_release_virq(kvm_state, virq);
             error_report("kvm_irqchip_add_irqfd_notifier_gsi() "
                          "failed: %s", strerror(-ret));
             return -1;
+        }
+
+        s->q[i].virq = virq;
+
+        ret = bpfhv_proxy_set_queue_irqfd(s->proxy, /*queue_idx=*/i, fd);
+        if (ret) {
+            error_report("Failed to set queue %s irqfd to %d",
+                         s->q[i].name, fd);
         }
     }
 
@@ -736,7 +745,7 @@ bpfhv_guest_notifier_init(BpfhvState *s)
 }
 
 static int
-bpfhv_guest_notifier_fini(BpfhvState *s)
+bpfhv_guest_notifiers_fini(BpfhvState *s)
 {
     uint32_t i;
 
@@ -744,10 +753,17 @@ bpfhv_guest_notifier_fini(BpfhvState *s)
 
     for (i = 0; i < s->num_queues; i++) {
         unsigned int vector = s->q[i].vector;
+        int fd = -1;
         int ret;
 
         if (s->q[i].virq == -1) {
             continue;  /* Not initialized, nothing to do. */
+        }
+
+        ret = bpfhv_proxy_set_queue_irqfd(s->proxy, /*queue_idx=*/i, fd);
+        if (ret) {
+            error_report("Failed to set queue %s irqfd to %d",
+                         s->q[i].name, fd);
         }
 
         ret = kvm_irqchip_remove_irqfd_notifier_gsi(kvm_state, &s->q[i].irqfd,
@@ -768,11 +784,29 @@ bpfhv_guest_notifier_fini(BpfhvState *s)
 static void
 bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
 {
+    /* Was RX/TX enabled before this operation ? */
     bool rx_enabled = (s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_RX_ENABLED);
     bool tx_enabled = (s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_TX_ENABLED);
+    /* Is this command asking to enable RX/TX ? */
+    bool rx_enable = (cmd & BPFHV_CTRL_RX_ENABLE);
+    bool rx_disable = (cmd & BPFHV_CTRL_RX_DISABLE);
+    /* Is this command asking to disable RX/TX ? */
+    bool tx_enable = (cmd & BPFHV_CTRL_TX_ENABLE);
+    bool tx_disable = (cmd & BPFHV_CTRL_TX_DISABLE);
     int i;
 
-    if ((cmd & BPFHV_CTRL_RX_ENABLE) && !rx_enabled) {
+    if (s->proxy && !(rx_enabled && tx_enabled) &&
+        (rx_enabled || rx_enable) && (tx_enabled || tx_enable)) {
+        /* With this operation, both TX and RX will become enabled.
+         * We assume that the guest completed its MSI-X setup
+         * at this point (or in the other call site below).
+         * TODO We should intercept modifications to the MSI-X
+         * table, e.g., like ivshmem_write_config(), calling
+         * msix_set_vector_notifiers().*/
+        bpfhv_guest_notifiers_init(s);
+    }
+
+    if (!rx_enabled && rx_enable) {
         /* Guest asked to enable receive operation. We can accept
          * that only if all the receive contexts are present. */
         if (s->rx_contexts_ready) {
@@ -780,14 +814,6 @@ bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
              * otherwise can_receive will return false. */
             s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_RX_ENABLED;
             if (s->proxy) {
-                if (tx_enabled) {
-                    /* We assume that the guest completed its MSI-X setup
-                     * at this point (or in the other call site below).
-                     * TODO We should intercept modifications to the MSI-X
-                     * table, e.g., like ivshmem_write_config(), calling
-                     * msix_set_vector_notifiers().*/
-                    bpfhv_guest_notifier_init(s);
-                }
                 bpfhv_proxy_enable(s->proxy, /*is_rx=*/true, /*enable=*/true);
             } else {
                 for (i = RXI_BEGIN(s); i < RXI_END(s); i++) {
@@ -802,27 +828,21 @@ bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
         }
     }
 
-    if ((cmd & BPFHV_CTRL_RX_DISABLE) && rx_enabled) {
+    if (rx_enabled && rx_disable) {
         /* Guest asked to disable receive operation. */
         s->ioregs[BPFHV_REG(STATUS)] &= ~BPFHV_STATUS_RX_ENABLED;
         if (s->proxy) {
-            if (!tx_enabled) {
-                bpfhv_guest_notifier_fini(s);
-            }
             bpfhv_proxy_enable(s->proxy, /*is_rx=*/true, /*enable=*/false);
         }
         DBG("Receive disabled");
     }
 
-    if ((cmd & BPFHV_CTRL_TX_ENABLE) && !tx_enabled) {
+    if (!tx_enabled && tx_enable) {
         /* Guest asked to enable transmit operation. We can accept
          * that only if all the transmit contexts are present. */
         if (s->tx_contexts_ready) {
             s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_TX_ENABLED;
             if (s->proxy) {
-                if (rx_enabled) {
-                    bpfhv_guest_notifier_init(s);
-                }
                 bpfhv_proxy_enable(s->proxy, /*is_rx=*/false, /*enable=*/true);
             } else {
                 for (i = TXI_BEGIN(s); i < TXI_END(s); i++) {
@@ -833,12 +853,8 @@ bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
         }
     }
 
-    if ((cmd & BPFHV_CTRL_TX_DISABLE) && tx_enabled) {
+    if (tx_enabled && tx_disable) {
         if (s->proxy) {
-            if (!rx_enabled) {
-                bpfhv_guest_notifier_fini(s);
-            }
-
             bpfhv_proxy_enable(s->proxy, /*is_rx=*/false, /*enable=*/false);
         } else {
             /* Guest asked to disable transmit operation, so we need to stop the
@@ -855,6 +871,12 @@ bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
         }
         s->ioregs[BPFHV_REG(STATUS)] &= ~BPFHV_STATUS_TX_ENABLED;
         DBG("Transmit disabled");
+    }
+
+    if (s->proxy && (rx_enabled || tx_enabled) &&
+            (!rx_enabled || rx_disable) && (!tx_enabled || tx_disable)) {
+        /* With this operation, both TX and RX will become disabled. */
+        bpfhv_guest_notifiers_fini(s);
     }
 
     if (cmd & BPFHV_CTRL_UPGRADE_READY) {

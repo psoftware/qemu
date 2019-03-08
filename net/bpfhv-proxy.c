@@ -390,7 +390,7 @@ bpfhv_proxy_set_queue_fd(BpfhvProxyState *s, BpfhvProxyReqType reqtype,
 
     msg.payload.notify.queue_idx = queue_idx;
 
-    ret = bpfhv_proxy_sendrecv(s, &msg, &fd, 1);
+    ret = bpfhv_proxy_sendrecv(s, &msg, fd >= 0 ? &fd : NULL, fd >= 0 ? 1 : 0);
     if (ret) {
         return ret;
     }
@@ -457,28 +457,6 @@ bpfhv_proxy_start(BpfhvProxyState *s)
     if (ret) {
         return ret;
     }
-
-#if 0
-    /* Set irq file descriptors. */
-    ret = bpfhv_proxy_set_queue_irqfd(s, /*queue_idx=*/0, /*fd=*/1);
-    if (ret) {
-        return ret;
-    }
-    ret = bpfhv_proxy_set_queue_irqfd(s, /*queue_idx=*/1, /*fd=*/1);
-    if (ret) {
-        return ret;
-    }
-
-    /* Enable receive and transmit operation. */
-    ret = bpfhv_proxy_enable(s, /*is_rx=*/true, /*enable=*/false);
-    if (ret) {
-        return ret;
-    }
-    ret = bpfhv_proxy_enable(s, /*is_rx=*/false, /*enable=*/false);
-    if (ret) {
-        return ret;
-    }
-#endif
 
     return 0;
 }
