@@ -50,8 +50,9 @@
  * (GPA --> HVA). */
 #define BPFHV_MEMLI
 
-/* Verbose debug information. */
-#undef  BPFHV_DEBUG
+/* Debug information. Define it as 1 get for basic debugging,
+ * and as 2 to get additional (verbose) memory listener logs. */
+#define BPFHV_DEBUG 0
 
 /* Periodically issue upgrade interrupts (for debugging). */
 #undef  BPFHV_UPGRADE_TIMER
@@ -65,7 +66,7 @@
  * End of tunables.
  */
 
-#ifdef BPFHV_DEBUG
+#if BPFHV_DEBUG > 0
 #define DBG(fmt, ...) do { \
         fprintf(stderr, "bpfhv-pci: " fmt "\n", ## __VA_ARGS__); \
     } while (0)
@@ -1346,8 +1347,10 @@ bpfhv_memli_region_add(MemoryListener *listener,
 
     hva_start = memory_region_get_ram_ptr(section->mr) +
                       section->offset_within_region;
+#if BPFHV_DEBUG > 1
     DBG("new memory section %lx-%lx sz %lx %p", gpa_start, gpa_end,
         size, hva_start);
+#endif
     if (s->num_trans_entries_tmp > 0) {
         /* Check if we can coalasce the last MemoryRegionSection to
          * the current one. */
@@ -1387,7 +1390,7 @@ bpfhv_memli_commit(MemoryListener *listener)
     s->trans_entries = s->trans_entries_tmp;
     s->num_trans_entries = s->num_trans_entries_tmp;
 
-#ifdef BPFHV_DEBUG
+#if BPFHV_DEBUG > 1
     for (i = 0; i < s->num_trans_entries; i++) {
         BpfhvTranslateEntry *te = s->trans_entries + i;
         DBG("    entry %d: gpa %lx-%lx size %lx hva_start %p", i,

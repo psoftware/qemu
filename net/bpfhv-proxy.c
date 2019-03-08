@@ -25,10 +25,11 @@
 #include "bpfhv/netproxy.h"
 #include "bpfhv/bpfhv.h"
 
-/* Verbose debug information. */
-#define BPFHV_DEBUG
+/* Debug information. Define it as 1 get for basic debugging,
+ * and as 2 to get additional (verbose) memory listener logs. */
+#define BPFHV_DEBUG 0
 
-#ifdef BPFHV_DEBUG
+#if BPFHV_DEBUG > 0
 #define DBG(fmt, ...) do { \
         fprintf(stderr, "bpfhv-proxy: " fmt "\n", ## __VA_ARGS__); \
     } while (0)
@@ -537,8 +538,10 @@ bpfhv_proxy_memli_region_add(MemoryListener *listener,
 
     hva_start = memory_region_get_ram_ptr(section->mr) +
                       section->offset_within_region;
+#if BPFHV_DEBUG > 1
     DBG("new memory section %lx-%lx sz %lx %p",
         gpa_start, gpa_end, size, hva_start);
+#endif
     if (s->num_mem_regs_next > 0) {
         /* Check if we can coalasce the last MemoryRegionSection to
          * the current one. */
@@ -588,7 +591,7 @@ bpfhv_proxy_memli_commit(MemoryListener *listener)
         s->num_mem_regs_next = num_mem_regs_tmp;
     }
 
-#ifdef BPFHV_DEBUG
+#if BPFHV_DEBUG > 1
     DBG("Memtable:");
     for (i = 0; i < s->num_mem_regs; i++) {
         BpfhvProxyMemliRegion *me = s->mem_regs + i;
