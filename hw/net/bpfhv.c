@@ -355,10 +355,142 @@ bpfhv_upgrade_timer(void *opaque)
 }
 #endif /* BPFHV_UPGRADE_TIMER */
 
-// TODO get rid of these forward declarations
-static int bpfhv_progs_load(BpfhvState *s, const char *progsname, Error **errp);
-static int bpfhv_progs_load_fd(BpfhvState *s, int fd, const char *progsname,
-                    const char *path, Error **errp);
+static int
+bpfhv_progs_load_fd(BpfhvState *s, int fd, const char *progsname,
+                    const char *path, Error **errp)
+{
+    const char *prog_names[BPFHV_PROG_MAX] = {"none",
+                                              "rxp", "rxc", "rxi", "rxr",
+                                              "txp", "txc", "txi", "txr"};
+    GElf_Ehdr ehdr;
+    int ret = -1;
+    Elf *elf;
+    int i;
+
+    for (i = 0; i < BPFHV_PROG_MAX; i++) {
+        if (s->progs[i].insns != NULL) {
+            g_free(s->progs[i].insns);
+            s->progs[i].insns = NULL;
+        }
+        s->progs[i].num_insns = 0;
+    }
+
+    if (elf_version(EV_CURRENT) == EV_NONE) {
+        error_setg(errp, "ELF version mismatch");
+        return -1;
+    }
+    elf = elf_begin(fd, ELF_C_READ, NULL);
+    if (!elf) {
+        error_setg(errp, "Failed to initialize ELF library for %s", path);
+        return -1;
+    }
+
+    if (gelf_getehdr(elf, &ehdr) != &ehdr) {
+        error_setg(errp, "Failed to get ELF header for %s", path);
+        goto err;
+    }
+
+    for (i = 1; i < ehdr.e_shnum; i++) {
+        Elf_Data *sdata;
+        GElf_Shdr shdr;
+        Elf_Scn *scn;
+        char *shname;
+
+        scn = elf_getscn(elf, i);
+        if (!scn) {
+            continue;
+        }
+
+        if (gelf_getshdr(scn, &shdr) != &shdr) {
+            continue;
+        }
+
+        if (shdr.sh_type != SHT_PROGBITS) {
+            continue;
+        }
+
+        shname = elf_strptr(elf, ehdr.e_shstrndx, shdr.sh_name);
+        if (!shname || shdr.sh_size == 0) {
+            continue;
+        }
+
+        sdata = elf_getdata(scn, NULL);
+        if (!sdata || elf_getdata(scn, sdata) != NULL) {
+            continue;
+        }
+
+        {
+            int j;
+
+            for (j = 0; j < ARRAY_SIZE(prog_names); j++) {
+                if (!strcmp(shname, prog_names[j])) {
+                    break;
+                }
+            }
+
+            if (j >= ARRAY_SIZE(prog_names)) {
+                continue;
+            }
+
+            if (s->progs[j].insns != NULL) {
+                DBG("warning: %s contains more sections with name %s",
+                    path, prog_names[j]);
+                continue;
+            }
+
+            s->progs[j].insns = g_malloc(sdata->d_size);
+            memcpy(s->progs[j].insns, sdata->d_buf, sdata->d_size);
+            s->progs[j].num_insns = sdata->d_size / BPF_INSN_SIZE;
+        }
+    }
+
+    for (i = BPFHV_PROG_NONE + 1; i < BPFHV_PROG_MAX; i++) {
+        if (s->progs[i].insns == NULL || s->progs[i].num_insns == 0) {
+            error_setg(errp, "Program %s missing in ELF '%s'",
+                       prog_names[i], path);
+            goto err;
+        }
+    }
+
+    ret = 0;
+    pstrcpy(s->progsname, sizeof(s->progsname), progsname);
+    DBG("Loaded program: %s", s->progsname);
+err:
+    elf_end(elf);
+
+    return ret;
+}
+
+static int
+bpfhv_progs_load(BpfhvState *s, const char *progsname, Error **errp)
+{
+    int ret = -1;
+    char *path;
+    int fd;
+
+    if (!strncmp(progsname, s->progsname, sizeof(s->progsname))) {
+        return 0;
+    }
+
+    path = bpfhv_progpath(progsname);
+    if (!path) {
+        error_setg(errp, "Could not locate bpfhv_%s_progs.o", progsname);
+        return -1;
+    }
+
+    fd = open(path, O_RDONLY, 0);
+    if (fd < 0) {
+        error_setg_errno(errp, errno, "Failed to open %s", path);
+        goto err;
+    }
+
+    ret = bpfhv_progs_load_fd(s, fd, progsname, path, errp);
+    close(fd);
+err:
+    g_free(path);
+
+    return ret;
+}
 
 static int
 bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
@@ -1207,143 +1339,6 @@ bpfhv_mem_unmap(BpfhvState *s, void *buffer, hwaddr len, int is_write)
     cpu_physical_memory_unmap(buffer, /*len=*/len, is_write,
                               /*access_len=*/len);
 #endif /* !BPFHV_MEMLI */
-}
-
-static int
-bpfhv_progs_load_fd(BpfhvState *s, int fd, const char *progsname,
-                    const char *path, Error **errp)
-{
-    const char *prog_names[BPFHV_PROG_MAX] = {"none",
-                                              "rxp", "rxc", "rxi", "rxr",
-                                              "txp", "txc", "txi", "txr"};
-    GElf_Ehdr ehdr;
-    int ret = -1;
-    Elf *elf;
-    int i;
-
-    for (i = 0; i < BPFHV_PROG_MAX; i++) {
-        if (s->progs[i].insns != NULL) {
-            g_free(s->progs[i].insns);
-            s->progs[i].insns = NULL;
-        }
-        s->progs[i].num_insns = 0;
-    }
-
-    if (elf_version(EV_CURRENT) == EV_NONE) {
-        error_setg(errp, "ELF version mismatch");
-        return -1;
-    }
-    elf = elf_begin(fd, ELF_C_READ, NULL);
-    if (!elf) {
-        error_setg(errp, "Failed to initialize ELF library for %s", path);
-        return -1;
-    }
-
-    if (gelf_getehdr(elf, &ehdr) != &ehdr) {
-        error_setg(errp, "Failed to get ELF header for %s", path);
-        goto err;
-    }
-
-    for (i = 1; i < ehdr.e_shnum; i++) {
-        Elf_Data *sdata;
-        GElf_Shdr shdr;
-        Elf_Scn *scn;
-        char *shname;
-
-        scn = elf_getscn(elf, i);
-        if (!scn) {
-            continue;
-        }
-
-        if (gelf_getshdr(scn, &shdr) != &shdr) {
-            continue;
-        }
-
-        if (shdr.sh_type != SHT_PROGBITS) {
-            continue;
-        }
-
-        shname = elf_strptr(elf, ehdr.e_shstrndx, shdr.sh_name);
-        if (!shname || shdr.sh_size == 0) {
-            continue;
-        }
-
-        sdata = elf_getdata(scn, NULL);
-        if (!sdata || elf_getdata(scn, sdata) != NULL) {
-            continue;
-        }
-
-        {
-            int j;
-
-            for (j = 0; j < ARRAY_SIZE(prog_names); j++) {
-                if (!strcmp(shname, prog_names[j])) {
-                    break;
-                }
-            }
-
-            if (j >= ARRAY_SIZE(prog_names)) {
-                continue;
-            }
-
-            if (s->progs[j].insns != NULL) {
-                DBG("warning: %s contains more sections with name %s",
-                    path, prog_names[j]);
-                continue;
-            }
-
-            s->progs[j].insns = g_malloc(sdata->d_size);
-            memcpy(s->progs[j].insns, sdata->d_buf, sdata->d_size);
-            s->progs[j].num_insns = sdata->d_size / BPF_INSN_SIZE;
-        }
-    }
-
-    for (i = BPFHV_PROG_NONE + 1; i < BPFHV_PROG_MAX; i++) {
-        if (s->progs[i].insns == NULL || s->progs[i].num_insns == 0) {
-            error_setg(errp, "Program %s missing in ELF '%s'",
-                       prog_names[i], path);
-            goto err;
-        }
-    }
-
-    ret = 0;
-    pstrcpy(s->progsname, sizeof(s->progsname), progsname);
-    DBG("Loaded program: %s", s->progsname);
-err:
-    elf_end(elf);
-
-    return ret;
-}
-
-static int
-bpfhv_progs_load(BpfhvState *s, const char *progsname, Error **errp)
-{
-    int ret = -1;
-    char *path;
-    int fd;
-
-    if (!strncmp(progsname, s->progsname, sizeof(s->progsname))) {
-        return 0;
-    }
-
-    path = bpfhv_progpath(progsname);
-    if (!path) {
-        error_setg(errp, "Could not locate bpfhv_%s_progs.o", progsname);
-        return -1;
-    }
-
-    fd = open(path, O_RDONLY, 0);
-    if (fd < 0) {
-        error_setg_errno(errp, errno, "Failed to open %s", path);
-        goto err;
-    }
-
-    ret = bpfhv_progs_load_fd(s, fd, progsname, path, errp);
-    close(fd);
-err:
-    g_free(path);
-
-    return ret;
 }
 
 static bool
