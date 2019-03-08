@@ -217,6 +217,14 @@ typedef struct BpfhvState {
     /* An opaque pointer to the proxy net backend, if present. */
     struct BpfhvProxyState *proxy;
 
+#ifdef BPFHV_MEMLI
+    MemoryListener memory_listener;
+    BpfhvTranslateEntry *trans_entries;
+    unsigned int num_trans_entries;
+    BpfhvTranslateEntry *trans_entries_tmp;
+    unsigned int num_trans_entries_tmp;
+#endif /* BPFHV_MEMLI */
+
 #ifdef BPFHV_DEBUG_TIMER
     QEMUTimer *debug_timer;
 #endif /* BPFHV_DEBUG_TIMER */
@@ -225,13 +233,6 @@ typedef struct BpfhvState {
     QEMUTimer *upgrade_timer;
 #endif /* BPFHV_UPGRADE_TIMER */
 
-#ifdef BPFHV_MEMLI
-    MemoryListener memory_listener;
-    BpfhvTranslateEntry *trans_entries;
-    unsigned int num_trans_entries;
-    BpfhvTranslateEntry *trans_entries_tmp;
-    unsigned int num_trans_entries_tmp;
-#endif /* BPFHV_MEMLI */
 } BpfhvState;
 
 /* Macros to iterate over RX or TX queues. */
@@ -701,9 +702,11 @@ static NetClientInfo net_bpfhv_info = {
 static void
 bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
 {
+    bool rx_enabled = (s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_RX_ENABLED);
+    bool tx_enabled = (s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_TX_ENABLED);
     int i;
 
-    if (cmd & BPFHV_CTRL_RX_ENABLE) {
+    if ((cmd & BPFHV_CTRL_RX_ENABLE) && !rx_enabled) {
         /* Guest asked to enable receive operation. We can accept
          * that only if all the receive contexts are present. */
         if (s->rx_contexts_ready) {
@@ -725,7 +728,7 @@ bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
         }
     }
 
-    if (cmd & BPFHV_CTRL_RX_DISABLE) {
+    if ((cmd & BPFHV_CTRL_RX_DISABLE) && rx_enabled) {
         /* Guest asked to disable receive operation. */
         s->ioregs[BPFHV_REG(STATUS)] &= ~BPFHV_STATUS_RX_ENABLED;
         if (s->proxy) {
@@ -734,7 +737,7 @@ bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
         DBG("Receive disabled");
     }
 
-    if (cmd & BPFHV_CTRL_TX_ENABLE) {
+    if ((cmd & BPFHV_CTRL_TX_ENABLE) && !tx_enabled) {
         /* Guest asked to enable transmit operation. We can accept
          * that only if all the transmit contexts are present. */
         if (s->tx_contexts_ready) {
@@ -750,7 +753,7 @@ bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
         }
     }
 
-    if (cmd & BPFHV_CTRL_TX_DISABLE) {
+    if ((cmd & BPFHV_CTRL_TX_DISABLE) && tx_enabled) {
         if (s->proxy) {
             bpfhv_proxy_enable(s->proxy, /*is_rx=*/false, /*enable=*/false);
         } else {
