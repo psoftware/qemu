@@ -947,13 +947,16 @@ bpfhv_ctx_remap(BpfhvState *s)
         DBG("Queue %s GPA %llx (%llu) mapped at HVA %p", s->q[qsel].name,
             (unsigned long long)base, (unsigned long long)len, *pvaddr);
 
-        /* Also initialize the hypervisor-side of the context. */
-        if (rx) {
-            sring_rx_ctx_init(s->q[qsel].ctx.rx,
-                              s->ioregs[BPFHV_REG(NUM_RX_BUFS)]);
-        } else {
-            sring_tx_ctx_init(s->q[qsel].ctx.tx,
-                              s->ioregs[BPFHV_REG(NUM_TX_BUFS)]);
+        if (!s->proxy) {
+            /* In case of no proxy also initialize the hypervisor-specific
+             * part of the context. */
+            if (rx) {
+                sring_rx_ctx_init(s->q[qsel].ctx.rx,
+                        s->ioregs[BPFHV_REG(NUM_RX_BUFS)]);
+            } else {
+                sring_tx_ctx_init(s->q[qsel].ctx.tx,
+                        s->ioregs[BPFHV_REG(NUM_TX_BUFS)]);
+            }
         }
     }
 
