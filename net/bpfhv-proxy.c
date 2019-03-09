@@ -64,11 +64,6 @@ typedef struct BpfhvProxyState {
 
     /* Number of queue pairs. */
     unsigned int num_queues;
-
-    /* Size of the RX and TX contexts (including the initial part
-     * visible to the guest. */
-    size_t rx_ctx_size;
-    size_t tx_ctx_size;
 } BpfhvProxyState;
 
 BpfhvProxyState *
@@ -228,8 +223,9 @@ bpfhv_proxy_set_features(BpfhvProxyState *s, uint64_t features)
 }
 
 int
-bpfhv_proxy_set_parameters(BpfhvProxyState *s,
-                           unsigned int num_rx_bufs, unsigned int num_tx_bufs)
+bpfhv_proxy_set_parameters(BpfhvProxyState *s, size_t num_rx_bufs,
+                           size_t num_tx_bufs, size_t *rx_ctx_size,
+                           size_t *tx_ctx_size)
 {
     BpfhvProxyMessage msg;
     int ret;
@@ -261,12 +257,14 @@ bpfhv_proxy_set_parameters(BpfhvProxyState *s,
         return -1;
     }
 
-    s->rx_ctx_size = (size_t)msg.payload.ctx_sizes.rx_ctx_size;
-    s->tx_ctx_size = (size_t)msg.payload.ctx_sizes.tx_ctx_size;
+    /* Size of the RX and TX contexts (including the initial part
+     * visible to the guest. */
+    *rx_ctx_size = (size_t)msg.payload.ctx_sizes.rx_ctx_size;
+    *tx_ctx_size = (size_t)msg.payload.ctx_sizes.tx_ctx_size;
 
     DBG("Set queue parameters: %u queue pairs, %u rx bufs, %u tx bufs",
         s->num_queues, num_rx_bufs, num_tx_bufs);
-    DBG("Got context sizes: RX %zu, TX %zu", s->rx_ctx_size, s->tx_ctx_size);
+    DBG("Got context sizes: RX %zu, TX %zu", *rx_ctx_size, *tx_ctx_size);
 
     return 0;
 }

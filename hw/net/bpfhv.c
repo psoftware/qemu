@@ -270,6 +270,8 @@ bpfhv_dump_string(BpfhvState *s)
     size_t totlen = 64;
     int i;
 
+    assert(s->proxy == NULL);
+
     result = g_realloc(result, totlen);
     result[0] = '\0';
 
@@ -498,6 +500,7 @@ static int
 bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
 {
     const char *progpath = "bpfhv_proxy_progs.o";
+    size_t rx_ctx_size, tx_ctx_size;
     uint64_t be_features;
     int progfd;
     uint32_t i;
@@ -518,10 +521,14 @@ bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
     }
 
     if (bpfhv_proxy_set_parameters(s->proxy, s->net_conf.num_rx_bufs,
-                                   s->net_conf.num_tx_bufs)) {
+                                   s->net_conf.num_tx_bufs, &rx_ctx_size,
+                                   &tx_ctx_size)) {
         error_setg(errp, "Failed to set proxy parameters");
         return -1;
     }
+
+    s->ioregs[BPFHV_REG(RX_CTX_SIZE)] = rx_ctx_size;
+    s->ioregs[BPFHV_REG(TX_CTX_SIZE)] = tx_ctx_size;
 
     progfd = bpfhv_proxy_get_programs(s->proxy);
     if (progfd < 0) {

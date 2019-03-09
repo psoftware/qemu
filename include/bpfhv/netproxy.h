@@ -31,8 +31,8 @@ struct BpfhvProxyState *bpfhv_proxy_get(NetClientState *nc);
 int bpfhv_proxy_get_features(struct BpfhvProxyState *s, uint64_t *features);
 int bpfhv_proxy_set_features(struct BpfhvProxyState *s, uint64_t features);
 int bpfhv_proxy_set_parameters(struct BpfhvProxyState *s,
-                               unsigned int num_rx_bufs,
-                               unsigned int num_tx_bufs);
+                               size_t num_rx_bufs, size_t num_tx_bufs,
+                               size_t *rx_ctx_size, size_t *tx_ctx_size);
 int bpfhv_proxy_get_programs(struct BpfhvProxyState *s);
 
 int bpfhv_proxy_set_queue_ctx(struct BpfhvProxyState *s,
