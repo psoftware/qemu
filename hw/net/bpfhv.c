@@ -544,6 +544,7 @@ bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
 
     for (i = 0; i < s->num_queues; i++) {
         int kickfd = event_notifier_get_fd(&s->q[i].ioeventfd);
+        int irqfd = event_notifier_get_fd(&s->q[i].irqfd);
         hwaddr gpa = s->q[i].ctx_gpa;
 
         if (bpfhv_proxy_set_queue_ctx(s->proxy, i, gpa)) {
@@ -556,6 +557,18 @@ bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
             error_setg(errp, "Failed to set queue %s kickfd to "
                        "%d", s->q[i].name, kickfd);
             return -1;
+        }
+
+        if (s->q[i].virq < 0) {
+            /* Irqfd not ready. */
+            irqfd = -1;
+        }
+
+        ret = bpfhv_proxy_set_queue_irqfd(s->proxy, /*queue_idx=*/i,
+                                          irqfd);
+        if (ret) {
+            error_report("Failed to set queue %s irqfd to %d",
+                         s->q[i].name, irqfd);
         }
     }
 
