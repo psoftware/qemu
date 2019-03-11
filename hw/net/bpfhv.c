@@ -559,6 +559,11 @@ bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
         }
     }
 
+    bpfhv_proxy_enable(s->proxy, /*is_rx=*/true,
+        /*enable=*/s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_RX_ENABLED);
+    bpfhv_proxy_enable(s->proxy, /*is_rx=*/false,
+        /*enable=*/s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_TX_ENABLED);
+
     return 0;
 }
 
