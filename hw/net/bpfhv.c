@@ -524,6 +524,9 @@ bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
         return -1;
     }
 
+    /* Expose the update features, so that the guest can detect them. */
+    s->ioregs[BPFHV_REG(FEATURES)] = s->hv_features;
+
     if (bpfhv_proxy_set_parameters(s->proxy, s->net_conf.num_rx_bufs,
                                    s->net_conf.num_tx_bufs, &rx_ctx_size,
                                    &tx_ctx_size)) {
