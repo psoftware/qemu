@@ -572,32 +572,6 @@ bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
     return 0;
 }
 
-/* Complete the setup with the backend process, passing the information
- * about queue addresses and enabling transmit and receive operation as
- * needed. */
-static int
-bpfhv_proxy_restart(BpfhvState *s, Error **errp)
-{
-    uint32_t i;
-
-    for (i = 0; i < s->num_queues; i++) {
-        hwaddr gpa = s->q[i].ctx_gpa;
-
-        if (bpfhv_proxy_set_queue_ctx(s->proxy, i, gpa)) {
-            error_setg(errp, "Failed to set queue %s context "
-                       "gpa to %"PRIx64"", s->q[i].name, gpa);
-            return -1;
-        }
-    }
-
-    bpfhv_proxy_enable(s->proxy, /*is_rx=*/true,
-        /*enable=*/s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_RX_ENABLED);
-    bpfhv_proxy_enable(s->proxy, /*is_rx=*/false,
-        /*enable=*/s->ioregs[BPFHV_REG(STATUS)] & BPFHV_STATUS_TX_ENABLED);
-
-    return 0;
-}
-
 static int
 bpfhv_can_receive(NetClientState *nc)
 {
@@ -932,15 +906,7 @@ bpfhv_ctrl_update(BpfhvState *s, uint32_t cmd)
 
             /* Perform the upgrade and clear the status bit. We currently
              * do not recover from upgrade failure. */
-            if (s->proxy) {
-                /* In case of proxy we need to complete the setup, as
-                 * now we are sure the guest is not accessing the bpfhv
-                 * private context. */
-                if (bpfhv_proxy_restart(s, &local_err)) {
-                    error_propagate(&error_fatal, local_err);
-                    return;
-                }
-            } else {
+            if (!s->proxy) {
                 if (bpfhv_progs_load(s, s->progsname_next, &local_err)) {
                     error_propagate(&error_fatal, local_err);
                     return;
