@@ -1837,11 +1837,15 @@ static void qdev_bpfhv_reset(DeviceState *dev)
     }
     s->curdump = NULL;
 
-    /* Initialize eBPF programs (default implementation). */
-    pstrcpy(s->progsname_next, sizeof(s->progsname_next), "sring");
-    if (bpfhv_progs_load(s, s->progsname_next, &local_err)) {
-        error_propagate(&error_fatal, local_err);
-        return;
+    if (!s->proxy) {
+        /* In case of no proxy, initialize eBPF programs (default
+         * implementation). In case of proxy, the eBPF coded is
+         * loaded by bpfhv_proxy_reinit(). */
+        pstrcpy(s->progsname_next, sizeof(s->progsname_next), "sring");
+        if (bpfhv_progs_load(s, s->progsname_next, &local_err)) {
+            error_propagate(&error_fatal, local_err);
+            return;
+        }
     }
 
     DBG("**** device reset ****");
