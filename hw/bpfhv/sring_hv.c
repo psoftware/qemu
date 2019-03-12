@@ -135,10 +135,12 @@ sring_txq_drain(struct BpfhvState *s, NetClientState *nc,
         }
     }
 
-    smp_mb();
-    priv->cons = cons;
-    smp_mb();
-    *notify = ACCESS_ONCE(priv->intr_enabled);
+    if (count > 0) {
+        smp_mb();
+        priv->cons = cons;
+        smp_mb();
+        *notify = ACCESS_ONCE(priv->intr_enabled);
+    }
 
     return count;
 }
