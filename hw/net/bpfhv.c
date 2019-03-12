@@ -1641,6 +1641,9 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         s->q[i].nc = qemu_get_subqueue(s->nic, k);
         s->q[i].parent = s;
         s->q[i].vector = i;
+        s->q[i].virq = -1;
+        s->q[i].ctx_gpa = 0;
+        s->q[i].bh = NULL;
 
         /* Let KVM write into an event notifier, so that with no proxy
          * QEMU can wake up and directly run the TX bottom half, rather
