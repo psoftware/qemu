@@ -303,7 +303,7 @@ bpfhv_progpath(const char *progsname)
 {
     char filename[64];
 
-    snprintf(filename, sizeof(filename), "bpfhv_%s_progs.o", progsname);
+    snprintf(filename, sizeof(filename), "%s_progs.o", progsname);
 
     return qemu_find_file(QEMU_FILE_TYPE_EBPF, filename);
 }

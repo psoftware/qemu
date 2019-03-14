@@ -139,7 +139,7 @@ sring_txq_drain(struct BpfhvState *s, NetClientState *nc,
     }
 
     if (count > 0) {
-        /* Barrier between store(sring entries) and store(priv->cons). */
+        /* Barrier between stores to sring entries and store to priv->cons. */
         smp_mb_release();
         priv->cons = cons;
         /* Full memory barrier to ensure store(priv->cons) happens before
