@@ -73,6 +73,9 @@ sring_txq_drain(struct BpfhvState *s, NetClientState *nc,
     int count = 0;
     int i;
 
+    /* Barrier between load(priv->prod) and load(sring entries). */
+    smp_mb_acquire();
+
     while (cons != prod) {
         struct sring_tx_desc *txd = priv->desc + (cons & priv->qmask);
         hwaddr len;
@@ -136,8 +139,11 @@ sring_txq_drain(struct BpfhvState *s, NetClientState *nc,
     }
 
     if (count > 0) {
-        smp_mb();
+        /* Barrier between store(sring entries) and store(priv->cons). */
+        smp_mb_release();
         priv->cons = cons;
+        /* Full memory barrier to ensure store(priv->cons) happens before
+         * load(priv->intr_enabled). See the double-check in sring_txi(). */
         smp_mb();
         *notify = ACCESS_ONCE(priv->intr_enabled);
     }
@@ -152,7 +158,7 @@ sring_txq_notification(struct bpfhv_tx_context *ctx, int enable)
 
     priv->kick_enabled = !!enable;
     if (enable) {
-        smp_mb();
+        smp_mb_acquire();
     }
 }
 
@@ -208,6 +214,9 @@ sring_receive_iov(struct BpfhvState *s, struct bpfhv_rx_context *ctx,
         sspace -= sizeof(*hdr);
         sbuf += sizeof(*hdr);
     }
+
+    /* Barrier between load(priv->prod) and load(sring entries). */
+    smp_mb_acquire();
 
     for (;;) {
         size_t copy = sspace < dspace ? sspace : dspace;
@@ -282,8 +291,11 @@ sring_receive_iov(struct BpfhvState *s, struct bpfhv_rx_context *ctx,
         }
     }
 
-    smp_mb();
+    /* Barrier between store(sring entries) and store(priv->cons). */
+    smp_mb_release();
     priv->cons = cons;
+    /* Full memory barrier to ensure store(priv->cons) happens before
+     * load(priv->intr_enabled). See the double-check in sring_rxi().*/
     smp_mb();
     *notify = ACCESS_ONCE(priv->intr_enabled);
 
@@ -297,7 +309,7 @@ sring_rxq_notification(struct bpfhv_rx_context *ctx, int enable)
 
     priv->kick_enabled = !!enable;
     if (enable) {
-        smp_mb();
+        smp_mb_acquire();
     }
 }
 
