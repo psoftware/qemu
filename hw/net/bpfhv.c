@@ -363,9 +363,9 @@ static int
 bpfhv_progs_load_fd(BpfhvState *s, int fd, const char *progsname,
                     const char *path, Error **errp)
 {
-    const char *prog_names[BPFHV_PROG_MAX] = {"none",
-                                              "rxp", "rxc", "rxi", "rxr",
-                                              "txp", "txc", "txi", "txr"};
+    const char *prog_names[BPFHV_PROG_MAX] = {"none", "rxp", "rxc", "rxi",
+                                              "rxr", "rxh", "txp", "txc",
+                                              "txi", "txr", "txh"};
     GElf_Ehdr ehdr;
     int ret = -1;
     Elf *elf;
@@ -449,7 +449,8 @@ bpfhv_progs_load_fd(BpfhvState *s, int fd, const char *progsname,
     }
 
     for (i = BPFHV_PROG_NONE + 1; i < BPFHV_PROG_MAX; i++) {
-        if (s->progs[i].insns == NULL || s->progs[i].num_insns == 0) {
+        if ((s->progs[i].insns == NULL || s->progs[i].num_insns == 0) &&
+            (i != BPFHV_PROG_RX_POSTPROC && i != BPFHV_PROG_TX_PREPROC)) {
             error_setg(errp, "Program %s missing in ELF '%s'",
                        prog_names[i], path);
             goto err;
