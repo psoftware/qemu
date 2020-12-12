@@ -206,10 +206,14 @@ typedef struct BpfhvState {
     /* Current dump of queues status to be exposed to the guest. */
     char *curdump;
 
+    /* Current queue buffs count */
+    uint16_t num_rx_bufs;
+    uint16_t num_tx_bufs;
+
     /* Tunables exposed to the user. */
     struct {
-        uint16_t num_rx_bufs;
-        uint16_t num_tx_bufs;
+        uint16_t def_num_rx_bufs;
+        uint16_t def_num_tx_bufs;
         bool csum;
         bool gso;
     } net_conf;
@@ -497,6 +501,18 @@ err:
     return ret;
 }
 
+static bool
+bpfhv_num_bufs_validate(unsigned int num_bufs, int check_power2)
+{
+    if (num_bufs < 16 || num_bufs > 8192) {
+        return false;
+    }
+    if (check_power2 && ((num_bufs & (num_bufs - 1)) != 0)) {
+        return false;
+    }
+    return true;
+}
+
 /* Do most of the setup with the backend process. Only skip setting
  * the queue context, because that causes the backend process to
  * reinitialize the private context, and we want to do that only when
@@ -528,8 +544,31 @@ bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
     /* Expose the update features, so that the guest can detect them. */
     s->ioregs[BPFHV_REG(FEATURES)] = s->hv_features;
 
-    if (bpfhv_proxy_set_parameters(s->proxy, s->net_conf.num_rx_bufs,
-                                   s->net_conf.num_tx_bufs, &rx_ctx_size,
+    if (bpfhv_proxy_get_parameters(s->proxy, &s->num_rx_bufs,
+                                   &s->num_tx_bufs)) {
+        error_setg(errp, "Failed to get proxy parameters");
+        return -1;
+    }
+
+    /* Validate num_rx_bufs/num_tx_bufs provided by backend */
+    if (!bpfhv_num_bufs_validate(s->num_rx_bufs, false)) {
+        error_setg(errp, "Invalid number of rx bufs: %u",
+                   s->num_rx_bufs);
+        return -1;
+    }
+
+    if (!bpfhv_num_bufs_validate(s->num_tx_bufs, false)) {
+        error_setg(errp, "Invalid number of tx bufs: %u",
+                   s->num_tx_bufs);
+        return -1;
+    }
+
+
+    s->ioregs[BPFHV_REG(NUM_RX_BUFS)] = s->num_rx_bufs;
+    s->ioregs[BPFHV_REG(NUM_TX_BUFS)] = s->num_tx_bufs;
+
+    if (bpfhv_proxy_set_parameters(s->proxy, s->num_rx_bufs,
+                                   s->num_tx_bufs, &rx_ctx_size,
                                    &tx_ctx_size)) {
         error_setg(errp, "Failed to set proxy parameters");
         return -1;
@@ -1480,16 +1519,6 @@ bpfhv_mem_unmap(BpfhvState *s, void *buffer, hwaddr len, int is_write)
 }
 
 static bool
-bpfhv_num_bufs_validate(unsigned int num_bufs)
-{
-    if (num_bufs < 16 || num_bufs > 8192 ||
-            (num_bufs & (num_bufs - 1)) != 0) {
-        return false;
-    }
-    return true;
-}
-
-static bool
 bpfhv_doorbell_size_validate(unsigned int db_size)
 {
     if (db_size < 8 || db_size > (1 << 21) ||
@@ -1539,6 +1568,24 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
                 s->hv_features |= BPFHV_GSO_FEATURES;
             }
         }
+
+        /* Init queue buffs to values provided by user if proxy is not used */
+        s->num_rx_bufs = s->net_conf.def_num_rx_bufs;
+        s->num_tx_bufs = s->net_conf.def_num_tx_bufs;
+
+        /* num_rx_bufs/num_tx_bufs should be power of 2 if using device sring.
+         * proxy can provide any number of bufs, so validation should happen later */
+        if (!bpfhv_num_bufs_validate(s->num_rx_bufs, true)) {
+            error_setg(errp, "Invalid number of rx bufs: %u",
+                       s->num_rx_bufs);
+            return;
+        }
+
+        if (!bpfhv_num_bufs_validate(s->num_tx_bufs, true)) {
+            error_setg(errp, "Invalid number of tx bufs: %u",
+                       s->num_tx_bufs);
+            return;
+        }
     }
 
     /* Validate the tunable parameters. */
@@ -1548,18 +1595,6 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
         return;
     }
     s->num_queues = s->num_queue_pairs * 2;
-
-    if (!bpfhv_num_bufs_validate(s->net_conf.num_rx_bufs)) {
-        error_setg(errp, "Invalid number of rx bufs: %u",
-                   s->net_conf.num_rx_bufs);
-        return;
-    }
-
-    if (!bpfhv_num_bufs_validate(s->net_conf.num_tx_bufs)) {
-        error_setg(errp, "Invalid number of tx bufs: %u",
-                   s->net_conf.num_tx_bufs);
-        return;
-    }
 
     if (!bpfhv_doorbell_size_validate(s->doorbell_size)) {
         error_setg(errp, "Invalid doorbell size: %u", s->doorbell_size);
@@ -1787,8 +1822,8 @@ static void qdev_bpfhv_reset(DeviceState *dev)
     s->ioregs[BPFHV_REG(VERSION)] = BPFHV_VERSION;
     s->ioregs[BPFHV_REG(NUM_RX_QUEUES)] = s->num_queue_pairs;
     s->ioregs[BPFHV_REG(NUM_TX_QUEUES)] = s->num_queue_pairs;
-    s->ioregs[BPFHV_REG(NUM_RX_BUFS)] = s->net_conf.num_rx_bufs;
-    s->ioregs[BPFHV_REG(NUM_TX_BUFS)] = s->net_conf.num_tx_bufs;
+    s->ioregs[BPFHV_REG(NUM_RX_BUFS)] = s->net_conf.def_num_rx_bufs;
+    s->ioregs[BPFHV_REG(NUM_TX_BUFS)] = s->net_conf.def_num_tx_bufs;
     s->ioregs[BPFHV_REG(RX_CTX_SIZE)] = sizeof(struct bpfhv_rx_context)
         + sring_rx_ctx_size(s->ioregs[BPFHV_REG(NUM_RX_BUFS)]);
     s->ioregs[BPFHV_REG(TX_CTX_SIZE)] = sizeof(struct bpfhv_tx_context)
@@ -1845,8 +1880,8 @@ static const VMStateDescription vmstate_bpfhv = {
 static Property bpfhv_properties[] = {
     DEFINE_NIC_PROPERTIES(BpfhvState, nic_conf),
     DEFINE_PROP_UINT32("doorbell_size", BpfhvState, doorbell_size, 8),
-    DEFINE_PROP_UINT16("num_rx_bufs", BpfhvState, net_conf.num_rx_bufs, 256),
-    DEFINE_PROP_UINT16("num_tx_bufs", BpfhvState, net_conf.num_tx_bufs, 256),
+    DEFINE_PROP_UINT16("num_rx_bufs", BpfhvState, net_conf.def_num_rx_bufs, 256),
+    DEFINE_PROP_UINT16("num_tx_bufs", BpfhvState, net_conf.def_num_tx_bufs, 256),
     DEFINE_PROP_BOOL("csum", BpfhvState, net_conf.csum, true),
     DEFINE_PROP_BOOL("gso", BpfhvState, net_conf.gso, true),
     DEFINE_PROP_END_OF_LIST(),

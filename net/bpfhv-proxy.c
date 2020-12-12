@@ -223,6 +223,30 @@ bpfhv_proxy_set_features(BpfhvProxyState *s, uint64_t features)
 }
 
 int
+bpfhv_proxy_get_parameters(BpfhvProxyState *s, uint16_t *num_rx_bufs,
+                           uint16_t *num_tx_bufs)
+{
+    BpfhvProxyMessage msg;
+    int ret;
+
+    memset(&msg, 0, sizeof(msg));
+    msg.hdr.reqtype = BPFHV_PROXY_REQ_GET_PARAMETERS;
+
+    ret = bpfhv_proxy_sendrecv(s, &msg, NULL, 0);
+    if (ret) {
+        return ret;
+    }
+
+    *num_rx_bufs = msg.payload.params.num_rx_bufs;
+    *num_tx_bufs = msg.payload.params.num_tx_bufs;
+
+    DBG("Got queue parameters: %u rx bufs, %u tx bufs",
+        num_rx_bufs, num_tx_bufs);
+
+    return 0;
+}
+
+int
 bpfhv_proxy_set_parameters(BpfhvProxyState *s, size_t num_rx_bufs,
                            size_t num_tx_bufs, size_t *rx_ctx_size,
                            size_t *tx_ctx_size)
