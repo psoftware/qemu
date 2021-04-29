@@ -215,6 +215,9 @@ typedef struct BpfhvState {
     } net_conf;
     uint32_t doorbell_size;
 
+    /* Upgrade event fd used by proxy */
+    EventNotifier upgradefd;
+
     /* An opaque pointer to the proxy net backend, if present. */
     struct BpfhvProxyState *proxy;
 
@@ -358,6 +361,21 @@ bpfhv_upgrade_timer(void *opaque)
               BPFHV_UPGRADE_TIMER_MS);
 }
 #endif /* BPFHV_UPGRADE_TIMER */
+
+static void
+bpfhv_upgrade_event(EventNotifier *notifier)
+{
+    BpfhvState *s = container_of(notifier, BpfhvState, upgradefd);
+    assert(s->proxy != NULL);
+
+    DBG("Got upgrade event!");
+
+    /* inform guest that upgrade is requested */
+    s->ioregs[BPFHV_REG(STATUS)] |= BPFHV_STATUS_UPGRADE;
+    msix_notify(PCI_DEVICE(s), s->num_queues);
+
+    event_notifier_test_and_clear(notifier);
+}
 
 static int
 bpfhv_progs_load_fd(BpfhvState *s, int fd, const char *progsname,
@@ -572,6 +590,13 @@ bpfhv_proxy_reinit(BpfhvState *s, Error **errp)
                          s->q[i].name, irqfd);
         }
     }
+
+    int upgradefd = event_notifier_get_fd(&s->upgradefd);
+    if (bpfhv_proxy_set_upgradefd(s->proxy, upgradefd)) {
+        error_setg(errp, "Failed to set upgradefd to %d", upgradefd);
+        return -1;
+    }
+
 
     return 0;
 }
@@ -1697,6 +1722,13 @@ pci_bpfhv_realize(PCIDevice *pci_dev, Error **errp)
 #endif /* BPFHV_MEMLI */
 
     if (s->proxy) {
+        /* Setup upgrade fd */
+        if (event_notifier_init(&s->upgradefd, 0)) {
+            error_setg_errno(errp, errno, "Failed to initialize upgradefd");
+            return;
+        }
+        event_notifier_set_handler(&s->upgradefd, &bpfhv_upgrade_event);
+
         /* Run reconnection protocol with the backend. */
         if (bpfhv_proxy_reinit(s, errp)) {
             return;
@@ -1731,6 +1763,12 @@ pci_bpfhv_uninit(PCIDevice *dev)
         timer_free(s->upgrade_timer);
     }
 #endif /* BPFHV_UPGRADE_TIMER */
+
+    /* Clean up upgrade fd */
+    if (s->proxy) {
+        event_notifier_set_handler(&s->upgradefd, NULL);
+        event_notifier_cleanup(&s->upgradefd);
+    }
 
     for (i = 0; i < BPFHV_PROG_MAX; i++) {
         if (s->progs[i].insns != NULL) {

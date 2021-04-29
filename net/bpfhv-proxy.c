@@ -421,6 +421,26 @@ bpfhv_proxy_set_queue_irqfd(BpfhvProxyState *s, unsigned int queue_idx,
 }
 
 int
+bpfhv_proxy_set_upgradefd(struct BpfhvProxyState *s, int fd)
+{
+    BpfhvProxyMessage msg;
+    int ret;
+
+    memset(&msg, 0, sizeof(msg));
+    msg.hdr.reqtype = BPFHV_PROXY_REQ_SET_UPGRADE;
+    msg.hdr.size = sizeof(msg.payload.notify);
+
+    ret = bpfhv_proxy_sendrecv(s, &msg, &fd, 1);
+    if (ret) {
+        return ret;
+    }
+
+    DBG("Set upgradefd to %d", fd);
+
+    return 0;
+}
+
+int
 bpfhv_proxy_enable(BpfhvProxyState *s, bool is_rx, bool enable)
 {
     BpfhvProxyMessage msg;
